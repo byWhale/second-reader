@@ -1,0 +1,46 @@
+.DS_Store
+Thumbs.db
+
+# Editors / IDEs
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.local
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+
+# Node / frontend caches
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+
+# Logs / temp output
+*.log
+
+# Backend runtime artifacts
+reading-companion-backend/data/
+reading-companion-backend/output/
+reading-companion-backend/state/
+
+# Keep analysis reports docs, but ignore generated logs
+reading-companion-backend/analysis_reports/*.log
+reading-companion-backend/analysis_reports/test_runs/
