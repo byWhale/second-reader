@@ -9,6 +9,7 @@
     "dev": "vite",
     "e2e": "playwright test",
     "generate-api-types": "openapi-typescript ../contract/openapi.public.snapshot.json -o src/app/lib/generated/api-schema.d.ts",
+    "preview-reactions": "tsx scripts/preview-reactions.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

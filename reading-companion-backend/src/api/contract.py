@@ -30,7 +30,7 @@ COMPAT_ROUTES = [
 
 LANDING_STRATEGY = {
     "owner": "frontend_static",
-    "display_card_count": 6,
+    "display_card_count": 5,
     "sample_teaser_source": "frontend_static",
 }
 

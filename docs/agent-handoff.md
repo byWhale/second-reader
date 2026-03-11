@@ -39,6 +39,8 @@
 
 ## Remaining Migration Notes
 - Landing is frontend-only now. Do not reintroduce backend-owned landing/sample endpoints unless the contract doc is updated first.
+- Landing live preview can now pin real reactions by public ID. Configure `reading-companion-frontend/src/app/content/landing-content.ts` with `LANDING_PREVIEW_CONFIG.api.bookId`, `chapterId`, and optional `selectedReactionIds`.
+- To discover candidate preview IDs for one chapter, run `make preview-reactions BOOK_ID=<bookId> CHAPTER_ID=<chapterId>` while the backend API is running.
 - Backend still accepts old `connect_back` artifacts on read, but new runtime outputs should write `retrospect`, and the public API must keep normalizing old payloads.
 - Public IDs are now integer contract IDs. Internal runtime artifacts still use string identifiers under `reading-companion-backend/output/`, and the API layer is responsible for the translation.
 - Frontend request/response types should come from the committed OpenAPI snapshot via `src/app/lib/generated/api-schema.d.ts` and `src/app/lib/api-types.ts`. Keep runtime helpers in `src/app/lib/api.ts` thin.

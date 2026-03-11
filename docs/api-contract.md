@@ -256,7 +256,7 @@ The JSON block below is the machine-readable appendix used by the root contract 
   ],
   "landing_strategy": {
     "owner": "frontend_static",
-    "display_card_count": 6,
+    "display_card_count": 5,
     "sample_teaser_source": "frontend_static"
   }
 }

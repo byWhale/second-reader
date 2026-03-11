@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, Link2, RotateCcw, Scale, Search, Sparkles, Upload } from "lucide-react";
+import { ArrowRight, Link2, RotateCcw, Scale, Search, Sparkles, Upload } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
@@ -8,6 +8,7 @@ import {
   LANDING_HERO,
   LANDING_PREVIEW_CONFIG,
   LANDING_PREVIEW_SECTION,
+  LANDING_REACTION_ART,
   LANDING_REACTION_CARDS,
   LANDING_REACTION_SECTION,
 } from "../content/landing-content";
@@ -21,7 +22,6 @@ const landingIcons = {
   discern: Scale,
   retrospect: RotateCcw,
   curious: Search,
-  marks: Bookmark,
 } as const;
 
 type PreviewReaction = {
@@ -62,15 +62,18 @@ function LandingHeroIllustration({ className = "", mobile = false }: { className
         className="block h-auto w-full drop-shadow-[0_26px_70px_rgba(89,62,38,0.16)]"
         style={{ objectPosition: mobile ? LANDING_HERO_ART.mobileObjectPosition : LANDING_HERO_ART.desktopObjectPosition }}
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: [
-            "linear-gradient(to right, var(--warm-100) 0%, rgba(248,244,238,0) 12%, rgba(248,244,238,0) 88%, var(--warm-100) 100%)",
-            "linear-gradient(to bottom, var(--warm-100) 0%, rgba(248,244,238,0) 10%, rgba(248,244,238,0) 90%, var(--warm-100) 100%)",
-          ].join(", "),
-        }}
+    </div>
+  );
+}
+
+function LandingReactionIllustration({ className = "" }: { className?: string }) {
+  return (
+    <div className={`relative ${className}`.trim()}>
+      <div className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle_at_center,rgba(244,234,208,0.88)_0%,rgba(244,234,208,0.4)_52%,rgba(244,234,208,0)_76%)] blur-2xl" />
+      <img
+        src={LANDING_REACTION_ART.src}
+        alt={LANDING_REACTION_ART.alt}
+        className="relative block h-auto w-full drop-shadow-[0_16px_42px_rgba(89,62,38,0.14)]"
       />
     </div>
   );
@@ -86,7 +89,53 @@ function buildStaticPreview(): ResolvedLandingPreview {
   };
 }
 
-function selectPreviewItems(chapter: ChapterDetailResponse, maxItems: number) {
+function collectPreviewItems(chapter: ChapterDetailResponse): PreviewReaction[] {
+  const items = new Map<number, PreviewReaction>();
+
+  for (const reaction of chapter.featured_reactions) {
+    items.set(reaction.reaction_id, {
+      reactionId: reaction.reaction_id,
+      type: reaction.type,
+      chapterRef: reaction.chapter_ref,
+      sectionRef: reaction.section_ref,
+      anchorQuote: reaction.anchor_quote,
+      content: reaction.content,
+    });
+  }
+
+  for (const section of chapter.sections) {
+    for (const reaction of section.reactions) {
+      if (items.has(reaction.reaction_id)) {
+        continue;
+      }
+      items.set(reaction.reaction_id, {
+        reactionId: reaction.reaction_id,
+        type: reaction.type,
+        chapterRef: chapter.chapter_ref,
+        sectionRef: reaction.section_ref,
+        anchorQuote: reaction.anchor_quote,
+        content: reaction.content,
+      });
+    }
+  }
+
+  return Array.from(items.values());
+}
+
+function selectPreviewItems(chapter: ChapterDetailResponse, maxItems: number, selectedReactionIds?: readonly number[]) {
+  const allItems = collectPreviewItems(chapter);
+
+  if (selectedReactionIds?.length) {
+    const byId = new Map(allItems.map((item) => [item.reactionId, item]));
+    const selectedItems = selectedReactionIds
+      .map((reactionId) => byId.get(reactionId))
+      .filter((item): item is PreviewReaction => Boolean(item));
+
+    if (selectedItems.length > 0) {
+      return selectedItems.slice(0, maxItems);
+    }
+  }
+
   const featured = chapter.featured_reactions.slice(0, maxItems).map((reaction) => ({
     reactionId: reaction.reaction_id,
     type: reaction.type,
@@ -98,18 +147,7 @@ function selectPreviewItems(chapter: ChapterDetailResponse, maxItems: number) {
   if (featured.length > 0) {
     return featured;
   }
-  return chapter.sections
-    .flatMap((section) =>
-      section.reactions.map((reaction) => ({
-        reactionId: reaction.reaction_id,
-        type: reaction.type,
-        chapterRef: chapter.chapter_ref,
-        sectionRef: reaction.section_ref,
-        anchorQuote: reaction.anchor_quote,
-        content: reaction.content,
-      })),
-    )
-    .slice(0, maxItems);
+  return allItems.slice(0, maxItems);
 }
 
 async function loadApiPreview(): Promise<ResolvedLandingPreview | null> {
@@ -126,7 +164,11 @@ async function loadApiPreview(): Promise<ResolvedLandingPreview | null> {
   }
 
   const chapter = await fetchChapterDetail(LANDING_PREVIEW_CONFIG.api.bookId, chapterId);
-  const items = selectPreviewItems(chapter, LANDING_PREVIEW_CONFIG.api.maxItems);
+  const items = selectPreviewItems(
+    chapter,
+    LANDING_PREVIEW_CONFIG.api.maxItems,
+    LANDING_PREVIEW_CONFIG.api.selectedReactionIds,
+  );
   if (items.length === 0) {
     return null;
   }
@@ -143,6 +185,8 @@ async function loadApiPreview(): Promise<ResolvedLandingPreview | null> {
 export function LandingPage() {
   const [preview, setPreview] = useState<ResolvedLandingPreview>(buildStaticPreview);
   const kickerParts = splitKickerText(LANDING_HERO.kicker);
+  const topReactionCards = LANDING_REACTION_CARDS.slice(0, 3);
+  const bottomReactionCards = LANDING_REACTION_CARDS.slice(3);
 
   useEffect(() => {
     let active = true;
@@ -235,40 +279,119 @@ export function LandingPage() {
       </section>
 
       <section className="px-6 py-18 bg-white/50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
+        <div className="max-w-[76rem] mx-auto">
+          <div className="text-center mb-8 lg:hidden">
             <p className="text-[var(--amber-accent)] mb-2 tracking-widest uppercase" style={{ fontSize: "0.75rem", fontWeight: 500, letterSpacing: "0.15em" }}>
               {LANDING_REACTION_SECTION.eyebrow}
             </p>
-            <h2 className="font-['Lora',Georgia,serif] text-[var(--warm-900)]" style={{ fontSize: "1.75rem", fontWeight: 500 }}>
+            <h2 className="font-['Lora',Georgia,serif] text-[var(--warm-900)] mb-3" style={{ fontSize: "1.75rem", fontWeight: 500 }}>
               {LANDING_REACTION_SECTION.title}
             </h2>
+            <p className="text-[var(--warm-600)] max-w-[52rem] mx-auto" style={{ fontSize: "0.9875rem", lineHeight: 1.75 }}>
+              {LANDING_REACTION_SECTION.description}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:hidden">
             {LANDING_REACTION_CARDS.map((item, index) => {
-              const Icon = landingIcons[item.key];
               const meta = reactionMeta[item.accentType];
+              const Icon = landingIcons[item.key as keyof typeof landingIcons];
               return (
                 <motion.div
                   key={item.title}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.08 }}
-                  className={`rounded-xl border border-[var(--warm-300)]/30 p-6 ${meta.surfaceClass}`}
+                  className={`rounded-[1.35rem] border border-[var(--warm-300)]/38 p-5 ${meta.surfaceClass}`}
                 >
-                  <div className="flex items-center gap-3 mb-3">
+                  <div className="mb-3 flex items-center gap-3">
                     <Icon className={`w-5 h-5 ${meta.accentClass}`} />
                     <h3 className="font-['Lora',Georgia,serif] text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
                       {item.title}
                     </h3>
                   </div>
-                  <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
+                  <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.65 }}>
                     {item.description}
                   </p>
                 </motion.div>
               );
             })}
+          </div>
+
+          <div className="hidden lg:block">
+            <div className="ml-auto grid max-w-[74rem] grid-cols-[17rem_1fr] items-start gap-x-9 xl:max-w-[78rem] xl:grid-cols-[18.5rem_1fr] xl:gap-x-11 2xl:max-w-[81rem] 2xl:grid-cols-[19rem_1fr] 2xl:gap-x-12">
+              <div className="flex justify-center pt-16 xl:pt-18 2xl:pt-20">
+                <LandingReactionIllustration className="w-full max-w-[16.5rem] xl:max-w-[17.75rem] 2xl:max-w-[18.25rem]" />
+              </div>
+
+              <div className="space-y-5">
+                <div className="mx-auto max-w-[55rem] text-center xl:max-w-[57rem]">
+                  <p className="text-[var(--amber-accent)] mb-2 tracking-widest uppercase" style={{ fontSize: "0.75rem", fontWeight: 500, letterSpacing: "0.15em" }}>
+                    {LANDING_REACTION_SECTION.eyebrow}
+                  </p>
+                  <h2 className="font-['Lora',Georgia,serif] text-[var(--warm-900)] mb-3" style={{ fontSize: "1.75rem", fontWeight: 500 }}>
+                    {LANDING_REACTION_SECTION.title}
+                  </h2>
+                  <p className="text-[var(--warm-600)] max-w-[44rem] mx-auto" style={{ fontSize: "0.9875rem", lineHeight: 1.75 }}>
+                    {LANDING_REACTION_SECTION.description}
+                  </p>
+                </div>
+
+                <div className="space-y-3.5">
+                  <div className="grid w-full max-w-[55rem] grid-cols-3 gap-3.5 xl:max-w-[57rem]">
+                    {topReactionCards.map((item, index) => {
+                      const meta = reactionMeta[item.accentType];
+                      const Icon = landingIcons[item.key as keyof typeof landingIcons];
+                      return (
+                        <motion.div
+                          key={item.title}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: index * 0.08 }}
+                          className={`rounded-[1.35rem] border border-[var(--warm-300)]/45 p-5 min-h-[8.85rem] ${meta.surfaceClass}`}
+                        >
+                          <div className="mb-3 flex items-center gap-3">
+                            <Icon className={`w-5 h-5 shrink-0 ${meta.accentClass}`} />
+                            <h3 className="font-['Lora',Georgia,serif] text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+                              {item.title}
+                            </h3>
+                          </div>
+                          <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.65 }}>
+                            {item.description}
+                          </p>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid w-full max-w-[37.25rem] grid-cols-2 gap-3.5 mx-auto">
+                    {bottomReactionCards.map((item, index) => {
+                      const meta = reactionMeta[item.accentType];
+                      const Icon = landingIcons[item.key as keyof typeof landingIcons];
+                      return (
+                        <motion.div
+                          key={item.title}
+                          initial={{ opacity: 0, y: 16 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: (index + topReactionCards.length) * 0.08 }}
+                          className={`rounded-[1.35rem] border border-[var(--warm-300)]/45 p-5 min-h-[8.85rem] ${meta.surfaceClass}`}
+                        >
+                          <div className="mb-3 flex items-center gap-3">
+                            <Icon className={`w-5 h-5 shrink-0 ${meta.accentClass}`} />
+                            <h3 className="font-['Lora',Georgia,serif] text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+                              {item.title}
+                            </h3>
+                          </div>
+                          <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.65 }}>
+                            {item.description}
+                          </p>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

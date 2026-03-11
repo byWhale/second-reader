@@ -6,7 +6,7 @@ const DEFAULT_PREVIEW_BOOK_ID: BookId = 2488754074399462;
 export const LANDING_HERO = {
   title: "What AI Thinks About",
   emphasis: "When AI Reads",
-  description: "An AI reading companion that reads alongside you, spotting what you might miss and surfacing links you have not made yet.",
+  description: "An AI reading companion that reads alongside you, noticing what you might miss, questioning what you might accept, and connecting what you might not link.",
   kicker: "Helping you find your UNKNOWN UNKNOWNS.",
   primaryCta: {
     label: "View Sample",
@@ -26,8 +26,15 @@ export const LANDING_HERO_ART = {
 } as const;
 
 export const LANDING_REACTION_SECTION = {
-  eyebrow: "Six Types of Reading Reactions",
-  title: "How the AI reads with you",
+  eyebrow: "Reactions That Emerge",
+  title: "How the agent thinks as it reads",
+  description:
+    "It reads paragraph by paragraph, letting different reactions emerge from the text itself rather than forcing every passage through a fixed sequence.",
+} as const;
+
+export const LANDING_REACTION_ART = {
+  src: "/landing/reactions-robot-illustration.png",
+  alt: "A brass robot thinking through books, questions, patterns, and distinctions.",
 } as const;
 
 export const LANDING_PREVIEW_SECTION = {
@@ -67,12 +74,6 @@ export const LANDING_REACTION_CARDS = [
     accentType: "curious",
     title: "Curious",
     description: "Questions that send the AI searching for missing context or evidence.",
-  },
-  {
-    key: "marks",
-    accentType: "highlight",
-    title: "Known / Blindspot",
-    description: "A simple way to separate what already felt familiar from what changed your map.",
   },
 ] as const satisfies ReadonlyArray<{
   key: string;
@@ -115,11 +116,39 @@ export const LANDING_SAMPLE_TEASERS = [
   content: string;
 }>;
 
+type LandingPreviewConfig = {
+  mode: "api" | "static";
+  api: {
+    bookId: BookId;
+    chapterId?: number;
+    selectedReactionIds?: readonly ReactionId[];
+    maxItems: number;
+    ctaTo: string;
+  };
+  static: {
+    sourceTitle: string;
+    sourceAuthor: string;
+    sourceLabel: string;
+    ctaTo: string;
+    items: readonly {
+      reactionId: ReactionId;
+      type: ReactionType;
+      chapterRef: string;
+      sectionRef: string;
+      anchorQuote: string;
+      content: string;
+    }[];
+  };
+};
+
 export const LANDING_PREVIEW_CONFIG = {
   mode: "api",
   api: {
     bookId: DEFAULT_PREVIEW_BOOK_ID,
     chapterId: undefined as number | undefined,
+    // To hand-pick real preview notes, set chapterId and add public reaction IDs here.
+    // selectedReactionIds: [4101, 4102, 4103],
+    selectedReactionIds: undefined as readonly ReactionId[] | undefined,
     maxItems: 3,
     ctaTo: canonicalBookPath(DEFAULT_PREVIEW_BOOK_ID),
   },
@@ -130,6 +159,6 @@ export const LANDING_PREVIEW_CONFIG = {
     ctaTo: canonicalBookPath(DEFAULT_PREVIEW_BOOK_ID),
     items: LANDING_SAMPLE_TEASERS,
   },
-} as const;
+} as const satisfies LandingPreviewConfig;
 
 export const LANDING_FOOTER_COPY = BRAND_CONFIG.footer.signature;
