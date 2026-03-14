@@ -8,11 +8,10 @@ import {
   FileText,
   Globe2,
   LoaderCircle,
-  Search,
   Sparkles,
   TreePine,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   type ActivityEvent,
@@ -33,6 +32,7 @@ import { markLabel } from "../lib/marks";
 import { reactionLabel } from "../lib/reactions";
 import { EmptyState, ErrorState, LoadingState } from "./page-state";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { useViewportResponsiveTier } from "./ui/use-responsive-tier";
 
 type StructureViewMode = "outline" | "progress" | "result";
 type OverviewChapter = {
@@ -56,6 +56,23 @@ function formatTimestamp(value?: string | null) {
     return value;
   }
   return parsed.toLocaleString();
+}
+
+function formatEta(seconds?: number | null) {
+  if (seconds == null) {
+    return "ETA unavailable";
+  }
+  if (seconds < 60) {
+    return `${seconds}s remaining`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) {
+    return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s remaining` : `${minutes}m remaining`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m remaining` : `${hours}h remaining`;
 }
 
 function totalReactionCount(detail: BookDetailResponse) {
@@ -286,41 +303,96 @@ function BookOverviewStatusBand({
   const progressPercent =
     analysis?.progress_percent ??
     (detail.chapter_count > 0 ? Math.round((detail.completed_chapter_count / detail.chapter_count) * 10000) / 100 : 0);
+  const parsing = isAnalysisParsing(analysis);
+  const stepLabel = analysis?.current_state_panel.current_phase_step ?? analysis?.current_phase_step ?? "Pending";
+  const currentFocus = parsing
+    ? stepLabel
+    : analysis?.current_state_panel.current_section_ref ?? stepLabel;
+  const currentChapter = analysis?.current_state_panel.current_chapter_ref ?? "Waiting for structure";
+  const reactionEntries = Object.entries(analysis?.current_state_panel.reaction_counts ?? {}).filter(([, count]) => count > 0);
 
   return (
     <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm mb-8">
-      <div className="flex items-center gap-4 flex-wrap mb-4 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
-        <span className="inline-flex items-center gap-1.5">
-          <LoaderCircle
-            className={`w-4 h-4 ${detail.status === "paused" ? "" : "animate-spin text-[var(--amber-accent)]"}`}
-          />
-          {analysis?.stage_label ?? (detail.status === "paused" ? "已暂停" : "正在同步实时进度")}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Clock3 className="w-4 h-4" />
-          {analysis?.eta_seconds != null ? `${analysis.eta_seconds}s remaining` : "ETA unavailable"}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <BookOpen className="w-4 h-4" />
-          {(analysis?.completed_chapters ?? detail.completed_chapter_count)}/{analysis?.total_chapters ?? detail.chapter_count} chapters
-        </span>
+      <div className="flex items-start justify-between gap-4 flex-col lg:flex-row lg:items-end">
+        <div>
+          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-2" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+            Run Console
+          </p>
+          <div className="flex items-center gap-4 flex-wrap text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
+            <span className="inline-flex items-center gap-1.5">
+              <LoaderCircle
+                className={`w-4 h-4 ${detail.status === "paused" ? "" : "animate-spin text-[var(--amber-accent)]"}`}
+              />
+              {analysis?.stage_label ?? (detail.status === "paused" ? "已暂停" : "正在同步实时进度")}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Clock3 className="w-4 h-4" />
+              {formatEta(analysis?.eta_seconds)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4" />
+              {(analysis?.completed_chapters ?? detail.completed_chapter_count)}/{analysis?.total_chapters ?? detail.chapter_count} chapters
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-[var(--warm-300)]/30 bg-[var(--warm-50)] px-4 py-3 min-w-0 w-full lg:w-auto lg:min-w-72">
+          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+            Status summary
+          </p>
+          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
+            {analysis?.current_state_panel.last_activity_message ?? "Waiting for the next runtime update."}
+          </p>
+        </div>
       </div>
 
-      <div className="h-2 bg-[var(--warm-200)] rounded-full overflow-hidden">
+      <div className="mt-5 h-2 bg-[var(--warm-200)] rounded-full overflow-hidden">
         <div className="h-full bg-[var(--amber-accent)]" style={{ width: `${progressPercent}%` }} />
       </div>
 
+      <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
+          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
+            Current chapter
+          </p>
+          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
+            {currentChapter}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
+          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
+            {parsing ? "Current step" : "Current focus"}
+          </p>
+          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
+            {currentFocus}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
+          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
+            Latest checkpoint
+          </p>
+          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
+            {formatTimestamp(analysis?.last_checkpoint_at) ?? "Not available yet"}
+          </p>
+        </div>
+      </div>
+
+      {reactionEntries.length > 0 && !parsing ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {reactionEntries.map(([type, count]) => (
+            <span
+              key={type}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--warm-100)] border border-[var(--warm-300)]/20 px-3 py-1.5 text-[var(--warm-700)]"
+              style={{ fontSize: "0.75rem", fontWeight: 500 }}
+            >
+              {reactionLabel(type)}
+              <span className="text-[var(--warm-500)]">{count}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       <div className="mt-4 flex items-center gap-3 flex-wrap">
-        {analysis?.last_checkpoint_at ? (
-          <span className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
-            Checkpoint {formatTimestamp(analysis.last_checkpoint_at)}
-          </span>
-        ) : null}
-        {analysis?.current_phase_step ? (
-          <span className="text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
-            {analysis.current_phase_step}
-          </span>
-        ) : null}
         {analysisLoading && !analysis ? (
           <span className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
             正在同步运行时状态...
@@ -423,6 +495,181 @@ function StructureChapterList({
   );
 }
 
+function ProcessingStructureNavigator({
+  bookId,
+  chapters,
+  viewMode,
+  isParsing = false,
+  isPaused = false,
+  isCollapsedByDefault = false,
+  emptyTitle,
+  emptyMessage,
+}: {
+  bookId: number;
+  chapters: OverviewChapter[];
+  viewMode: StructureViewMode;
+  isParsing?: boolean;
+  isPaused?: boolean;
+  isCollapsedByDefault?: boolean;
+  emptyTitle: string;
+  emptyMessage: string;
+}) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const listNode = listRef.current;
+    if (!listNode || chapters.length === 0) {
+      return;
+    }
+    const currentRow = listNode.querySelector<HTMLElement>("[data-current='true']");
+    if (!currentRow) {
+      return;
+    }
+    currentRow.scrollIntoView({ block: "center" });
+  }, [chapters]);
+
+  const content = chapters.length === 0 ? (
+    <div className="py-4">
+      <EmptyState title={emptyTitle} message={emptyMessage} />
+    </div>
+  ) : (
+    <div ref={listRef} className="space-y-2 overflow-y-auto pr-2 md:max-h-[32rem] lg:max-h-[calc(100vh-10rem)]">
+      {chapters.map((chapter) => {
+        const statusLabel = structureStatusLabel(chapter, viewMode, { isParsing, isPaused });
+        const isInteractive = chapter.result_ready;
+        const wrapperClass = `block rounded-2xl border px-4 py-3 no-underline transition-all ${
+          chapter.is_current
+            ? "border-[var(--amber-accent)]/40 bg-[var(--amber-bg)] shadow-sm"
+            : "border-[var(--warm-300)]/25 bg-[var(--warm-50)] hover:border-[var(--amber-accent)]/25 hover:bg-white"
+        }`;
+        const rowContent = (
+          <>
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+                  {chapter.chapter_ref}
+                </p>
+                <p
+                  className="text-[var(--warm-900)] line-clamp-2"
+                  style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.45 }}
+                >
+                  {chapter.title}
+                </p>
+              </div>
+              <div className="shrink-0 text-right space-y-1">
+                {viewMode !== "outline" && chapter.segment_count > 0 ? (
+                  <p className="text-[var(--warm-600)]" style={{ fontSize: "0.75rem" }}>
+                    {chapter.segment_count} sections
+                  </p>
+                ) : null}
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-1 ${
+                    chapter.is_current
+                      ? "bg-white text-[var(--amber-accent)]"
+                      : "bg-[var(--warm-100)] text-[var(--warm-500)]"
+                  }`}
+                  style={{ fontSize: "0.6875rem", fontWeight: 600 }}
+                >
+                  {statusLabel}
+                </span>
+              </div>
+            </div>
+
+            {viewMode === "result" ? (
+              <div className="mt-2 flex items-center gap-3 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+                <span>{chapter.visible_reaction_count} reactions</span>
+                <span>{chapter.high_signal_reaction_count} high-signal</span>
+              </div>
+            ) : null}
+
+            {viewMode === "progress" && isInteractive ? (
+              <div className="mt-2 inline-flex items-center gap-1 text-[var(--amber-accent)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                Open chapter
+                <ArrowRight className="w-3 h-3" />
+              </div>
+            ) : null}
+          </>
+        );
+
+        if (!isInteractive) {
+          return (
+            <div
+              key={chapter.chapter_id}
+              data-current={chapter.is_current ? "true" : "false"}
+              data-testid={`book-overview-structure-nav-${chapter.chapter_id}`}
+              className={wrapperClass}
+            >
+              {rowContent}
+            </div>
+          );
+        }
+
+        return (
+          <Link
+            key={chapter.chapter_id}
+            to={canonicalChapterPath(bookId, chapter.chapter_id)}
+            data-current={chapter.is_current ? "true" : "false"}
+            data-testid={`book-overview-structure-nav-${chapter.chapter_id}`}
+            className={wrapperClass}
+          >
+            {rowContent}
+          </Link>
+        );
+      })}
+    </div>
+  );
+
+  if (isCollapsedByDefault) {
+    return (
+      <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm">
+        <details>
+          <summary className="list-none cursor-pointer">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
+                <div>
+                  <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+                    Structure
+                  </h2>
+                  <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+                    Navigate chapters without turning the page into one long stream.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[var(--amber-accent)]" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
+                Expand
+              </span>
+            </div>
+          </summary>
+          <div className="mt-4">{content}</div>
+        </details>
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm lg:sticky lg:top-28">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
+          <div>
+            <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+              Structure
+            </h2>
+            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+              Compact chapter navigation with live progress.
+            </p>
+          </div>
+        </div>
+        <span className="text-[var(--warm-500)] whitespace-nowrap" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+          {chapters.length} chapters
+        </span>
+      </div>
+      {content}
+    </section>
+  );
+}
+
 function BookMarksPanel({
   bookId,
   marks,
@@ -495,184 +742,7 @@ function BookMarksPanel({
   );
 }
 
-function CurrentStatePanel({
-  analysis,
-}: {
-  analysis: AnalysisStateResponse;
-}) {
-  const parsing = isAnalysisParsing(analysis);
-  const stepLabel = analysis.current_state_panel.current_phase_step ?? analysis.current_phase_step ?? "Pending";
-
-  return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <Search className="w-4 h-4 text-[var(--amber-accent)]" />
-        <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-          Current state
-        </h2>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-[var(--warm-100)] p-4">
-          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-            Chapter
-          </p>
-          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-            {analysis.current_state_panel.current_chapter_ref ?? "Waiting for structure"}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-[var(--warm-100)] p-4">
-          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-            {parsing ? "Step" : "Section"}
-          </p>
-          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-            {parsing ? stepLabel : analysis.current_state_panel.current_section_ref ?? "Pending"}
-          </p>
-        </div>
-      </div>
-
-      {!parsing ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
-          {Object.entries(analysis.current_state_panel.reaction_counts).map(([type, count]) => (
-            <div key={type} className="rounded-2xl bg-[var(--warm-100)] p-4">
-              <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-                {reactionLabel(type)}
-              </p>
-              <p className="text-[var(--warm-900)]" style={{ fontSize: "1.25rem", fontWeight: 600 }}>
-                {count}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <p className="text-[var(--warm-600)] mt-4" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
-        {analysis.current_state_panel.last_activity_message ?? "No recent activity message yet."}
-      </p>
-    </section>
-  );
-}
-
-function RecentlyCompletedPanel({
-  analysis,
-}: {
-  analysis: AnalysisStateResponse;
-}) {
-  if (analysis.recent_completed_chapters.length === 0) {
-    return null;
-  }
-
-  return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <BookOpen className="w-4 h-4 text-[var(--amber-accent)]" />
-        <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-          Recently completed
-        </h2>
-      </div>
-      <div className="space-y-3">
-        {analysis.recent_completed_chapters.map((chapter) => (
-          <Link
-            key={chapter.chapter_id}
-            to={canonicalChapterPath(analysis.book_id, chapter.chapter_id)}
-            data-testid={`analysis-completed-${chapter.chapter_id}`}
-            className="block rounded-2xl bg-[var(--warm-100)] p-4 no-underline hover:bg-[var(--warm-200)] transition-colors"
-          >
-            <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-              {chapter.chapter_ref}
-            </p>
-            <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-              {chapter.title}
-            </p>
-            <p className="text-[var(--warm-600)] mt-2" style={{ fontSize: "0.8125rem" }}>
-              {chapter.visible_reaction_count} reactions · {chapter.high_signal_reaction_count} high-signal
-            </p>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ActivityFeedPanel({
-  activity,
-}: {
-  activity: ActivityEvent[];
-}) {
-  return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
-        <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-          Activity feed
-        </h2>
-      </div>
-      {activity.length === 0 ? (
-        <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
-          Activity will appear here as the parser and reader make progress.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {activity.map((event) => (
-            <div key={event.event_id} className="border-l-2 border-[var(--warm-300)] pl-4">
-              <p className="text-[var(--warm-900)]" style={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: 1.6 }}>
-                {event.message}
-              </p>
-              {event.highlight_quote ? (
-                <blockquote className="text-[var(--warm-600)] italic mt-2" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
-                  “{event.highlight_quote}”
-                </blockquote>
-              ) : null}
-              <div className="flex items-center gap-2 flex-wrap mt-2 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                <span>{formatTimestamp(event.timestamp)}</span>
-                {event.chapter_ref ? <span>{event.chapter_ref}</span> : null}
-                {event.section_ref ? <span>{event.section_ref}</span> : null}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function TechnicalLogPanel({
-  log,
-}: {
-  log: AnalysisLogResponse | null;
-}) {
-  return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
-      <div className="flex items-center gap-2 mb-4">
-        <FileText className="w-4 h-4 text-[var(--amber-accent)]" />
-        <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-          Technical log
-        </h2>
-      </div>
-      <details className="group">
-        <summary
-          className="cursor-pointer text-[var(--amber-accent)] hover:text-[var(--warm-700)]"
-          style={{ fontSize: "0.875rem", fontWeight: 500 }}
-        >
-          Show recent runtime output
-        </summary>
-        <div className="mt-4 rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/30 p-4 max-h-72 overflow-auto">
-          {log?.lines.length ? (
-            <pre className="m-0 whitespace-pre-wrap break-words text-[var(--warm-700)] font-mono" style={{ fontSize: "0.75rem", lineHeight: 1.7 }}>
-              {log.lines.join("\n")}
-            </pre>
-          ) : (
-            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
-              Runtime output will appear here as the parser or reader writes new lines.
-            </p>
-          )}
-        </div>
-      </details>
-    </section>
-  );
-}
-
-function RuntimeColumn({
+function RuntimeFeedPanel({
   analysis,
   activity,
   log,
@@ -716,12 +786,122 @@ function RuntimeColumn({
   }
 
   return (
-    <div className="space-y-6">
-      <CurrentStatePanel analysis={analysis} />
-      <RecentlyCompletedPanel analysis={analysis} />
-      <ActivityFeedPanel activity={activity} />
-      <TechnicalLogPanel log={log} />
-    </div>
+    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
+      <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
+            <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+              Run log
+            </h2>
+          </div>
+          <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
+            Keep one place for recently finished chapters, live activity, and lower-level runtime output.
+          </p>
+        </div>
+        <span className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+          {activity.length} recent events
+        </span>
+      </div>
+
+      {analysis.recent_completed_chapters.length > 0 ? (
+        <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <BookOpen className="w-4 h-4 text-[var(--amber-accent)]" />
+            <h3 className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
+              Recently completed
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {analysis.recent_completed_chapters.map((chapter) => (
+              <Link
+                key={chapter.chapter_id}
+                to={canonicalChapterPath(analysis.book_id, chapter.chapter_id)}
+                data-testid={`analysis-completed-${chapter.chapter_id}`}
+                className="block rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/25 px-4 py-3 no-underline hover:bg-white hover:border-[var(--amber-accent)]/25 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+                      {chapter.chapter_ref}
+                    </p>
+                    <p className="text-[var(--warm-900)] line-clamp-2" style={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.5 }}>
+                      {chapter.title}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-4 h-4 shrink-0 text-[var(--amber-accent)]" />
+                </div>
+                <p className="text-[var(--warm-600)] mt-2" style={{ fontSize: "0.75rem" }}>
+                  {chapter.visible_reaction_count} reactions · {chapter.high_signal_reaction_count} high-signal
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
+          <h3 className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
+            Activity feed
+          </h3>
+        </div>
+        {activity.length === 0 ? (
+          <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
+            Activity will appear here as the parser and reader make progress.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {activity.map((event) => (
+              <div key={event.event_id} className="border-l-2 border-[var(--warm-300)] pl-4">
+                <p className="text-[var(--warm-900)]" style={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: 1.6 }}>
+                  {event.message}
+                </p>
+                {event.highlight_quote ? (
+                  <blockquote className="text-[var(--warm-600)] italic mt-2" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
+                    “{event.highlight_quote}”
+                  </blockquote>
+                ) : null}
+                <div className="flex items-center gap-2 flex-wrap mt-2 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+                  <span>{formatTimestamp(event.timestamp)}</span>
+                  {event.chapter_ref ? <span>{event.chapter_ref}</span> : null}
+                  {event.section_ref ? <span>{event.section_ref}</span> : null}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="w-4 h-4 text-[var(--amber-accent)]" />
+          <h3 className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
+            Technical log
+          </h3>
+        </div>
+        <details className="group">
+          <summary
+            className="cursor-pointer text-[var(--amber-accent)] hover:text-[var(--warm-700)]"
+            style={{ fontSize: "0.875rem", fontWeight: 500 }}
+          >
+            Show recent runtime output
+          </summary>
+          <div className="mt-4 rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/30 p-4 max-h-72 overflow-auto">
+            {log?.lines.length ? (
+              <pre className="m-0 whitespace-pre-wrap break-words text-[var(--warm-700)] font-mono" style={{ fontSize: "0.75rem", lineHeight: 1.7 }}>
+                {log.lines.join("\n")}
+              </pre>
+            ) : (
+              <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
+                Runtime output will appear here as the parser or reader writes new lines.
+              </p>
+            )}
+          </div>
+        </details>
+      </div>
+    </section>
   );
 }
 
@@ -729,6 +909,7 @@ export function BookOverviewPage() {
   const { id = "", bookId = "" } = useParams();
   const resolvedBookId = id || bookId;
   const bookIdNumber = Number(resolvedBookId);
+  const { tier } = useViewportResponsiveTier();
   const [activeTab, setActiveTab] = useState<"chapters" | "marks">("chapters");
   const [startPending, setStartPending] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
@@ -793,6 +974,7 @@ export function BookOverviewPage() {
   const viewMode: StructureViewMode =
     detail.status === "completed" ? "result" : isRuntimeState || detail.status === "error" ? "progress" : "outline";
   const structureChapters = buildOverviewChapters(detail, analysisResource.analysis);
+  const isCompactStructureTier = tier === "mobile";
   const structureEmptyTitle = detail.status === "not_started" ? "Book structure is not ready yet" : "No chapters are available yet";
   const structureEmptyMessage =
     detail.status === "not_started"
@@ -876,53 +1058,56 @@ export function BookOverviewPage() {
         onRetryAnalysis={analysisResource.refresh}
       />
 
-      <div className="flex items-center gap-2 mb-6 bg-[var(--warm-200)]/50 rounded-lg p-1 w-fit">
-        <button
-          type="button"
-          onClick={() => setActiveTab("chapters")}
-          className={`px-4 py-2 rounded-md cursor-pointer transition-colors ${
-            activeTab === "chapters" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
-          }`}
-          style={{ fontSize: "0.875rem", fontWeight: 500 }}
-        >
-          Structure
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("marks")}
-          className={`px-4 py-2 rounded-md cursor-pointer transition-colors ${
-            activeTab === "marks" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
-          }`}
-          style={{ fontSize: "0.875rem", fontWeight: 500 }}
-        >
-          My Marks
-        </button>
-      </div>
+      <section className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-2" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+            Explore this book
+          </p>
+          <div className="flex items-center gap-2 bg-[var(--warm-200)]/50 rounded-xl p-1 w-fit">
+            <button
+              type="button"
+              onClick={() => setActiveTab("chapters")}
+              className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+                activeTab === "chapters" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
+              }`}
+              style={{ fontSize: "0.875rem", fontWeight: 500 }}
+            >
+              Structure
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("marks")}
+              className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+                activeTab === "marks" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
+              }`}
+              style={{ fontSize: "0.875rem", fontWeight: 500 }}
+            >
+              My Marks
+            </button>
+          </div>
+        </div>
+        <p className="text-[var(--warm-500)] max-w-2xl" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
+          {isRuntimeState
+            ? "The structure column acts as a live navigator, while the right side stays focused on progress, completed chapters, and runtime output."
+            : "Switch between the book structure and your saved marks without changing page context."}
+        </p>
+      </section>
 
       {activeTab === "chapters" ? (
         isRuntimeState ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6">
-            <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
-                <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                  Structure
-                </h2>
-              </div>
-              {structureChapters.length === 0 ? (
-                <EmptyState title={structureEmptyTitle} message={structureEmptyMessage} />
-              ) : (
-                <StructureChapterList
-                  bookId={detail.book_id}
-                  chapters={structureChapters}
-                  viewMode={viewMode}
-                  isParsing={isAnalysisParsing(analysisResource.analysis)}
-                  isPaused={detail.status === "paused"}
-                />
-              )}
-            </section>
+          <div className="grid grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)] gap-6 items-start">
+            <ProcessingStructureNavigator
+              bookId={detail.book_id}
+              chapters={structureChapters}
+              viewMode={viewMode}
+              isParsing={isAnalysisParsing(analysisResource.analysis)}
+              isPaused={detail.status === "paused"}
+              isCollapsedByDefault={isCompactStructureTier}
+              emptyTitle={structureEmptyTitle}
+              emptyMessage={structureEmptyMessage}
+            />
 
-            <RuntimeColumn
+            <RuntimeFeedPanel
               analysis={analysisResource.analysis}
               activity={analysisResource.activity}
               log={analysisResource.log}
