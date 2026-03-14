@@ -291,6 +291,22 @@ class ActivityEvent(ApiModel):
     event_id: str = Field(description="Stable identifier of the activity event.")
     timestamp: str = Field(description="Event timestamp.")
     type: str = Field(description="Stable event type key.")
+    stream: Literal["mindstream", "system"] = Field(description="High-level stream partition used by the UI.")
+    kind: Literal[
+        "position",
+        "thought",
+        "search",
+        "segment_complete",
+        "chapter_complete",
+        "parse",
+        "checkpoint",
+        "waiting",
+        "error",
+        "transition",
+    ] = Field(description="Semantic event kind used for presentation.")
+    visibility: Literal["default", "collapsed", "hidden"] = Field(
+        description="Default UI visibility hint for this event."
+    )
     message: str = Field(description="User-facing message shown in the activity stream.")
     chapter_id: Optional[int] = Field(default=None, description="Related chapter identifier when applicable.")
     chapter_ref: Optional[str] = Field(default=None, description="Related chapter reference when applicable.")

@@ -66,6 +66,23 @@
             "description": "High-signal anchor quote attached to the event when available.",
             "title": "Highlight Quote"
           },
+          "kind": {
+            "description": "Semantic event kind used for presentation.",
+            "enum": [
+              "position",
+              "thought",
+              "search",
+              "segment_complete",
+              "chapter_complete",
+              "parse",
+              "checkpoint",
+              "waiting",
+              "error",
+              "transition"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
           "message": {
             "description": "User-facing message shown in the activity stream.",
             "title": "Message",
@@ -122,6 +139,15 @@
             "description": "Related section reference when applicable.",
             "title": "Section Ref"
           },
+          "stream": {
+            "description": "High-level stream partition used by the UI.",
+            "enum": [
+              "mindstream",
+              "system"
+            ],
+            "title": "Stream",
+            "type": "string"
+          },
           "timestamp": {
             "description": "Event timestamp.",
             "title": "Timestamp",
@@ -130,6 +156,16 @@
           "type": {
             "description": "Stable event type key.",
             "title": "Type",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "Default UI visibility hint for this event.",
+            "enum": [
+              "default",
+              "collapsed",
+              "hidden"
+            ],
+            "title": "Visibility",
             "type": "string"
           },
           "visible_reaction_count": {
@@ -149,6 +185,9 @@
           "event_id",
           "timestamp",
           "type",
+          "stream",
+          "kind",
+          "visibility",
           "message",
           "reaction_types",
           "featured_reactions"
@@ -2733,6 +2772,26 @@
                 }
               ],
               "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "stream",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "mindstream",
+                    "system"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stream"
             }
           },
           {

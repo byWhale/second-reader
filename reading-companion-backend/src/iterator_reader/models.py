@@ -207,12 +207,31 @@ class ParseState(TypedDict):
     error: str | None
 
 
+ActivityStream = Literal["mindstream", "system"]
+ActivityKind = Literal[
+    "position",
+    "thought",
+    "search",
+    "segment_complete",
+    "chapter_complete",
+    "parse",
+    "checkpoint",
+    "waiting",
+    "error",
+    "transition",
+]
+ActivityVisibility = Literal["default", "collapsed", "hidden"]
+
+
 class ActivityEvent(TypedDict, total=False):
     """One user-facing activity item in activity.jsonl."""
 
     event_id: str
     timestamp: str
     type: str
+    stream: ActivityStream
+    kind: ActivityKind
+    visibility: ActivityVisibility
     message: str
     chapter_id: int
     chapter_ref: str
@@ -226,6 +245,15 @@ class ActivityEvent(TypedDict, total=False):
     featured_reactions: list[dict[str, object]]
     result_file: str
     result_url: str
+
+
+class ReaderProgressEvent(TypedDict, total=False):
+    """Structured reader progress payload emitted during one segment run."""
+
+    message: str
+    kind: Literal["position", "thought", "search", "transition"]
+    visibility: ActivityVisibility
+    search_query: str
 
 
 class ReaderMemory(TypedDict):

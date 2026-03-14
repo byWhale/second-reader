@@ -11,6 +11,9 @@ from pathlib import Path
 
 from .models import (
     ActivityEvent,
+    ActivityKind,
+    ActivityStream,
+    ActivityVisibility,
     BookManifest,
     BookStructure,
     ChapterResult,
@@ -58,6 +61,58 @@ FEATURED_PRIORITY = {
     "curious": 3,
     "association": 4,
 }
+
+_SEGMENT_PROGRESS_THOUGHT_PREFIXES = ("🔗", "⚡", "💡", "✍️")
+_SEGMENT_PROGRESS_SEARCH_PREFIXES = ("🔎", "🔍")
+
+
+def _progress_defaults_from_message(message: str) -> tuple[ActivityStream, ActivityKind, ActivityVisibility]:
+    """Classify one legacy segment-progress line without relying on the frontend."""
+    stripped = str(message or "").strip()
+    if stripped.startswith("📖"):
+        return "mindstream", "position", "default"
+    if stripped.startswith(_SEGMENT_PROGRESS_THOUGHT_PREFIXES):
+        return "mindstream", "thought", "default"
+    if stripped.startswith(_SEGMENT_PROGRESS_SEARCH_PREFIXES):
+        return "mindstream", "search", "default"
+    if stripped.startswith("🤫"):
+        return "mindstream", "transition", "collapsed"
+    return "mindstream", "transition", "hidden"
+
+
+def activity_semantics(event: ActivityEvent) -> tuple[ActivityStream, ActivityKind, ActivityVisibility]:
+    """Return canonical stream/kind/visibility defaults for one activity event."""
+    event_type = str(event.get("type", "") or "").strip()
+    if event_type == "segment_progress":
+        return _progress_defaults_from_message(str(event.get("message", "") or ""))
+
+    defaults: dict[str, tuple[ActivityStream, ActivityKind, ActivityVisibility]] = {
+        "upload_received": ("system", "transition", "default"),
+        "resume_detected": ("system", "transition", "default"),
+        "parse_started": ("system", "parse", "default"),
+        "parse_chapter_started": ("system", "parse", "default"),
+        "parse_chapter_completed": ("system", "parse", "default"),
+        "structure_checkpoint_saved": ("system", "checkpoint", "default"),
+        "structure_ready": ("system", "transition", "default"),
+        "reader_waiting_for_segments": ("system", "waiting", "default"),
+        "segment_started": ("mindstream", "position", "default"),
+        "segment_completed": ("mindstream", "segment_complete", "default"),
+        "chapter_started": ("mindstream", "transition", "collapsed"),
+        "chapter_completed": ("mindstream", "chapter_complete", "default"),
+        "run_completed": ("system", "transition", "default"),
+        "error": ("system", "error", "default"),
+    }
+    return defaults.get(event_type, ("system", "transition", "default"))
+
+
+def normalize_activity_event(event: ActivityEvent) -> ActivityEvent:
+    """Fill activity semantics so persisted history stays self-describing."""
+    payload = dict(event)
+    stream, kind, visibility = activity_semantics(payload)  # type: ignore[arg-type]
+    payload["stream"] = str(payload.get("stream", "") or stream)
+    payload["kind"] = str(payload.get("kind", "") or kind)
+    payload["visibility"] = str(payload.get("visibility", "") or visibility)
+    return payload  # type: ignore[return-value]
 
 
 def _timestamp() -> str:
@@ -285,7 +340,7 @@ def reset_activity(output_dir: Path) -> None:
 
 def append_activity_event(output_dir: Path, event: ActivityEvent) -> ActivityEvent:
     """Append one user-facing activity event."""
-    payload = dict(event)
+    payload = normalize_activity_event(event)
     payload["timestamp"] = _timestamp()
     payload["event_id"] = str(event.get("event_id") or _event_id(payload))
     append_jsonl(activity_file(output_dir), payload)

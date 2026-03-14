@@ -235,13 +235,22 @@ def book_activity(
     limit: int = Query(default=20, ge=1, le=100),
     cursor: Optional[str] = Query(default=None),
     type: Optional[str] = Query(default=None),
+    stream: Optional[Literal["mindstream", "system"]] = Query(default=None),
     chapter_id: Optional[int] = Query(default=None),
 ) -> ActivityEventsPageResponse:
     """Return one book's paginated activity stream."""
     internal_book_id = _resolve_book_id(book_id)
     _ensure_book_exists(internal_book_id)
     return ActivityEventsPageResponse.model_validate(
-        get_activity_page(internal_book_id, root=_root(), limit=limit, cursor=cursor, event_type=type, chapter_id=chapter_id)
+        get_activity_page(
+            internal_book_id,
+            root=_root(),
+            limit=limit,
+            cursor=cursor,
+            event_type=type,
+            stream=stream,
+            chapter_id=chapter_id,
+        )
     )
 
 

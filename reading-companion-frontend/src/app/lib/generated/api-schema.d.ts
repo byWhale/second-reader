@@ -388,6 +388,12 @@ export interface components {
              */
             highlight_quote?: string | null;
             /**
+             * Kind
+             * @description Semantic event kind used for presentation.
+             * @enum {string}
+             */
+            kind: "position" | "thought" | "search" | "segment_complete" | "chapter_complete" | "parse" | "checkpoint" | "waiting" | "error" | "transition";
+            /**
              * Message
              * @description User-facing message shown in the activity stream.
              */
@@ -413,6 +419,12 @@ export interface components {
              */
             section_ref?: string | null;
             /**
+             * Stream
+             * @description High-level stream partition used by the UI.
+             * @enum {string}
+             */
+            stream: "mindstream" | "system";
+            /**
              * Timestamp
              * @description Event timestamp.
              */
@@ -422,6 +434,12 @@ export interface components {
              * @description Stable event type key.
              */
             type: string;
+            /**
+             * Visibility
+             * @description Default UI visibility hint for this event.
+             * @enum {string}
+             */
+            visibility: "default" | "collapsed" | "hidden";
             /**
              * Visible Reaction Count
              * @description Visible reaction count attached to the event when applicable.
@@ -1956,6 +1974,7 @@ export interface operations {
                 limit?: number;
                 cursor?: string | null;
                 type?: string | null;
+                stream?: ("mindstream" | "system") | null;
                 chapter_id?: number | null;
             };
             header?: never;

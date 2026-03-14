@@ -32,6 +32,7 @@ from .models import (
     BookStructure,
     BudgetPolicy,
     ReaderMemory,
+    ReaderProgressEvent,
     ReadMode,
     RunStage,
     SkillProfileName,
@@ -124,10 +125,35 @@ def _chapter_selection(
     return selected
 
 
-def _segment_progress(segment_id: str) -> Callable[[str], None]:
+def _coerce_reader_progress_event(progress: ReaderProgressEvent | str) -> ReaderProgressEvent:
+    """Normalize progress payloads so legacy string callbacks still work."""
+    if isinstance(progress, dict):
+        normalized: ReaderProgressEvent = {
+            "message": str(progress.get("message", "") or ""),
+            "kind": str(progress.get("kind", "") or "transition"),  # type: ignore[typeddict-item]
+            "visibility": str(progress.get("visibility", "") or "default"),  # type: ignore[typeddict-item]
+        }
+        search_query = str(progress.get("search_query", "") or "").strip()
+        if search_query:
+            normalized["search_query"] = search_query
+        return normalized
+    text = str(progress or "")
+    if text.startswith("📖"):
+        return {"message": text, "kind": "position", "visibility": "default"}
+    if text.startswith(("🔎", "🔍")):
+        return {"message": text, "kind": "search", "visibility": "default"}
+    if text.startswith(("🔗", "⚡", "💡", "✍️")):
+        return {"message": text, "kind": "thought", "visibility": "default"}
+    if text.startswith("🤫"):
+        return {"message": text, "kind": "transition", "visibility": "collapsed"}
+    return {"message": text, "kind": "transition", "visibility": "hidden"}
+
+
+def _segment_progress(segment_id: str) -> Callable[[ReaderProgressEvent | str], None]:
     """Create a CLI printer for one segment."""
-    def emit(message: str) -> None:
-        print(f"  ├─ {message}", flush=True)
+    def emit(progress: ReaderProgressEvent | str) -> None:
+        normalized = _coerce_reader_progress_event(progress)
+        print(f"  ├─ {normalized.get('message', '')}", flush=True)
 
     return emit
 
@@ -178,13 +204,13 @@ def _normalize_memory_refs(structure: BookStructure, memory: ReaderMemory) -> Re
     return normalized
 
 
-def _read_progress_message(segment_id: str, segment_summary: str) -> str:
-    """Render the initial read-stage progress line."""
+def _read_progress_event(segment_id: str, segment_summary: str) -> ReaderProgressEvent:
+    """Render the initial read-stage progress event."""
     summary = (segment_summary or "").strip()
     summary = summary[:18].rstrip() + ("..." if len(summary) > 18 else "")
     if summary:
-        return f"📖 读到 {segment_id}「{summary}」..."
-    return f"📖 读到 {segment_id}..."
+        return {"message": f"📖 读到 {segment_id}「{summary}」...", "kind": "position", "visibility": "default"}
+    return {"message": f"📖 读到 {segment_id}...", "kind": "position", "visibility": "default"}
 
 
 def _segment_visible_reactions(rendered: dict[str, object]) -> list[dict[str, object]]:
@@ -660,22 +686,27 @@ def _run_single_chapter(
             )
         stdout_progress = _segment_progress(shown_segment_id)
 
-        def progress(message: str) -> None:
-            stdout_progress(message)
+        def progress(progress_event: ReaderProgressEvent | str) -> None:
+            normalized = _coerce_reader_progress_event(progress_event)
+            stdout_progress(normalized)
             with write_context:
                 append_activity_event(
                     output_dir,
                     {
                         "type": "segment_progress",
-                        "message": message,
+                        "stream": "mindstream",
+                        "kind": normalized.get("kind", "transition"),
+                        "visibility": normalized.get("visibility", "default"),
+                        "message": normalized.get("message", ""),
                         "chapter_id": int(chapter.get("id", 0)),
                         "chapter_ref": chapter_reference(chapter),
                         "segment_id": str(segment_id),
                         "segment_ref": shown_segment_id,
+                        "search_query": normalized.get("search_query", ""),
                     },
                 )
 
-        progress(_read_progress_message(shown_segment_id, segment.get("summary", "")))
+        progress(_read_progress_event(shown_segment_id, segment.get("summary", "")))
         state = create_reader_state(
             chapter_title=chapter.get("title", ""),
             segment_id=segment.get("id", ""),

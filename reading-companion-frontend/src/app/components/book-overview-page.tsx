@@ -47,6 +47,12 @@ type OverviewChapter = {
   is_current: boolean;
 };
 
+type RuntimeStateSummary = {
+  label: string;
+  detail: string;
+  toneClassName: string;
+};
+
 function formatTimestamp(value?: string | null) {
   if (!value) {
     return null;
@@ -84,6 +90,10 @@ function topReactionType(detail: BookDetailResponse) {
   return entry && entry[1] > 0 ? reactionLabel(entry[0]) : "暂无";
 }
 
+function hasWaitingStep(value?: string | null) {
+  return /等待/.test((value ?? "").trim());
+}
+
 function isAnalysisParsing(analysis: AnalysisStateResponse | null) {
   if (!analysis) {
     return false;
@@ -111,6 +121,63 @@ function buildOverviewChapters(detail: BookDetailResponse, analysis: AnalysisSta
   });
 }
 
+function describeRuntimeState(
+  detail: BookDetailResponse,
+  analysis: AnalysisStateResponse | null,
+  options: { isParsing: boolean },
+): RuntimeStateSummary {
+  const phase = (analysis?.current_state_panel.current_phase_step ?? analysis?.current_phase_step ?? "").trim();
+  const waiting = hasWaitingStep(phase);
+  const hasReaderFocus = Boolean((analysis?.current_state_panel.current_section_ref ?? "").trim());
+  const completedChapters = analysis?.completed_chapters ?? detail.completed_chapter_count;
+
+  if (detail.status === "paused") {
+    return {
+      label: "已暂停",
+      detail: phase || "当前深读流程已暂停，可以稍后从这里继续。",
+      toneClassName: "text-[var(--warm-700)]",
+    };
+  }
+
+  if (waiting && completedChapters > 0) {
+    return {
+      label: "阅读被阻塞",
+      detail: "等待下一章切分完成后继续深读。",
+      toneClassName: "text-[var(--destructive)]",
+    };
+  }
+
+  if (waiting) {
+    return {
+      label: "准备可读章节",
+      detail: "首章语义切分完成后会自动开始深读。",
+      toneClassName: "text-[var(--amber-accent)]",
+    };
+  }
+
+  if (options.isParsing) {
+    return {
+      label: "切分中",
+      detail: phase || "正在为后续阅读准备语义结构。",
+      toneClassName: "text-[var(--amber-accent)]",
+    };
+  }
+
+  if (hasReaderFocus) {
+    return {
+      label: "正在阅读",
+      detail: analysis?.current_state_panel.current_section_ref ?? "正在推进当前章节。",
+      toneClassName: "text-[var(--amber-accent)]",
+    };
+  }
+
+  return {
+    label: "深读进行中",
+    detail: phase || "正在推进当前章节的深读过程。",
+    toneClassName: "text-[var(--warm-800)]",
+  };
+}
+
 function structureStatusLabel(
   chapter: OverviewChapter,
   viewMode: StructureViewMode,
@@ -131,15 +198,15 @@ function structureStatusLabel(
     return "需要处理";
   }
   if (chapter.status === "completed") {
-    return options.isParsing ? "已切分" : chapter.result_ready ? "可查看" : "处理中";
+    return options.isParsing ? "可进入" : chapter.result_ready ? "可进入" : "处理中";
   }
   if (chapter.status === "in_progress") {
     if (options.isPaused) {
-      return "暂停在此";
+      return "已暂停";
     }
-    return options.isParsing ? "切分中" : "深读中";
+    return options.isParsing ? "切分中" : "阅读中";
   }
-  return "排队中";
+  return "等待中";
 }
 
 function currentChapterRuntimeLabel(
@@ -162,8 +229,11 @@ function currentChapterRuntimeLabel(
     return null;
   }
 
+  const step = (panel.current_phase_step ?? analysis.current_phase_step ?? "").trim();
   if (options.isParsing) {
-    const step = (panel.current_phase_step ?? analysis.current_phase_step ?? "").trim();
+    if (hasWaitingStep(step)) {
+      return chapter.result_ready ? "等待继续阅读" : "等待下一章切分完成";
+    }
     return step ? `当前步骤: ${step}` : "当前步骤: 正在准备可读结构";
   }
 
@@ -172,8 +242,11 @@ function currentChapterRuntimeLabel(
     return `正在阅读: ${sectionRef}`;
   }
 
-  const phase = (panel.current_phase_step ?? analysis.current_phase_step ?? "").trim();
-  return phase ? `当前状态: ${phase}` : "当前状态: 正在深读";
+  if (hasWaitingStep(step)) {
+    return "等待下一章切分完成";
+  }
+
+  return step ? `当前状态: ${step}` : "当前状态: 正在深读";
 }
 
 function BookOverviewHeader({
@@ -184,8 +257,6 @@ function BookOverviewHeader({
   outputLanguage,
   chapterCount,
   markCount,
-  segmentCount,
-  showSegmentCount,
   children,
 }: {
   title: string;
@@ -195,13 +266,11 @@ function BookOverviewHeader({
   outputLanguage: string;
   chapterCount: number;
   markCount: number;
-  segmentCount: number;
-  showSegmentCount: boolean;
   children?: ReactNode;
 }) {
   return (
-    <div className="flex gap-6 flex-col md:flex-row mb-8">
-      <div className="w-32 h-42 rounded-2xl overflow-hidden bg-[var(--warm-200)] flex-shrink-0 shadow-sm">
+    <div className="mb-6 flex flex-col gap-5 md:mb-8 md:flex-row md:gap-6">
+      <div className="h-38 w-28 rounded-2xl overflow-hidden bg-[var(--warm-200)] shadow-sm md:h-42 md:w-32 md:flex-shrink-0">
         {coverImageUrl ? (
           <ImageWithFallback
             src={toApiAssetUrl(coverImageUrl) ?? ""}
@@ -216,14 +285,17 @@ function BookOverviewHeader({
       </div>
 
       <div className="flex-1 min-w-0">
-        <h1 className="text-[var(--warm-900)] mb-1" style={{ fontSize: "2rem", fontWeight: 600 }}>
+        <h1
+          className="mb-1 text-[var(--warm-900)] text-[1.75rem] leading-none md:text-[2.5rem]"
+          style={{ fontWeight: 600 }}
+        >
           {title}
         </h1>
-        <p className="text-[var(--warm-600)] mb-4" style={{ fontSize: "1rem" }}>
+        <p className="mb-3 text-[var(--warm-600)] md:mb-4" style={{ fontSize: "0.9375rem" }}>
           {author}
         </p>
 
-        <div className="flex flex-wrap items-center gap-4 mb-5 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
+        <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[var(--warm-600)] md:mb-5" style={{ fontSize: "0.8125rem" }}>
           <span className="inline-flex items-center gap-1.5">
             <Globe2 className="w-4 h-4" />
             {bookLanguage} → {outputLanguage}
@@ -236,7 +308,6 @@ function BookOverviewHeader({
             <Bookmark className="w-4 h-4" />
             {markCount} marks
           </span>
-          {showSegmentCount ? <span>{segmentCount} segments</span> : null}
         </div>
 
         {children}
@@ -253,7 +324,7 @@ function StatusMetric({
   value: ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
+    <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-3.5 md:p-4">
       <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
         {label}
       </p>
@@ -343,11 +414,14 @@ function BookOverviewStatusBand({
     ? stepLabel
     : analysis?.current_state_panel.current_section_ref ?? stepLabel;
   const currentChapter = analysis?.current_state_panel.current_chapter_ref ?? "Waiting for structure";
+  const runtimeState = describeRuntimeState(detail, analysis, { isParsing: parsing });
   const reactionEntries = Object.entries(analysis?.current_state_panel.reaction_counts ?? {}).filter(([, count]) => count > 0);
+  const reactionTotal = reactionEntries.reduce((sum, [, count]) => sum + count, 0);
+  const checkpointLabel = formatTimestamp(analysis?.last_checkpoint_at);
 
   return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm mb-8">
-      <div className="flex items-start justify-between gap-4 flex-col lg:flex-row lg:items-end">
+    <section className="mb-6 rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm md:mb-8 md:p-6">
+      <div className="flex items-start gap-4 flex-col">
         <div>
           <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-2" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
             Run Console
@@ -368,15 +442,6 @@ function BookOverviewStatusBand({
               {(analysis?.completed_chapters ?? detail.completed_chapter_count)}/{analysis?.total_chapters ?? detail.chapter_count} chapters
             </span>
           </div>
-        </div>
-
-        <div className="rounded-2xl border border-[var(--warm-300)]/30 bg-[var(--warm-50)] px-4 py-3 min-w-0 w-full lg:w-auto lg:min-w-72">
-          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-            Status summary
-          </p>
-          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
-            {analysis?.current_state_panel.last_activity_message ?? "Waiting for the next runtime update."}
-          </p>
         </div>
       </div>
 
@@ -403,30 +468,46 @@ function BookOverviewStatusBand({
         </div>
         <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
           <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-            Latest checkpoint
+            Current runtime state
           </p>
-          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
-            {formatTimestamp(analysis?.last_checkpoint_at) ?? "Not available yet"}
+          <p className={runtimeState.toneClassName} style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
+            {runtimeState.label}
+          </p>
+          <p className="text-[var(--warm-600)] mt-1" style={{ fontSize: "0.8125rem", lineHeight: 1.6 }}>
+            {runtimeState.detail}
           </p>
         </div>
       </div>
 
       {reactionEntries.length > 0 && !parsing ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {reactionEntries.map(([type, count]) => (
-            <span
-              key={type}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--warm-100)] border border-[var(--warm-300)]/20 px-3 py-1.5 text-[var(--warm-700)]"
-              style={{ fontSize: "0.75rem", fontWeight: 500 }}
-            >
-              {reactionLabel(type)}
-              <span className="text-[var(--warm-500)]">{count}</span>
-            </span>
-          ))}
-        </div>
+        <details className="mt-4 rounded-2xl border border-[var(--warm-300)]/20 bg-[var(--warm-50)] px-4 py-3">
+          <summary
+            className="cursor-pointer list-none text-[var(--warm-700)]"
+            style={{ fontSize: "0.8125rem", fontWeight: 600 }}
+          >
+            本章当前已产出 {reactionTotal} 条反应
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {reactionEntries.map(([type, count]) => (
+              <span
+                key={type}
+                className="inline-flex items-center gap-2 rounded-full bg-white border border-[var(--warm-300)]/20 px-3 py-1.5 text-[var(--warm-700)]"
+                style={{ fontSize: "0.75rem", fontWeight: 500 }}
+              >
+                {reactionLabel(type)}
+                <span className="text-[var(--warm-500)]">{count}</span>
+              </span>
+            ))}
+          </div>
+        </details>
       ) : null}
 
       <div className="mt-4 flex items-center gap-3 flex-wrap">
+        {checkpointLabel ? (
+          <span className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
+            最新 checkpoint：{checkpointLabel}
+          </span>
+        ) : null}
         {analysisLoading && !analysis ? (
           <span className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
             正在同步运行时状态...
@@ -577,7 +658,7 @@ function ProcessingStructureNavigator({
       <EmptyState title={emptyTitle} message={emptyMessage} />
     </div>
   ) : (
-    <div ref={listRef} className="space-y-2 overflow-y-auto pr-2 md:max-h-[32rem] lg:max-h-[calc(100vh-10rem)]">
+    <div ref={listRef} className="space-y-2 overflow-y-auto pr-2 md:max-h-[28rem] lg:max-h-[calc(100vh-11rem)]">
       {chapters.map((chapter) => {
         const statusLabel = structureStatusLabel(chapter, viewMode, { isParsing, isPaused });
         const runtimeLabel = currentChapterRuntimeLabel(chapter, analysis, { isParsing });
@@ -686,7 +767,7 @@ function ProcessingStructureNavigator({
                     Structure
                   </h2>
                   <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                    Navigate chapters without turning the page into one long stream.
+                    Open completed chapters here and keep the live position in view.
                   </p>
                 </div>
               </div>
@@ -711,7 +792,7 @@ function ProcessingStructureNavigator({
               Structure
             </h2>
             <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-              Compact chapter navigation with live progress.
+              Open completed chapters first and keep the current position pinned.
             </p>
           </div>
         </div>
@@ -796,6 +877,163 @@ function BookMarksPanel({
   );
 }
 
+function activityStream(event: ActivityEvent) {
+  return event.stream ?? "system";
+}
+
+function activityKind(event: ActivityEvent) {
+  return event.kind ?? "transition";
+}
+
+function activityVisibility(event: ActivityEvent) {
+  return event.visibility ?? "default";
+}
+
+function excerptText(value?: string | null, maxLength = 120) {
+  const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function ActivityMeta({
+  event,
+  compact = false,
+}: {
+  event: ActivityEvent;
+  compact?: boolean;
+}) {
+  return (
+    <div className="mt-2 flex items-center gap-2 flex-wrap text-[var(--warm-500)]" style={{ fontSize: compact ? "0.6875rem" : "0.75rem" }}>
+      <span>{formatTimestamp(event.timestamp)}</span>
+      {event.chapter_ref ? <span>{event.chapter_ref}</span> : null}
+      {event.section_ref ? <span>{event.section_ref}</span> : null}
+    </div>
+  );
+}
+
+function MindstreamEventCard({
+  event,
+}: {
+  event: ActivityEvent;
+}) {
+  const kind = activityKind(event);
+
+  if (kind === "chapter_complete") {
+    return (
+      <div className="rounded-2xl border border-[var(--amber-accent)]/25 bg-[var(--amber-bg)] px-4 py-4">
+        <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
+          {event.message}
+        </p>
+        <ActivityMeta event={event} />
+        <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--warm-600)]" style={{ fontSize: "0.75rem" }}>
+          {event.visible_reaction_count != null ? <span>{event.visible_reaction_count} reactions</span> : null}
+          {event.high_signal_reaction_count != null ? <span>{event.high_signal_reaction_count} high-signal</span> : null}
+        </div>
+        {event.featured_reactions.length > 0 ? (
+          <div className="mt-4 space-y-3">
+            {event.featured_reactions.slice(0, 2).map((reaction) => (
+              <div key={reaction.reaction_id} className="rounded-xl bg-white/90 border border-[var(--warm-300)]/20 px-3 py-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex rounded-full bg-[var(--warm-100)] px-2.5 py-1 text-[var(--warm-700)]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+                    {reactionLabel(reaction.type)}
+                  </span>
+                  <span className="text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
+                    {reaction.section_ref}
+                  </span>
+                </div>
+                {reaction.anchor_quote ? (
+                  <blockquote className="mt-2 text-[var(--warm-600)] italic" style={{ fontSize: "0.75rem", lineHeight: 1.7 }}>
+                    “{excerptText(reaction.anchor_quote, 150)}”
+                  </blockquote>
+                ) : null}
+                <p className="mt-2 text-[var(--warm-800)]" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
+                  {excerptText(reaction.content, 180)}
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {event.result_url ? (
+          <Link
+            to={event.result_url}
+            className="mt-4 inline-flex items-center gap-1 text-[var(--amber-accent)] no-underline hover:text-[var(--warm-700)]"
+            style={{ fontSize: "0.8125rem", fontWeight: 600 }}
+          >
+            Open completed chapter
+            <ArrowRight className="w-3 h-3" />
+          </Link>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (kind === "segment_complete") {
+    return (
+      <div className="border-l-2 border-[var(--amber-accent)]/35 pl-4">
+        <p className="text-[var(--warm-900)]" style={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.6 }}>
+          {event.message}
+        </p>
+        {event.reaction_types.length > 0 ? (
+          <div className="mt-2 flex items-center gap-2 flex-wrap">
+            {event.reaction_types.map((type) => (
+              <span
+                key={type}
+                className="inline-flex rounded-full bg-[var(--warm-100)] px-2.5 py-1 text-[var(--warm-700)]"
+                style={{ fontSize: "0.6875rem", fontWeight: 600 }}
+              >
+                {reactionLabel(type)}
+              </span>
+            ))}
+          </div>
+        ) : null}
+        {event.highlight_quote ? (
+          <blockquote className="mt-2 text-[var(--warm-600)] italic" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
+            “{event.highlight_quote}”
+          </blockquote>
+        ) : null}
+        <ActivityMeta event={event} />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`border-l-2 pl-4 ${kind === "position" ? "border-[var(--warm-300)]" : "border-[var(--amber-accent)]/35"}`}>
+      <p
+        className={kind === "position" ? "text-[var(--warm-700)]" : "text-[var(--warm-900)]"}
+        style={{ fontSize: kind === "position" ? "0.8125rem" : "0.875rem", fontWeight: kind === "position" ? 500 : 600, lineHeight: 1.6 }}
+      >
+        {event.message}
+      </p>
+      {kind === "search" && event.search_query ? (
+        <div className="mt-2 inline-flex rounded-full bg-[var(--warm-100)] px-2.5 py-1 text-[var(--warm-700)]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+          {event.search_query}
+        </div>
+      ) : null}
+      <ActivityMeta event={event} />
+    </div>
+  );
+}
+
+function ProgramLogEvent({
+  event,
+}: {
+  event: ActivityEvent;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--warm-300)]/20 bg-[var(--warm-50)] px-3 py-3">
+      <p className="text-[var(--warm-800)]" style={{ fontSize: "0.8125rem", fontWeight: 500, lineHeight: 1.6 }}>
+        {event.message}
+      </p>
+      <ActivityMeta event={event} compact />
+    </div>
+  );
+}
+
 function RuntimeFeedPanel({
   analysis,
   activity,
@@ -839,93 +1077,97 @@ function RuntimeFeedPanel({
     );
   }
 
+  const mindstreamEvents = activity.filter((event) => activityStream(event) === "mindstream");
+  const mainMindstreamEvents = mindstreamEvents.filter((event) => activityVisibility(event) === "default");
+  const collapsedMindstreamEvents = mindstreamEvents.filter((event) => activityVisibility(event) === "collapsed");
+  const programEvents = activity.filter(
+    (event) => activityStream(event) === "system" && activityVisibility(event) !== "hidden",
+  );
+
   return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
+    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm md:p-6">
       <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
             <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-              Run log
+              Reading mindstream
             </h2>
           </div>
           <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
-            Keep one place for recently finished chapters, live activity, and lower-level runtime output.
+            这里只保留 AI 阅读时真实留下的推进、联想、搜索和收束。解析、checkpoint 与等待事件被收进下面的程序日志。
           </p>
         </div>
         <span className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-          {activity.length} recent events
+          {mainMindstreamEvents.length} visible moments
         </span>
       </div>
-
-      {analysis.recent_completed_chapters.length > 0 ? (
-        <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
-          <div className="flex items-center gap-2 mb-3">
-            <BookOpen className="w-4 h-4 text-[var(--amber-accent)]" />
-            <h3 className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-              Recently completed
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-            {analysis.recent_completed_chapters.map((chapter) => (
-              <Link
-                key={chapter.chapter_id}
-                to={canonicalChapterPath(analysis.book_id, chapter.chapter_id)}
-                data-testid={`analysis-completed-${chapter.chapter_id}`}
-                className="block rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/25 px-4 py-3 no-underline hover:bg-white hover:border-[var(--amber-accent)]/25 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-                      {chapter.chapter_ref}
-                    </p>
-                    <p className="text-[var(--warm-900)] line-clamp-2" style={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.5 }}>
-                      {chapter.title}
-                    </p>
-                  </div>
-                  <ArrowRight className="w-4 h-4 shrink-0 text-[var(--amber-accent)]" />
-                </div>
-                <p className="text-[var(--warm-600)] mt-2" style={{ fontSize: "0.75rem" }}>
-                  {chapter.visible_reaction_count} reactions · {chapter.high_signal_reaction_count} high-signal
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
           <h3 className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-            Activity feed
+            Live trail
           </h3>
         </div>
-        {activity.length === 0 ? (
+        {mainMindstreamEvents.length === 0 ? (
           <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
-            Activity will appear here as the parser and reader make progress.
+            The co-reader's visible trail will appear here once it starts reacting to the text.
           </p>
         ) : (
-          <div className="space-y-4">
-            {activity.map((event) => (
-              <div key={event.event_id} className="border-l-2 border-[var(--warm-300)] pl-4">
-                <p className="text-[var(--warm-900)]" style={{ fontSize: "0.875rem", fontWeight: 500, lineHeight: 1.6 }}>
-                  {event.message}
-                </p>
-                {event.highlight_quote ? (
-                  <blockquote className="text-[var(--warm-600)] italic mt-2" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
-                    “{event.highlight_quote}”
-                  </blockquote>
-                ) : null}
-                <div className="flex items-center gap-2 flex-wrap mt-2 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                  <span>{formatTimestamp(event.timestamp)}</span>
-                  {event.chapter_ref ? <span>{event.chapter_ref}</span> : null}
-                  {event.section_ref ? <span>{event.section_ref}</span> : null}
-                </div>
-              </div>
-            ))}
+          <div className="max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[26rem]">
+            <div className="space-y-4">
+              {mainMindstreamEvents.map((event) => (
+                <MindstreamEventCard key={event.event_id} event={event} />
+              ))}
+            </div>
           </div>
         )}
+      </div>
+
+      {collapsedMindstreamEvents.length > 0 ? (
+        <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
+          <details className="group">
+            <summary
+              className="cursor-pointer text-[var(--warm-700)] hover:text-[var(--warm-900)]"
+              style={{ fontSize: "0.875rem", fontWeight: 600 }}
+            >
+              Quiet transitions ({collapsedMindstreamEvents.length})
+            </summary>
+            <div className="mt-4 space-y-3">
+              {collapsedMindstreamEvents.map((event) => (
+                <MindstreamEventCard key={event.event_id} event={event} />
+              ))}
+            </div>
+          </details>
+        </div>
+      ) : null}
+
+      <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
+        <details className="group">
+          <summary
+            className="cursor-pointer text-[var(--warm-800)] hover:text-[var(--warm-900)]"
+            style={{ fontSize: "0.9375rem", fontWeight: 600 }}
+          >
+            Program log ({programEvents.length})
+          </summary>
+          <p className="mt-3 text-[var(--warm-500)]" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
+            这里收纳解析、checkpoint、等待与恢复事件，默认不打断阅读心流。
+          </p>
+          {programEvents.length === 0 ? (
+            <p className="mt-4 text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
+              No system-side events yet.
+            </p>
+          ) : (
+            <div className="mt-4 max-h-56 overflow-y-auto overscroll-contain pr-2">
+              <div className="space-y-3">
+                {programEvents.map((event) => (
+                  <ProgramLogEvent key={event.event_id} event={event} />
+                ))}
+              </div>
+            </div>
+          )}
+        </details>
       </div>
 
       <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
@@ -1036,7 +1278,7 @@ export function BookOverviewPage() {
       : "Chapter-level structure will appear here as the parser and reader make progress.";
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10">
+    <div className="mx-auto max-w-6xl px-5 py-8 md:px-6 md:py-10">
       <BookOverviewHeader
         title={detail.title}
         author={detail.author}
@@ -1045,8 +1287,6 @@ export function BookOverviewPage() {
         outputLanguage={detail.output_language}
         chapterCount={detail.chapter_count}
         markCount={detail.my_mark_count}
-        segmentCount={detail.segment_count}
-        showSegmentCount={detail.status !== "not_started"}
       >
         <div className="flex flex-wrap items-center gap-3">
           {detail.status === "not_started" ? (
@@ -1112,39 +1352,32 @@ export function BookOverviewPage() {
         onRetryAnalysis={analysisResource.refresh}
       />
 
-      <section className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-2" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-            Explore this book
-          </p>
-          <div className="flex items-center gap-2 bg-[var(--warm-200)]/50 rounded-xl p-1 w-fit">
-            <button
-              type="button"
-              onClick={() => setActiveTab("chapters")}
-              className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
-                activeTab === "chapters" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
-              }`}
-              style={{ fontSize: "0.875rem", fontWeight: 500 }}
-            >
-              Structure
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("marks")}
-              className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
-                activeTab === "marks" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
-              }`}
-              style={{ fontSize: "0.875rem", fontWeight: 500 }}
-            >
-              My Marks
-            </button>
-          </div>
-        </div>
-        <p className="text-[var(--warm-500)] max-w-2xl" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
-          {isRuntimeState
-            ? "The structure column acts as a live navigator, while the right side stays focused on progress, completed chapters, and runtime output."
-            : "Switch between the book structure and your saved marks without changing page context."}
+      <section className="mb-5 md:mb-6">
+        <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-2" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+          Explore this book
         </p>
+        <div className="flex items-center gap-2 bg-[var(--warm-200)]/50 rounded-xl p-1 w-fit">
+          <button
+            type="button"
+            onClick={() => setActiveTab("chapters")}
+            className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+              activeTab === "chapters" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
+            }`}
+            style={{ fontSize: "0.875rem", fontWeight: 500 }}
+          >
+            Structure
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("marks")}
+            className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
+              activeTab === "marks" ? "bg-white shadow-sm text-[var(--warm-900)]" : "text-[var(--warm-600)]"
+            }`}
+            style={{ fontSize: "0.875rem", fontWeight: 500 }}
+          >
+            My Marks
+          </button>
+        </div>
       </section>
 
       {activeTab === "chapters" ? (

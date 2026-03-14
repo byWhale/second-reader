@@ -622,10 +622,10 @@ def test_run_reader_segment_early_stop_emits_silent_progress(monkeypatch):
         },
     )
 
-    messages: list[str] = []
+    messages: list[object] = []
     run_reader_segment(state, progress=messages.append)
 
-    assert any("安静读过" in message for message in messages)
+    assert any("安静读过" in (message.get("message", "") if isinstance(message, dict) else str(message)) for message in messages)
 
 
 def test_run_reader_segment_timeout_degrades_to_skip(monkeypatch):

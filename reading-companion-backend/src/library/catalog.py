@@ -32,6 +32,7 @@ from src.iterator_reader.storage import (
     resolve_output_relative_file,
     run_state_file,
 )
+from src.iterator_reader.frontend_artifacts import normalize_activity_event
 
 
 HIGH_SIGNAL_TYPES = {"highlight", "curious", "discern", "retrospect"}
@@ -413,6 +414,7 @@ def _featured_reaction_preview(book_id: str, chapter_id: int, chapter_ref: str, 
 
 def _decorate_activity_event(book_id: str, event: dict) -> dict:
     """Decorate one persisted activity event into the public API shape."""
+    event = normalize_activity_event(event)
     chapter_id = int(event.get("chapter_id", 0) or 0) or None
     chapter_ref = str(event.get("chapter_ref", "") or "") or None
     section_ref = str(event.get("segment_ref", event.get("section_ref", "")) or "") or None
@@ -433,6 +435,9 @@ def _decorate_activity_event(book_id: str, event: dict) -> dict:
         "event_id": str(event.get("event_id", "") or _event_id(event)),
         "timestamp": str(event.get("timestamp", "")),
         "type": str(event.get("type", "")),
+        "stream": str(event.get("stream", "")),
+        "kind": str(event.get("kind", "")),
+        "visibility": str(event.get("visibility", "")),
         "message": str(event.get("message", "")),
         "chapter_id": chapter_id,
         "chapter_ref": chapter_ref,
@@ -465,12 +470,15 @@ def get_activity_page(
     limit: int = 20,
     cursor: str | None = None,
     event_type: str | None = None,
+    stream: str | None = None,
     chapter_id: int | None = None,
 ) -> dict:
     """Load paginated activity events for one book."""
     items = get_activity(book_id, root)
     if event_type:
         items = [item for item in items if str(item.get("type", "")) == event_type]
+    if stream:
+        items = [item for item in items if str(item.get("stream", "")) == stream]
     if chapter_id is not None:
         items = [item for item in items if int(item.get("chapter_id", 0) or 0) == chapter_id]
     items = _sort_by_updated_and_id(items, updated_key="timestamp", id_key="event_id")
@@ -838,6 +846,11 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         recent_reactions.extend(card.get("featured_reactions", []))
         if len(recent_reactions) >= 5:
             break
+    recent_visible_activity = [
+        item
+        for item in recent_activity
+        if str(item.get("visibility", "default") or "default") != "hidden"
+    ]
 
     status, stage_label = _analysis_status(run_state, current_chapter_id=current_chapter_id)
     completed_chapters = int(run_state.get("completed_chapters", 0) or 0)
@@ -883,7 +896,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
             "recent_reactions": recent_reactions[:5],
             "reaction_counts": reaction_counts,
             "search_active": any(str(item.get("search_query", "") or "").strip() for item in recent_activity[:5]),
-            "last_activity_message": recent_activity[0].get("message") if recent_activity else None,
+            "last_activity_message": recent_visible_activity[0].get("message") if recent_visible_activity else None,
         },
         "recent_completed_chapters": completed_cards,
         "last_error": (

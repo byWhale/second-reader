@@ -463,6 +463,9 @@ def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     activity_response = client.get(f"/api/books/{public_book_id}/activity")
     assert activity_response.status_code == 200
     assert activity_response.json()["items"][0]["event_id"] == "evt-1"
+    assert activity_response.json()["items"][0]["stream"] == "mindstream"
+    assert activity_response.json()["items"][0]["kind"] == "chapter_complete"
+    assert activity_response.json()["items"][0]["visibility"] == "default"
 
     chapter_response = client.get(f"/api/books/{public_book_id}/chapters/1")
     assert chapter_response.status_code == 200
@@ -501,6 +504,45 @@ def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     assert delete_response.status_code == 200
     assert delete_response.json()["reaction_id"] == public_reaction_id
     assert delete_response.json()["deleted"] is True
+
+
+def test_book_activity_supports_stream_filter(tmp_path):
+    """Activity API should filter mindstream and system events without splitting storage."""
+    book_id = _bootstrap_book(tmp_path, stage="completed")
+    public_book_id = to_api_book_id(book_id)
+    output_dir = tmp_path / "output" / book_id
+    _write_jsonl(
+        output_dir / "activity.jsonl",
+        [
+            {
+                "event_id": "evt-1",
+                "timestamp": "2026-03-07T00:00:00Z",
+                "type": "chapter_completed",
+                "message": "Chapter 1 完成，已生成结果文件。",
+                "chapter_id": 1,
+                "chapter_ref": "Chapter 1",
+            },
+            {
+                "event_id": "evt-2",
+                "timestamp": "2026-03-07T00:00:01Z",
+                "type": "structure_checkpoint_saved",
+                "message": "已保存解析 checkpoint：Chapter 1",
+                "chapter_id": 1,
+                "chapter_ref": "Chapter 1",
+            },
+        ],
+    )
+
+    api_module.app.state.root = tmp_path
+    client = TestClient(api_module.app)
+
+    mindstream_response = client.get(f"/api/books/{public_book_id}/activity?stream=mindstream")
+    system_response = client.get(f"/api/books/{public_book_id}/activity?stream=system")
+
+    assert mindstream_response.status_code == 200
+    assert system_response.status_code == 200
+    assert [item["event_id"] for item in mindstream_response.json()["items"]] == ["evt-1"]
+    assert [item["event_id"] for item in system_response.json()["items"]] == ["evt-2"]
 
 
 def test_analysis_state_prefers_parse_checkpoint_during_structure_stage(tmp_path):

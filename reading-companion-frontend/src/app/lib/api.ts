@@ -193,8 +193,34 @@ export function fetchAnalysisState(bookId: BookId) {
   return request<AnalysisStateResponse>(`/api/books/${bookId}/analysis-state`);
 }
 
-export function fetchActivity(bookId: BookId) {
-  return request<ActivityEventsPageResponse>(`/api/books/${bookId}/activity`);
+export function fetchActivity(
+  bookId: BookId,
+  options: {
+    limit?: number;
+    cursor?: string;
+    type?: string;
+    stream?: "mindstream" | "system";
+    chapterId?: number;
+  } = {},
+) {
+  const params = new URLSearchParams();
+  if (options.limit != null) {
+    params.set("limit", String(options.limit));
+  }
+  if (options.cursor) {
+    params.set("cursor", options.cursor);
+  }
+  if (options.type) {
+    params.set("type", options.type);
+  }
+  if (options.stream) {
+    params.set("stream", options.stream);
+  }
+  if (options.chapterId != null) {
+    params.set("chapter_id", String(options.chapterId));
+  }
+  const search = params.toString();
+  return request<ActivityEventsPageResponse>(`/api/books/${bookId}/activity${search ? `?${search}` : ""}`);
 }
 
 export function fetchAnalysisLog(bookId: BookId) {

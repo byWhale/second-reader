@@ -859,6 +859,96 @@ function waitForReaderFrame(frameCount = 1): Promise<void> {
   });
 }
 
+type ReaderHighlightRect = {
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+};
+
+function sortedReaderHighlightRects<T extends ReaderHighlightRect>(rects: T[]): T[] {
+  return [...rects].sort((left, right) => {
+    if (Math.abs(left.y - right.y) > 1) {
+      return left.y - right.y;
+    }
+    return left.x - right.x;
+  });
+}
+
+function rangeClientRects(range: Range): ReaderHighlightRect[] {
+  return sortedReaderHighlightRects(
+    Array.from(range.getClientRects())
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => ({
+        height: rect.height,
+        width: rect.width,
+        x: rect.left,
+        y: rect.top,
+      })),
+  );
+}
+
+async function alignHighlightOverlayToRange(range: Range): Promise<void> {
+  const view = range.startContainer.ownerDocument.defaultView;
+  const frameElement = view?.frameElement;
+  if (!(frameElement instanceof Element)) {
+    return;
+  }
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    await waitForReaderFrame(attempt === 0 ? 2 : 1);
+
+    const targetRects = rangeClientRects(range);
+    if (targetRects.length === 0) {
+      continue;
+    }
+
+    const overlayRects = sortedReaderHighlightRects(
+      Array.from(document.querySelectorAll<SVGRectElement>("g.rc-reader-highlight rect"))
+        .map((rect) => {
+          const x = Number.parseFloat(rect.getAttribute("x") ?? "");
+          const y = Number.parseFloat(rect.getAttribute("y") ?? "");
+          const width = Number.parseFloat(rect.getAttribute("width") ?? "");
+          const height = Number.parseFloat(rect.getAttribute("height") ?? "");
+          return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(width) && Number.isFinite(height)
+            ? { element: rect, x, y, width, height }
+            : null;
+        })
+        .filter((entry): entry is ReaderHighlightRect & { element: SVGRectElement } => entry != null),
+    );
+
+    if (overlayRects.length === 0) {
+      continue;
+    }
+
+    if (overlayRects.length === targetRects.length) {
+      overlayRects.forEach((overlayRect, index) => {
+        const targetRect = targetRects[index];
+        overlayRect.element.setAttribute("x", String(targetRect.x));
+        overlayRect.element.setAttribute("y", String(targetRect.y));
+        overlayRect.element.setAttribute("width", String(targetRect.width));
+        overlayRect.element.setAttribute("height", String(targetRect.height));
+      });
+      return;
+    }
+
+    const referenceTarget = targetRects[0];
+    const referenceOverlay = overlayRects[0];
+    const deltaY = referenceTarget.y - referenceOverlay.y;
+    const deltaX = referenceTarget.x - referenceOverlay.x;
+
+    if (Math.abs(deltaY) < 0.5 && Math.abs(deltaX) < 0.5) {
+      return;
+    }
+
+    overlayRects.forEach((overlayRect) => {
+      overlayRect.element.setAttribute("x", String(overlayRect.x + deltaX));
+      overlayRect.element.setAttribute("y", String(overlayRect.y + deltaY));
+    });
+    return;
+  }
+}
+
 async function waitForPreferredContents(
   rendition: EpubRendition,
   preferredHref?: string | null,
@@ -965,6 +1055,7 @@ export function SourceReaderPane({
     failures: 0,
   });
   const resizeRafRef = useRef<number | null>(null);
+  const currentHighlightRangeRef = useRef<Range | null>(null);
   const sectionLocatorsRef = useRef<SectionLocatorEntry[]>(sectionLocators);
   const onLocationChangeRef = useRef(onLocationChange);
   const theme: ReaderTheme = "paper";
@@ -991,6 +1082,9 @@ export function SourceReaderPane({
         return;
       }
       rendition.resize?.(Math.floor(rect.width), Math.floor(rect.height));
+      if (currentHighlightRangeRef.current) {
+        void alignHighlightOverlayToRange(currentHighlightRangeRef.current);
+      }
     };
 
     applyResize();
@@ -1020,6 +1114,9 @@ export function SourceReaderPane({
       return;
     }
     rendition.themes.fontSize(`${fontSizePercent}%`);
+    if (currentHighlightRangeRef.current) {
+      void alignHighlightOverlayToRange(currentHighlightRangeRef.current);
+    }
   }, [fontSizePercent]);
 
   useEffect(() => {
@@ -1257,6 +1354,7 @@ export function SourceReaderPane({
       cancelled = true;
       currentHighlightRef.current = null;
       highlightCfisRef.current.clear();
+      currentHighlightRangeRef.current = null;
       comparatorRef.current = null;
       lastHandledJumpIdRef.current = null;
       activeProgrammaticJumpRef.current = null;
@@ -1294,6 +1392,7 @@ export function SourceReaderPane({
     if (!rendition || trackedHighlightCfis.length === 0 || !rendition.annotations) {
       highlightCfisRef.current.clear();
       currentHighlightRef.current = null;
+      currentHighlightRangeRef.current = null;
       document.querySelectorAll("g.rc-reader-highlight").forEach((node) => node.remove());
       return;
     }
@@ -1310,11 +1409,16 @@ export function SourceReaderPane({
     } finally {
       highlightCfisRef.current.clear();
       currentHighlightRef.current = null;
+      currentHighlightRangeRef.current = null;
       document.querySelectorAll("g.rc-reader-highlight").forEach((node) => node.remove());
     }
   }
 
-  function highlightCfi(cfiRange: string, reactionType: ReactionType | null | undefined): boolean {
+  function highlightCfi(
+    cfiRange: string,
+    reactionType: ReactionType | null | undefined,
+    rangeForAlignment?: Range | null,
+  ): boolean {
     const rendition = renditionRef.current;
     if (!rendition?.annotations) {
       return false;
@@ -1331,8 +1435,13 @@ export function SourceReaderPane({
       });
       currentHighlightRef.current = cfiRange;
       highlightCfisRef.current.add(cfiRange);
+      currentHighlightRangeRef.current = rangeForAlignment ?? null;
+      if (rangeForAlignment) {
+        void alignHighlightOverlayToRange(rangeForAlignment);
+      }
       return true;
     } catch {
+      currentHighlightRangeRef.current = null;
       return false;
     }
   }
@@ -1362,7 +1471,7 @@ async function locateMatchText(
         }
         await scrollRangeIntoView(range);
         const cfiRange = cfiFromRangeSafely(contents, range);
-        if (!cfiRange || highlightCfi(cfiRange, reactionType)) {
+        if (!cfiRange || highlightCfi(cfiRange, reactionType, range)) {
           return mode;
         }
       }
@@ -1407,7 +1516,7 @@ async function locateMatchText(
       if (!cfiRange) {
         return true;
       }
-      highlightCfi(cfiRange, reactionType);
+      highlightCfi(cfiRange, reactionType, range);
       return true;
     }
 

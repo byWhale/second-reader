@@ -10,7 +10,7 @@ import pytest
 
 from src.iterator_reader import iterator as iterator_module
 from src.iterator_reader import parse as parse_module
-from src.iterator_reader.frontend_artifacts import estimate_eta_seconds
+from src.iterator_reader.frontend_artifacts import append_activity_event, estimate_eta_seconds
 from src.iterator_reader.storage import (
     activity_file,
     book_manifest_file,
@@ -297,6 +297,17 @@ def test_read_book_sequential_writes_frontend_artifacts(tmp_path, monkeypatch):
     assert {"structure_ready", "chapter_started", "segment_started", "segment_completed", "chapter_completed", "run_completed"} <= {
         item["type"] for item in activity
     }
+    position_event = next(item for item in activity if item["type"] == "segment_progress" and item["message"].startswith("📖"))
+    assert position_event["stream"] == "mindstream"
+    assert position_event["kind"] == "position"
+    assert position_event["visibility"] == "default"
+    thought_event = next(item for item in activity if item["type"] == "segment_progress" and item["message"].startswith("💡"))
+    assert thought_event["stream"] == "mindstream"
+    assert thought_event["kind"] == "thought"
+    assert thought_event["visibility"] == "default"
+    chapter_event = next(item for item in activity if item["type"] == "chapter_completed")
+    assert chapter_event["stream"] == "mindstream"
+    assert chapter_event["kind"] == "chapter_complete"
     assert all(item.get("event_id") for item in activity)
 
 
@@ -484,3 +495,26 @@ def test_estimate_eta_seconds_stays_null_until_one_chapter_finishes():
     eta = estimate_eta_seconds([30.0], 2, current_total_segments=4, current_completed_segments=1)
     assert isinstance(eta, int)
     assert eta > 0
+
+
+def test_append_activity_event_classifies_segment_progress_streams(tmp_path):
+    """Structured mindstream metadata should be persisted with the canonical activity file."""
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    append_activity_event(output_dir, {"type": "segment_progress", "message": "📖 读到 Prologue.1「开头」..."})
+    append_activity_event(output_dir, {"type": "segment_progress", "message": "🔗 This echoes something earlier..."})
+    append_activity_event(output_dir, {"type": "segment_progress", "message": "🔎 搜索: foo"})
+    append_activity_event(output_dir, {"type": "segment_progress", "message": "🤫 这段是过渡，安静读过"})
+    append_activity_event(output_dir, {"type": "segment_progress", "message": "可以，下一段"})
+
+    activity = _load_jsonl(activity_file(output_dir))
+
+    assert [(item["kind"], item["visibility"]) for item in activity] == [
+        ("position", "default"),
+        ("thought", "default"),
+        ("search", "default"),
+        ("transition", "collapsed"),
+        ("transition", "hidden"),
+    ]
+    assert all(item["stream"] == "mindstream" for item in activity)
