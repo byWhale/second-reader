@@ -47,6 +47,7 @@ import {
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./ui/resizable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { useIsMobile } from "./ui/use-mobile";
+import { useElementResponsiveTier } from "./ui/use-responsive-tier";
 
 const FOLLOW_NOTES_STORAGE_KEY = "chapter-reader-follow-notes";
 const CHAPTER_FILTER_STORAGE_KEY_PREFIX = "chapter-reader-filter";
@@ -180,6 +181,14 @@ function outlinePreviewTextFromSection(section: SectionCard): string {
   return "";
 }
 
+function searchResultDomainLabel(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 function buildOutlineFromChapterPayload(
   payload: ChapterDetailResponse,
   chapterEntry: ChapterListItem | null,
@@ -207,6 +216,7 @@ export function ChapterReadPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { ref: workspaceRef, tier: workspaceTier } = useElementResponsiveTier<HTMLDivElement>();
 
   const resolvedBookId = id || bookId;
   const bookIdNumber = Number(resolvedBookId);
@@ -628,13 +638,20 @@ export function ChapterReadPage() {
     ]),
   );
   const visibleSections = filterSections(payload.sections, activeFilter);
-  const pillBaseClass = "inline-flex items-center rounded-full border px-3.5 backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.9),0_10px_24px_rgba(61,46,31,0.045)] transition-all duration-200";
-  const workspaceActionClass = "inline-flex h-8 items-center gap-2 rounded-full border border-[var(--warm-300)]/60 bg-white/82 px-3.5 text-[var(--warm-700)] shadow-[0_1px_0_rgba(255,255,255,0.88),0_8px_20px_rgba(61,46,31,0.04)] transition-all duration-200 hover:-translate-y-[1px] hover:bg-white";
-  const workspacePrimaryActionClass = `${workspaceActionClass} hover:border-[var(--amber-accent)]/35 hover:text-[var(--warm-900)]`;
-  const workspaceSecondaryActionClass = `${workspaceActionClass} hover:border-[var(--warm-400)] hover:text-[var(--warm-800)]`;
-  const filterInactiveClass = `${pillBaseClass} h-10 border-[var(--warm-300)]/65 bg-white/82 text-[var(--warm-600)] hover:-translate-y-[1px] hover:border-[var(--warm-400)] hover:bg-white hover:text-[var(--warm-800)]`;
-  const filterActiveClass = `${pillBaseClass} h-10 border-[var(--amber-accent)]/35 bg-[var(--amber-bg)] text-[var(--amber-accent)] shadow-[0_1px_0_rgba(255,255,255,0.82),0_12px_28px_rgba(139,105,20,0.12)]`;
-  const markButtonBaseClass = `${pillBaseClass} h-9 border-[var(--warm-300)]/65 bg-white/86 text-[var(--warm-600)] hover:-translate-y-[1px] hover:border-[var(--warm-400)] hover:bg-white`;
+  const workspaceCompact = workspaceTier === "compact" || workspaceTier === "narrow" || workspaceTier === "mobile";
+  const workspaceNarrow = workspaceTier === "narrow" || workspaceTier === "mobile";
+  const workspaceWide = workspaceTier === "wide" || workspaceTier === "desktop";
+  const workspaceDesktop = workspaceTier === "wide" || workspaceTier === "desktop" || workspaceTier === "compact";
+  const pillBaseClass = `inline-flex items-center rounded-full border backdrop-blur-sm shadow-[0_1px_0_rgba(255,255,255,0.9),0_10px_24px_rgba(61,46,31,0.045)] transition-all duration-200 ${
+    workspaceCompact ? "px-3" : "px-3.5"
+  }`;
+  const workspaceActionClass = `inline-flex items-center rounded-full border transition-all duration-200 ${
+    workspaceCompact ? "h-8 gap-1.5 px-3" : "h-8 gap-2 px-3.5"
+  }`;
+  const workspacePrimaryActionClass = `${workspaceActionClass} border-[var(--amber-accent)]/28 bg-[linear-gradient(180deg,rgba(255,248,231,0.98),rgba(249,239,207,0.96))] text-[var(--amber-accent)] shadow-[0_1px_0_rgba(255,255,255,0.9),0_12px_24px_rgba(139,105,20,0.11)] hover:-translate-y-[1px] hover:border-[var(--amber-accent)]/42 hover:bg-[var(--amber-bg)]`;
+  const workspaceSecondaryActionClass = `${workspaceActionClass} border-[var(--warm-300)]/58 bg-white/72 text-[var(--warm-600)] shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_8px_18px_rgba(61,46,31,0.035)] hover:-translate-y-[1px] hover:border-[var(--warm-400)]/78 hover:bg-white hover:text-[var(--warm-800)]`;
+  const filterBaseClass = `${pillBaseClass} ${workspaceCompact ? "h-8" : "h-8.5"} border border-transparent bg-transparent text-[var(--warm-600)] shadow-none hover:-translate-y-[1px] hover:border-[var(--warm-300)]/52 hover:bg-white/82 hover:text-[var(--warm-800)]`;
+  const markButtonBaseClass = `${pillBaseClass} ${workspaceCompact ? "h-7.5" : "h-8"} border border-[var(--warm-300)]/32 bg-transparent text-[var(--warm-500)] shadow-none hover:-translate-y-[1px] hover:border-[var(--warm-300)]/58 hover:bg-[var(--warm-50)]/82 hover:text-[var(--warm-700)]`;
   const chapterItems = bookDetail?.chapters ?? [];
   const readableChapterCount = chapterItems.filter((chapter) => chapter.result_ready).length;
   const showChapterSwitcher = Boolean(bookDetail) && readableChapterCount > 1;
@@ -652,6 +669,37 @@ export function ChapterReadPage() {
     querySectionRef ??
     null;
   const previewSectionItems = previewOutline?.sections ?? [];
+  const primaryBookActionLabel = workspaceNarrow ? "Overview" : "Book overview";
+  const notesScrollbarClass = workspaceCompact ? "rc-scrollbar rc-scrollbar-compact" : "rc-scrollbar";
+  const paneHeaderPaddingClass = workspaceCompact ? "px-4 py-2 sm:px-5" : "px-5 py-2.5 sm:px-6 lg:px-7";
+  const bodyPaddingClass = workspaceCompact ? "px-4 pb-5 pt-4 sm:px-5" : "px-5 pb-6 pt-4 sm:px-6 lg:px-7";
+  const headerOuterPaddingClass = workspaceCompact ? "px-4 py-2.5 sm:px-5" : "px-5 py-3 sm:px-6 lg:px-7";
+  const paneHeaderHeightClass = workspaceCompact ? "min-h-[78px]" : "min-h-[82px]";
+  const filterRailClass = "rounded-[1.2rem] border border-[var(--warm-200)]/78 bg-white/54 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]";
+
+  function filterToneClass(filter: ReactionFilter, isActive: boolean): string {
+    if (!isActive) {
+      return filterBaseClass;
+    }
+    if (filter === "all") {
+      return `${pillBaseClass} ${workspaceCompact ? "h-8" : "h-8.5"} border-[var(--amber-accent)]/34 bg-[var(--amber-bg)] text-[var(--amber-accent)] shadow-[0_1px_0_rgba(255,255,255,0.82),0_8px_18px_rgba(139,105,20,0.09)]`;
+    }
+    const tone = reactionMeta[filter];
+    return `${pillBaseClass} ${workspaceCompact ? "h-8" : "h-8.5"} border-[var(--warm-300)]/40 ${tone.surfaceClass} ${tone.accentClass} shadow-[0_1px_0_rgba(255,255,255,0.82),0_8px_16px_rgba(61,46,31,0.055)]`;
+  }
+
+  function markToneClass(markType: MarkType, isActive: boolean): string {
+    if (!isActive) {
+      return markButtonBaseClass;
+    }
+    if (markType === "resonance") {
+      return `${markButtonBaseClass} border-[var(--amber-accent)]/34 bg-[var(--amber-bg)]/82 text-[var(--amber-accent)] shadow-[0_1px_0_rgba(255,255,255,0.82),0_8px_18px_rgba(139,105,20,0.08)]`;
+    }
+    if (markType === "blindspot") {
+      return `${markButtonBaseClass} border-orange-300/58 bg-orange-50/84 text-orange-700 shadow-[0_1px_0_rgba(255,255,255,0.82),0_8px_18px_rgba(234,88,12,0.08)]`;
+    }
+    return `${markButtonBaseClass} border-emerald-300/56 bg-emerald-50/82 text-emerald-700 shadow-[0_1px_0_rgba(255,255,255,0.82),0_8px_18px_rgba(16,185,129,0.08)]`;
+  }
 
   async function toggleMark(
     reactionId: ReactionId,
@@ -736,231 +784,258 @@ export function ChapterReadPage() {
 
   function renderNotesPane() {
     return (
-      <div className="rc-scrollbar h-full overflow-y-auto bg-[var(--warm-100)]">
-        <div className="sticky top-0 z-20 border-b border-[var(--warm-200)] bg-[var(--warm-50)]/95 backdrop-blur px-5 pt-5 pb-4 sm:px-6 lg:px-7">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              <p className="text-[var(--warm-500)] uppercase tracking-[0.18em] mb-1" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+      <div className="flex h-full min-h-0 flex-col bg-[var(--warm-100)]">
+        <div className={`rc-pane-header-surface shrink-0 ${paneHeaderHeightClass} ${paneHeaderPaddingClass}`}>
+          <div className="flex h-full flex-col justify-center gap-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <p className="text-[var(--warm-500)] uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
                 Reading notes
               </p>
-              <p className="text-[var(--warm-700)]" style={{ fontSize: "0.9rem", lineHeight: 1.6 }}>
-                {payload.visible_reaction_count} notes grounded in this chapter
-              </p>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <p className="text-[var(--warm-700)]" style={{ fontSize: "0.8rem", lineHeight: 1.4 }}>
+                  {payload.visible_reaction_count} notes in this chapter
+                </p>
+                <span
+                  className="inline-flex h-6 items-center rounded-full border border-[var(--warm-300)]/58 bg-white/76 px-2.5 text-[var(--warm-600)] shadow-[inset_0_1px_0_rgba(255,255,255,0.88)]"
+                  style={{ fontSize: "0.68rem", fontWeight: 600 }}
+                >
+                  {payload.high_signal_reaction_count} high-signal
+                </span>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                {payload.high_signal_reaction_count} high-signal
-              </p>
+
+            <div className={`-mx-1 overflow-x-auto pb-0.5 rc-scrollbar-none`}>
+              <div className={`${filterRailClass} flex w-max items-center gap-1.5 px-1`}>
+                {renderedFilters.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => handleFilterChange(filter)}
+                    data-testid={`reaction-filter-${filter}`}
+                    className={filterToneClass(filter, activeFilter === filter)}
+                    style={{ fontSize: workspaceCompact ? "0.72rem" : "0.75rem", fontWeight: 600 }}
+                    >
+                      {filter === "all" ? "All" : reactionLabel(filter)}
+                    </button>
+                ))}
+              </div>
             </div>
           </div>
-
-          <div className="flex flex-wrap gap-2 mt-4">
-            {renderedFilters.map((filter) => (
-              <button
-                key={filter}
-                type="button"
-                onClick={() => handleFilterChange(filter)}
-                data-testid={`reaction-filter-${filter}`}
-                className={activeFilter === filter ? filterActiveClass : filterInactiveClass}
-                style={{ fontSize: "0.75rem", fontWeight: 600 }}
-              >
-                {filter === "all" ? "All" : reactionLabel(filter)}
-              </button>
-            ))}
-          </div>
-
-          {sectionHint ? (
-            <p className="mt-3 text-[var(--amber-accent)]" style={{ fontSize: "0.75rem", lineHeight: 1.55, fontWeight: 500 }}>
-              {sectionHint}
-            </p>
-          ) : null}
         </div>
 
-        <div className="px-5 pb-6 pt-5 sm:px-6 lg:px-7">
-          <div className="space-y-8">
-            {visibleSections.length === 0 ? (
-              <div className="rounded-2xl border border-[var(--warm-300)]/40 bg-white px-4 py-6">
-                <p className="text-[var(--warm-800)]" style={{ fontSize: "0.9rem", fontWeight: 600 }}>
-                  No reactions under this filter.
-                </p>
-                <p className="text-[var(--warm-600)] mt-1" style={{ fontSize: "0.82rem", lineHeight: 1.7 }}>
-                  Switch back to All to continue linked reading and jump navigation.
-                </p>
-              </div>
-            ) : null}
+        <div className={`${notesScrollbarClass} min-h-0 flex-1 overflow-y-auto`}>
+          <div className={bodyPaddingClass}>
+            <div className="space-y-8">
+              {sectionHint ? (
+                <div className="rounded-2xl border border-[var(--amber-accent)]/18 bg-[var(--amber-bg)]/72 px-4 py-3 text-[var(--amber-accent)] shadow-[0_1px_0_rgba(255,255,255,0.82)]">
+                  <p style={{ fontSize: "0.76rem", lineHeight: 1.6, fontWeight: 500 }}>{sectionHint}</p>
+                </div>
+              ) : null}
 
-            {visibleSections.map((section) => (
-              <section
-                key={section.section_ref}
-                ref={(node) => {
-                  sectionRefs.current.set(section.section_ref, node);
-                }}
-                className={`rounded-2xl transition-colors ${
-                  passiveSectionRef === section.section_ref
-                    ? "bg-[var(--amber-bg)]/45 border border-[var(--amber-accent)]/20 p-3 -m-3"
-                    : ""
-                }`}
-                style={{ scrollMarginTop: "1.25rem" }}
-              >
-                <div className="mb-3 pb-2 border-b border-[var(--warm-200)]">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div>
-                      <p className="text-[var(--amber-accent)] mb-1" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+              {visibleSections.length === 0 ? (
+                <div className="rounded-2xl border border-[var(--warm-300)]/40 bg-white px-4 py-6">
+                  <p className="text-[var(--warm-800)]" style={{ fontSize: "0.9rem", fontWeight: 600 }}>
+                    No reactions under this filter.
+                  </p>
+                  <p className="text-[var(--warm-600)] mt-1" style={{ fontSize: "0.82rem", lineHeight: 1.7 }}>
+                    Switch back to All to continue linked reading and jump navigation.
+                  </p>
+                </div>
+              ) : null}
+
+              {visibleSections.map((section) => (
+                <section
+                  key={section.section_ref}
+                  ref={(node) => {
+                    sectionRefs.current.set(section.section_ref, node);
+                  }}
+                  className={`rounded-2xl transition-colors ${
+                    passiveSectionRef === section.section_ref
+                      ? "bg-[var(--amber-bg)]/45 border border-[var(--amber-accent)]/20 p-3 -m-3"
+                      : ""
+                  }`}
+                  style={{ scrollMarginTop: "1.25rem" }}
+                >
+                  <div className="mb-3 pb-3 border-b border-[var(--warm-200)]/78">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-[var(--amber-accent)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
                         {section.section_ref}
                       </p>
+                      {section.verdict ? (
+                        <span
+                          className="inline-flex h-5.5 items-center rounded-full border border-[var(--warm-300)]/52 bg-[var(--warm-50)]/86 px-2 text-[var(--warm-500)]"
+                          style={{ fontSize: "0.68rem", fontWeight: 600 }}
+                        >
+                          {section.verdict}
+                        </span>
+                      ) : null}
+                      {passiveSectionRef === section.section_ref ? (
+                        <span
+                          className="inline-flex h-5.5 items-center rounded-full border border-[var(--amber-accent)]/24 bg-[var(--amber-bg)]/78 px-2 text-[var(--amber-accent)]"
+                          style={{ fontSize: "0.68rem", fontWeight: 600 }}
+                        >
+                          Reading here
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2">
                       <p className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600, lineHeight: 1.45 }}>
                         {section.summary}
                       </p>
                     </div>
-                    <div className="text-right">
-                      {passiveSectionRef === section.section_ref ? (
-                        <p className="text-[var(--amber-accent)]" style={{ fontSize: "0.72rem", fontWeight: 600 }}>
-                          Reading here
-                        </p>
-                      ) : null}
-                      {section.verdict ? (
-                        <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                          {section.verdict}
-                        </p>
-                      ) : null}
-                    </div>
                   </div>
-                </div>
 
-                <div className="space-y-3">
-                  {section.reactions.map((reaction) => {
-                    const isActive = activeReactionId === reaction.reaction_id;
-                    const anchorQuote = reaction.anchor_quote.trim();
-                    const reactionTone = reactionMeta[reaction.type];
-                    return (
-                      <article
-                        key={reaction.reaction_id}
-                        data-testid={`reaction-card-${reaction.reaction_id}`}
-                        className={`rounded-2xl border p-4 cursor-pointer transition-colors ${
-                          isActive
-                            ? "border-[var(--amber-accent)]/45 bg-[var(--amber-bg)] shadow-[0_1px_0_rgba(255,255,255,0.9),0_20px_38px_rgba(139,105,20,0.11)]"
-                            : "border-[var(--warm-300)]/30 bg-white shadow-[0_1px_0_rgba(255,255,255,0.92),0_12px_28px_rgba(61,46,31,0.04)] hover:-translate-y-[1px] hover:border-[var(--warm-300)]/65 hover:shadow-[0_1px_0_rgba(255,255,255,0.94),0_18px_34px_rgba(61,46,31,0.07)]"
-                        }`}
-                        style={{ transitionDuration: "180ms" }}
-                        onClick={() => selectReaction(reaction.reaction_id, "note-click", payload)}
-                      >
-                        <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`${pillBaseClass} h-9 border-[var(--warm-300)]/45 ${reactionTone.surfaceClass} ${reactionTone.accentClass}`}
-                              style={{ fontSize: "0.74rem", fontWeight: 600 }}
-                            >
-                              {reactionLabel(reaction.type)}
-                            </span>
+                  <div className="space-y-3">
+                    {section.reactions.map((reaction) => {
+                      const isActive = activeReactionId === reaction.reaction_id;
+                      const anchorQuote = reaction.anchor_quote.trim();
+                      const reactionTone = reactionMeta[reaction.type];
+                      return (
+                        <article
+                          key={reaction.reaction_id}
+                          data-testid={`reaction-card-${reaction.reaction_id}`}
+                          className={`rounded-2xl border p-4 cursor-pointer transition-colors ${
+                            isActive
+                              ? "border-[var(--amber-accent)]/45 bg-[var(--amber-bg)] shadow-[0_1px_0_rgba(255,255,255,0.9),0_20px_38px_rgba(139,105,20,0.11)]"
+                              : "border-[var(--warm-300)]/30 bg-white shadow-[0_1px_0_rgba(255,255,255,0.92),0_12px_28px_rgba(61,46,31,0.04)] hover:-translate-y-[1px] hover:border-[var(--warm-300)]/65 hover:shadow-[0_1px_0_rgba(255,255,255,0.94),0_18px_34px_rgba(61,46,31,0.07)]"
+                          }`}
+                          style={{ transitionDuration: "180ms" }}
+                          onClick={() => selectReaction(reaction.reaction_id, "note-click", payload)}
+                        >
+                          <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`${pillBaseClass} h-9 border-[var(--warm-300)]/45 ${reactionTone.surfaceClass} ${reactionTone.accentClass}`}
+                                style={{ fontSize: "0.74rem", fontWeight: 600 }}
+                              >
+                                {reactionLabel(reaction.type)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void toggleMark(reaction.reaction_id, reaction.mark_type ?? null, "resonance");
+                                }}
+                                data-testid={`mark-resonance-${reaction.reaction_id}`}
+                                className={markToneClass("resonance", reaction.mark_type === "resonance")}
+                                style={{ fontSize: "0.72rem", fontWeight: 600 }}
+                              >
+                                {markLabel("resonance")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void toggleMark(reaction.reaction_id, reaction.mark_type ?? null, "blindspot");
+                                }}
+                                data-testid={`mark-blindspot-${reaction.reaction_id}`}
+                                className={markToneClass("blindspot", reaction.mark_type === "blindspot")}
+                                style={{ fontSize: "0.72rem", fontWeight: 600 }}
+                              >
+                                {markLabel("blindspot")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void toggleMark(reaction.reaction_id, reaction.mark_type ?? null, "bookmark");
+                                }}
+                                data-testid={`mark-bookmark-${reaction.reaction_id}`}
+                                className={markToneClass("bookmark", reaction.mark_type === "bookmark")}
+                                style={{ fontSize: "0.72rem", fontWeight: 600 }}
+                              >
+                                {markLabel("bookmark")}
+                              </button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void toggleMark(reaction.reaction_id, reaction.mark_type ?? null, "resonance");
-                              }}
-                              data-testid={`mark-resonance-${reaction.reaction_id}`}
-                              className={`${markButtonBaseClass} ${
-                                reaction.mark_type === "resonance"
-                                  ? "border-[var(--amber-accent)]/35 bg-[var(--amber-bg)] text-[var(--amber-accent)] shadow-[0_1px_0_rgba(255,255,255,0.82),0_12px_28px_rgba(139,105,20,0.1)]"
-                                  : ""
-                              }`}
-                              style={{ fontSize: "0.72rem", fontWeight: 600 }}
-                            >
-                              {markLabel("resonance")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void toggleMark(reaction.reaction_id, reaction.mark_type ?? null, "blindspot");
-                              }}
-                              data-testid={`mark-blindspot-${reaction.reaction_id}`}
-                              className={`${markButtonBaseClass} ${
-                                reaction.mark_type === "blindspot"
-                                  ? "border-orange-300/65 bg-orange-50 text-orange-700 shadow-[0_1px_0_rgba(255,255,255,0.82),0_12px_28px_rgba(234,88,12,0.08)]"
-                                  : ""
-                              }`}
-                              style={{ fontSize: "0.72rem", fontWeight: 600 }}
-                            >
-                              {markLabel("blindspot")}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void toggleMark(reaction.reaction_id, reaction.mark_type ?? null, "bookmark");
-                              }}
-                              data-testid={`mark-bookmark-${reaction.reaction_id}`}
-                              className={`${markButtonBaseClass} ${
-                                reaction.mark_type === "bookmark"
-                                  ? "border-emerald-300/65 bg-emerald-50 text-emerald-700 shadow-[0_1px_0_rgba(255,255,255,0.82),0_12px_28px_rgba(16,185,129,0.08)]"
-                                  : ""
-                              }`}
-                              style={{ fontSize: "0.72rem", fontWeight: 600 }}
-                            >
-                              {markLabel("bookmark")}
-                            </button>
-                          </div>
-                        </div>
 
-                        {anchorQuote ? (
-                          <blockquote
-                            className="border-l-2 border-[var(--amber-accent)]/40 pl-4 mb-3 text-[var(--warm-600)] italic"
-                            style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}
-                          >
-                            “{anchorQuote}”
-                          </blockquote>
-                        ) : null}
+                          {anchorQuote ? (
+                            <blockquote
+                              className="border-l-2 border-[var(--amber-accent)]/40 pl-4 mb-3 text-[var(--warm-600)] italic"
+                              style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}
+                            >
+                              “{anchorQuote}”
+                            </blockquote>
+                          ) : null}
 
-                        {isActive ? (
-                          <>
-                            <p className="text-[var(--warm-800)]" style={{ fontSize: "0.875rem", lineHeight: 1.82 }}>
-                              {reaction.content}
+                          {isActive ? (
+                            <>
+                              <p className="text-[var(--warm-800)]" style={{ fontSize: "0.875rem", lineHeight: 1.82 }}>
+                                {reaction.content}
+                              </p>
+                              {reaction.search_results.length > 0 ? (
+                                <section className="mt-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Search className="w-4 h-4 text-[var(--amber-accent)]" />
+                                    <p className="text-[var(--warm-900)]" style={{ fontSize: "0.78rem", fontWeight: 600 }}>
+                                      Extra context
+                                    </p>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {reaction.search_results.map((result) => (
+                                      <a
+                                        key={result.url}
+                                        href={result.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="block overflow-hidden rounded-xl bg-white/74 border border-[var(--warm-300)]/40 p-3 no-underline transition-colors hover:bg-white"
+                                      >
+                                        <div className="mb-1 flex items-start justify-between gap-3">
+                                          <p
+                                            className="min-w-0 text-[var(--warm-900)]"
+                                            style={{
+                                              fontSize: "0.77rem",
+                                              fontWeight: 600,
+                                              lineHeight: 1.5,
+                                              overflowWrap: "anywhere",
+                                              wordBreak: "break-word",
+                                            }}
+                                          >
+                                            {result.title}
+                                          </p>
+                                          <span
+                                            className="shrink-0 rounded-full border border-[var(--warm-300)]/58 bg-[var(--warm-50)] px-2 py-0.5 text-[var(--warm-500)]"
+                                            style={{ fontSize: "0.64rem", fontWeight: 600 }}
+                                          >
+                                            {searchResultDomainLabel(result.url)}
+                                          </span>
+                                        </div>
+                                        <p
+                                          className="text-[var(--warm-600)]"
+                                          style={{
+                                            fontSize: "0.75rem",
+                                            lineHeight: 1.65,
+                                            overflowWrap: "anywhere",
+                                            wordBreak: "break-word",
+                                            display: "-webkit-box",
+                                            WebkitLineClamp: 3,
+                                            WebkitBoxOrient: "vertical",
+                                            overflow: "hidden",
+                                          }}
+                                        >
+                                          {result.snippet}
+                                        </p>
+                                      </a>
+                                    ))}
+                                  </div>
+                                </section>
+                              ) : null}
+                            </>
+                          ) : (
+                            <p className="text-[var(--warm-700)]" style={{ fontSize: "0.84rem", lineHeight: 1.75 }}>
+                              {reactionPreview(reaction.content)}
                             </p>
-                            {reaction.search_results.length > 0 ? (
-                              <section className="mt-4">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Search className="w-4 h-4 text-[var(--amber-accent)]" />
-                                  <p className="text-[var(--warm-900)]" style={{ fontSize: "0.78rem", fontWeight: 600 }}>
-                                    Extra context
-                                  </p>
-                                </div>
-                                <div className="space-y-2">
-                                  {reaction.search_results.map((result) => (
-                                    <a
-                                      key={result.url}
-                                      href={result.url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="block rounded-xl bg-white/70 border border-[var(--warm-300)]/40 p-3 no-underline hover:bg-white transition-colors"
-                                    >
-                                      <p className="text-[var(--warm-900)] mb-1" style={{ fontSize: "0.77rem", fontWeight: 600 }}>
-                                        {result.title}
-                                      </p>
-                                      <p className="text-[var(--warm-600)]" style={{ fontSize: "0.75rem", lineHeight: 1.65 }}>
-                                        {result.snippet}
-                                      </p>
-                                    </a>
-                                  ))}
-                                </div>
-                              </section>
-                            ) : null}
-                          </>
-                        ) : (
-                          <p className="text-[var(--warm-700)]" style={{ fontSize: "0.84rem", lineHeight: 1.75 }}>
-                            {reactionPreview(reaction.content)}
-                          </p>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
           </div>
-
         </div>
       </div>
     );
@@ -970,7 +1045,7 @@ export function ChapterReadPage() {
   const readerBookTitle = (bookDetail?.title || "").trim() || payload.title || "Original book";
 
   return (
-    <div className="h-[calc(100vh-72px)] flex flex-col bg-[var(--warm-100)]">
+    <div ref={workspaceRef} className="h-[calc(100vh-72px)] flex flex-col bg-[var(--warm-100)]">
       <Sheet open={isChapterSheetOpen} onOpenChange={setIsChapterSheetOpen}>
         <SheetContent
           side="left"
@@ -1302,52 +1377,10 @@ export function ChapterReadPage() {
           </SheetFooter>
         </SheetContent>
 
-      <div className="border-b border-[var(--warm-200)] bg-[var(--warm-50)]/95 backdrop-blur-sm flex-shrink-0">
-        <div className="px-5 py-2.5 sm:px-6 lg:px-7">
-          <div className="flex flex-wrap items-start justify-between gap-3 lg:flex-nowrap lg:gap-6">
-            <div className="min-w-0 flex-1">
-              <OverflowTooltipText
-                as="p"
-                text={readerBookTitle}
-                lines={1}
-                side="bottom"
-                className="text-[var(--warm-600)]"
-                style={{
-                  fontSize: "0.82rem",
-                  fontWeight: 600,
-                  lineHeight: 1.35,
-                  maxWidth: "min(56rem, 100%)",
-                }}
-              />
-
-              <div className="mt-1.5 flex min-w-0 items-center gap-2.5 flex-wrap">
-                {showSeparateChapterTitle ? (
-                  <span
-                    className="inline-flex h-7 items-center rounded-full border border-[var(--warm-300)]/65 bg-white/78 px-3 text-[var(--warm-700)] shadow-[0_1px_0_rgba(255,255,255,0.88)]"
-                    style={{ fontSize: "0.74rem", fontWeight: 600 }}
-                    data-testid="chapter-workspace-current-chapter"
-                  >
-                    {currentChapterRef}
-                  </span>
-                ) : null}
-                <OverflowTooltipText
-                  as="h1"
-                  text={workspaceHeading}
-                  lines={1}
-                  side="bottom"
-                  data-testid={!showSeparateChapterTitle ? "chapter-workspace-current-chapter" : undefined}
-                  className="min-w-0 text-[var(--warm-950)] font-['Lora',Georgia,serif] tracking-tight"
-                  style={{
-                    fontSize: "clamp(1.04rem, 1.25vw, 1.26rem)",
-                    fontWeight: 700,
-                    lineHeight: 1.14,
-                    maxWidth: "min(40rem, 100%)",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 flex-wrap lg:justify-end">
+      <div className="rc-workspace-topbar flex-shrink-0">
+        <div className={headerOuterPaddingClass}>
+          {workspaceWide ? (
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
               {showChapterSwitcher ? (
                 <SheetTrigger asChild>
                   <button
@@ -1360,17 +1393,131 @@ export function ChapterReadPage() {
                     Chapters
                   </button>
                 </SheetTrigger>
-              ) : null}
+              ) : (
+                <div />
+              )}
+
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  {showSeparateChapterTitle ? (
+                    <span
+                      className="inline-flex h-7 shrink-0 items-center rounded-full border border-[var(--warm-300)]/65 bg-white/78 px-3 text-[var(--warm-700)] shadow-[0_1px_0_rgba(255,255,255,0.88)]"
+                      style={{ fontSize: "0.74rem", fontWeight: 600 }}
+                      data-testid="chapter-workspace-current-chapter"
+                    >
+                      {currentChapterRef}
+                    </span>
+                  ) : null}
+                  <OverflowTooltipText
+                    as="h1"
+                    text={workspaceHeading}
+                    lines={1}
+                    side="bottom"
+                    data-testid={!showSeparateChapterTitle ? "chapter-workspace-current-chapter" : undefined}
+                    className="min-w-0 text-[var(--warm-950)] font-['Lora',Georgia,serif] tracking-tight"
+                    style={{
+                      fontSize: "clamp(1rem, 1.15vw, 1.18rem)",
+                      fontWeight: 700,
+                      lineHeight: 1.16,
+                      maxWidth: "100%",
+                    }}
+                  />
+                </div>
+                <OverflowTooltipText
+                  as="p"
+                  text={readerBookTitle}
+                  lines={1}
+                  side="bottom"
+                  className="mt-1 text-[var(--warm-600)]"
+                  style={{
+                    fontSize: "0.77rem",
+                    fontWeight: 600,
+                    lineHeight: 1.35,
+                    maxWidth: "100%",
+                  }}
+                />
+              </div>
+
               <Link
                 to={canonicalBookPath(payload.book_id)}
                 className={`${workspaceSecondaryActionClass} no-underline text-[var(--warm-600)]`}
                 style={{ fontSize: "0.76rem", fontWeight: 600 }}
               >
                 <ArrowLeft className="h-4 w-4" />
-                Overview
+                {primaryBookActionLabel}
               </Link>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                {showChapterSwitcher ? (
+                  <SheetTrigger asChild>
+                    <button
+                      type="button"
+                      data-testid="chapter-sheet-trigger"
+                      className={workspacePrimaryActionClass}
+                      style={{ fontSize: workspaceCompact ? "0.72rem" : "0.76rem", fontWeight: 600 }}
+                    >
+                      <List className="h-4 w-4" />
+                      Chapters
+                    </button>
+                  </SheetTrigger>
+                ) : (
+                  <div />
+                )}
+
+                <Link
+                  to={canonicalBookPath(payload.book_id)}
+                  className={`${workspaceSecondaryActionClass} no-underline text-[var(--warm-600)]`}
+                  style={{ fontSize: workspaceCompact ? "0.72rem" : "0.76rem", fontWeight: 600 }}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {primaryBookActionLabel}
+                </Link>
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  {showSeparateChapterTitle ? (
+                    <span
+                      className="inline-flex h-7 shrink-0 items-center rounded-full border border-[var(--warm-300)]/65 bg-white/78 px-3 text-[var(--warm-700)] shadow-[0_1px_0_rgba(255,255,255,0.88)]"
+                      style={{ fontSize: "0.72rem", fontWeight: 600 }}
+                      data-testid="chapter-workspace-current-chapter"
+                    >
+                      {currentChapterRef}
+                    </span>
+                  ) : null}
+                  <OverflowTooltipText
+                    as="h1"
+                    text={workspaceHeading}
+                    lines={1}
+                    side="bottom"
+                    data-testid={!showSeparateChapterTitle ? "chapter-workspace-current-chapter" : undefined}
+                    className="min-w-0 text-[var(--warm-950)] font-['Lora',Georgia,serif] tracking-tight"
+                    style={{
+                      fontSize: workspaceNarrow ? "1rem" : "1.08rem",
+                      fontWeight: 700,
+                      lineHeight: 1.16,
+                      maxWidth: "100%",
+                    }}
+                  />
+                </div>
+                <OverflowTooltipText
+                  as="p"
+                  text={readerBookTitle}
+                  lines={1}
+                  side="bottom"
+                  className="mt-1 text-[var(--warm-600)]"
+                  style={{
+                    fontSize: workspaceNarrow ? "0.74rem" : "0.77rem",
+                    fontWeight: 600,
+                    lineHeight: 1.35,
+                    maxWidth: "100%",
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1425,7 +1572,7 @@ export function ChapterReadPage() {
             <ResizablePanel defaultSize={45} minSize={28} className="bg-[var(--warm-100)]">
               {renderNotesPane()}
             </ResizablePanel>
-            <ResizableHandle withHandle />
+            <ResizableHandle withHandle className={workspaceCompact ? "w-[5px] after:inset-y-4 after:bg-[var(--warm-300)]/42" : undefined} />
             <ResizablePanel defaultSize={55} minSize={35} className="bg-[var(--warm-100)]">
               <SourceReaderPane
                 sourceUrl={sourceUrl}

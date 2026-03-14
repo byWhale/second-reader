@@ -52,7 +52,6 @@ test("fixture upload flow stays on canonical routes and persists marks", async (
   await expect(page.getByTestId("global-nav-marks")).not.toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: /Source EPUB/i })).toHaveCount(0);
   await expect(page.getByTestId("source-reader-pane")).toBeVisible();
-  await expect(page.getByTestId("reader-jump-status")).toBeVisible();
   const chapterUrl = page.url();
 
   await page.goto("/books");

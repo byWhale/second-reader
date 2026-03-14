@@ -1,6 +1,5 @@
 import {
   AlertCircle,
-  ExternalLink,
   Loader2,
   Minus,
   Plus,
@@ -19,6 +18,7 @@ import type {
 } from "../lib/reader-types";
 import { normalizeReaderCharacter, normalizeReaderText } from "../lib/reader-types";
 import { OverflowTooltipText } from "./ui/overflow-tooltip-text";
+import { useElementResponsiveTier } from "./ui/use-responsive-tier";
 import { Switch } from "./ui/switch";
 
 type EpubContents = {
@@ -380,6 +380,20 @@ function prioritizeContentsByHref(contentsList: EpubContents[], href: string | n
   return [...matching, ...contentsList.filter((contents) => !matching.includes(contents))];
 }
 
+function preferredContentsByHref(contentsList: EpubContents[], href: string | null | undefined): EpubContents[] {
+  const normalizedTarget = normalizeHref(href);
+  if (!normalizedTarget) {
+    return contentsList;
+  }
+
+  const matching = contentsList.filter((contents) => {
+    const documentHref = normalizedDocumentHref(contents);
+    return documentHref ? hrefEquivalent(documentHref, normalizedTarget) : false;
+  });
+
+  return matching;
+}
+
 function buildNormalizedIndexMap(value: string): { indices: number[]; normalized: string } {
   const indices: number[] = [];
   let normalized = "";
@@ -401,6 +415,87 @@ function buildNormalizedIndexMap(value: string): { indices: number[]; normalized
   }
 
   return { indices, normalized };
+}
+
+type NormalizedDocumentPosition = {
+  node: Text;
+  offset: number;
+};
+
+type NormalizedDocumentMap = {
+  normalized: string;
+  positions: NormalizedDocumentPosition[];
+};
+
+function nearestReadableBlock(node: Text): Element | null {
+  return node.parentElement?.closest("p, li, blockquote, h1, h2, h3, h4, h5, h6, figcaption") ?? null;
+}
+
+function appendNormalizedCharacter(
+  target: NormalizedDocumentMap,
+  character: string,
+  position: NormalizedDocumentPosition,
+  previousWhitespaceRef: { value: boolean },
+): void {
+  const normalizedCharacter = normalizeReaderCharacter(character);
+  if (normalizedCharacter === " ") {
+    if (previousWhitespaceRef.value) {
+      return;
+    }
+    previousWhitespaceRef.value = true;
+  } else {
+    previousWhitespaceRef.value = false;
+  }
+
+  target.normalized += normalizedCharacter;
+  target.positions.push(position);
+}
+
+function buildNormalizedDocumentMap(root: HTMLElement): NormalizedDocumentMap {
+  const result: NormalizedDocumentMap = {
+    normalized: "",
+    positions: [],
+  };
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const previousWhitespaceRef = { value: false };
+  let previousBlock: Element | null = null;
+  let node = walker.nextNode();
+
+  while (node) {
+    const textNode = node as Text;
+    const value = textNode.nodeValue ?? "";
+    const currentBlock = nearestReadableBlock(textNode);
+
+    if (
+      currentBlock &&
+      previousBlock &&
+      currentBlock !== previousBlock &&
+      result.positions.length > 0
+    ) {
+      appendNormalizedCharacter(
+        result,
+        " ",
+        { node: textNode, offset: 0 },
+        previousWhitespaceRef,
+      );
+    }
+
+    for (let index = 0; index < value.length; index += 1) {
+      appendNormalizedCharacter(
+        result,
+        value[index],
+        { node: textNode, offset: index },
+        previousWhitespaceRef,
+      );
+    }
+
+    if (currentBlock) {
+      previousBlock = currentBlock;
+    }
+    node = walker.nextNode();
+  }
+
+  return result;
 }
 
 function findRangeByText(node: Text, query: string): Range | null {
@@ -442,6 +537,142 @@ function findRangeByNormalizedText(node: Text, normalizedQuery: string): Range |
   return range;
 }
 
+function findRangeByDocumentText(contents: EpubContents, text: string): Range | null {
+  const document = contents.document;
+  if (!document?.body) {
+    return null;
+  }
+
+  const query = normalizeReaderText(text);
+  if (!query) {
+    return null;
+  }
+
+  const mapped = buildNormalizedDocumentMap(document.body);
+  const startInNormalized = mapped.normalized.indexOf(query);
+  if (startInNormalized === -1) {
+    return null;
+  }
+
+  const endNormalizedIndex = startInNormalized + query.length - 1;
+  const startPosition = mapped.positions[startInNormalized];
+  const endPosition = mapped.positions[endNormalizedIndex];
+  if (!startPosition || !endPosition) {
+    return null;
+  }
+
+  const range = document.createRange();
+  range.setStart(startPosition.node, startPosition.offset);
+  range.setEnd(endPosition.node, endPosition.offset + 1);
+  return range;
+}
+
+function collapseReaderWhitespace(value: string): string {
+  return value.replace(/\s+/gu, " ").trim();
+}
+
+function readableBlockElements(root: HTMLElement): HTMLElement[] {
+  return Array.from(
+    root.querySelectorAll<HTMLElement>("p, li, blockquote, h1, h2, h3, h4, h5, h6, figcaption"),
+  ).filter((element) => collapseReaderWhitespace(element.textContent ?? "").length > 0);
+}
+
+function buildLooseQueryPhrases(text: string): string[] {
+  const tokens = normalizeReaderText(text)
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(" ")
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  const phrases: string[] = [];
+  const maxWindow = Math.min(tokens.length, 10);
+
+  for (let windowSize = maxWindow; windowSize >= 4; windowSize -= 1) {
+    for (let index = 0; index <= tokens.length - windowSize; index += 1) {
+      const phrase = tokens.slice(index, index + windowSize).join(" ");
+      if (phrase.length >= 18) {
+        phrases.push(phrase);
+      }
+    }
+  }
+
+  return [...new Set(phrases)];
+}
+
+function findRangeByBlockText(contents: EpubContents, text: string, normalized: boolean): Range | null {
+  const document = contents.document;
+  if (!document?.body) {
+    return null;
+  }
+
+  const blocks = readableBlockElements(document.body);
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  const query = normalized ? normalizeReaderText(text) : collapseReaderWhitespace(text);
+  if (!query) {
+    return null;
+  }
+
+  for (const windowSize of [1, 2, 3]) {
+    for (let index = 0; index <= blocks.length - windowSize; index += 1) {
+      const slice = blocks.slice(index, index + windowSize);
+      const candidate = slice.map((element) => element.textContent ?? "").join(" ");
+      const haystack = normalized ? normalizeReaderText(candidate) : collapseReaderWhitespace(candidate);
+      if (!haystack.includes(query)) {
+        continue;
+      }
+
+      const range = document.createRange();
+      range.setStartBefore(slice[0]);
+      range.setEndAfter(slice[slice.length - 1]);
+      return range;
+    }
+  }
+
+  return null;
+}
+
+function findRangeByLoosePhrase(contents: EpubContents, text: string): Range | null {
+  const document = contents.document;
+  if (!document?.body) {
+    return null;
+  }
+
+  const blocks = readableBlockElements(document.body);
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  const phrases = buildLooseQueryPhrases(text);
+  if (phrases.length === 0) {
+    return null;
+  }
+
+  for (const windowSize of [1, 2, 3]) {
+    for (let index = 0; index <= blocks.length - windowSize; index += 1) {
+      const slice = blocks.slice(index, index + windowSize);
+      const haystack = normalizeReaderText(slice.map((element) => element.textContent ?? "").join(" "));
+      if (!haystack) {
+        continue;
+      }
+
+      const matchedPhrase = phrases.find((phrase) => haystack.includes(phrase));
+      if (!matchedPhrase) {
+        continue;
+      }
+
+      const range = document.createRange();
+      range.setStartBefore(slice[0]);
+      range.setEndAfter(slice[slice.length - 1]);
+      return range;
+    }
+  }
+
+  return null;
+}
+
 function findTextRange(contents: EpubContents, text: string, normalized: boolean): Range | null {
   const document = contents.document;
   if (!document?.body) {
@@ -465,7 +696,12 @@ function findTextRange(contents: EpubContents, text: string, normalized: boolean
     }
     node = walker.nextNode();
   }
-  return null;
+
+  return (
+    findRangeByDocumentText(contents, text) ??
+    findRangeByBlockText(contents, text, normalized) ??
+    findRangeByLoosePhrase(contents, text)
+  );
 }
 
 function findRangeByParagraphIndex(contents: EpubContents, paragraphIndex: number): Range | null {
@@ -505,6 +741,17 @@ function isRangeVisible(range: Range): boolean {
   return rect.top >= topSafeMargin && rect.bottom <= view.innerHeight - bottomSafeMargin;
 }
 
+function cfiFromRangeSafely(contents: EpubContents, range: Range): string | null {
+  if (!contents.cfiFromRange) {
+    return null;
+  }
+  try {
+    return contents.cfiFromRange(range);
+  } catch {
+    return null;
+  }
+}
+
 function findReaderScrollContainer(frameElement: Element | null): HTMLElement | null {
   if (!frameElement) {
     return null;
@@ -526,7 +773,7 @@ function findReaderScrollContainer(frameElement: Element | null): HTMLElement | 
   return frameElement.parentElement instanceof HTMLElement ? frameElement.parentElement : null;
 }
 
-function scrollRangeIntoView(range: Range): void {
+async function scrollRangeIntoView(range: Range): Promise<void> {
   const container =
     (range.startContainer.nodeType === Node.ELEMENT_NODE
       ? (range.startContainer as Element)
@@ -552,33 +799,33 @@ function scrollRangeIntoView(range: Range): void {
     return;
   }
 
-  const innerRect = range.getBoundingClientRect();
-  if (!innerRect || (innerRect.height === 0 && innerRect.width === 0)) {
-    return;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const innerRect = range.getBoundingClientRect();
+    if (!innerRect || (innerRect.height === 0 && innerRect.width === 0)) {
+      return;
+    }
+
+    const frameRect = frameElement.getBoundingClientRect();
+    const outerRect = outerContainer.getBoundingClientRect();
+    const targetTop = frameRect.top + innerRect.top;
+    const targetBottom = frameRect.top + innerRect.bottom;
+    const targetMid = (targetTop + targetBottom) / 2;
+    const viewportMid = outerRect.top + outerRect.height / 2;
+    const delta = targetMid - viewportMid;
+    const comfortablyVisible =
+      targetTop >= outerRect.top + 28 &&
+      targetBottom <= outerRect.bottom - 24;
+
+    if (Math.abs(delta) < 3 && comfortablyVisible) {
+      return;
+    }
+
+    outerContainer.scrollTo({
+      top: Math.max(0, outerContainer.scrollTop + delta),
+      behavior: "auto",
+    });
+    await waitForReaderFrame(1);
   }
-
-  const frameRect = frameElement.getBoundingClientRect();
-  const outerRect = outerContainer.getBoundingClientRect();
-  const targetTop = frameRect.top + innerRect.top;
-  const targetBottom = frameRect.top + innerRect.bottom;
-  const safeTop = outerRect.top + outerRect.height * 0.18;
-  const safeBottom = outerRect.bottom - outerRect.height * 0.18;
-
-  let delta = 0;
-  if (targetTop < safeTop) {
-    delta = targetTop - safeTop;
-  } else if (targetBottom > safeBottom) {
-    delta = targetBottom - safeBottom;
-  }
-
-  if (Math.abs(delta) < 2) {
-    return;
-  }
-
-  outerContainer.scrollTo({
-    top: Math.max(0, outerContainer.scrollTop + delta),
-    behavior: "auto",
-  });
 }
 
 function formatProgress(value: number | null): string {
@@ -629,6 +876,80 @@ function isRangeCfi(target: string): boolean {
 
 function isCfiTarget(target: string): boolean {
   return target.trim().startsWith("epubcfi(");
+}
+
+function waitForReaderFrame(frameCount = 1): Promise<void> {
+  return new Promise((resolve) => {
+    let remaining = Math.max(1, frameCount);
+    const step = () => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        resolve();
+        return;
+      }
+      window.requestAnimationFrame(step);
+    };
+    window.requestAnimationFrame(step);
+  });
+}
+
+async function waitForPreferredContents(
+  rendition: EpubRendition,
+  preferredHref?: string | null,
+  maxAttempts = 28,
+): Promise<void> {
+  const normalizedTarget = normalizeHref(preferredHref);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const contentsList = getContentsList(rendition);
+    const hasTargetDocument =
+      !normalizedTarget ||
+      contentsList.some((contents) => {
+        const documentHref = normalizedDocumentHref(contents);
+        return documentHref ? hrefEquivalent(documentHref, normalizedTarget) : false;
+      });
+    const allDocumentsReady =
+      contentsList.length > 0 &&
+      contentsList.every((contents) => {
+        const readyState = contents.document?.readyState;
+        return !readyState || readyState === "interactive" || readyState === "complete";
+      });
+
+    if (hasTargetDocument && allDocumentsReady) {
+      return;
+    }
+
+    await waitForReaderFrame(1);
+  }
+}
+
+function contentsIncludeText(contents: EpubContents, text: string): boolean {
+  const body = contents.document?.body;
+  if (!body) {
+    return false;
+  }
+  return normalizeReaderText(body.innerText || body.textContent || "").includes(normalizeReaderText(text));
+}
+
+async function waitForMatchTextAvailability(
+  rendition: EpubRendition,
+  targetText: string,
+  preferredHref?: string | null,
+  maxAttempts = 28,
+): Promise<void> {
+  const normalizedTarget = normalizeReaderText(targetText);
+  if (!normalizedTarget) {
+    return;
+  }
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const contentsList = preferredContentsByHref(getContentsList(rendition), preferredHref);
+    const hasMatch = contentsList.some((contents) => contentsIncludeText(contents, targetText));
+    if (hasMatch) {
+      return;
+    }
+    await waitForReaderFrame(1);
+  }
 }
 
 export function SourceReaderPane({
@@ -1051,7 +1372,10 @@ async function locateMatchText(
   if (!rendition) {
     return null;
   }
-  const contentsList = prioritizeContentsByHref(getContentsList(rendition), preferredHref);
+  const contentsList = preferredContentsByHref(
+    prioritizeContentsByHref(getContentsList(rendition), preferredHref),
+    preferredHref,
+  );
   if (contentsList.length === 0) {
     return null;
   }
@@ -1059,16 +1383,12 @@ async function locateMatchText(
     for (const mode of ["exact", "normalized"] as const) {
       for (const contents of contentsList) {
         const range = findTextRange(contents, targetText, mode === "normalized");
-        if (!range || !contents.cfiFromRange) {
+        if (!range) {
           continue;
         }
-        const cfiRange = contents.cfiFromRange(range);
-        if (!cfiRange) {
-          continue;
-        }
-        scrollRangeIntoView(range);
-        const highlighted = highlightCfi(cfiRange, reactionType);
-        if (highlighted) {
+        await scrollRangeIntoView(range);
+        const cfiRange = cfiFromRangeSafely(contents, range);
+        if (!cfiRange || highlightCfi(cfiRange, reactionType)) {
           return mode;
         }
       }
@@ -1094,7 +1414,10 @@ async function locateMatchText(
       }
     }
 
-    const contentsList = prioritizeContentsByHref(getContentsList(rendition), locator.href);
+    const contentsList = preferredContentsByHref(
+      prioritizeContentsByHref(getContentsList(rendition), locator.href),
+      locator.href,
+    );
     if (contentsList.length === 0) {
       return false;
     }
@@ -1105,11 +1428,8 @@ async function locateMatchText(
       if (!range) {
         continue;
       }
-      scrollRangeIntoView(range);
-      if (!contents.cfiFromRange) {
-        return true;
-      }
-      const cfiRange = contents.cfiFromRange(range);
+      await scrollRangeIntoView(range);
+      const cfiRange = cfiFromRangeSafely(contents, range);
       if (!cfiRange) {
         return true;
       }
@@ -1129,6 +1449,7 @@ async function locateMatchText(
           window.setTimeout(() => reject(new Error("reader-display-timeout")), timeoutMs);
         }),
       ]);
+      await waitForPreferredContents(rendition, isCfiTarget(target) ? null : target);
       return true;
     } catch {
       return false;
@@ -1163,20 +1484,25 @@ async function locateMatchText(
       });
     }, JUMP_SPINNER_GUARD_MS);
 
+    const preferHrefFirst = Boolean(request.targetLocator?.match_text && request.targetLocator?.href);
+    const targetDisplayPriority = preferHrefFirst
+      ? [request.targetLocator?.href, request.targetLocator?.start_cfi]
+      : [request.targetLocator?.start_cfi, request.targetLocator?.href];
+    const sectionDisplayPriority = preferHrefFirst
+      ? [request.sectionLocator?.href, request.sectionLocator?.start_cfi]
+      : [request.sectionLocator?.start_cfi, request.sectionLocator?.href];
+    const chapterDisplayPriority = preferHrefFirst
+      ? [sectionLocators.find((entry) => entry.href)?.href, sectionLocators.find((entry) => entry.startCfi)?.startCfi]
+      : [sectionLocators.find((entry) => entry.startCfi)?.startCfi, sectionLocators.find((entry) => entry.href)?.href];
     const displayTargets = request.targetLocator
       ? [
-          request.targetLocator.start_cfi,
-          request.targetLocator.href,
-          request.sectionLocator?.start_cfi,
-          request.sectionLocator?.href,
-          sectionLocators.find((entry) => entry.startCfi)?.startCfi,
-          sectionLocators.find((entry) => entry.href)?.href,
+          ...targetDisplayPriority,
+          ...sectionDisplayPriority,
+          ...chapterDisplayPriority,
         ]
       : [
-          request.sectionLocator?.href,
-          request.sectionLocator?.start_cfi,
-          sectionLocators.find((entry) => entry.href)?.href,
-          sectionLocators.find((entry) => entry.startCfi)?.startCfi,
+          ...sectionDisplayPriority,
+          ...chapterDisplayPriority,
         ];
     const uniqueTargets = displayTargets.map(normalizeJumpTarget).filter((value): value is string => value != null);
     const dedupedTargets = [...new Set(uniqueTargets)];
@@ -1202,6 +1528,7 @@ async function locateMatchText(
 
     try {
       let displayed = false;
+      let displayedTarget: string | null = null;
       for (const target of dedupedTargets) {
         if (isStale()) {
           return;
@@ -1222,6 +1549,7 @@ async function locateMatchText(
         if (success) {
           failedDisplayTargetsRef.current.delete(target);
           displayed = true;
+          displayedTarget = target;
           break;
         }
         if (isCfi) {
@@ -1250,10 +1578,27 @@ async function locateMatchText(
       }
 
       if (request.targetLocator?.match_text) {
+        const preferredHref = request.targetLocator.href ?? request.sectionLocator?.href ?? null;
+        if (preferredHref && (!displayedTarget || isCfiTarget(displayedTarget))) {
+          await displayWithTimeout(rendition, preferredHref);
+          if (isStale()) {
+            return;
+          }
+        }
+
+        await waitForMatchTextAvailability(
+          rendition,
+          request.targetLocator.match_text,
+          preferredHref,
+        );
+        if (isStale()) {
+          return;
+        }
+
         const mode = await locateMatchText(
           request.targetLocator.match_text,
           request.reactionType,
-          request.targetLocator.href ?? request.sectionLocator?.href,
+          preferredHref,
         );
         if (isStale()) {
           return;
@@ -1261,7 +1606,7 @@ async function locateMatchText(
         if (mode === "exact") {
           setLastJumpFeedback({
             approximate: false,
-            message: "Matched and highlighted the quoted line.",
+            message: "Matched the quoted passage.",
             resolution: "exact",
             sectionRef: request.sectionRef,
           });
@@ -1275,6 +1620,40 @@ async function locateMatchText(
             sectionRef: request.sectionRef,
           });
           return;
+        }
+        if (preferredHref) {
+          await waitForMatchTextAvailability(
+            rendition,
+            request.targetLocator.match_text,
+            preferredHref,
+            12,
+          );
+          const retriedMode = await locateMatchText(
+            request.targetLocator.match_text,
+            request.reactionType,
+            preferredHref,
+          );
+          if (isStale()) {
+            return;
+          }
+          if (retriedMode === "exact") {
+            setLastJumpFeedback({
+              approximate: false,
+              message: "Matched the quoted passage.",
+              resolution: "exact",
+              sectionRef: request.sectionRef,
+            });
+            return;
+          }
+          if (retriedMode === "normalized") {
+            setLastJumpFeedback({
+              approximate: true,
+              message: "Matched a nearby version of the quoted line.",
+              resolution: "normalized",
+              sectionRef: request.sectionRef,
+            });
+            return;
+          }
         }
       }
 
@@ -1379,128 +1758,133 @@ async function locateMatchText(
     () => sections.find((section) => section.section_ref === effectiveSectionRef) ?? null,
     [effectiveSectionRef, sections],
   );
+  const { ref: paneRef, tier: readerTier } = useElementResponsiveTier<HTMLDivElement>();
   const currentSectionLabel = currentSection?.summary?.trim() || chapterTitle || chapterRef;
   const currentSectionMeta = effectiveSectionRef || chapterRef;
-  const selectionStateLabel = followNotes ? "Following selected note" : "Free reading";
-  const iconButtonClass = "inline-flex h-8 w-8 items-center justify-center rounded-full border border-transparent bg-transparent text-[var(--warm-700)] transition-all duration-200 hover:-translate-y-[1px] hover:bg-[var(--warm-100)] hover:text-[var(--warm-900)]";
+  const followControlLabel = followNotes ? "Follow notes on" : "Follow notes off";
+  const readerCompact = readerTier === "compact" || readerTier === "narrow" || readerTier === "mobile";
+  const iconButtonClass = `inline-flex items-center justify-center rounded-full border border-transparent bg-transparent text-[var(--warm-700)] transition-all duration-200 hover:-translate-y-[1px] hover:bg-[var(--warm-100)] hover:text-[var(--warm-900)] ${
+    readerCompact ? "h-7 w-7" : "h-8 w-8"
+  }`;
   const followStateToneClass = followNotes ? "text-emerald-700" : "text-amber-700";
-  const controlClusterClass = "inline-flex h-10 items-center gap-1 rounded-full border border-[var(--warm-300)]/68 bg-white/88 px-1.5 shadow-[0_1px_0_rgba(255,255,255,0.92),0_10px_24px_rgba(61,46,31,0.05)]";
+  const controlClusterClass = `inline-flex items-center gap-1 rounded-full border border-[var(--warm-300)]/64 bg-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.92),0_8px_20px_rgba(61,46,31,0.04)] ${
+    readerCompact ? "h-9 px-1.25" : "h-10 px-1.5"
+  }`;
+  const followClusterClass = `inline-flex items-center rounded-full border border-[var(--amber-accent)]/18 bg-[var(--amber-bg)]/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_10px_22px_rgba(139,105,20,0.06)] ${
+    readerCompact ? "h-9 gap-2 px-3" : "h-10 gap-2.5 px-3.5"
+  }`;
   const readerShellClass = "bg-[var(--warm-100)]";
   const loadingOverlayClass = "bg-[var(--warm-50)]/86";
   const loadingTextClass = "text-[var(--warm-700)]";
   const errorOverlayClass = "bg-[var(--warm-100)]";
+  const readerHeaderHeightClass = readerCompact ? "min-h-[78px]" : "min-h-[82px]";
+  const showReaderStatus = isJumping || Boolean(lastJumpFeedback?.approximate);
 
   return (
-    <div className={`h-full flex flex-col ${readerShellClass}`} data-testid="source-reader-pane">
-      <div className="border-b border-[var(--warm-200)] bg-[var(--warm-50)] px-5 py-4 sm:px-6">
-        <div className="flex items-end justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[var(--warm-500)] uppercase tracking-[0.16em]" style={{ fontSize: "0.63rem", fontWeight: 600 }}>
-              Reading in
-            </p>
-            <OverflowTooltipText
-              as="p"
-              text={currentSectionLabel}
-              lines={1}
-              side="bottom"
-              className="mt-0.5 text-[var(--warm-900)]"
-              style={{ fontSize: "1.2rem", fontWeight: 700, lineHeight: 1.25, maxWidth: "34rem" }}
-              data-testid="reader-current-target"
-            />
-            <div className="mt-2 flex items-center gap-2 min-w-0">
-              <span
-                className="inline-flex h-8 items-center rounded-full border border-[var(--warm-300)]/68 bg-white/84 px-3.5 text-[var(--warm-700)] shadow-[0_1px_0_rgba(255,255,255,0.9)]"
-                style={{ fontSize: "0.74rem", fontWeight: 600 }}
-              >
-                {currentSectionMeta}
-              </span>
+    <div ref={paneRef} className={`h-full flex flex-col ${readerShellClass}`} data-testid="source-reader-pane">
+      <div className={`rc-pane-header-surface shrink-0 ${readerHeaderHeightClass} ${readerCompact ? "px-4 py-2 sm:px-5" : "px-5 py-2.5 sm:px-6"}`}>
+        <div className="flex h-full flex-col justify-center gap-1.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[var(--warm-500)] uppercase tracking-[0.16em]" style={{ fontSize: "0.63rem", fontWeight: 600 }}>
+                Reading in
+              </p>
               <OverflowTooltipText
                 as="p"
-                text={selectionStateLabel}
+                text={currentSectionLabel}
                 lines={1}
                 side="bottom"
-                className="min-w-0 text-[var(--warm-500)]"
-                style={{ fontSize: "0.78rem", lineHeight: 1.5, maxWidth: "16rem" }}
+                className="mt-0.5 text-[var(--warm-900)]"
+                style={{
+                  fontSize: readerCompact ? "1rem" : "1.1rem",
+                  fontWeight: 700,
+                  lineHeight: 1.2,
+                  maxWidth: "34rem",
+                }}
+                data-testid="reader-current-target"
               />
             </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[var(--warm-500)]" style={{ fontSize: "0.68rem", lineHeight: 1.3 }}>
+                Progress
+              </p>
+              <p className="mt-0.5 text-[var(--warm-800)]" style={{ fontSize: readerCompact ? "1.18rem" : "1.28rem", lineHeight: 1, fontWeight: 700 }} data-testid="reader-progress">
+                {formatProgress(readerLocation.progress)}
+              </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.7rem" }}>
-              Progress
-            </p>
-            <p className="text-[var(--warm-800)]" style={{ fontSize: "1.35rem", lineHeight: 1.1, fontWeight: 700 }} data-testid="reader-progress">
-              {formatProgress(readerLocation.progress)}
-            </p>
-          </div>
-        </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2.5">
-          <div className={controlClusterClass}>
-            <button
-              type="button"
-              onClick={() => setFontSize((current) => Math.max(FONT_SIZE_MIN, current - FONT_SIZE_STEP))}
-              className={iconButtonClass}
-              aria-label="Decrease font size"
+          <div className="flex items-center justify-between gap-3">
+            <span
+              className={`inline-flex items-center rounded-full border border-[var(--warm-300)]/48 bg-white/74 text-[var(--warm-600)] ${
+                readerCompact ? "h-6.5 px-2.5" : "h-7 px-3"
+              }`}
+              style={{ fontSize: readerCompact ? "0.69rem" : "0.72rem", fontWeight: 600 }}
             >
-              <Minus className="h-3.5 w-3.5" />
-            </button>
-            <span className="text-[var(--warm-600)]" style={{ fontSize: "0.72rem", minWidth: "2.4rem", textAlign: "center", fontWeight: 600 }}>
-              {fontSize}%
+              {currentSectionMeta}
             </span>
-            <button
-              type="button"
-              onClick={() => setFontSize((current) => Math.min(FONT_SIZE_MAX, current + FONT_SIZE_STEP))}
-              className={iconButtonClass}
-              aria-label="Increase font size"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          <div className="inline-flex h-10 items-center gap-2.5 rounded-full border border-[var(--warm-300)]/68 bg-white/88 px-3.5 shadow-[0_1px_0_rgba(255,255,255,0.92),0_10px_24px_rgba(61,46,31,0.05)]">
-            <Switch
-              checked={followNotes}
-              onCheckedChange={onFollowNotesChange}
-              data-testid="reader-follow-notes"
-              aria-label="Follow notes"
-            />
-            <span className={followStateToneClass} style={{ fontSize: "0.72rem", fontWeight: 600 }}>
-              {followNotes ? "Following notes" : "Free reading"}
-            </span>
-          </div>
-        </div>
 
-        {!followNotes ? (
-          <p className="mt-1 text-[var(--amber-accent)]" style={{ fontSize: "0.72rem", fontWeight: 500 }} data-testid="reader-follow-hint">
-            你正在自由阅读
-          </p>
-        ) : null}
-
-        <div className="mt-2">
-          <p
-            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 ${
-              isJumping
-                ? "border-[var(--warm-300)]/50 bg-white/78 text-[var(--warm-700)]"
-                : lastJumpFeedback?.approximate
-                  ? "border-[var(--warm-300)]/50 bg-white/78 text-[var(--warm-700)]"
-                  : "border-[var(--amber-accent)]/20 bg-[var(--amber-bg)]/75 text-[var(--amber-accent)]"
-            }`}
-            style={{ fontSize: "0.72rem", fontWeight: 500 }}
-            data-testid="reader-jump-status"
-          >
-            {isJumping ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : lastJumpFeedback?.approximate ? (
-              <AlertCircle className="w-3.5 h-3.5" />
-            ) : (
-              <ExternalLink className="w-3.5 h-3.5" />
-            )}
-            {isJumping ? "Positioning in source..." : lastJumpFeedback?.message ?? "Waiting for note selection."}
-          </p>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className={controlClusterClass}>
+                <button
+                  type="button"
+                  onClick={() => setFontSize((current) => Math.max(FONT_SIZE_MIN, current - FONT_SIZE_STEP))}
+                  className={iconButtonClass}
+                  aria-label="Decrease font size"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <span className="text-[var(--warm-600)]" style={{ fontSize: "0.72rem", minWidth: "2.4rem", textAlign: "center", fontWeight: 600 }}>
+                  {fontSize}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFontSize((current) => Math.min(FONT_SIZE_MAX, current + FONT_SIZE_STEP))}
+                  className={iconButtonClass}
+                  aria-label="Increase font size"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className={followClusterClass}>
+                <Switch
+                  checked={followNotes}
+                  onCheckedChange={onFollowNotesChange}
+                  data-testid="reader-follow-notes"
+                  aria-label="Follow notes"
+                />
+                <span className={followStateToneClass} style={{ fontSize: readerCompact ? "0.7rem" : "0.72rem", fontWeight: 600 }}>
+                  {followControlLabel}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className={`rc-reader-scroll-area flex-1 relative overflow-hidden ${readerShellClass}`}>
+      <div className={`rc-reader-scroll-area ${readerCompact ? "rc-reader-scroll-area-compact" : ""} flex-1 relative overflow-hidden ${readerShellClass}`}>
         <div ref={hostRef} className={`absolute inset-0 ${readerShellClass}`} data-testid="source-reader-canvas" />
+
+        {showReaderStatus ? (
+          <div className="pointer-events-none absolute left-4 top-3 z-20 sm:left-5">
+            <div
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.92),0_14px_26px_rgba(61,46,31,0.08)] ${
+                isJumping
+                  ? "border-[var(--warm-300)]/65 bg-white/94 text-[var(--warm-700)]"
+                  : "border-[var(--amber-accent)]/22 bg-[var(--amber-bg)]/94 text-[var(--amber-accent)]"
+              }`}
+              style={{ fontSize: "0.73rem", fontWeight: 500, lineHeight: 1.45 }}
+              data-testid="reader-jump-status"
+            >
+              {isJumping ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+              ) : (
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span>{isJumping ? "Positioning in source..." : lastJumpFeedback?.message}</span>
+            </div>
+          </div>
+        ) : null}
 
         {isLoading ? (
           <div className={`absolute inset-0 flex items-center justify-center ${loadingOverlayClass}`}>

@@ -135,6 +135,18 @@ export function reactionPreview(content: string, maxLength = 172): string {
 }
 
 export function normalizeReaderCharacter(character: string): string {
+  switch (character) {
+    case "\u00ad":
+    case "\u200b":
+    case "\u200c":
+    case "\u200d":
+    case "\u2060":
+    case "\ufeff":
+      return "";
+    default:
+      break;
+  }
+
   if (/\s/u.test(character)) {
     return " ";
   }

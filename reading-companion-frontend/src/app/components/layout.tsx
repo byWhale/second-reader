@@ -2,6 +2,7 @@ import { BookOpen, Bookmark, Library } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { BRAND_CONFIG, getDocumentTitle } from "../config/brand";
+import { useViewportResponsiveTier } from "./ui/use-responsive-tier";
 
 export function RootLayout() {
   const location = useLocation();
@@ -10,6 +11,9 @@ export function RootLayout() {
   const booksActive = location.pathname === "/books" || location.pathname === "/bookshelf";
   const marksActive = location.pathname === "/marks" || location.pathname === "/bookshelf/marks";
   const brandHref = "/";
+  const { tier: viewportTier } = useViewportResponsiveTier();
+  const navCompact = viewportTier === "compact" || viewportTier === "narrow" || viewportTier === "mobile";
+  const navNarrow = viewportTier === "narrow" || viewportTier === "mobile";
 
   useEffect(() => {
     document.title = getDocumentTitle(location.pathname);
@@ -27,7 +31,7 @@ export function RootLayout() {
                 : "max-w-7xl mx-auto px-6"
           }`}
         >
-          <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+          <div className={`flex items-center justify-between ${navCompact ? "gap-3" : "gap-4 flex-wrap sm:flex-nowrap"}`}>
             <div className="flex items-center gap-3 shrink-0">
               <Link to={brandHref} data-testid="brand-link" className="flex items-center gap-3 no-underline">
                 <div className="w-10 h-10 rounded-xl bg-[var(--amber-accent)] flex items-center justify-center shadow-sm">
@@ -47,7 +51,7 @@ export function RootLayout() {
             </div>
 
             {!isLanding ? (
-              <div className="rounded-full border border-[var(--warm-300)]/50 bg-white/78 p-1 shadow-sm">
+              <div className={`rounded-full border border-[var(--warm-300)]/50 bg-white/78 shadow-sm ${navCompact ? "p-0.5" : "p-1"}`}>
                 <div className="flex items-center gap-1">
                   <Link
                     to="/books"
@@ -57,11 +61,11 @@ export function RootLayout() {
                       booksActive
                         ? "bg-[var(--amber-bg)] text-[var(--amber-accent)]"
                         : "text-[var(--warm-600)] hover:bg-[var(--warm-100)] hover:text-[var(--warm-800)]"
-                    }`}
-                    style={{ fontSize: "0.875rem", fontWeight: 600 }}
+                    } ${navCompact ? "h-8 gap-1.5 px-3" : "h-9 gap-2 px-4"}`}
+                    style={{ fontSize: navCompact ? "0.79rem" : "0.875rem", fontWeight: 600 }}
                   >
                     <Library className="w-4 h-4" />
-                    {BRAND_CONFIG.navigation.booksLabel}
+                    {navNarrow ? "Books" : BRAND_CONFIG.navigation.booksLabel}
                   </Link>
                   <Link
                     to="/marks"
@@ -71,11 +75,11 @@ export function RootLayout() {
                       marksActive
                         ? "bg-[var(--amber-bg)] text-[var(--amber-accent)]"
                         : "text-[var(--warm-600)] hover:bg-[var(--warm-100)] hover:text-[var(--warm-800)]"
-                    }`}
-                    style={{ fontSize: "0.875rem", fontWeight: 600 }}
+                    } ${navCompact ? "h-8 gap-1.5 px-3" : "h-9 gap-2 px-4"}`}
+                    style={{ fontSize: navCompact ? "0.79rem" : "0.875rem", fontWeight: 600 }}
                   >
                     <Bookmark className="w-4 h-4" />
-                    {BRAND_CONFIG.navigation.marksLabel}
+                    {navNarrow ? "Marks" : BRAND_CONFIG.navigation.marksLabel}
                   </Link>
                 </div>
               </div>
