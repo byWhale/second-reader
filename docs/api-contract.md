@@ -183,12 +183,13 @@ except as migration compatibility text where the underlying value remains in the
 
 Stable expectations:
 - `job_id` is a string
-- `status` is a stable machine-readable job stage and may be `ready` after a deferred upload completes structure parsing
+- `status` is a stable machine-readable job stage and may be `ready` after a deferred upload completes the chapter-level structure parse
 - `status` may also be `paused` when automatic recovery budget is exhausted and a manual continue action is required
 - `book_id`, when known, is a public integer book id
 - `job_url` and `ws_url` remain backend API URLs
 - chapter progress fields such as `current_chapter_id` remain integers
 - long-running parse/read payloads may expose `current_phase_step`, `resume_available`, and `last_checkpoint_at`
+- deferred upload is chapter-outline only; semantic segmentation begins inside `analysis/start` or `analysis/resume` as part of deep-reading preparation
 
 ### Bookshelf And Overview Status
 Book shelf cards and book detail payloads use these public high-level states:

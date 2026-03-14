@@ -138,6 +138,48 @@ def test_parse_book_writes_frontend_bootstrap_artifacts(tmp_path, monkeypatch):
     assert activity[-1]["type"] == "structure_ready"
 
 
+def test_parse_book_bootstraps_outline_without_semantic_segments(tmp_path, monkeypatch):
+    """Deferred parse should stop at chapter outline so deep-reading prep can happen later."""
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    structure = {
+        "book": "Demo Book",
+        "author": "Tester",
+        "book_language": "en",
+        "output_language": "en",
+        "source_file": "demo.epub",
+        "output_dir": str(output_dir),
+        "chapters": [
+            {
+                "id": 1,
+                "title": "Chapter 1",
+                "chapter_number": 1,
+                "status": "pending",
+                "level": 1,
+                "segments": [],
+            }
+        ],
+    }
+    captured_kwargs: list[dict[str, object]] = []
+
+    def _fake_build_structure(*args, **kwargs):
+        captured_kwargs.append(kwargs)
+        return structure, output_dir
+
+    monkeypatch.setattr(parse_module, "build_structure", _fake_build_structure)
+
+    parse_module.parse_book(Path("demo.epub"))
+
+    manifest = _load_json(book_manifest_file(output_dir))
+    run_state = _load_json(run_state_file(output_dir))
+
+    assert captured_kwargs == [{"language_mode": "auto", "continue_mode": False, "include_segments": False}]
+    assert manifest["chapters"][0]["segment_count"] == 0
+    assert run_state["stage"] == "ready"
+    assert run_state["completed_chapters"] == 0
+    assert run_state["total_chapters"] == 1
+
+
 def test_read_book_sequential_writes_frontend_artifacts(tmp_path, monkeypatch):
     """Sequential read should persist companion JSON, manifest, run state, and activity."""
     output_dir = tmp_path / "output" / "demo-book"

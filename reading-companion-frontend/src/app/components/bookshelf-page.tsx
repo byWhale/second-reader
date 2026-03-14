@@ -186,7 +186,7 @@ export function BookshelfPage() {
               《{uploadActions.confirmation?.title ?? "这本书"}》已添加到书架
             </AlertDialogTitle>
             <AlertDialogDescription>
-              全书共 {uploadActions.confirmation?.totalChapters ?? 0} 章，是否现在开始深读？
+              原书目录已解析完成，共 {uploadActions.confirmation?.totalChapters ?? 0} 章。要现在开始深读，还是先只进入书架？
             </AlertDialogDescription>
           </AlertDialogHeader>
           {uploadActions.error ? (
@@ -195,7 +195,7 @@ export function BookshelfPage() {
             </p>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={uploadActions.decideLater}>稍后再说</AlertDialogCancel>
+            <AlertDialogCancel onClick={uploadActions.decideLater}>只进入书架</AlertDialogCancel>
             <AlertDialogAction onClick={() => void uploadActions.confirmStartNow()} data-testid="bookshelf-confirm-start-reading">
               开始深读 →
             </AlertDialogAction>

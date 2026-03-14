@@ -1165,7 +1165,13 @@ def segment_chapter_semantically(
     )
 
 
-def build_structure(book_path: Path, language_mode: str = "auto", continue_mode: bool = False) -> tuple[BookStructure, Path]:
+def build_structure(
+    book_path: Path,
+    language_mode: str = "auto",
+    continue_mode: bool = False,
+    *,
+    include_segments: bool = True,
+) -> tuple[BookStructure, Path]:
     """Parse the ebook and persist structure.json incrementally."""
     title, author = extract_book_metadata(book_path)
     raw_chapters = parse_ebook(str(book_path))
@@ -1177,7 +1183,10 @@ def build_structure(book_path: Path, language_mode: str = "auto", continue_mode:
     if book_path.suffix.lower() == ".epub":
         ensure_source_asset(book_path, output_dir)
         _extract_epub_cover(book_path, output_dir)
-    print(f"共检测到 {len(raw_chapters)} 个原始章节单元，开始语义分段...", flush=True)
+    print(
+        f"共检测到 {len(raw_chapters)} 个原始章节单元，开始{'语义切分' if include_segments else '提取原书目录'}...",
+        flush=True,
+    )
     contexts = _chapter_contexts(raw_chapters, output_language=output_language)
     total_chapters = len(contexts)
 
@@ -1222,7 +1231,11 @@ def build_structure(book_path: Path, language_mode: str = "auto", continue_mode:
             output_dir,
             {
                 "type": "resume_detected",
-                "message": f"检测到解析 checkpoint，已恢复 {len(parsed_chapter_ids)}/{total_chapters} 个章节。",
+                "message": (
+                    f"检测到语义切分 checkpoint，已恢复 {len(parsed_chapter_ids)}/{total_chapters} 个章节。"
+                    if include_segments
+                    else f"检测到目录解析 checkpoint，已恢复 {len(parsed_chapter_ids)}/{total_chapters} 个章节。"
+                ),
             },
         )
     else:
@@ -1230,9 +1243,25 @@ def build_structure(book_path: Path, language_mode: str = "auto", continue_mode:
             output_dir,
             {
                 "type": "parse_started",
-                "message": f"开始解析全书结构，共 {total_chapters} 章。",
+                "message": (
+                    f"开始准备深读结构，共 {total_chapters} 章。"
+                    if include_segments
+                    else f"开始解析原书目录，共 {total_chapters} 章。"
+                ),
             },
         )
+
+    if not include_segments:
+        _write_parse_progress(
+            structure,
+            output_dir,
+            status="ready",
+            total_chapters=total_chapters,
+            completed_chapters=len(parsed_chapter_ids),
+            parsed_chapter_ids=parsed_chapter_ids,
+            last_checkpoint_at=_timestamp() if parsed_chapter_ids else None,
+        )
+        return structure, output_dir
 
     next_context = next((context for context in contexts if int(context.get("id", 0)) not in parsed_chapter_ids), None)
     _write_parse_progress(
@@ -1428,7 +1457,12 @@ def build_structure(book_path: Path, language_mode: str = "auto", continue_mode:
 def parse_book(book_path: Path, language_mode: str = "auto", continue_mode: bool = False) -> tuple[BookStructure, Path]:
     """Public parse-stage entry point."""
     try:
-        structure, output_dir = build_structure(book_path, language_mode=language_mode, continue_mode=continue_mode)
+        structure, output_dir = build_structure(
+            book_path,
+            language_mode=language_mode,
+            continue_mode=continue_mode,
+            include_segments=False,
+        )
     except Exception as exc:
         title, author = extract_book_metadata(book_path)
         sample_text = ""
@@ -1511,9 +1545,8 @@ def ensure_structure_for_book(
     output_language = resolve_output_language(language_mode, book_language)
     output_dir = resolve_output_dir(book_path, title, book_language, output_language)
     path = existing_structure_file(output_dir)
+    had_existing_structure = path.exists()
     if path.exists():
-        from .storage import load_structure
-
         structure = load_structure(path)
         if book_path.suffix.lower() == ".epub":
             ensure_source_asset(book_path, output_dir)
@@ -1524,11 +1557,7 @@ def ensure_structure_for_book(
         ):
             changed = _upgrade_structure_metadata(structure, output_dir)
             canonical_path = structure_file(output_dir)
-            parse_state_path = existing_parse_state_file(output_dir)
-            parse_state = load_json(parse_state_path) if parse_state_path.exists() else {}
-            parse_complete = bool(parse_state.get("status") == "ready") or all(
-                _chapter_is_parsed(chapter) for chapter in structure.get("chapters", [])
-            )
+            parse_complete = all(_chapter_is_parsed(chapter) for chapter in structure.get("chapters", []))
             if changed or path != canonical_path:
                 _persist_structure_artifacts(output_dir, structure)
             if parse_complete:
@@ -1536,7 +1565,7 @@ def ensure_structure_for_book(
             if not continue_mode:
                 return structure, output_dir, False
     structure, output_dir = build_structure(book_path, language_mode=language_mode, continue_mode=continue_mode)
-    return structure, output_dir, True
+    return structure, output_dir, not had_existing_structure
 
 
 def _upgrade_structure_metadata(structure: BookStructure, output_dir: Path) -> bool:

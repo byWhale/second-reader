@@ -379,6 +379,75 @@ def test_upgrade_structure_metadata_backfills_segment_ref(tmp_path):
     assert structure["chapters"][0]["segments"][0]["paragraph_locators"] == []
 
 
+def test_ensure_structure_for_book_rehydrates_segments_after_outline_only_parse(tmp_path, monkeypatch):
+    """Read-stage structure loading should continue into semantic segmentation when only chapter outline exists."""
+    book_path = tmp_path / "demo.epub"
+    book_path.write_text("placeholder", encoding="utf-8")
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    outline_structure = {
+        "book": "Demo Book",
+        "author": "Tester",
+        "book_language": "en",
+        "output_language": "en",
+        "source_file": str(book_path),
+        "output_dir": str(output_dir),
+        "chapters": [
+            {
+                "id": 1,
+                "title": "Chapter 1",
+                "status": "pending",
+                "level": 1,
+                "segments": [],
+            }
+        ],
+    }
+    segmented_structure = {
+        **outline_structure,
+        "chapters": [
+            {
+                **outline_structure["chapters"][0],
+                "segments": [
+                    {
+                        "id": "1.1",
+                        "summary": "A segment",
+                        "tokens": 10,
+                        "text": "Alpha",
+                        "paragraph_start": 1,
+                        "paragraph_end": 1,
+                        "status": "pending",
+                        "segment_ref": "1.1",
+                    }
+                ],
+            }
+        ],
+    }
+    save_structure(structure_file(output_dir), outline_structure)
+
+    monkeypatch.setattr(parse_module, "extract_book_metadata", lambda _: ("Demo Book", "Tester"))
+    monkeypatch.setattr(parse_module, "parse_ebook", lambda _: [])
+    monkeypatch.setattr(parse_module, "detect_book_language", lambda *_args, **_kwargs: "en")
+    monkeypatch.setattr(parse_module, "resolve_output_dir", lambda *_args, **_kwargs: output_dir)
+    monkeypatch.setattr(parse_module, "ensure_source_asset", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(parse_module, "_extract_epub_cover", lambda *_args, **_kwargs: None)
+
+    captured_calls: list[dict[str, object]] = []
+
+    def _fake_build_structure(*args, **kwargs):
+        captured_calls.append(kwargs)
+        return segmented_structure, output_dir
+
+    monkeypatch.setattr(parse_module, "build_structure", _fake_build_structure)
+
+    structure, resolved_output_dir, created = parse_module.ensure_structure_for_book(book_path, continue_mode=True)
+
+    assert created is False
+    assert resolved_output_dir == output_dir
+    assert captured_calls == [{"language_mode": "auto", "continue_mode": True}]
+    assert structure["chapters"][0]["segments"][0]["id"] == "1.1"
+
+
 def _write_test_epub(
     path: Path,
     *,

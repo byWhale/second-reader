@@ -69,7 +69,7 @@ export function useUploadBookActions(options: { onDeferredReady?: () => void } =
     setError(null);
     try {
       const accepted = await uploadEpub(file, { startMode: "deferred" });
-      setStatusText("Parsing book structure...");
+      setStatusText("Parsing chapter outline...");
       const readyJob = await waitForJob(accepted.job_id, (job) => job.status === "ready" && job.book_id != null);
       const nextConfirmation = {
         bookId: readyJob.book_id as number,

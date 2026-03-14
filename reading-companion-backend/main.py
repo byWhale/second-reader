@@ -28,7 +28,7 @@ def _require_book_path(book_file: str) -> Path:
 
 
 def _print_structure_overview(book_path: Path, structure: dict, output_dir: Path) -> None:
-    """Print a readable summary after parse completes."""
+    """Print a readable summary after the outline parse completes."""
     print("=" * 60)
     print(f'书籍: {structure.get("book", book_path.stem)}')
     print(f'作者: {structure.get("author", "Unknown")}')
@@ -42,7 +42,8 @@ def _print_structure_overview(book_path: Path, structure: dict, output_dir: Path
     print("结构概览：")
     for chapter in structure.get("chapters", []):
         segment_count = len(chapter.get("segments", []))
-        print(f'  {chapter_reference(chapter)} / {chapter.get("title")} ({segment_count} 个语义单元)')
+        suffix = f" ({segment_count} 个语义单元)" if segment_count > 0 else ""
+        print(f'  {chapter_reference(chapter)} / {chapter.get("title")}{suffix}')
     print("")
     print("下一步：")
     print(f'  python main.py read "{book_path}"')
