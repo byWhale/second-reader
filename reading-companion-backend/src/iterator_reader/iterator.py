@@ -11,7 +11,6 @@ from .frontend_artifacts import (
     append_activity_event,
     build_run_state,
     estimate_eta_seconds,
-    reset_activity,
     write_book_manifest,
     write_chapter_qa_artifact,
     write_chapter_result,
@@ -236,6 +235,9 @@ def _write_sequential_run_state(
             current_chapter_ref=str(current_chapter_ref) if current_chapter_ref else None,
             current_segment_ref=str(current_segment_ref) if current_segment_ref else None,
             eta_seconds=eta_seconds,
+            current_phase_step=None,
+            resume_available=bool(current_chapter_id is not None or completed_chapters > 0),
+            last_checkpoint_at=None,
             error=error,
         ),
     )
@@ -508,7 +510,6 @@ def _read_book_sequential(
         "current_total_segments": 0,
         "current_completed_segments": 0,
     }
-    reset_activity(output_dir)
     append_activity_event(
         output_dir,
         {
@@ -598,11 +599,11 @@ def read_book(
     structure, output_dir, created = ensure_structure_for_book(
         book_path,
         language_mode=language_mode,
+        continue_mode=True,
     )
     selected_chapters = _chapter_selection(structure, chapter_number, continue_mode)
     if read_mode == "sequential":
         write_book_manifest(output_dir, structure)
-        reset_activity(output_dir)
         write_run_state(
             output_dir,
             build_run_state(
@@ -610,14 +611,10 @@ def read_book(
                 stage="ready",
                 total_chapters=len(selected_chapters),
                 completed_chapters=0,
+                current_phase_step=None,
+                resume_available=continue_mode,
+                last_checkpoint_at=None,
             ),
-        )
-        append_activity_event(
-            output_dir,
-            {
-                "type": "structure_ready",
-                "message": "结构已就绪，可开始顺序深读。",
-            },
         )
 
     if not selected_chapters:

@@ -55,7 +55,7 @@ def cmd_parse(args: argparse.Namespace) -> int:
     book_path = _require_book_path(args.book_file)
     print(f"正在解析书籍结构: {book_path}")
     try:
-        structure, output_dir = parse_book(book_path, language_mode=args.language)
+        structure, output_dir = parse_book(book_path, language_mode=args.language, continue_mode=args.continue_mode)
     except ValueError as exc:
         print(f"Error: {exc}")
         return 1
@@ -120,6 +120,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["auto", "zh", "en"],
         default="auto",
         help="Output language for segmentation summaries (default: match the book language)",
+    )
+    parse_parser.add_argument(
+        "--continue",
+        dest="continue_mode",
+        action="store_true",
+        help="Resume structure parsing from the latest checkpoint when available",
     )
     parse_parser.set_defaults(func=cmd_parse)
 

@@ -173,18 +173,31 @@ except as migration compatibility text where the underlying value remains in the
 
 - public integer `book_id`
 - chapter tree items with integer `chapter_id`
+- parse-stage and deep-reading-stage progress in the same payload
+- `current_phase_step`, `resume_available`, and `last_checkpoint_at` when available
 - `current_state_panel.reaction_counts` keyed only by the five canonical reaction types
 - `recent_completed_chapters[].result_url` pointing to canonical frontend routes
 
 ### Upload And Job Polling
-`POST /api/uploads/epub`, `POST /api/books/:id/analysis/start`, and `GET /api/jobs/:job_id` are part of the active integration surface.
+`POST /api/uploads/epub`, `POST /api/books/:id/analysis/start`, `POST /api/books/:id/analysis/resume`, `GET /api/books/:id/analysis-log`, and `GET /api/jobs/:job_id` are part of the active integration surface.
 
 Stable expectations:
 - `job_id` is a string
 - `status` is a stable machine-readable job stage and may be `ready` after a deferred upload completes structure parsing
+- `status` may also be `paused` when automatic recovery budget is exhausted and a manual continue action is required
 - `book_id`, when known, is a public integer book id
 - `job_url` and `ws_url` remain backend API URLs
 - chapter progress fields such as `current_chapter_id` remain integers
+- long-running parse/read payloads may expose `current_phase_step`, `resume_available`, and `last_checkpoint_at`
+
+### Bookshelf And Overview Status
+Book shelf cards and book detail payloads use these public high-level states:
+
+- `not_started`
+- `analyzing`
+- `paused`
+- `completed`
+- `error`
 
 ### Error Response Shape
 REST failures use the shared error envelope:

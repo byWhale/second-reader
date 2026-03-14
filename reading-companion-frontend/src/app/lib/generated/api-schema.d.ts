@@ -64,6 +64,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/books/{book_id}/analysis-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Book Analysis Log
+         * @description Return the latest technical log tail for one book analysis.
+         */
+        get: operations["book_analysis_log_api_books__book_id__analysis_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/books/{book_id}/analysis-state": {
         parameters: {
             query?: never;
@@ -78,6 +98,26 @@ export interface paths {
         get: operations["book_analysis_state_api_books__book_id__analysis_state_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/books/{book_id}/analysis/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Book Analysis
+         * @description Resume a paused or interrupted analysis job from the latest checkpoint.
+         */
+        post: operations["resume_book_analysis_api_books__book_id__analysis_resume_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -402,6 +442,64 @@ export interface components {
             page_info: components["schemas"]["PageInfo"];
         };
         /**
+         * AnalysisLogResponse
+         * @description Technical log tail for one active or recent analysis job.
+         */
+        AnalysisLogResponse: {
+            /**
+             * Available
+             * @description Whether a technical log is available for this book.
+             */
+            available: boolean;
+            /**
+             * Job Id
+             * @description Latest related job identifier when available.
+             */
+            job_id?: string | null;
+            /**
+             * Lines
+             * @description Recent log lines for debugging and long-task visibility.
+             */
+            lines: string[];
+            /**
+             * Updated At
+             * @description Last update time of the related job record when available.
+             */
+            updated_at?: string | null;
+        };
+        /**
+         * AnalysisResumeAcceptedResponse
+         * @description Response returned after resuming a paused analysis job.
+         */
+        AnalysisResumeAcceptedResponse: {
+            /**
+             * Book Id
+             * @description Resolved public integer book identifier if already known; otherwise null.
+             */
+            book_id?: number | null;
+            /**
+             * Job Id
+             * @description Identifier of the newly created analysis job.
+             */
+            job_id: string;
+            /**
+             * Job Url
+             * @description REST URL used to poll the job status.
+             */
+            job_url: string;
+            /**
+             * Status
+             * @description Initial job status immediately after the request is accepted.
+             * @enum {string}
+             */
+            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
+            /**
+             * Ws Url
+             * @description WebSocket URL used to subscribe to live job updates.
+             */
+            ws_url: string;
+        };
+        /**
          * AnalysisStartAcceptedResponse
          * @description Response returned after starting analysis for an existing uploaded book.
          */
@@ -426,7 +524,7 @@ export interface components {
              * @description Initial job status immediately after the request is accepted.
              * @enum {string}
              */
-            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "completed" | "error";
+            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
             /**
              * Ws Url
              * @description WebSocket URL used to subscribe to live job updates.
@@ -468,6 +566,11 @@ export interface components {
              * @description Human-readable reference of the current chapter.
              */
             current_chapter_ref?: string | null;
+            /**
+             * Current Phase Step
+             * @description Human-readable label for the current parse or read step.
+             */
+            current_phase_step?: string | null;
             /** @description Focused realtime state shown beside the structure tree. */
             current_state_panel: components["schemas"]["CurrentStatePanel"];
             /**
@@ -475,6 +578,11 @@ export interface components {
              * @description Estimated remaining time in seconds.
              */
             eta_seconds?: number | null;
+            /**
+             * Last Checkpoint At
+             * @description Last checkpoint timestamp when available.
+             */
+            last_checkpoint_at?: string | null;
             /** @description Structured error payload when the analysis has failed. */
             last_error?: components["schemas"]["ErrorResponse"] | null;
             /**
@@ -488,6 +596,12 @@ export interface components {
              */
             recent_completed_chapters: components["schemas"]["ChapterCompletionCard"][];
             /**
+             * Resume Available
+             * @description Whether this analysis can resume from the latest checkpoint.
+             * @default false
+             */
+            resume_available: boolean;
+            /**
              * Stage Label
              * @description User-facing stage label shown at the top of the progress page.
              */
@@ -497,7 +611,7 @@ export interface components {
              * @description Current lifecycle state of the active analysis.
              * @enum {string}
              */
-            status: "queued" | "parsing_structure" | "deep_reading" | "chapter_note_generation" | "completed" | "error";
+            status: "queued" | "parsing_structure" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
             /**
              * Structure Ready
              * @description Whether the structure tree is ready to render.
@@ -518,10 +632,7 @@ export interface components {
         Body_upload_epub_api_uploads_epub_post: {
             /** Display Title */
             display_title?: string | null;
-            /**
-             * File
-             * Format: binary
-             */
+            /** File */
             file: string;
             /**
              * Start Mode
@@ -599,7 +710,7 @@ export interface components {
              * @description High-level book state for the result page.
              * @enum {string}
              */
-            status: "analyzing" | "completed" | "error" | "not_started";
+            status: "analyzing" | "paused" | "completed" | "error" | "not_started";
             /**
              * Title
              * @description Book title.
@@ -693,7 +804,7 @@ export interface components {
              * @description Current high-level reading state used by the bookshelf.
              * @enum {string}
              */
-            reading_status: "not_started" | "analyzing" | "completed" | "error";
+            reading_status: "not_started" | "analyzing" | "paused" | "completed" | "error";
             /**
              * Title
              * @description Title of the book.
@@ -1062,6 +1173,11 @@ export interface components {
              */
             current_chapter_ref?: string | null;
             /**
+             * Current Phase Step
+             * @description Human-readable label of the current parse or read step.
+             */
+            current_phase_step?: string | null;
+            /**
              * Current Section Ref
              * @description Human-readable reference of the current section.
              */
@@ -1228,6 +1344,11 @@ export interface components {
              */
             current_chapter_ref?: string | null;
             /**
+             * Current Phase Step
+             * @description Human-readable label for the current parse or read step.
+             */
+            current_phase_step?: string | null;
+            /**
              * Current Section Ref
              * @description Human-readable reference of the current section.
              */
@@ -1242,6 +1363,11 @@ export interface components {
              * @description Job identifier.
              */
             job_id: string;
+            /**
+             * Last Checkpoint At
+             * @description Last checkpoint timestamp when available.
+             */
+            last_checkpoint_at?: string | null;
             /** @description Structured error information when the job is in an error state. */
             last_error?: components["schemas"]["ErrorResponse"] | null;
             /**
@@ -1250,11 +1376,17 @@ export interface components {
              */
             progress_percent?: number | null;
             /**
+             * Resume Available
+             * @description Whether the job can resume from a checkpoint.
+             * @default false
+             */
+            resume_available: boolean;
+            /**
              * Status
              * @description Current execution stage of the upload/analysis job.
              * @enum {string}
              */
-            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "completed" | "error";
+            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
             /**
              * Total Chapters
              * @description Total number of chapters when known.
@@ -1642,7 +1774,7 @@ export interface components {
              * @description Initial job status immediately after the request is accepted.
              * @enum {string}
              */
-            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "completed" | "error";
+            status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
             /**
              * Upload Filename
              * @description Original filename supplied by the client.
@@ -1899,6 +2031,84 @@ export interface operations {
             };
         };
     };
+    book_analysis_log_api_books__book_id__analysis_log_get: {
+        parameters: {
+            query?: {
+                line_limit?: number;
+            };
+            header?: never;
+            path: {
+                book_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisLogResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     book_analysis_state_api_books__book_id__analysis_state_get: {
         parameters: {
             query?: never;
@@ -1917,6 +2127,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalysisStateResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    resume_book_analysis_api_books__book_id__analysis_resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AnalysisResumeAcceptedResponse"];
                 };
             };
             /** @description Bad Request */

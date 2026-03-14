@@ -1,7 +1,7 @@
 import { ArrowRight, BookOpen, Bookmark, Download, Globe2, LoaderCircle, Sparkles } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Link, useParams } from "react-router";
-import { type BookDetailResponse, type BookMarksResponse, fetchBookDetail, fetchBookMarks, startBookAnalysis, toApiAssetUrl } from "../lib/api";
+import { type BookDetailResponse, type BookMarksResponse, fetchBookDetail, fetchBookMarks, resumeBookAnalysis, startBookAnalysis, toApiAssetUrl } from "../lib/api";
 import { canonicalBookPath, canonicalChapterPath } from "../lib/contract";
 import { useBookAnalysisResource } from "../lib/use-book-analysis-resource";
 import { useApiResource } from "../lib/use-api-resource";
@@ -270,6 +270,8 @@ export function BookOverviewPage() {
   const bookIdNumber = Number(resolvedBookId);
   const [startPending, setStartPending] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [resumePending, setResumePending] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const { data, loading, error, reload } = useApiResource(
     async () => ({
       detail: await fetchBookDetail(bookIdNumber),
@@ -277,7 +279,7 @@ export function BookOverviewPage() {
     }),
     [bookIdNumber],
   );
-  const analysisEnabled = data?.detail.status === "analyzing";
+  const analysisEnabled = data?.detail.status === "analyzing" || data?.detail.status === "paused";
   const analysisResource = useBookAnalysisResource(bookIdNumber, analysisEnabled);
 
   async function handleStartAnalysis() {
@@ -291,6 +293,20 @@ export function BookOverviewPage() {
       setStartError(reason instanceof Error ? reason.message : "Could not start deep reading.");
     } finally {
       setStartPending(false);
+    }
+  }
+
+  async function handleResumeAnalysis() {
+    setResumePending(true);
+    setResumeError(null);
+    try {
+      await resumeBookAnalysis(bookIdNumber);
+      reload();
+      analysisResource.refresh();
+    } catch (reason) {
+      setResumeError(reason instanceof Error ? reason.message : "Could not continue deep reading.");
+    } finally {
+      setResumePending(false);
     }
   }
 
@@ -351,15 +367,27 @@ export function BookOverviewPage() {
               </p>
             ) : null}
           </div>
-        ) : detail.status === "analyzing" ? (
+        ) : detail.status === "analyzing" || detail.status === "paused" ? (
           <div className="flex flex-wrap items-center gap-3">
             <span
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--amber-bg)] text-[var(--warm-800)]"
               style={{ fontSize: "0.875rem", fontWeight: 500 }}
             >
-              <LoaderCircle className="w-4 h-4 animate-spin text-[var(--amber-accent)]" />
-              分析中
+              <LoaderCircle className={`w-4 h-4 text-[var(--amber-accent)] ${detail.status === "analyzing" ? "animate-spin" : ""}`} />
+              {detail.status === "paused" ? "已暂停" : "分析中"}
             </span>
+            {detail.status === "paused" ? (
+              <button
+                type="button"
+                onClick={handleResumeAnalysis}
+                disabled={resumePending}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--amber-accent)] text-white hover:bg-[var(--warm-700)] transition-colors disabled:opacity-60 cursor-pointer"
+                style={{ fontSize: "0.875rem", fontWeight: 500 }}
+              >
+                <LoaderCircle className={`w-4 h-4 ${resumePending ? "animate-spin" : ""}`} />
+                继续执行
+              </button>
+            ) : null}
             <a
               href={toApiAssetUrl(detail.source_asset.url) ?? "#"}
               data-testid="book-overview-source-download"
@@ -369,6 +397,11 @@ export function BookOverviewPage() {
               <Download className="w-4 h-4" />
               Download source EPUB
             </a>
+            {resumeError ? (
+              <p className="text-[var(--destructive)]" style={{ fontSize: "0.8125rem" }}>
+                {resumeError}
+              </p>
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-wrap items-center gap-3">
@@ -408,7 +441,7 @@ export function BookOverviewPage() {
             />
           </div>
         )
-      ) : detail.status === "analyzing" ? (
+      ) : detail.status === "analyzing" || detail.status === "paused" ? (
         analysisResource.loading && !analysisResource.analysis ? (
           <LoadingState title="Loading live analysis..." />
         ) : analysisResource.error || !analysisResource.analysis ? (
@@ -420,7 +453,14 @@ export function BookOverviewPage() {
             linkTo="/books"
           />
         ) : (
-          <BookAnalysisOverview analysis={analysisResource.analysis} activity={analysisResource.activity} />
+          <BookAnalysisOverview
+            analysis={analysisResource.analysis}
+            activity={analysisResource.activity}
+            log={analysisResource.log}
+            onResume={detail.status === "paused" ? handleResumeAnalysis : undefined}
+            resumePending={resumePending}
+            resumeError={resumeError}
+          />
         )
       ) : (
         <CompletedBookOverview detail={detail} marks={marks} />

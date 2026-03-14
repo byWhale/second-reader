@@ -31,6 +31,7 @@ JobLifecycleStatus = Literal[
     "ready",
     "deep_reading",
     "chapter_note_generation",
+    "paused",
     "completed",
     "error",
 ]
@@ -151,7 +152,7 @@ class BookShelfCard(ApiModel):
     cover_image_url: Optional[str] = Field(default=None, description="Optional API URL for the book cover image.")
     book_language: str = Field(description="Detected primary language of the source book.")
     output_language: str = Field(description="Language used for the AI-generated reading output.")
-    reading_status: Literal["not_started", "analyzing", "completed", "error"] = Field(
+    reading_status: Literal["not_started", "analyzing", "paused", "completed", "error"] = Field(
         description="Current high-level reading state used by the bookshelf.",
     )
     completed_chapters: int = Field(description="Number of finished chapters.")
@@ -192,6 +193,10 @@ class AnalysisStartAcceptedResponse(JobAcceptedResponse):
     """Response returned after starting analysis for an existing uploaded book."""
 
 
+class AnalysisResumeAcceptedResponse(JobAcceptedResponse):
+    """Response returned after resuming a paused analysis job."""
+
+
 class JobStatusResponse(ApiModel):
     """Snapshot of one background sequential-read job."""
 
@@ -207,7 +212,10 @@ class JobStatusResponse(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Identifier of the chapter currently being processed.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current chapter.")
     current_section_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current section.")
+    current_phase_step: Optional[str] = Field(default=None, description="Human-readable label for the current parse or read step.")
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds.")
+    resume_available: bool = Field(default=False, description="Whether the job can resume from a checkpoint.")
+    last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when available.")
     last_error: Optional[ErrorResponse] = Field(default=None, description="Structured error information when the job is in an error state.")
     created_at: str = Field(description="Job creation time.")
     updated_at: str = Field(description="Last update time for the job record.")
@@ -232,6 +240,7 @@ class CurrentStatePanel(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Identifier of the chapter currently being processed.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Human-readable reference of the chapter currently being processed.")
     current_section_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current section.")
+    current_phase_step: Optional[str] = Field(default=None, description="Human-readable label of the current parse or read step.")
     recent_reactions: list[FeaturedReactionPreview] = Field(description="Small set of recently surfaced reactions for quick feedback.")
     reaction_counts: dict[ReactionType, int] = Field(description="Visible reaction counts grouped by reaction type.")
     search_active: bool = Field(description="Whether the agent has recent active search behavior.")
@@ -256,7 +265,7 @@ class AnalysisStateResponse(ApiModel):
     book_id: int = Field(description="Stable public integer identifier of the book.")
     title: str = Field(description="Book title.")
     author: str = Field(description="Book author.")
-    status: Literal["queued", "parsing_structure", "deep_reading", "chapter_note_generation", "completed", "error"] = Field(
+    status: Literal["queued", "parsing_structure", "deep_reading", "chapter_note_generation", "paused", "completed", "error"] = Field(
         description="Current lifecycle state of the active analysis.",
     )
     stage_label: str = Field(description="User-facing stage label shown at the top of the progress page.")
@@ -266,6 +275,9 @@ class AnalysisStateResponse(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Identifier of the chapter currently being processed.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current chapter.")
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds.")
+    current_phase_step: Optional[str] = Field(default=None, description="Human-readable label for the current parse or read step.")
+    resume_available: bool = Field(default=False, description="Whether this analysis can resume from the latest checkpoint.")
+    last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when available.")
     structure_ready: bool = Field(description="Whether the structure tree is ready to render.")
     chapters: list[ChapterTreeItem] = Field(description="Structure tree displayed on the progress page.")
     current_state_panel: CurrentStatePanel = Field(description="Focused realtime state shown beside the structure tree.")
@@ -299,6 +311,15 @@ class ActivityEventsPageResponse(ApiModel):
     page_info: PageInfo = Field(description="Pagination metadata for the activity query.")
 
 
+class AnalysisLogResponse(ApiModel):
+    """Technical log tail for one active or recent analysis job."""
+
+    job_id: Optional[str] = Field(default=None, description="Latest related job identifier when available.")
+    available: bool = Field(description="Whether a technical log is available for this book.")
+    updated_at: Optional[str] = Field(default=None, description="Last update time of the related job record when available.")
+    lines: list[str] = Field(description="Recent log lines for debugging and long-task visibility.")
+
+
 class ChapterListItem(ApiModel):
     """Chapter overview item used on the book result page."""
 
@@ -322,7 +343,7 @@ class BookDetailResponse(ApiModel):
     cover_image_url: Optional[str] = Field(default=None, description="Optional API URL for the cover image.")
     book_language: str = Field(description="Detected primary language of the source book.")
     output_language: str = Field(description="Language used for AI-generated output.")
-    status: Literal["analyzing", "completed", "error", "not_started"] = Field(description="High-level book state for the result page.")
+    status: Literal["analyzing", "paused", "completed", "error", "not_started"] = Field(description="High-level book state for the result page.")
     source_asset: SourceAsset = Field(description="Source EPUB asset configuration for epub.js.")
     chapters: list[ChapterListItem] = Field(description="Overview list of chapters in reading order.")
     my_mark_count: int = Field(description="Number of user marks attached to this book.")
@@ -496,7 +517,10 @@ class JobSnapshotPayload(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Current chapter identifier when known.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Current chapter reference when known.")
     current_section_ref: Optional[str] = Field(default=None, description="Current section reference when known.")
+    current_phase_step: Optional[str] = Field(default=None, description="Current parse or read step when known.")
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds when known.")
+    resume_available: bool = Field(default=False, description="Whether the current run can resume from a checkpoint.")
+    last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when known.")
 
 
 class StageChangedPayload(ApiModel):

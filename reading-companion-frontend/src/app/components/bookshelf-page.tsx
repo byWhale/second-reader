@@ -5,13 +5,14 @@ import { BookShelfCard, fetchBooks, toApiAssetUrl, toFrontendPath } from "../lib
 import { useApiResource } from "../lib/use-api-resource";
 import { useUploadBookActions } from "../lib/use-upload-book-actions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { EmptyState, ErrorState, LoadingState } from "./page-state";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { UploadBookDialog } from "./upload-book-dialog";
 
 const statusMeta: Record<BookShelfCard["reading_status"], { label: string; icon: typeof BookOpen; color: string }> = {
   not_started: { label: "未开始", icon: BookOpen, color: "text-[var(--warm-500)]" },
   analyzing: { label: "分析中", icon: LoaderCircle, color: "text-[var(--amber-accent)]" },
+  paused: { label: "已暂停，可继续", icon: AlertTriangle, color: "text-[var(--amber-accent)]" },
   completed: { label: "已完成", icon: CheckCircle2, color: "text-green-700" },
   error: { label: "需要处理", icon: AlertTriangle, color: "text-[var(--destructive)]" },
 };
@@ -77,7 +78,6 @@ export function BookshelfPage() {
   const { data, loading, error, reload } = useApiResource(fetchBooks, []);
   const [searchParams, setSearchParams] = useSearchParams();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const uploadActions = useUploadBookActions({ onDeferredReady: reload });
 
   useEffect(() => {
@@ -91,21 +91,8 @@ export function BookshelfPage() {
   }, [searchParams, setSearchParams]);
 
   function openUploadDialog() {
-    setSelectedFile(null);
     uploadActions.setError(null);
     setUploadDialogOpen(true);
-  }
-
-  async function handleUploadSubmit() {
-    if (!selectedFile) {
-      uploadActions.setError("请选择一个 EPUB 文件。");
-      return;
-    }
-    const result = await uploadActions.runDeferredUpload(selectedFile);
-    if (result) {
-      setUploadDialogOpen(false);
-      setSelectedFile(null);
-    }
   }
 
   if (loading) {
@@ -174,69 +161,23 @@ export function BookshelfPage() {
         )}
       </div>
 
-      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent className="bg-[var(--warm-50)] border-[var(--warm-300)]/40">
-          <DialogHeader>
-            <DialogTitle>添加一本新书</DialogTitle>
-            <DialogDescription>
-              上传 EPUB 文件，书虫会解析全书结构，准备好后可以随时开始深读。
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <label className="block">
-              <span className="block text-[var(--warm-700)] mb-2" style={{ fontSize: "0.875rem", fontWeight: 500 }}>
-                EPUB 文件
-              </span>
-              <input
-                type="file"
-                accept=".epub,application/epub+zip"
-                onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
-                data-testid="bookshelf-upload-input"
-                className="block w-full rounded-xl border border-[var(--warm-300)]/50 bg-white px-4 py-3 text-[var(--warm-700)]"
-              />
-            </label>
-
-            {selectedFile ? (
-              <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
-                已选择：{selectedFile.name}
-              </p>
-            ) : null}
-            {uploadActions.statusText ? (
-              <p className="text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
-                {uploadActions.statusText}
-              </p>
-            ) : null}
-            {uploadActions.error ? (
-              <p className="text-[var(--destructive)]" style={{ fontSize: "0.8125rem" }}>
-                {uploadActions.error}
-              </p>
-            ) : null}
-          </div>
-
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setUploadDialogOpen(false)}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-[var(--warm-300)]/60 text-[var(--warm-700)] hover:bg-[var(--warm-100)] transition-colors cursor-pointer"
-              style={{ fontSize: "0.875rem", fontWeight: 500 }}
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleUploadSubmit()}
-              disabled={uploadActions.submitting}
-              data-testid="bookshelf-upload-submit"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[var(--amber-accent)] text-white hover:bg-[var(--warm-700)] transition-colors disabled:opacity-60 cursor-pointer"
-              style={{ fontSize: "0.875rem", fontWeight: 500 }}
-            >
-              {uploadActions.submitting ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              上传
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UploadBookDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onFileSelected={async (file) => {
+          const result = await uploadActions.runDeferredUpload(file);
+          if (result) {
+            setUploadDialogOpen(false);
+          }
+        }}
+        title="添加一本新书"
+        description="上传 EPUB 文件，书虫会解析全书结构，准备好后可以随时开始深读。"
+        inputTestId="bookshelf-upload-input"
+        dialogTestId="bookshelf-upload-dialog"
+        statusText={uploadActions.statusText}
+        error={uploadActions.error}
+        submitting={uploadActions.submitting}
+      />
 
       <AlertDialog open={uploadActions.confirmation != null}>
         <AlertDialogContent className="bg-[var(--warm-50)] border-[var(--warm-300)]/40">

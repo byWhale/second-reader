@@ -9,6 +9,8 @@ import {
 import type {
   ActivityEvent,
   ActivityEventsPageResponse,
+  AnalysisLogResponse,
+  AnalysisResumeAcceptedResponse,
   AnalysisStartAcceptedResponse,
   AnalysisStateResponse,
   ApiErrorResponse,
@@ -30,6 +32,8 @@ import type {
 export type {
   ActivityEvent,
   ActivityEventsPageResponse,
+  AnalysisLogResponse,
+  AnalysisResumeAcceptedResponse,
   AnalysisStartAcceptedResponse,
   AnalysisStateResponse,
   BookDetailResponse,
@@ -193,6 +197,10 @@ export function fetchActivity(bookId: BookId) {
   return request<ActivityEventsPageResponse>(`/api/books/${bookId}/activity`);
 }
 
+export function fetchAnalysisLog(bookId: BookId) {
+  return request<AnalysisLogResponse>(`/api/books/${bookId}/analysis-log`);
+}
+
 export function fetchBookMarks(bookId: BookId) {
   return request<BookMarksResponse>(`/api/books/${bookId}/marks`);
 }
@@ -241,6 +249,12 @@ export function uploadEpub(file: File, options: { startMode?: "immediate" | "def
 
 export function startBookAnalysis(bookId: BookId) {
   return request<AnalysisStartAcceptedResponse>(`/api/books/${bookId}/analysis/start`, {
+    method: "POST",
+  });
+}
+
+export function resumeBookAnalysis(bookId: BookId) {
+  return request<AnalysisResumeAcceptedResponse>(`/api/books/${bookId}/analysis/resume`, {
     method: "POST",
   });
 }

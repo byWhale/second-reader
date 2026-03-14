@@ -8,6 +8,7 @@ import zipfile
 from pathlib import Path
 
 from src.iterator_reader import parse as parse_module
+from src.parsers import ebook_parser as ebook_parser_module
 from src.iterator_reader.storage import (
     book_manifest_file,
     chapter_result_file,
@@ -157,6 +158,49 @@ def test_extract_epub_paragraph_records_skips_duplicate_heading_wrappers():
         "People want things from other people.",
     ]
     assert [record["block_tag"] for record in records] == ["h1", "h2", "p"]
+
+
+def test_extract_epub_chapters_from_toc_handles_nested_children_and_non_string_href():
+    """Nested TOC entries with child lists should recurse instead of crashing on list href values."""
+
+    class _Link:
+        def __init__(self, title: str, href: str):
+            self.title = title
+            self.href = href
+
+    class _Item:
+        def __init__(self, item_id: str, name: str, content: str):
+            self._id = item_id
+            self._name = name
+            self._content = content
+
+        def get_id(self):
+            return self._id
+
+        def get_name(self):
+            return self._name
+
+        def get_content(self):
+            return self._content.encode("utf-8")
+
+    chapters = ebook_parser_module._extract_epub_chapters_from_toc(
+        [
+            (
+                _Link("Part One", "part.xhtml"),
+                [_Link("Chapter 1", "chapter-1.xhtml"), _Link("Chapter 2", "chapter-2.xhtml")],
+            )
+        ],
+        items={
+            "part": _Item("part", "part.xhtml", "<p>Part intro</p>"),
+            "chapter-1": _Item("chapter-1", "chapter-1.xhtml", "<p>Chapter one</p>"),
+            "chapter-2": _Item("chapter-2", "chapter-2.xhtml", "<p>Chapter two</p>"),
+        },
+        spine_index_by_id={"part": 0, "chapter-1": 1, "chapter-2": 2},
+        level=1,
+    )
+
+    assert [chapter["title"] for chapter in chapters] == ["Part One", "Chapter 1", "Chapter 2"]
+    assert [chapter["level"] for chapter in chapters] == [1, 2, 2]
 
 
 def test_classify_paragraph_records_detects_heading_roles_generically():

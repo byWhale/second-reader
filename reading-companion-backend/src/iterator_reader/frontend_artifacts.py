@@ -244,6 +244,9 @@ def build_run_state(
     current_chapter_ref: str | None = None,
     current_segment_ref: str | None = None,
     eta_seconds: int | None = None,
+    current_phase_step: str | None = None,
+    resume_available: bool = False,
+    last_checkpoint_at: str | None = None,
     error: str | None = None,
 ) -> RunState:
     """Construct one sequential run-state payload."""
@@ -257,6 +260,9 @@ def build_run_state(
         "completed_chapters": int(completed_chapters),
         "total_chapters": int(total_chapters),
         "eta_seconds": eta_seconds if eta_seconds is None else max(0, int(eta_seconds)),
+        "current_phase_step": current_phase_step,
+        "resume_available": resume_available,
+        "last_checkpoint_at": last_checkpoint_at,
         "updated_at": _timestamp(),
         "error": error,
     }

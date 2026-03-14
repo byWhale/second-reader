@@ -16,10 +16,12 @@ Frontend defaults can be overridden with:
 ## Active Frontend-Used Endpoints
 - `POST /api/uploads/epub`
 - `POST /api/books/{book_id}/analysis/start`
+- `POST /api/books/{book_id}/analysis/resume`
 - `GET /api/jobs/{job_id}`
 - `GET /api/books`
 - `GET /api/books/{book_id}`
 - `GET /api/books/{book_id}/analysis-state`
+- `GET /api/books/{book_id}/analysis-log`
 - `GET /api/books/{book_id}/activity`
 - `GET /api/books/{book_id}/marks`
 - `GET /api/books/{book_id}/chapters/{chapter_id}`
@@ -32,5 +34,6 @@ Frontend defaults can be overridden with:
 ## Integration Notes
 - Backend images and source assets are returned as relative API paths and must be prefixed with the configured API base in the frontend.
 - Backend `target_url`, `result_url`, and `open_target` values are frontend routes, not backend URLs.
-- Backend analysis state and activity feed are used by the adaptive `/books/:id` overview when a book is in progress; WebSocket messages trigger refreshes, while polling remains the fallback.
+- Backend analysis state, activity feed, and technical log tail are used by the adaptive `/books/:id` overview when a book is in progress; WebSocket messages trigger refreshes, while polling remains the fallback.
+- Structure parsing and deep reading now share the same long-task surface, including progress, resume metadata, and activity events.
 - Public `book_id`, `reaction_id`, and `mark_id` values are integer IDs even when backend runtime artifacts still use internal string identifiers.

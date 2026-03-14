@@ -26,10 +26,11 @@ ReasonCode = Literal[
 ]
 SegmentStatus = Literal["pending", "done", "skipped"]
 QualityStatus = Literal["strong", "acceptable", "weak", "skipped"]
-RunStage = Literal["ready", "deep_reading", "completed", "error"]
+RunStage = Literal["ready", "parsing_structure", "deep_reading", "completed", "paused", "error"]
 MatchMode = Literal["exact", "normalized", "segment_fallback"]
 MarkType = Literal["resonance", "blindspot", "bookmark"]
-JobStatus = Literal["queued", "parsing_structure", "deep_reading", "chapter_note_generation", "completed", "error"]
+JobStatus = Literal["queued", "parsing_structure", "ready", "deep_reading", "chapter_note_generation", "paused", "completed", "error"]
+JobKind = Literal["parse", "read"]
 TextRole = Literal["chapter_heading", "section_heading", "body", "auxiliary"]
 
 
@@ -179,6 +180,25 @@ class RunState(TypedDict):
     completed_chapters: int
     total_chapters: int
     eta_seconds: int | None
+    current_phase_step: str | None
+    resume_available: bool
+    last_checkpoint_at: str | None
+    updated_at: str
+    error: str | None
+
+
+class ParseState(TypedDict):
+    """Parse-stage checkpoint state persisted for resuming structure generation."""
+
+    status: Literal["parsing_structure", "ready", "paused", "error"]
+    total_chapters: int
+    completed_chapters: int
+    parsed_chapter_ids: list[int]
+    current_chapter_id: int | None
+    current_chapter_ref: str | None
+    current_step: str | None
+    resume_available: bool
+    last_checkpoint_at: str | None
     updated_at: str
     error: str | None
 
@@ -506,8 +526,12 @@ class JobRecord(TypedDict):
 
     job_id: str
     status: JobStatus
+    job_kind: JobKind
     upload_path: str
     book_id: str | None
+    language: str
+    intent: str | None
+    resume_count: int
     pid: int | None
     created_at: str
     updated_at: str

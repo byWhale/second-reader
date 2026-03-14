@@ -136,14 +136,30 @@ def _extract_epub_chapters_from_toc(toc, items, spine_index_by_id, level=1) -> l
     chapters = []
 
     for item in toc:
+        child_items = None
+        title = None
+        href = None
+
+        if isinstance(item, list):
+            chapters.extend(_extract_epub_chapters_from_toc(item, items, spine_index_by_id, level=level + 1))
+            continue
+
         # Handle ebooklib Link objects
         if hasattr(item, 'title') and hasattr(item, 'href'):
-            # It's a Link object
             title = item.title
             href = item.href
         elif isinstance(item, tuple):
-            # (title, href) tuple
-            title, href = item[0], item[1]
+            entry = item[0] if item else None
+            if len(item) > 1 and isinstance(item[1], (list, tuple)):
+                child_items = item[1]
+            if hasattr(entry, 'title') and hasattr(entry, 'href'):
+                title = entry.title
+                href = entry.href
+            elif len(item) >= 2 and isinstance(item[1], str):
+                title, href = item[0], item[1]
+            elif len(item) >= 2 and hasattr(item[1], 'href'):
+                title = item[0]
+                href = item[1].href
         else:
             continue
 
@@ -152,6 +168,8 @@ def _extract_epub_chapters_from_toc(toc, items, spine_index_by_id, level=1) -> l
 
         # Find the corresponding item
         for item_id, item_obj in items.items():
+            if not isinstance(href, str):
+                continue
             target_href = (href or "").split("#", 1)[0]
             if target_href and target_href in (item_obj.get_name() or ""):
                 content = item_obj.get_content().decode('utf-8', errors='ignore')
@@ -172,6 +190,9 @@ def _extract_epub_chapters_from_toc(toc, items, spine_index_by_id, level=1) -> l
                     len(chapters),
                 ),
             })
+
+        if child_items:
+            chapters.extend(_extract_epub_chapters_from_toc(child_items, items, spine_index_by_id, level=level + 1))
 
     return chapters
 

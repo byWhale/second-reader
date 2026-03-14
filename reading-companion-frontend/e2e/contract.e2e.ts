@@ -27,6 +27,8 @@ test("landing upload flows into canonical overview and chapter reading", async (
   await expect(page).toHaveURL(/\/$/);
   assertNoLegacyPath(new URL(page.url()).pathname);
 
+  await page.getByTestId("landing-upload-cta").click();
+  await expect(page.getByTestId("landing-upload-dialog")).toBeVisible();
   await page.getByTestId("landing-upload-input").setInputFiles(uploadFixture);
   await expect(page).toHaveURL(/\/books\/\d+$/);
   assertNoLegacyPath(new URL(page.url()).pathname);
@@ -70,10 +72,9 @@ test("landing upload flows into canonical overview and chapter reading", async (
 test("bookshelf upload supports defer-start and compat redirects", async ({ page }) => {
   await page.goto("/upload");
   await expect(page).toHaveURL(/\/books(?:\?.*)?$/);
-  await expect(page.getByRole("dialog")).toContainText("添加一本新书");
+  await expect(page.getByTestId("bookshelf-upload-dialog")).toContainText("添加一本新书");
 
   await page.getByTestId("bookshelf-upload-input").setInputFiles(uploadFixture);
-  await page.getByTestId("bookshelf-upload-submit").click();
 
   await expect(page.getByRole("alertdialog")).toContainText("已添加到书架", { timeout: 15_000 });
   await page.getByRole("button", { name: "稍后再说" }).click();

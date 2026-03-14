@@ -24,6 +24,8 @@ from src.api.errors import ApiError, install_error_handlers
 from src.api.realtime import build_job_status_response, stream_job_events
 from src.api.schemas import (
     ActivityEventsPageResponse,
+    AnalysisLogResponse,
+    AnalysisResumeAcceptedResponse,
     AnalysisStartAcceptedResponse,
     AnalysisStateResponse,
     BookDetailResponse,
@@ -61,8 +63,17 @@ from src.library.catalog import (
     list_books_page,
     source_asset_path,
 )
-from src.library.jobs import create_upload_job, launch_sequential_job, load_job
-from src.library.jobs import launch_book_analysis_job, launch_parse_job
+from src.library.jobs import (
+    analysis_log_payload,
+    create_upload_job,
+    launch_book_analysis_job,
+    launch_parse_job,
+    launch_sequential_job,
+    load_job,
+    provision_uploaded_book,
+    recover_unfinished_jobs,
+    resume_job_for_book,
+)
 from src.library.user_marks import delete_mark, list_book_marks_grouped, list_marks_page, put_mark
 
 
@@ -88,6 +99,12 @@ if cors_origins:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+
+@app.on_event("startup")
+def recover_jobs_on_startup() -> None:
+    """Refresh resumable jobs so long-running work continues after restarts."""
+    recover_unfinished_jobs(_root())
 
 
 @app.post("/api/uploads/epub", response_model=UploadAcceptedResponse, status_code=202, responses=ERROR_MODELS)
@@ -118,10 +135,15 @@ async def upload_epub(
         job_id, upload_path = create_upload_job(_root())
     upload_path.parent.mkdir(parents=True, exist_ok=True)
     upload_path.write_bytes(content)
+    provisional_book_id = provision_uploaded_book(upload_path, root=_root())
     if get_backend_test_mode() and get_backend_test_fixture_profile() == "e2e":
         record = launch_e2e_fixture_job(upload_path, upload_filename=filename, root=_root(), start_mode=start_mode)
     else:
-        record = launch_sequential_job(upload_path, root=_root()) if start_mode == "immediate" else launch_parse_job(upload_path, root=_root())
+        record = (
+            launch_sequential_job(upload_path, root=_root(), book_id=provisional_book_id)
+            if start_mode == "immediate"
+            else launch_parse_job(upload_path, root=_root(), book_id=provisional_book_id)
+        )
     return UploadAcceptedResponse(upload_filename=filename, **_job_accepted_payload(record))
 
 
@@ -162,6 +184,14 @@ def book_analysis_state(book_id: int) -> AnalysisStateResponse:
     return AnalysisStateResponse.model_validate(payload)
 
 
+@app.get("/api/books/{book_id}/analysis-log", response_model=AnalysisLogResponse, responses=ERROR_MODELS)
+def book_analysis_log(book_id: int, line_limit: int = Query(default=120, ge=20, le=400)) -> AnalysisLogResponse:
+    """Return the latest technical log tail for one book analysis."""
+    internal_book_id = _resolve_book_id(book_id)
+    _ensure_book_exists(internal_book_id)
+    return AnalysisLogResponse.model_validate(analysis_log_payload(internal_book_id, root=_root(), line_limit=line_limit))
+
+
 @app.post("/api/books/{book_id}/analysis/start", response_model=AnalysisStartAcceptedResponse, status_code=202, responses=ERROR_MODELS)
 def start_book_analysis(book_id: int) -> AnalysisStartAcceptedResponse:
     """Start sequential analysis for an uploaded book that has not begun deep reading yet."""
@@ -183,6 +213,20 @@ def start_book_analysis(book_id: int) -> AnalysisStartAcceptedResponse:
         except FileNotFoundError as exc:
             raise ApiError(status=404, code="BOOK_NOT_FOUND", message=f"Book '{book_id}' was not found.") from exc
     return AnalysisStartAcceptedResponse(**_job_accepted_payload(record))
+
+
+@app.post("/api/books/{book_id}/analysis/resume", response_model=AnalysisResumeAcceptedResponse, status_code=202, responses=ERROR_MODELS)
+def resume_book_analysis(book_id: int) -> AnalysisResumeAcceptedResponse:
+    """Resume a paused or interrupted analysis job from the latest checkpoint."""
+    internal_book_id = _resolve_book_id(book_id)
+    _ensure_book_exists(internal_book_id)
+    try:
+        record = resume_job_for_book(internal_book_id, root=_root())
+    except FileNotFoundError as exc:
+        raise ApiError(status=404, code="BOOK_NOT_FOUND", message=f"Book '{book_id}' was not found.") from exc
+    except RuntimeError as exc:
+        raise ApiError(status=409, code="ANALYSIS_NOT_RESUMABLE", message=str(exc)) from exc
+    return AnalysisResumeAcceptedResponse(**_job_accepted_payload(record))
 
 
 @app.get("/api/books/{book_id}/activity", response_model=ActivityEventsPageResponse, responses=ERROR_MODELS)

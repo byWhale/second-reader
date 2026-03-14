@@ -27,6 +27,7 @@ from src.iterator_reader.storage import (
     existing_cover_asset_file,
     existing_activity_file,
     existing_book_manifest_file,
+    existing_parse_state_file,
     existing_run_state_file,
     resolve_output_relative_file,
     run_state_file,
@@ -143,6 +144,12 @@ def _run_state(book_id: str, root: Path | None = None) -> dict | None:
     return _load_json(path) if path.exists() else None
 
 
+def _parse_state(book_id: str, root: Path | None = None) -> dict | None:
+    """Load one persisted parse checkpoint state if present."""
+    path = existing_parse_state_file(_book_dir(book_id, root))
+    return _load_json(path) if path.exists() else None
+
+
 def _chapter_result_path(book_id: str, chapter: dict, root: Path | None = None) -> Path:
     """Resolve one chapter result path with manifest-relative and canonical fallbacks."""
     output_dir = _book_dir(book_id, root)
@@ -167,9 +174,11 @@ def _display_status(manifest: dict, run_state: dict | None) -> str:
         stage = str(run_state.get("stage", "")).strip()
         if stage == "error":
             return "error"
+        if stage == "paused":
+            return "paused"
         if stage == "completed":
             return "completed"
-        if stage == "deep_reading":
+        if stage in {"parsing_structure", "deep_reading"}:
             return "analyzing"
     if any(str(chapter.get("status", "")).strip() == "done" for chapter in manifest.get("chapters", [])):
         return "completed"
@@ -251,8 +260,15 @@ def _chapter_status_for_analysis(chapter: dict, current_chapter_id: int | None, 
     """Return the chapter status used by progress/result pages."""
     chapter_id = int(chapter.get("id", 0))
     raw_status = str(chapter.get("status", "")).strip()
-    if run_state and str(run_state.get("stage", "")) == "error" and current_chapter_id == chapter_id:
+    stage = str(run_state.get("stage", "")) if run_state else ""
+    if stage == "error" and current_chapter_id == chapter_id:
         return "error"
+    if stage in {"parsing_structure", "paused"}:
+        if current_chapter_id == chapter_id:
+            return "in_progress"
+        if int(chapter.get("segment_count", 0) or 0) > 0:
+            return "completed"
+        return "pending"
     if raw_status == "done":
         return "completed"
     if current_chapter_id == chapter_id:
@@ -742,8 +758,14 @@ def _analysis_status(run_state: dict, *, current_chapter_id: int | None) -> tupl
     stage = str(run_state.get("stage", "ready"))
     if stage == "completed":
         return "completed", "全部完成"
+    if stage == "paused":
+        return "paused", "已暂停，可继续"
     if stage == "error":
         return "error", "分析中断"
+    if stage == "parsing_structure":
+        if current_chapter_id is not None:
+            return "parsing_structure", f"正在解析 {run_state.get('current_chapter_ref', '')}"
+        return "parsing_structure", "正在解析书籍结构"
     if current_chapter_id is not None:
         return "deep_reading", f"正在分析 {run_state.get('current_chapter_ref', '')}"
     return "parsing_structure", "正在解析书籍结构"
@@ -755,6 +777,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
     run_state = _run_state(book_id, root)
     if not run_state:
         raise FileNotFoundError(book_id)
+    parse_state = _parse_state(book_id, root)
 
     current_chapter_id = int(run_state.get("current_chapter_id", 0) or 0) or None
     chapters = []
@@ -819,6 +842,19 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
     status, stage_label = _analysis_status(run_state, current_chapter_id=current_chapter_id)
     completed_chapters = int(run_state.get("completed_chapters", 0) or 0)
     total_chapters = int(run_state.get("total_chapters", len(chapters)) or len(chapters))
+    current_phase_step = str(run_state.get("current_phase_step", "") or "") or None
+    resume_available = bool(run_state.get("resume_available", False))
+    last_checkpoint_at = str(run_state.get("last_checkpoint_at", "") or "") or None
+    if status == "parsing_structure" and parse_state:
+        completed_chapters = int(parse_state.get("completed_chapters", completed_chapters) or completed_chapters)
+        total_chapters = int(parse_state.get("total_chapters", total_chapters) or total_chapters)
+        current_phase_step = str(parse_state.get("current_step", "") or "") or current_phase_step
+        resume_available = bool(parse_state.get("resume_available", resume_available))
+        last_checkpoint_at = str(parse_state.get("last_checkpoint_at", "") or "") or last_checkpoint_at
+        if current_chapter_id is None:
+            current_chapter_id = int(parse_state.get("current_chapter_id", 0) or 0) or None
+        if not run_state.get("current_chapter_ref") and parse_state.get("current_chapter_ref"):
+            run_state["current_chapter_ref"] = parse_state.get("current_chapter_ref")
     progress_percent = round((completed_chapters / total_chapters) * 100, 2) if total_chapters > 0 else None
 
     return {
@@ -833,12 +869,16 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "current_chapter_id": current_chapter_id,
         "current_chapter_ref": run_state.get("current_chapter_ref"),
         "eta_seconds": run_state.get("eta_seconds"),
-        "structure_ready": True,
+        "current_phase_step": current_phase_step,
+        "resume_available": resume_available,
+        "last_checkpoint_at": last_checkpoint_at,
+        "structure_ready": bool(chapters),
         "chapters": chapters,
         "current_state_panel": {
             "current_chapter_id": current_chapter_id,
             "current_chapter_ref": run_state.get("current_chapter_ref"),
-            "current_section_ref": run_state.get("current_segment_ref"),
+            "current_section_ref": run_state.get("current_segment_ref") if status == "deep_reading" else None,
+            "current_phase_step": current_phase_step,
             "recent_reactions": recent_reactions[:5],
             "reaction_counts": reaction_counts,
             "search_active": any(str(item.get("search_query", "") or "").strip() for item in recent_activity[:5]),
@@ -851,10 +891,10 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
                 "code": "ANALYSIS_FAILED",
                 "message": str(run_state.get("error", "")),
                 "status": 409,
-                "retryable": False,
+                "retryable": bool(resume_available),
                 "details": None,
             }
-            if status == "error"
+            if status in {"error", "paused"}
             else None
         ),
     }

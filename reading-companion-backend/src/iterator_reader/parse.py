@@ -8,6 +8,7 @@ import zipfile
 from datetime import datetime, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
+from typing import Literal
 from xml.etree import ElementTree as ET
 import ebooklib
 from ebooklib import epub
@@ -24,14 +25,14 @@ from .frontend_artifacts import (
     _reaction_target_locator,
     append_activity_event,
     build_run_state,
-    reset_activity,
     write_book_manifest,
     write_run_state,
 )
-from .models import BookStructure, ChapterHeadingBlock, SemanticSegment, StructureChapter
+from .models import BookStructure, ChapterHeadingBlock, ParseState, SemanticSegment, StructureChapter
 from .storage import (
     chapter_markdown_file,
     chapter_output_name,
+    chapter_reference,
     chapter_result_file,
     cover_asset_file,
     ensure_output_dir,
@@ -39,12 +40,15 @@ from .storage import (
     existing_book_manifest_file,
     existing_chapter_result_file,
     infer_chapter_number,
+    existing_parse_state_file,
     relative_output_path,
     resolve_output_dir,
     book_manifest_file,
     existing_cover_asset_file,
     existing_structure_file,
+    load_structure,
     load_json,
+    parse_state_file,
     save_structure,
     save_json,
     segment_reference,
@@ -494,6 +498,137 @@ def _segment_locator_from_records(records: list[dict[str, object]]) -> dict[str,
 def estimate_tokens(text: str) -> int:
     """Rough token estimate without external tokenizer dependency."""
     return max(1, len(text) // 4)
+
+
+def _timestamp() -> str:
+    """Return a stable UTC timestamp."""
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _chapter_is_parsed(chapter: StructureChapter) -> bool:
+    """Return whether one chapter already has persisted structure segments."""
+    return bool(chapter.get("segments"))
+
+
+def _chapter_contexts(raw_chapters: list[dict[str, object]], *, output_language: str) -> list[dict[str, object]]:
+    """Prepare lightweight chapter contexts before semantic segmentation."""
+    contexts: list[dict[str, object]] = []
+    for chapter_index, raw_chapter in enumerate(raw_chapters, start=1):
+        paragraph_records = _classify_paragraph_records(_paragraph_records(raw_chapter))
+        chapter_text = "\n\n".join(
+            str(record.get("text", ""))
+            for record in paragraph_records
+            if str(record.get("text_role", "body")) != "auxiliary"
+        )
+        if not chapter_text.strip():
+            continue
+        chapter_title = str(raw_chapter.get("title", f"Chapter {chapter_index}") or f"Chapter {chapter_index}")
+        if _should_skip_chapter(chapter_title, chapter_text):
+            print(f"[skip] {chapter_title}", flush=True)
+            continue
+
+        contexts.append(
+            {
+                "id": chapter_index,
+                "title": chapter_title,
+                "chapter_number": infer_chapter_number(chapter_title),
+                "level": int(raw_chapter.get("level", 1) or 1),
+                "paragraph_records": paragraph_records,
+                "chapter_heading": _chapter_heading_block(paragraph_records),
+                "body_groups": _body_record_groups(paragraph_records),
+                "item_id": str(raw_chapter.get("item_id", "") or ""),
+                "href": str(raw_chapter.get("href", "") or ""),
+                "spine_index": int(raw_chapter.get("spine_index", 0) or 0) if raw_chapter.get("spine_index") is not None else None,
+                "output_language": output_language,
+            }
+        )
+    return contexts
+
+
+def _chapter_stub_from_context(output_dir: Path, context: dict[str, object], *, segments: list[SemanticSegment] | None = None) -> StructureChapter:
+    """Create one persisted structure chapter record from a prepared context."""
+    chapter_stub: StructureChapter = {
+        "id": int(context.get("id", 0)),
+        "title": str(context.get("title", "")),
+        "chapter_number": context.get("chapter_number"),
+        "status": "pending",
+        "level": int(context.get("level", 1) or 1),
+        "segments": list(segments or []),
+    }
+    chapter_heading = context.get("chapter_heading")
+    if isinstance(chapter_heading, dict):
+        chapter_stub["chapter_heading"] = chapter_heading
+    chapter_stub["output_file"] = relative_output_path(output_dir, chapter_markdown_file(output_dir, chapter_stub))
+    item_id = str(context.get("item_id", "") or "")
+    href = str(context.get("href", "") or "")
+    spine_index = context.get("spine_index")
+    if item_id:
+        chapter_stub["item_id"] = item_id
+    if href:
+        chapter_stub["href"] = href
+    if spine_index is not None:
+        chapter_stub["spine_index"] = int(spine_index)
+    return chapter_stub
+
+
+def _persist_structure_artifacts(output_dir: Path, structure: BookStructure) -> None:
+    """Persist the canonical structure, markdown overview, and manifest."""
+    save_structure(structure_file(output_dir), structure)
+    structure_markdown_file(output_dir).parent.mkdir(parents=True, exist_ok=True)
+    structure_markdown_file(output_dir).write_text(
+        render_structure_markdown(structure),
+        encoding="utf-8",
+    )
+    write_book_manifest(output_dir, structure)
+
+
+def _write_parse_progress(
+    structure: BookStructure,
+    output_dir: Path,
+    *,
+    status: Literal["parsing_structure", "ready", "paused", "error"],
+    total_chapters: int,
+    completed_chapters: int,
+    parsed_chapter_ids: list[int],
+    current_chapter_id: int | None = None,
+    current_chapter_ref: str | None = None,
+    current_step: str | None = None,
+    last_checkpoint_at: str | None = None,
+    error: str | None = None,
+) -> ParseState:
+    """Persist parse-stage progress into both run_state and parse_state."""
+    resume_available = bool(parsed_chapter_ids) or status in {"paused", "error"}
+    write_run_state(
+        output_dir,
+        build_run_state(
+            structure,
+            stage="ready" if status == "ready" else status,
+            total_chapters=total_chapters,
+            completed_chapters=completed_chapters,
+            current_chapter_id=current_chapter_id,
+            current_chapter_ref=current_chapter_ref,
+            current_segment_ref=None,
+            current_phase_step=current_step,
+            resume_available=resume_available,
+            last_checkpoint_at=last_checkpoint_at,
+            error=error,
+        ),
+    )
+    payload: ParseState = {
+        "status": status,
+        "total_chapters": int(total_chapters),
+        "completed_chapters": int(completed_chapters),
+        "parsed_chapter_ids": sorted(int(chapter_id) for chapter_id in parsed_chapter_ids),
+        "current_chapter_id": current_chapter_id,
+        "current_chapter_ref": current_chapter_ref,
+        "current_step": current_step,
+        "resume_available": resume_available,
+        "last_checkpoint_at": last_checkpoint_at,
+        "updated_at": _timestamp(),
+        "error": error,
+    }
+    save_json(parse_state_file(output_dir), payload)
+    return payload
 
 
 def extract_book_metadata(book_path: Path) -> tuple[str, str]:
@@ -1030,8 +1165,8 @@ def segment_chapter_semantically(
     )
 
 
-def build_structure(book_path: Path, language_mode: str = "auto") -> tuple[BookStructure, Path]:
-    """Parse the ebook and persist structure.json."""
+def build_structure(book_path: Path, language_mode: str = "auto", continue_mode: bool = False) -> tuple[BookStructure, Path]:
+    """Parse the ebook and persist structure.json incrementally."""
     title, author = extract_book_metadata(book_path)
     raw_chapters = parse_ebook(str(book_path))
     sample_text = "\n".join(extract_plain_text(ch.get("content", ""))[:300] for ch in raw_chapters[:3])
@@ -1042,31 +1177,112 @@ def build_structure(book_path: Path, language_mode: str = "auto") -> tuple[BookS
     if book_path.suffix.lower() == ".epub":
         ensure_source_asset(book_path, output_dir)
         _extract_epub_cover(book_path, output_dir)
-    print(f"共检测到 {len(raw_chapters)} 个原始章节单元，开始语义分段...")
+    print(f"共检测到 {len(raw_chapters)} 个原始章节单元，开始语义分段...", flush=True)
+    contexts = _chapter_contexts(raw_chapters, output_language=output_language)
+    total_chapters = len(contexts)
+
+    existing_structure: BookStructure | None = None
+    if continue_mode:
+        existing_path = existing_structure_file(output_dir)
+        if existing_path.exists():
+            existing_structure = load_structure(existing_path)
+            _upgrade_structure_metadata(existing_structure, output_dir)
+
+    existing_chapters = {
+        int(chapter.get("id", 0)): chapter
+        for chapter in (existing_structure or {}).get("chapters", [])
+        if isinstance(chapter, dict)
+    }
+
     chapters: list[StructureChapter] = []
+    parsed_chapter_ids: list[int] = []
+    for context in contexts:
+        chapter_id = int(context.get("id", 0))
+        existing_chapter = existing_chapters.get(chapter_id)
+        if existing_chapter and _chapter_is_parsed(existing_chapter):
+            chapters.append(existing_chapter)
+            parsed_chapter_ids.append(chapter_id)
+            continue
+        chapters.append(_chapter_stub_from_context(output_dir, context))
 
-    for chapter_index, chapter in enumerate(raw_chapters, start=1):
-        paragraph_records = _classify_paragraph_records(_paragraph_records(chapter))
-        chapter_text = "\n\n".join(
-            str(record.get("text", ""))
-            for record in paragraph_records
-            if str(record.get("text_role", "body")) != "auxiliary"
+    structure: BookStructure = {
+        "book": title,
+        "author": author,
+        "book_language": book_language,
+        "output_language": output_language,
+        "source_file": str(book_path),
+        "output_dir": str(output_dir),
+        "chapters": chapters,
+    }
+    _persist_structure_artifacts(output_dir, structure)
+
+    resume_detected = continue_mode and bool(parsed_chapter_ids)
+    if resume_detected:
+        append_activity_event(
+            output_dir,
+            {
+                "type": "resume_detected",
+                "message": f"检测到解析 checkpoint，已恢复 {len(parsed_chapter_ids)}/{total_chapters} 个章节。",
+            },
         )
-        if not chapter_text.strip():
-            continue
-        chapter_title = chapter.get("title", f"Chapter {chapter_index}")
-        if _should_skip_chapter(chapter_title, chapter_text):
-            print(f"[skip] {chapter_title}")
+    else:
+        append_activity_event(
+            output_dir,
+            {
+                "type": "parse_started",
+                "message": f"开始解析全书结构，共 {total_chapters} 章。",
+            },
+        )
+
+    next_context = next((context for context in contexts if int(context.get("id", 0)) not in parsed_chapter_ids), None)
+    _write_parse_progress(
+        structure,
+        output_dir,
+        status="parsing_structure" if next_context is not None else "ready",
+        total_chapters=total_chapters,
+        completed_chapters=len(parsed_chapter_ids),
+        parsed_chapter_ids=parsed_chapter_ids,
+        current_chapter_id=int(next_context.get("id", 0)) if next_context else None,
+        current_chapter_ref=chapter_reference(_chapter_stub_from_context(output_dir, next_context)) if next_context else None,
+        current_step="准备章节结构" if next_context else None,
+        last_checkpoint_at=_timestamp() if parsed_chapter_ids else None,
+    )
+
+    for context in contexts:
+        chapter_id = int(context.get("id", 0))
+        if chapter_id in parsed_chapter_ids:
             continue
 
-        print(f"[parse] Chapter {chapter_index}: {chapter_title}")
+        chapter_ref = chapter_reference(_chapter_stub_from_context(output_dir, context))
+        _write_parse_progress(
+            structure,
+            output_dir,
+            status="parsing_structure",
+            total_chapters=total_chapters,
+            completed_chapters=len(parsed_chapter_ids),
+            parsed_chapter_ids=parsed_chapter_ids,
+            current_chapter_id=chapter_id,
+            current_chapter_ref=chapter_ref,
+            current_step="语义切分中",
+            last_checkpoint_at=_timestamp() if parsed_chapter_ids else None,
+        )
+        append_activity_event(
+            output_dir,
+            {
+                "type": "parse_chapter_started",
+                "message": f"开始解析 {chapter_ref}：{context.get('title', '')}",
+                "chapter_id": chapter_id,
+                "chapter_ref": chapter_ref,
+            },
+        )
+        print(f"[parse] {chapter_ref}: {context.get('title', '')}", flush=True)
 
-        chapter_number = infer_chapter_number(chapter_title)
-        chapter_heading = _chapter_heading_block(paragraph_records)
-        body_groups = _body_record_groups(paragraph_records)
+        paragraph_records = list(context.get("paragraph_records", []))
+        chapter_heading = context.get("chapter_heading")
+        body_groups = list(context.get("body_groups", []))
         segments: list[SemanticSegment] = []
         next_segment_index = 1
-        for group in body_groups:
+        for group_index, group in enumerate(body_groups, start=1):
             body_records = [
                 record
                 for record in list(group.get("body_records", []))
@@ -1074,13 +1290,14 @@ def build_structure(book_path: Path, language_mode: str = "auto") -> tuple[BookS
             ]
             if not body_records:
                 continue
+            print(f"  ├─ 语义切分块 {group_index}/{max(1, len(body_groups))}", flush=True)
             local_segments = segment_chapter_semantically(
-                chapter_id=chapter_index,
-                chapter_title=chapter_title,
+                chapter_id=chapter_id,
+                chapter_title=str(context.get("title", "")),
                 chapter_text="\n\n".join(str(record.get("text", "")) for record in body_records),
                 output_language=output_language,
                 paragraphs=[str(record.get("text", "")) for record in body_records],
-                chapter_heading_text=str(chapter_heading.get("text", "")) if chapter_heading else "",
+                chapter_heading_text=str(chapter_heading.get("text", "")) if isinstance(chapter_heading, dict) else "",
                 section_heading_text="\n".join(
                     str(record.get("text", "")).strip()
                     for record in list(group.get("heading_records", []))
@@ -1096,7 +1313,7 @@ def build_structure(book_path: Path, language_mode: str = "auto") -> tuple[BookS
                 segment_text = _records_text(segment_records)
                 segments.append(
                     {
-                        "id": f"{chapter_index}.{next_segment_index}",
+                        "id": f"{chapter_id}.{next_segment_index}",
                         "summary": str(segment.get("summary", "")),
                         "tokens": estimate_tokens(segment_text),
                         "text": segment_text,
@@ -1113,47 +1330,21 @@ def build_structure(book_path: Path, language_mode: str = "auto") -> tuple[BookS
                 for record in paragraph_records
                 if str(record.get("text_role", "")) == "body" and str(record.get("text", "")).strip()
             ]
-            if not body_records:
-                continue
-            segment_text = _records_text(body_records)
-            segments = [
-                {
-                    "id": f"{chapter_index}.1",
-                    "summary": str(chapter_title)[:80],
-                    "tokens": estimate_tokens(segment_text),
-                    "text": segment_text,
-                    "paragraph_start": int(body_records[0].get("paragraph_index", 0) or 0),
-                    "paragraph_end": int(body_records[-1].get("paragraph_index", 0) or 0),
-                    "status": "pending",
-                }
-            ]
-        chapter_stub: StructureChapter = {
-            "id": chapter_index,
-            "title": chapter_title,
-            "chapter_number": chapter_number,
-            "status": "pending",
-            "level": chapter.get("level", 1),
-            "segments": [],
-        }
-        if chapter_heading:
-            chapter_stub["chapter_heading"] = chapter_heading
-        chapter_record: StructureChapter = {
-            "id": chapter_index,
-            "title": chapter_title,
-            "chapter_number": chapter_number,
-            "status": "pending",
-            "level": chapter.get("level", 1),
-            "output_file": relative_output_path(output_dir, chapter_markdown_file(output_dir, chapter_stub)),
-            "segments": segments,
-        }
-        if chapter_heading:
-            chapter_record["chapter_heading"] = chapter_heading
-        if chapter.get("item_id"):
-            chapter_record["item_id"] = str(chapter.get("item_id", ""))
-        if chapter.get("href"):
-            chapter_record["href"] = str(chapter.get("href", ""))
-        if chapter.get("spine_index") is not None:
-            chapter_record["spine_index"] = int(chapter.get("spine_index", 0))
+            if body_records:
+                segment_text = _records_text(body_records)
+                segments = [
+                    {
+                        "id": f"{chapter_id}.1",
+                        "summary": str(context.get("title", ""))[:80],
+                        "tokens": estimate_tokens(segment_text),
+                        "text": segment_text,
+                        "paragraph_start": int(body_records[0].get("paragraph_index", 0) or 0),
+                        "paragraph_end": int(body_records[-1].get("paragraph_index", 0) or 0),
+                        "status": "pending",
+                    }
+                ]
+
+        chapter_record = _chapter_stub_from_context(output_dir, context, segments=segments)
         for segment in chapter_record.get("segments", []):
             segment["segment_ref"] = segment_reference(chapter_record, segment.get("id", ""))
             start = int(segment.get("paragraph_start", 0) or 0)
@@ -1180,39 +1371,121 @@ def build_structure(book_path: Path, language_mode: str = "auto") -> tuple[BookS
                 }
                 for record in segment_records
             ]
-        chapters.append(chapter_record)
 
-    structure: BookStructure = {
-        "book": title,
-        "author": author,
-        "book_language": book_language,
-        "output_language": output_language,
-        "source_file": str(book_path),
-        "output_dir": str(output_dir),
-        "chapters": chapters,
-    }
-    save_structure(structure_file(output_dir), structure)
-    structure_markdown_file(output_dir).parent.mkdir(parents=True, exist_ok=True)
-    structure_markdown_file(output_dir).write_text(
-        render_structure_markdown(structure),
-        encoding="utf-8",
+        structure["chapters"] = [
+            chapter_record if int(existing.get("id", 0)) == chapter_id else existing
+            for existing in structure.get("chapters", [])
+        ]
+        parsed_chapter_ids.append(chapter_id)
+        checkpoint_at = _timestamp()
+        _persist_structure_artifacts(output_dir, structure)
+        _write_parse_progress(
+            structure,
+            output_dir,
+            status="parsing_structure",
+            total_chapters=total_chapters,
+            completed_chapters=len(parsed_chapter_ids),
+            parsed_chapter_ids=parsed_chapter_ids,
+            current_chapter_id=chapter_id,
+            current_chapter_ref=chapter_ref,
+            current_step="已保存结构 checkpoint",
+            last_checkpoint_at=checkpoint_at,
+        )
+        append_activity_event(
+            output_dir,
+            {
+                "type": "parse_chapter_completed",
+                "message": f"{chapter_ref} 结构解析完成，生成 {len(chapter_record.get('segments', []))} 个 section。",
+                "chapter_id": chapter_id,
+                "chapter_ref": chapter_ref,
+            },
+        )
+        append_activity_event(
+            output_dir,
+            {
+                "type": "structure_checkpoint_saved",
+                "message": f"已保存解析 checkpoint：{chapter_ref}",
+                "chapter_id": chapter_id,
+                "chapter_ref": chapter_ref,
+            },
+        )
+        print(f"  └─ {chapter_ref} 完成，生成 {len(chapter_record.get('segments', []))} 个 section", flush=True)
+
+    final_checkpoint_at = _timestamp() if parsed_chapter_ids else None
+    _persist_structure_artifacts(output_dir, structure)
+    _write_parse_progress(
+        structure,
+        output_dir,
+        status="ready",
+        total_chapters=total_chapters,
+        completed_chapters=len(parsed_chapter_ids),
+        parsed_chapter_ids=parsed_chapter_ids,
+        last_checkpoint_at=final_checkpoint_at,
     )
     return structure, output_dir
 
 
-def parse_book(book_path: Path, language_mode: str = "auto") -> tuple[BookStructure, Path]:
+def parse_book(book_path: Path, language_mode: str = "auto", continue_mode: bool = False) -> tuple[BookStructure, Path]:
     """Public parse-stage entry point."""
-    structure, output_dir = build_structure(book_path, language_mode=language_mode)
-    write_book_manifest(output_dir, structure)
-    reset_activity(output_dir)
-    write_run_state(
-        output_dir,
-        build_run_state(
+    try:
+        structure, output_dir = build_structure(book_path, language_mode=language_mode, continue_mode=continue_mode)
+    except Exception as exc:
+        title, author = extract_book_metadata(book_path)
+        sample_text = ""
+        try:
+            raw_chapters = parse_ebook(str(book_path))
+            sample_text = "\n".join(extract_plain_text(ch.get("content", ""))[:300] for ch in raw_chapters[:3])
+        except Exception:
+            raw_chapters = []
+        book_language = detect_book_language(book_path, sample_text=sample_text)
+        output_language = resolve_output_language(language_mode, book_language)
+        output_dir = resolve_output_dir(book_path, title, book_language, output_language)
+        structure: BookStructure = {
+            "book": title,
+            "author": author,
+            "book_language": book_language,
+            "output_language": output_language,
+            "source_file": str(book_path),
+            "output_dir": str(output_dir),
+            "chapters": [],
+        }
+        parsed_ids: list[int] = []
+        parse_state_path = existing_parse_state_file(output_dir)
+        if parse_state_path.exists():
+            payload = load_json(parse_state_path)
+            parsed_ids = [int(item) for item in payload.get("parsed_chapter_ids", [])]
+            if existing_structure_file(output_dir).exists():
+                structure = load_structure(existing_structure_file(output_dir))
+        _write_parse_progress(
             structure,
-            stage="ready",
-            total_chapters=len(structure.get("chapters", [])),
-            completed_chapters=sum(1 for chapter in structure.get("chapters", []) if chapter.get("status") == "done"),
-        ),
+            output_dir,
+            status="error",
+            total_chapters=max(len(structure.get("chapters", [])), len(parsed_ids)),
+            completed_chapters=len(parsed_ids),
+            parsed_chapter_ids=parsed_ids,
+            current_step="结构解析失败",
+            last_checkpoint_at=_timestamp() if parsed_ids else None,
+            error=str(exc),
+        )
+        append_activity_event(
+            output_dir,
+            {
+                "type": "error",
+                "message": f"结构解析中断：{exc}",
+            },
+        )
+        raise
+
+    parsed_chapter_ids = [int(chapter.get("id", 0)) for chapter in structure.get("chapters", []) if _chapter_is_parsed(chapter)]
+    _persist_structure_artifacts(output_dir, structure)
+    _write_parse_progress(
+        structure,
+        output_dir,
+        status="ready",
+        total_chapters=len(structure.get("chapters", [])),
+        completed_chapters=len(parsed_chapter_ids),
+        parsed_chapter_ids=parsed_chapter_ids,
+        last_checkpoint_at=_timestamp() if parsed_chapter_ids else None,
     )
     append_activity_event(
         output_dir,
@@ -1224,7 +1497,12 @@ def parse_book(book_path: Path, language_mode: str = "auto") -> tuple[BookStruct
     return structure, output_dir
 
 
-def ensure_structure_for_book(book_path: Path, language_mode: str = "auto") -> tuple[BookStructure, Path, bool]:
+def ensure_structure_for_book(
+    book_path: Path,
+    language_mode: str = "auto",
+    *,
+    continue_mode: bool = False,
+) -> tuple[BookStructure, Path, bool]:
     """Load existing structure.json or create it when absent."""
     title, _author = extract_book_metadata(book_path)
     raw_chapters = parse_ebook(str(book_path))
@@ -1246,10 +1524,18 @@ def ensure_structure_for_book(book_path: Path, language_mode: str = "auto") -> t
         ):
             changed = _upgrade_structure_metadata(structure, output_dir)
             canonical_path = structure_file(output_dir)
+            parse_state_path = existing_parse_state_file(output_dir)
+            parse_state = load_json(parse_state_path) if parse_state_path.exists() else {}
+            parse_complete = bool(parse_state.get("status") == "ready") or all(
+                _chapter_is_parsed(chapter) for chapter in structure.get("chapters", [])
+            )
             if changed or path != canonical_path:
-                save_structure(canonical_path, structure)
-            return structure, output_dir, False
-    structure, output_dir = build_structure(book_path, language_mode=language_mode)
+                _persist_structure_artifacts(output_dir, structure)
+            if parse_complete:
+                return structure, output_dir, False
+            if not continue_mode:
+                return structure, output_dir, False
+    structure, output_dir = build_structure(book_path, language_mode=language_mode, continue_mode=continue_mode)
     return structure, output_dir, True
 
 

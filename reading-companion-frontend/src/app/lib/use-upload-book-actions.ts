@@ -47,6 +47,7 @@ export function useUploadBookActions(options: { onDeferredReady?: () => void } =
     setError(null);
     try {
       const accepted = await uploadEpub(file, { startMode: "immediate" });
+      setStatusText("Preparing for deep reading...");
       const readyJob =
         accepted.book_id != null
           ? { book_id: accepted.book_id }

@@ -180,6 +180,111 @@
         "title": "ActivityEventsPageResponse",
         "type": "object"
       },
+      "AnalysisLogResponse": {
+        "additionalProperties": false,
+        "description": "Technical log tail for one active or recent analysis job.",
+        "properties": {
+          "available": {
+            "description": "Whether a technical log is available for this book.",
+            "title": "Available",
+            "type": "boolean"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest related job identifier when available.",
+            "title": "Job Id"
+          },
+          "lines": {
+            "description": "Recent log lines for debugging and long-task visibility.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last update time of the related job record when available.",
+            "title": "Updated At"
+          }
+        },
+        "required": [
+          "available",
+          "lines"
+        ],
+        "title": "AnalysisLogResponse",
+        "type": "object"
+      },
+      "AnalysisResumeAcceptedResponse": {
+        "additionalProperties": false,
+        "description": "Response returned after resuming a paused analysis job.",
+        "properties": {
+          "book_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Resolved public integer book identifier if already known; otherwise null.",
+            "title": "Book Id"
+          },
+          "job_id": {
+            "description": "Identifier of the newly created analysis job.",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "job_url": {
+            "description": "REST URL used to poll the job status.",
+            "title": "Job Url",
+            "type": "string"
+          },
+          "status": {
+            "description": "Initial job status immediately after the request is accepted.",
+            "enum": [
+              "queued",
+              "parsing_structure",
+              "ready",
+              "deep_reading",
+              "chapter_note_generation",
+              "paused",
+              "completed",
+              "error"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "ws_url": {
+            "description": "WebSocket URL used to subscribe to live job updates.",
+            "title": "Ws Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "job_id",
+          "status",
+          "job_url",
+          "ws_url"
+        ],
+        "title": "AnalysisResumeAcceptedResponse",
+        "type": "object"
+      },
       "AnalysisStartAcceptedResponse": {
         "additionalProperties": false,
         "description": "Response returned after starting analysis for an existing uploaded book.",
@@ -214,6 +319,7 @@
               "ready",
               "deep_reading",
               "chapter_note_generation",
+              "paused",
               "completed",
               "error"
             ],
@@ -286,6 +392,18 @@
             "description": "Human-readable reference of the current chapter.",
             "title": "Current Chapter Ref"
           },
+          "current_phase_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Human-readable label for the current parse or read step.",
+            "title": "Current Phase Step"
+          },
           "current_state_panel": {
             "$ref": "#/components/schemas/CurrentStatePanel",
             "description": "Focused realtime state shown beside the structure tree."
@@ -301,6 +419,18 @@
             ],
             "description": "Estimated remaining time in seconds.",
             "title": "Eta Seconds"
+          },
+          "last_checkpoint_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last checkpoint timestamp when available.",
+            "title": "Last Checkpoint At"
           },
           "last_error": {
             "anyOf": [
@@ -333,6 +463,12 @@
             "title": "Recent Completed Chapters",
             "type": "array"
           },
+          "resume_available": {
+            "default": false,
+            "description": "Whether this analysis can resume from the latest checkpoint.",
+            "title": "Resume Available",
+            "type": "boolean"
+          },
           "stage_label": {
             "description": "User-facing stage label shown at the top of the progress page.",
             "title": "Stage Label",
@@ -345,6 +481,7 @@
               "parsing_structure",
               "deep_reading",
               "chapter_note_generation",
+              "paused",
               "completed",
               "error"
             ],
@@ -397,7 +534,7 @@
             "title": "Display Title"
           },
           "file": {
-            "format": "binary",
+            "contentMediaType": "application/octet-stream",
             "title": "File",
             "type": "string"
           },
@@ -506,6 +643,7 @@
             "description": "High-level book state for the result page.",
             "enum": [
               "analyzing",
+              "paused",
               "completed",
               "error",
               "not_started"
@@ -649,6 +787,7 @@
             "enum": [
               "not_started",
               "analyzing",
+              "paused",
               "completed",
               "error"
             ],
@@ -1239,6 +1378,18 @@
             "description": "Human-readable reference of the chapter currently being processed.",
             "title": "Current Chapter Ref"
           },
+          "current_phase_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Human-readable label of the current parse or read step.",
+            "title": "Current Phase Step"
+          },
           "current_section_ref": {
             "anyOf": [
               {
@@ -1522,6 +1673,18 @@
             "description": "Human-readable reference of the current chapter.",
             "title": "Current Chapter Ref"
           },
+          "current_phase_step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Human-readable label for the current parse or read step.",
+            "title": "Current Phase Step"
+          },
           "current_section_ref": {
             "anyOf": [
               {
@@ -1551,6 +1714,18 @@
             "title": "Job Id",
             "type": "string"
           },
+          "last_checkpoint_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last checkpoint timestamp when available.",
+            "title": "Last Checkpoint At"
+          },
           "last_error": {
             "anyOf": [
               {
@@ -1574,6 +1749,12 @@
             "description": "Overall progress percentage from 0 to 100 when known.",
             "title": "Progress Percent"
           },
+          "resume_available": {
+            "default": false,
+            "description": "Whether the job can resume from a checkpoint.",
+            "title": "Resume Available",
+            "type": "boolean"
+          },
           "status": {
             "description": "Current execution stage of the upload/analysis job.",
             "enum": [
@@ -1582,6 +1763,7 @@
               "ready",
               "deep_reading",
               "chapter_note_generation",
+              "paused",
               "completed",
               "error"
             ],
@@ -2228,6 +2410,7 @@
               "ready",
               "deep_reading",
               "chapter_note_generation",
+              "paused",
               "completed",
               "error"
             ],
@@ -2644,6 +2827,108 @@
         "summary": "Book Activity"
       }
     },
+    "/api/books/{book_id}/analysis-log": {
+      "get": {
+        "description": "Return the latest technical log tail for one book analysis.",
+        "operationId": "book_analysis_log_api_books__book_id__analysis_log_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_id",
+            "required": true,
+            "schema": {
+              "title": "Book Id",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "line_limit",
+            "required": false,
+            "schema": {
+              "default": 120,
+              "maximum": 400,
+              "minimum": 20,
+              "title": "Line Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisLogResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Book Analysis Log"
+      }
+    },
     "/api/books/{book_id}/analysis-state": {
       "get": {
         "description": "Return the current progress-page snapshot for one book.",
@@ -2732,6 +3017,96 @@
           }
         },
         "summary": "Book Analysis State"
+      }
+    },
+    "/api/books/{book_id}/analysis/resume": {
+      "post": {
+        "description": "Resume a paused or interrupted analysis job from the latest checkpoint.",
+        "operationId": "resume_book_analysis_api_books__book_id__analysis_resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_id",
+            "required": true,
+            "schema": {
+              "title": "Book Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResumeAcceptedResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Resume Book Analysis"
       }
     },
     "/api/books/{book_id}/analysis/start": {

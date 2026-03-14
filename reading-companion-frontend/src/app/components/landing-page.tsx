@@ -1,6 +1,6 @@
 import { ArrowRight, Link2, RotateCcw, Scale, Search, Sparkles, Upload } from "lucide-react";
 import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import {
   LANDING_FOOTER_COPY,
@@ -16,6 +16,7 @@ import { type BookDetailResponse, type ChapterDetailResponse, fetchBookDetail, f
 import { canonicalBookPath, type ReactionType } from "../lib/contract";
 import { reactionMeta } from "../lib/reactions";
 import { useUploadBookActions } from "../lib/use-upload-book-actions";
+import { UploadBookDialog } from "./upload-book-dialog";
 
 const landingIcons = {
   highlight: Sparkles,
@@ -185,7 +186,7 @@ async function loadApiPreview(): Promise<ResolvedLandingPreview | null> {
 
 export function LandingPage() {
   const [preview, setPreview] = useState<ResolvedLandingPreview>(buildStaticPreview);
-  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const uploadActions = useUploadBookActions();
   const kickerParts = splitKickerText(LANDING_HERO.kicker);
   const topReactionCards = LANDING_REACTION_CARDS.slice(0, 3);
@@ -262,7 +263,10 @@ export function LandingPage() {
                   </Link>
                   <button
                     type="button"
-                    onClick={() => uploadInputRef.current?.click()}
+                    onClick={() => {
+                      uploadActions.setError(null);
+                      setUploadDialogOpen(true);
+                    }}
                     data-testid="landing-upload-cta"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-lg no-underline transition-colors border border-[var(--warm-300)] text-[var(--warm-700)] hover:bg-[var(--warm-200)]"
                     style={{ fontSize: "0.9375rem", fontWeight: 500 }}
@@ -271,31 +275,6 @@ export function LandingPage() {
                     {LANDING_HERO.secondaryCta.label}
                   </button>
                 </div>
-                {uploadActions.statusText ? (
-                  <p className="mt-3 text-[var(--warm-600)]" style={{ fontSize: "0.875rem" }}>
-                    {uploadActions.statusText}
-                  </p>
-                ) : null}
-                {uploadActions.error ? (
-                  <p className="mt-2 text-[var(--destructive)]" style={{ fontSize: "0.875rem" }}>
-                    {uploadActions.error}
-                  </p>
-                ) : null}
-                <input
-                  ref={uploadInputRef}
-                  type="file"
-                  accept=".epub,application/epub+zip"
-                  data-testid="landing-upload-input"
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0] ?? null;
-                    if (!file) {
-                      return;
-                    }
-                    void uploadActions.runImmediateUpload(file);
-                    event.currentTarget.value = "";
-                  }}
-                />
               </div>
             </div>
             <div className="hidden xl:flex xl:justify-end xl:self-center">
@@ -498,6 +477,23 @@ export function LandingPage() {
           </p>
         </div>
       </footer>
+
+      <UploadBookDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onFileSelected={async (file) => {
+          const success = await uploadActions.runImmediateUpload(file);
+          if (success) {
+            setUploadDialogOpen(false);
+          }
+        }}
+        title="Upload a Book"
+        inputTestId="landing-upload-input"
+        dialogTestId="landing-upload-dialog"
+        statusText={uploadActions.statusText}
+        error={uploadActions.error}
+        submitting={uploadActions.submitting}
+      />
     </div>
   );
 }

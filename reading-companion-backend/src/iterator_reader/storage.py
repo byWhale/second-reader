@@ -258,6 +258,11 @@ def activity_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "activity.jsonl"
 
 
+def parse_state_file(output_dir: Path) -> Path:
+    """Path to parse-stage checkpoint metadata."""
+    return runtime_dir(output_dir) / "parse_state.json"
+
+
 def runtime_dir(output_dir: Path) -> Path:
     """Directory storing current live runtime state."""
     return output_dir / "_runtime"
@@ -408,6 +413,11 @@ def existing_run_state_file(output_dir: Path) -> Path:
 def existing_activity_file(output_dir: Path) -> Path:
     """Return the existing activity stream path with legacy fallback."""
     return _first_existing_path(activity_file(output_dir), legacy_activity_file(output_dir)) or activity_file(output_dir)
+
+
+def existing_parse_state_file(output_dir: Path) -> Path:
+    """Return the existing parse-state path."""
+    return parse_state_file(output_dir)
 
 
 def existing_book_analysis_file(output_dir: Path) -> Path:

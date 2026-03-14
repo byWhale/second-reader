@@ -64,6 +64,8 @@ def _stage_label(status: str, current_chapter_ref: str | None = None) -> str:
         return "正在顺序深读"
     if status == "chapter_note_generation":
         return "正在生成章节笔记"
+    if status == "paused":
+        return "已暂停，可继续"
     if status == "completed":
         return "全部完成"
     if status == "error":
@@ -83,7 +85,10 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
     current_chapter_id = None
     current_chapter_ref = None
     current_section_ref = None
+    current_phase_step = None
     eta_seconds = None
+    resume_available = False
+    last_checkpoint_at = None
     last_error = None
     stage_label = _stage_label(status)
 
@@ -103,7 +108,10 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
             current_chapter_id = analysis.get("current_chapter_id")
             current_chapter_ref = analysis.get("current_chapter_ref")
             current_section_ref = analysis.get("current_state_panel", {}).get("current_section_ref")
+            current_phase_step = analysis.get("current_phase_step")
             eta_seconds = analysis.get("eta_seconds")
+            resume_available = bool(analysis.get("resume_available", False))
+            last_checkpoint_at = analysis.get("last_checkpoint_at")
             last_error = analysis.get("last_error")
             stage_label = str(analysis.get("stage_label", stage_label))
         else:
@@ -120,7 +128,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
             "code": "ANALYSIS_FAILED",
             "message": str(record.get("error", "") or "Analysis failed."),
             "status": 409,
-            "retryable": False,
+            "retryable": resume_available,
             "details": None,
         }
 
@@ -135,7 +143,10 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
         current_chapter_id=current_chapter_id,
         current_chapter_ref=current_chapter_ref,
         current_section_ref=current_section_ref,
+        current_phase_step=current_phase_step,
         eta_seconds=eta_seconds,
+        resume_available=resume_available,
+        last_checkpoint_at=last_checkpoint_at,
         last_error=last_error,
         created_at=str(record.get("created_at", "")),
         updated_at=str(record.get("updated_at", "")),
@@ -154,7 +165,10 @@ def build_job_snapshot_payload(job_status: JobStatusResponse) -> JobSnapshotPayl
         current_chapter_id=job_status.current_chapter_id,
         current_chapter_ref=job_status.current_chapter_ref,
         current_section_ref=job_status.current_section_ref,
+        current_phase_step=job_status.current_phase_step,
         eta_seconds=job_status.eta_seconds,
+        resume_available=job_status.resume_available,
+        last_checkpoint_at=job_status.last_checkpoint_at,
     )
 
 
@@ -170,7 +184,10 @@ def build_book_snapshot_payload(book_id: str, root: Path) -> JobSnapshotPayload:
         current_chapter_id=analysis.get("current_chapter_id"),
         current_chapter_ref=analysis.get("current_chapter_ref"),
         current_section_ref=analysis.get("current_state_panel", {}).get("current_section_ref"),
+        current_phase_step=analysis.get("current_phase_step"),
         eta_seconds=analysis.get("eta_seconds"),
+        resume_available=bool(analysis.get("resume_available", False)),
+        last_checkpoint_at=analysis.get("last_checkpoint_at"),
     )
 
 

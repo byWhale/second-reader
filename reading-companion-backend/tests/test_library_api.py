@@ -7,7 +7,6 @@ import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-
 from src.api.contract import to_api_book_id, to_api_reaction_id
 from src.library.jobs import refresh_job, save_job
 from src.library.storage import upload_file
@@ -384,6 +383,49 @@ def test_refresh_job_matches_uploaded_copy_via_source_asset_digest(tmp_path):
     assert refreshed["status"] == "completed"
 
 
+def test_refresh_job_auto_resumes_reaped_child(tmp_path, monkeypatch):
+    """Zombie child processes should resume from the latest checkpoint budget when possible."""
+    jobs_module = importlib.import_module("src.library.jobs")
+    upload_path = upload_file("job-zombie", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+
+    launched: list[list[str]] = []
+
+    class _FakeProcess:
+        pid = 8765
+
+    monkeypatch.setattr(
+        jobs_module.subprocess,
+        "Popen",
+        lambda command, cwd, stdout, stderr: launched.append(command) or _FakeProcess(),
+    )
+
+    save_job(
+        {
+            "job_id": "job-zombie",
+            "status": "queued",
+            "upload_path": str(upload_path),
+            "book_id": None,
+            "pid": 4321,
+            "created_at": "2026-03-07T00:00:00Z",
+            "updated_at": "2026-03-07T00:00:00Z",
+            "error": None,
+        },
+        tmp_path,
+    )
+
+    monkeypatch.setattr(jobs_module.os, "waitpid", lambda pid, flags: (4321, 0))
+    monkeypatch.setattr(jobs_module.os, "kill", lambda pid, sig: (_ for _ in ()).throw(AssertionError("kill should not run")))
+
+    refreshed = refresh_job("job-zombie", root=tmp_path)
+
+    assert refreshed["status"] == "parsing_structure"
+    assert refreshed["pid"] == 8765
+    assert refreshed["resume_count"] == 1
+    assert launched
+
+
 def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     """The API should expose typed bookshelf, result, marks, and docs endpoints."""
     book_id = _bootstrap_book(tmp_path)
@@ -484,14 +526,15 @@ def test_api_upload_and_job_polling(tmp_path, monkeypatch):
     client = TestClient(api_module.app)
 
     monkeypatch.setattr(api_module, "create_upload_job", lambda root: ("job999", root / "state" / "uploads" / "job999.epub"))
+    monkeypatch.setattr(api_module, "provision_uploaded_book", lambda upload_path, language="auto", root=None: "demo-book")
     monkeypatch.setattr(
         api_module,
         "launch_sequential_job",
-        lambda upload_path, root=None: {
+        lambda upload_path, root=None, book_id=None: {
             "job_id": "job999",
             "status": "queued",
             "upload_path": str(upload_path),
-            "book_id": None,
+            "book_id": book_id,
             "pid": 123,
             "created_at": "2026-03-07T00:00:00Z",
             "updated_at": "2026-03-07T00:00:00Z",
@@ -531,6 +574,7 @@ def test_api_upload_and_job_polling(tmp_path, monkeypatch):
     )
     assert upload_response.status_code == 202
     assert upload_response.json()["job_id"] == "job999"
+    assert upload_response.json()["book_id"] == to_api_book_id("demo-book")
     assert upload_response.json()["ws_url"] == "/api/ws/jobs/job999"
 
     job_response = client.get("/api/jobs/job999")
@@ -545,14 +589,15 @@ def test_api_upload_deferred_returns_ready_job(tmp_path, monkeypatch):
     client = TestClient(api_module.app)
 
     monkeypatch.setattr(api_module, "create_upload_job", lambda root: ("jobparse", root / "state" / "uploads" / "jobparse.epub"))
+    monkeypatch.setattr(api_module, "provision_uploaded_book", lambda upload_path, language="auto", root=None: "demo-book")
     monkeypatch.setattr(
         api_module,
         "launch_parse_job",
-        lambda upload_path, root=None: {
+        lambda upload_path, root=None, book_id=None: {
             "job_id": "jobparse",
             "status": "ready",
             "upload_path": str(upload_path),
-            "book_id": "demo-book",
+            "book_id": book_id,
             "pid": None,
             "created_at": "2026-03-07T00:00:00Z",
             "updated_at": "2026-03-07T00:00:00Z",
