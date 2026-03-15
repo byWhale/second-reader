@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "contract-check": "tsx scripts/check-contract.ts && tsx scripts/check-generated-api-types.ts",
+    "contract-check": "tsx scripts/check-contract.ts && tsx scripts/check-generated-api-types.ts && tsx scripts/check-ui-copy-locale.ts",
     "dev": "vite",
     "e2e": "playwright test",
     "generate-api-types": "openapi-typescript ../contract/openapi.public.snapshot.json -o src/app/lib/generated/api-schema.d.ts",

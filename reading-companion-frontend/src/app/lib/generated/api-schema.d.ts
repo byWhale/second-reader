@@ -584,6 +584,18 @@ export interface components {
              * @description Human-readable label for the current parse or read step.
              */
             current_phase_step?: string | null;
+            /**
+             * Current Phase Step Key
+             * @description Stable UI copy key for the current parse or read step when available.
+             */
+            current_phase_step_key?: string | null;
+            /**
+             * Current Phase Step Params
+             * @description Parameters used to render the current parse or read step.
+             */
+            current_phase_step_params?: {
+                [key: string]: unknown;
+            } | null;
             /** @description Focused realtime state shown beside the structure tree. */
             current_state_panel: components["schemas"]["CurrentStatePanel"];
             /**
@@ -619,6 +631,18 @@ export interface components {
              * @description User-facing stage label shown at the top of the progress page.
              */
             stage_label: string;
+            /**
+             * Stage Label Key
+             * @description Stable UI copy key for the current stage label when available.
+             */
+            stage_label_key?: string | null;
+            /**
+             * Stage Label Params
+             * @description Parameters used to render the current stage label.
+             */
+            stage_label_params?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Status
              * @description Current lifecycle state of the active analysis.
@@ -1176,6 +1200,18 @@ export interface components {
              */
             current_phase_step?: string | null;
             /**
+             * Current Phase Step Key
+             * @description Stable UI copy key for the current parse or read step when available.
+             */
+            current_phase_step_key?: string | null;
+            /**
+             * Current Phase Step Params
+             * @description Parameters used to render the current parse or read step.
+             */
+            current_phase_step_params?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Current Section Ref
              * @description Human-readable reference of the current section.
              */
@@ -1347,6 +1383,18 @@ export interface components {
              */
             current_phase_step?: string | null;
             /**
+             * Current Phase Step Key
+             * @description Stable UI copy key for the current parse or read step when available.
+             */
+            current_phase_step_key?: string | null;
+            /**
+             * Current Phase Step Params
+             * @description Parameters used to render the current parse or read step.
+             */
+            current_phase_step_params?: {
+                [key: string]: unknown;
+            } | null;
+            /**
              * Current Section Ref
              * @description Human-readable reference of the current section.
              */
@@ -1379,6 +1427,18 @@ export interface components {
              * @default false
              */
             resume_available: boolean;
+            /**
+             * Stage Label Key
+             * @description Stable UI copy key for the current stage label when available.
+             */
+            stage_label_key?: string | null;
+            /**
+             * Stage Label Params
+             * @description Parameters used to render the current stage label.
+             */
+            stage_label_params?: {
+                [key: string]: unknown;
+            } | null;
             /**
              * Status
              * @description Current execution stage of the upload/analysis job.

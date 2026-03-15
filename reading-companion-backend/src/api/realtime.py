@@ -73,6 +73,31 @@ def _stage_label(status: str, current_chapter_ref: str | None = None) -> str:
     return status
 
 
+def _stage_label_key(status: str, current_chapter_ref: str | None = None) -> tuple[str | None, dict[str, object] | None]:
+    """Map status to the stable UI copy key used by the frontend."""
+    if status == "queued":
+        return "system.stage.queued", None
+    if status == "parsing_structure":
+        if current_chapter_ref:
+            return "system.stage.parsingChapter", {"chapter": current_chapter_ref}
+        return "system.stage.parsingStructure", None
+    if status == "ready":
+        return "system.stage.ready", None
+    if status == "deep_reading":
+        if current_chapter_ref:
+            return "system.stage.deepReadingChapter", {"chapter": current_chapter_ref}
+        return "system.stage.deepReading", None
+    if status == "chapter_note_generation":
+        return "system.stage.chapterNoteGeneration", None
+    if status == "paused":
+        return "system.stage.paused", None
+    if status == "completed":
+        return "system.stage.completed", None
+    if status == "error":
+        return "system.stage.error", None
+    return None, None
+
+
 def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
     """Build the typed job polling payload from persisted state."""
     record = refresh_job(job_id, root)
@@ -91,6 +116,9 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
     last_checkpoint_at = None
     last_error = None
     stage_label = _stage_label(status)
+    stage_label_key, stage_label_params = _stage_label_key(status)
+    current_phase_step_key = None
+    current_phase_step_params = None
 
     if internal_book_id:
         analysis = None
@@ -109,11 +137,15 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
             current_chapter_ref = analysis.get("current_chapter_ref")
             current_section_ref = analysis.get("current_state_panel", {}).get("current_section_ref")
             current_phase_step = analysis.get("current_phase_step")
+            current_phase_step_key = analysis.get("current_phase_step_key")
+            current_phase_step_params = analysis.get("current_phase_step_params")
             eta_seconds = analysis.get("eta_seconds")
             resume_available = bool(analysis.get("resume_available", False))
             last_checkpoint_at = analysis.get("last_checkpoint_at")
             last_error = analysis.get("last_error")
             stage_label = str(analysis.get("stage_label", stage_label))
+            stage_label_key = analysis.get("stage_label_key")
+            stage_label_params = analysis.get("stage_label_params")
         else:
             book = get_book(internal_book_id, root=root)
             manifest = book.get("manifest") or {}
@@ -143,7 +175,11 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
         current_chapter_id=current_chapter_id,
         current_chapter_ref=current_chapter_ref,
         current_section_ref=current_section_ref,
+        stage_label_key=stage_label_key,
+        stage_label_params=stage_label_params,
         current_phase_step=current_phase_step,
+        current_phase_step_key=current_phase_step_key,
+        current_phase_step_params=current_phase_step_params,
         eta_seconds=eta_seconds,
         resume_available=resume_available,
         last_checkpoint_at=last_checkpoint_at,
@@ -159,6 +195,8 @@ def build_job_snapshot_payload(job_status: JobStatusResponse) -> JobSnapshotPayl
     return JobSnapshotPayload(
         status=job_status.status,
         stage_label=_stage_label(job_status.status, job_status.current_chapter_ref),
+        stage_label_key=job_status.stage_label_key,
+        stage_label_params=job_status.stage_label_params,
         progress_percent=job_status.progress_percent,
         completed_chapters=job_status.completed_chapters,
         total_chapters=job_status.total_chapters,
@@ -166,6 +204,8 @@ def build_job_snapshot_payload(job_status: JobStatusResponse) -> JobSnapshotPayl
         current_chapter_ref=job_status.current_chapter_ref,
         current_section_ref=job_status.current_section_ref,
         current_phase_step=job_status.current_phase_step,
+        current_phase_step_key=job_status.current_phase_step_key,
+        current_phase_step_params=job_status.current_phase_step_params,
         eta_seconds=job_status.eta_seconds,
         resume_available=job_status.resume_available,
         last_checkpoint_at=job_status.last_checkpoint_at,
@@ -178,6 +218,8 @@ def build_book_snapshot_payload(book_id: str, root: Path) -> JobSnapshotPayload:
     return JobSnapshotPayload(
         status=str(analysis.get("status", "queued")),
         stage_label=str(analysis.get("stage_label", "")),
+        stage_label_key=analysis.get("stage_label_key"),
+        stage_label_params=analysis.get("stage_label_params"),
         progress_percent=analysis.get("progress_percent"),
         completed_chapters=int(analysis.get("completed_chapters", 0)),
         total_chapters=int(analysis.get("total_chapters", 0)),
@@ -185,6 +227,8 @@ def build_book_snapshot_payload(book_id: str, root: Path) -> JobSnapshotPayload:
         current_chapter_ref=analysis.get("current_chapter_ref"),
         current_section_ref=analysis.get("current_state_panel", {}).get("current_section_ref"),
         current_phase_step=analysis.get("current_phase_step"),
+        current_phase_step_key=analysis.get("current_phase_step_key"),
+        current_phase_step_params=analysis.get("current_phase_step_params"),
         eta_seconds=analysis.get("eta_seconds"),
         resume_available=bool(analysis.get("resume_available", False)),
         last_checkpoint_at=analysis.get("last_checkpoint_at"),
@@ -302,6 +346,8 @@ async def stream_job_events(
                     previous_status=last_status,
                     current_status=snapshot.status,
                     stage_label=snapshot.stage_label,
+                    stage_label_key=snapshot.stage_label_key,
+                    stage_label_params=snapshot.stage_label_params,
                 ).model_dump(mode="json"),
                 job_id=job_id,
                 book_id=_public_book_id(current_book_id),

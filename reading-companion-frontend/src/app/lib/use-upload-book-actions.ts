@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { copy } from "../config/controlled-copy";
 import { fetchJobStatus, getErrorMessage, startBookAnalysis, type JobStatusResponse, uploadEpub } from "./api";
 import { canonicalBookPath } from "./contract";
 
@@ -23,7 +24,7 @@ async function waitForJob(
   while (Date.now() - startedAt < timeoutMs) {
     const job = await fetchJobStatus(jobId);
     if (job.status === "error") {
-      throw new Error(job.last_error?.message ?? "Upload failed.");
+      throw new Error(job.last_error?.message ?? copy("upload.error.failed"));
     }
     if (predicate(job)) {
       return job;
@@ -31,7 +32,7 @@ async function waitForJob(
     await sleep(800);
   }
 
-  throw new Error("The upload is taking longer than expected.");
+  throw new Error(copy("upload.error.slow"));
 }
 
 export function useUploadBookActions(options: { onDeferredReady?: () => void } = {}) {
@@ -43,11 +44,11 @@ export function useUploadBookActions(options: { onDeferredReady?: () => void } =
 
   async function runImmediateUpload(file: File) {
     setSubmitting(true);
-    setStatusText("Uploading EPUB...");
+    setStatusText(copy("upload.status.uploading"));
     setError(null);
     try {
       const accepted = await uploadEpub(file, { startMode: "immediate" });
-      setStatusText("Preparing for deep reading...");
+      setStatusText(copy("upload.status.preparing"));
       const readyJob =
         accepted.book_id != null
           ? { book_id: accepted.book_id }
@@ -65,11 +66,11 @@ export function useUploadBookActions(options: { onDeferredReady?: () => void } =
 
   async function runDeferredUpload(file: File) {
     setSubmitting(true);
-    setStatusText("Uploading EPUB...");
+    setStatusText(copy("upload.status.uploading"));
     setError(null);
     try {
       const accepted = await uploadEpub(file, { startMode: "deferred" });
-      setStatusText("Parsing chapter outline...");
+      setStatusText(copy("upload.status.parsingOutline"));
       const readyJob = await waitForJob(accepted.job_id, (job) => job.status === "ready" && job.book_id != null);
       const nextConfirmation = {
         bookId: readyJob.book_id as number,
@@ -93,7 +94,7 @@ export function useUploadBookActions(options: { onDeferredReady?: () => void } =
       return;
     }
     setSubmitting(true);
-    setStatusText("Starting deep reading...");
+    setStatusText(copy("upload.status.starting"));
     setError(null);
     try {
       await startBookAnalysis(confirmation.bookId);

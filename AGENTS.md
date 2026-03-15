@@ -48,3 +48,13 @@
 - `make dev`
 - `make test`
 - `make build`
+
+## Language Governance
+- Follow `docs/language-governance.md` before adding or changing visible text.
+- Classify user-visible text first:
+  - content text
+  - interface/control text
+  - system/program-state text
+  - fixed brand/governed terminology
+- Do not handwrite key terminology or key product copy directly in UI components.
+- Brand name `书虫` stays fixed; app interface copy follows the frontend locale layer.

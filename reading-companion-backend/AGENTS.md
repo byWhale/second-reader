@@ -81,3 +81,9 @@ If the Notion product page and old repository wording conflict, prefer:
 1. current Notion direction
 2. current code reality
 3. old wording only if still consistent with both
+
+## Language Governance
+- Follow `/Users/baiweijiang/Documents/Projects/reading-companion/docs/language-governance.md`.
+- Backend owns content language, not full UI localization.
+- When a system-state message must drive primary UI decisions, expose structured keys/params in addition to raw text.
+- Raw activity/program-log text may remain backend-authored for compatibility and debugging.

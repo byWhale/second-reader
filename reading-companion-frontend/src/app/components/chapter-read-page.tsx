@@ -32,6 +32,8 @@ import {
   type ReaderPanelMode,
 } from "../lib/reader-types";
 import { reactionLabel, reactionMeta } from "../lib/reactions";
+import { copy } from "../config/controlled-copy";
+import { term } from "../config/product-lexicon";
 import {
   clampReaderFontSize,
   formatReaderProgress,
@@ -688,21 +690,21 @@ export function ChapterReadPage() {
   }, [activeFilter, isMobile, mobileMode, payload, visibleSections]);
 
   if (loading && !payload) {
-    return <LoadingState title="Loading chapter workspace..." />;
+    return <LoadingState title={copy("chapter.loading")} />;
   }
 
   if (error || !payload) {
     return (
       <ErrorState
-        title="Chapter workspace is unavailable"
-        message={error ?? "We could not load this chapter right now."}
+        title={copy("chapter.error.title")}
+        message={error ?? copy("chapter.error.message")}
         onRetry={() => {
           setPayload(null);
           setLoading(true);
           setError(null);
           setReloadTick((value) => value + 1);
         }}
-        linkLabel="Back to books"
+        linkLabel={copy("chapter.error.backToBooks")}
         linkTo="/books"
       />
     );
@@ -739,7 +741,7 @@ export function ChapterReadPage() {
   const currentChapterRef = currentChapterEntry?.chapter_ref || payload.chapter_ref;
   const currentChapterTitle = (currentChapterEntry?.title || payload.title || "").trim();
   const showSeparateChapterTitle = Boolean(currentChapterTitle) && currentChapterTitle !== currentChapterRef;
-  const bookTitle = (bookDetail?.title || payload.title || "Original book").trim();
+  const bookTitle = (bookDetail?.title || payload.title || copy("chapter.reader.originalBookFallback")).trim();
   const previewChapter = chapterItems.find((chapter) => chapter.chapter_id === previewChapterId) ?? currentChapterEntry;
   const previewOutline = previewChapterId != null ? outlineCache[previewChapterId] ?? null : null;
   const previewOutlineLoading = previewChapterId != null && outlineLoadingIds.includes(previewChapterId);
@@ -773,7 +775,7 @@ export function ChapterReadPage() {
       ? readableChapters[currentReadableChapterIndex + 1]
       : null;
   const previewSectionItems = previewOutline?.sections ?? [];
-  const primaryBookActionLabel = workspaceNarrow ? "Overview" : "Book overview";
+  const primaryBookActionLabel = term("view.bookOverview");
   const notesScrollbarClass = workspaceCompact ? "rc-scrollbar rc-scrollbar-compact" : "rc-scrollbar";
   const bodyPaddingClass = workspaceCompact ? "px-4 pb-5 pt-4 sm:px-5" : "px-5 pb-6 pt-4 sm:px-6 lg:px-7";
   const headerOuterPaddingClass = workspaceCompact ? "px-4 py-2 sm:px-5" : "px-5 py-2.5 sm:px-6 lg:px-7";
@@ -1141,7 +1143,8 @@ export function ChapterReadPage() {
   }
 
   const sourceUrl = toApiAssetUrl(payload.source_asset.url);
-  const readerBookTitle = (bookDetail?.title || "").trim() || payload.title || "Original book";
+  const readerBookTitle =
+    (bookDetail?.title || "").trim() || payload.title || copy("chapter.reader.originalBookFallback");
   const previewChapterHeading = previewOutline?.chapter_heading ?? null;
   const previewHasOutlineContent = Boolean(previewChapterHeading) || previewSectionItems.length > 0;
 
@@ -1193,7 +1196,7 @@ export function ChapterReadPage() {
             className="shrink-0 rounded-full border border-[var(--warm-300)]/58 bg-white/84 px-2.5 py-1 text-[var(--warm-500)] shadow-[inset_0_1px_0_rgba(255,255,255,0.88)]"
             style={{ fontSize: "0.64rem", fontWeight: 700 }}
           >
-            Structure
+            {copy("chapter.sheet.structureBadge")}
           </span>
         </div>
       </div>
@@ -1238,7 +1241,7 @@ export function ChapterReadPage() {
                     style={{ fontSize: "0.76rem", fontWeight: 600 }}
                   >
                     <ArrowLeft className="h-3.5 w-3.5" />
-                    Chapters
+                    {copy("chapter.sheet.backToChapters")}
                   </button>
                 </div>
               ) : null}
@@ -1259,14 +1262,14 @@ export function ChapterReadPage() {
                           : CircleDashed
                         : CheckCircle2;
                     const chapterStateLabel = isCurrent
-                      ? "Current"
+                      ? copy("chapter.sheet.status.current")
                       : !chapter.result_ready
                         ? chapter.status === "error"
-                          ? "Error"
-                          : "Pending"
+                          ? copy("chapter.sheet.status.error")
+                          : copy("chapter.sheet.status.pending")
                         : chapter.status === "error"
-                          ? "Error"
-                          : "Completed";
+                          ? copy("chapter.sheet.status.error")
+                          : copy("chapter.sheet.status.completed");
                     const isPreviewing = previewChapterId === chapter.chapter_id;
 
                     return (
@@ -1411,11 +1414,11 @@ export function ChapterReadPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-[var(--warm-300)]/35 bg-[var(--warm-50)]/78 px-4 py-5">
-                    <p className="text-[var(--warm-900)]" style={{ fontSize: "0.88rem", fontWeight: 600 }}>
-                      No semantic sections available.
-                    </p>
-                  </div>
+                    <div className="rounded-2xl border border-[var(--warm-300)]/35 bg-[var(--warm-50)]/78 px-4 py-5">
+                      <p className="text-[var(--warm-900)]" style={{ fontSize: "0.88rem", fontWeight: 600 }}>
+                        {copy("chapter.sheet.emptySections")}
+                      </p>
+                    </div>
                 )
               ) : null}
             </div>
@@ -1424,13 +1427,13 @@ export function ChapterReadPage() {
               <div className="min-h-0 overflow-hidden bg-white/68">
                 <div className="border-b border-[var(--warm-200)] bg-[var(--warm-50)]/94 px-5 py-4">
                   <p className="text-[var(--warm-500)] uppercase tracking-[0.16em]" style={{ fontSize: "0.64rem", fontWeight: 600 }}>
-                    In this chapter
+                    {copy("chapter.sheet.inThisChapter")}
                   </p>
                   <div className="mt-1 flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <OverflowTooltipText
                         as="p"
-                        text={previewOutline?.title || previewChapter?.title || previewChapter?.chapter_ref || "Chapter preview"}
+                        text={previewOutline?.title || previewChapter?.title || previewChapter?.chapter_ref || copy("chapter.sheet.previewFallback")}
                         lines={1}
                         side="bottom"
                         className="text-[var(--warm-950)] font-['Lora',Georgia,serif]"
@@ -1453,22 +1456,22 @@ export function ChapterReadPage() {
                     <div className="flex h-full min-h-[16rem] items-center justify-center">
                       <p className="inline-flex items-center gap-2 text-[var(--warm-600)]" style={{ fontSize: "0.82rem" }}>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Loading chapter outline...
+                        {copy("chapter.sheet.loadingOutline")}
                       </p>
                     </div>
                   ) : !previewChapter?.result_ready ? (
                     <div className="rounded-2xl border border-[var(--warm-300)]/35 bg-[var(--warm-50)]/78 px-4 py-5">
                       <p className="text-[var(--warm-900)]" style={{ fontSize: "0.88rem", fontWeight: 600 }}>
-                        This chapter is not ready yet.
+                        {copy("chapter.sheet.notReadyTitle")}
                       </p>
                       <p className="mt-1 text-[var(--warm-600)]" style={{ fontSize: "0.78rem", lineHeight: 1.65 }}>
-                        Finish analysis in the book overview before using section-level navigation here.
+                        {copy("chapter.sheet.notReadyMessage")}
                       </p>
                     </div>
                   ) : !previewHasOutlineContent ? (
                     <div className="rounded-2xl border border-[var(--warm-300)]/35 bg-[var(--warm-50)]/78 px-4 py-5">
                       <p className="text-[var(--warm-900)]" style={{ fontSize: "0.88rem", fontWeight: 600 }}>
-                        No semantic sections available.
+                        {copy("chapter.sheet.emptySections")}
                       </p>
                     </div>
                   ) : (
@@ -1589,14 +1592,14 @@ export function ChapterReadPage() {
                     style={{ fontSize: "0.8rem", fontWeight: 600 }}
                   >
                     <List className="h-4 w-4" />
-                    {!workspaceMobile ? "Chapters" : null}
+                    {!workspaceMobile ? term("view.chapters") : null}
                   </button>
                 </SheetTrigger>
               ) : null}
 
               <div className="flex items-center gap-1">
                 <span className="shrink-0 text-[var(--warm-400)]" style={{ fontSize: "0.74rem", fontWeight: 500 }}>
-                  Ch
+                  {term("view.chapterShort")}
                 </span>
                 {renderToolbarIconButton({
                   ariaLabel: "Previous chapter",
@@ -1605,7 +1608,7 @@ export function ChapterReadPage() {
                   icon: <ChevronLeft className="h-4 w-4" />,
                   onClick: () => stepChapter(previousReadableChapter),
                   testId: "chapter-topbar-prev-chapter",
-                  tooltip: "上一章",
+                  tooltip: copy("chapter.tooltip.prevChapter"),
                 })}
                 {renderToolbarIconButton({
                   ariaLabel: "Next chapter",
@@ -1614,7 +1617,7 @@ export function ChapterReadPage() {
                   icon: <ChevronRight className="h-4 w-4" />,
                   onClick: () => stepChapter(nextReadableChapter),
                   testId: "chapter-topbar-next-chapter",
-                  tooltip: "下一章",
+                  tooltip: copy("chapter.tooltip.nextChapter"),
                 })}
               </div>
 
@@ -1624,7 +1627,7 @@ export function ChapterReadPage() {
 
               <div className="flex items-center gap-1">
                 <span className="shrink-0 text-[var(--warm-400)]" style={{ fontSize: "0.74rem", fontWeight: 500 }}>
-                  Sec
+                  {term("view.sectionShort")}
                 </span>
                 {renderToolbarIconButton({
                   ariaLabel: "Previous section",
@@ -1633,7 +1636,7 @@ export function ChapterReadPage() {
                   icon: <ChevronLeft className="h-3.5 w-3.5" />,
                   onClick: () => stepSection(previousSection),
                   testId: "chapter-topbar-prev-section",
-                  tooltip: "上一 section",
+                  tooltip: copy("chapter.tooltip.prevSection"),
                 })}
                 {renderToolbarIconButton({
                   ariaLabel: "Next section",
@@ -1642,13 +1645,13 @@ export function ChapterReadPage() {
                   icon: <ChevronRight className="h-3.5 w-3.5" />,
                   onClick: () => stepSection(nextSection),
                   testId: "chapter-topbar-next-section",
-                  tooltip: "下一 section",
+                  tooltip: copy("chapter.tooltip.nextSection"),
                 })}
               </div>
 
               <Link
                 to={canonicalBookPath(payload.book_id)}
-                aria-label="Book overview"
+                aria-label={term("view.bookOverview")}
                 className={workspaceOverviewLinkClass}
                 style={{ fontSize: "0.8rem", fontWeight: 600 }}
               >
@@ -1671,7 +1674,7 @@ export function ChapterReadPage() {
                       className={filterToneClass(filter, activeFilter === filter)}
                       style={{ fontSize: scaledRem(workspaceCompact ? 0.72 : 0.75), fontWeight: 600 }}
                     >
-                      {filter === "all" ? "All" : reactionLabel(filter)}
+                      {filter === "all" ? copy("chapter.filter.all") : reactionLabel(filter)}
                     </button>
                   ))}
                 </div>
@@ -1685,7 +1688,9 @@ export function ChapterReadPage() {
             <div className="ml-auto flex shrink-0 items-center gap-3">
               <div className={toolbarValueClass} data-testid="chapter-topbar-book-progress">
                 <p style={{ fontSize: "0.82rem", fontWeight: 500, lineHeight: 1.35 }}>
-                  Book {formatReaderProgress(readerProgress)}
+                  {readerProgress == null || Number.isNaN(readerProgress)
+                    ? copy("chapter.reader.bookProgressUnavailable")
+                    : copy("chapter.reader.bookProgress", { value: formatReaderProgress(readerProgress) })}
                 </p>
               </div>
 
@@ -1694,12 +1699,12 @@ export function ChapterReadPage() {
                   <button
                     type="button"
                     data-testid="chapter-topbar-settings-trigger"
-                    aria-label="Reading settings"
+                    aria-label={copy("chapter.reader.settingsAria")}
                     className={workspaceGhostLinkClass}
                     style={{ fontSize: "0.8rem", fontWeight: 500 }}
                   >
                     <Settings2 className="h-4 w-4" />
-                    {!workspaceMobile ? "Text size" : null}
+                    {!workspaceMobile ? term("view.textSize") : null}
                   </button>
                 </PopoverTrigger>
                 <PopoverContent
@@ -1710,10 +1715,10 @@ export function ChapterReadPage() {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-[var(--warm-900)]" style={{ fontSize: "0.88rem", fontWeight: 700 }}>
-                          Reading text size
+                          {copy("chapter.reader.settingsTitle")}
                         </p>
                         <p className="mt-1 text-[var(--warm-600)]" style={{ fontSize: "0.76rem", lineHeight: 1.55 }}>
-                          Applies to both reactions and the original book.
+                          {copy("chapter.reader.settingsDescription")}
                         </p>
                       </div>
                       <span
@@ -1761,8 +1766,8 @@ export function ChapterReadPage() {
           >
             <div className="px-4 py-2 border-b border-[var(--warm-200)]">
               <TabsList className="w-full max-w-xs">
-                <TabsTrigger value="notes">Reactions</TabsTrigger>
-                <TabsTrigger value="book">Original book</TabsTrigger>
+                <TabsTrigger value="notes">{copy("chapter.reader.tabReactions")}</TabsTrigger>
+                <TabsTrigger value="book">{copy("chapter.reader.tabOriginalBook")}</TabsTrigger>
               </TabsList>
             </div>
             <TabsContent forceMount value="notes" className="h-[calc(100%-58px)] data-[state=inactive]:hidden">

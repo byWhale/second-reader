@@ -2,6 +2,7 @@
 
 import { FileText, LoaderCircle, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { copy } from "../config/controlled-copy";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 
 type UploadBookDialogProps = {
@@ -87,7 +88,7 @@ export function UploadBookDialog({
               type="button"
               onClick={() => onOpenChange(false)}
               disabled={submitting}
-              aria-label="Close upload dialog"
+              aria-label={copy("upload.dialog.close")}
               className="inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--warm-200)] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <X className="h-4 w-4 text-[var(--warm-500)]" strokeWidth={1.6} />
@@ -167,16 +168,16 @@ export function UploadBookDialog({
                   className="text-[var(--warm-800)]"
                   style={{ fontSize: "0.9375rem", fontWeight: 500, lineHeight: 1.3 }}
                 >
-                  {isDragging ? "Drop your file here" : "Drag & drop your EPUB here"}
+                  {isDragging ? copy("upload.dialog.dropActive") : copy("upload.dialog.drop")}
                 </p>
                 <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem", lineHeight: 1.45 }}>
                   {isDragging ? (
-                    "Release to upload"
+                    copy("upload.dialog.release")
                   ) : (
                     <>
                       or{" "}
                       <span className="text-[var(--amber-accent)] underline underline-offset-2">
-                        browse files
+                        {copy("upload.dialog.browse")}
                       </span>
                     </>
                   )}
@@ -203,7 +204,7 @@ export function UploadBookDialog({
             <div className="mt-4 flex items-center justify-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-[var(--warm-400)]" />
               <span className="text-[var(--warm-400)]" style={{ fontSize: "0.75rem" }}>
-                Supports .epub format
+                {copy("upload.dialog.supports")}
               </span>
             </div>
           </div>

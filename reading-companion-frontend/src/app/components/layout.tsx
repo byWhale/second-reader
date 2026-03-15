@@ -2,6 +2,8 @@ import { BookOpen, Bookmark, Library } from "lucide-react";
 import { useEffect } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { BRAND_CONFIG, getDocumentTitle } from "../config/brand";
+import { copy } from "../config/controlled-copy";
+import { term } from "../config/product-lexicon";
 import { useViewportResponsiveTier } from "./ui/use-responsive-tier";
 
 export function RootLayout() {
@@ -43,7 +45,7 @@ export function RootLayout() {
                   </span>
                   {isLanding ? (
                     <span className="block text-[var(--warm-500)]" style={{ fontSize: "0.72rem", lineHeight: 1.1 }}>
-                      Deep reading workspace
+                      {copy("layout.tagline")}
                     </span>
                   ) : null}
                 </div>
@@ -65,7 +67,7 @@ export function RootLayout() {
                     style={{ fontSize: navCompact ? "0.79rem" : "0.875rem", fontWeight: 600 }}
                   >
                     <Library className="w-4 h-4" />
-                    {navNarrow ? "Books" : BRAND_CONFIG.navigation.booksLabel}
+                    {navNarrow ? copy("page.books.title") : BRAND_CONFIG.navigation.booksLabel}
                   </Link>
                   <Link
                     to="/marks"
@@ -79,7 +81,7 @@ export function RootLayout() {
                     style={{ fontSize: navCompact ? "0.79rem" : "0.875rem", fontWeight: 600 }}
                   >
                     <Bookmark className="w-4 h-4" />
-                    {navNarrow ? "Marks" : BRAND_CONFIG.navigation.marksLabel}
+                    {navNarrow ? term("nav.marks") : BRAND_CONFIG.navigation.marksLabel}
                   </Link>
                 </div>
               </div>

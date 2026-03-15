@@ -1,5 +1,6 @@
 import { Bookmark } from "lucide-react";
 import { Link } from "react-router";
+import { copy } from "../config/controlled-copy";
 import { fetchGlobalMarks } from "../lib/api";
 import { markLabel } from "../lib/marks";
 import { reactionLabel } from "../lib/reactions";
@@ -10,16 +11,16 @@ export function GlobalMarksPage() {
   const { data, loading, error, reload } = useApiResource(fetchGlobalMarks, []);
 
   if (loading) {
-    return <LoadingState title="Loading your marks..." />;
+    return <LoadingState title={copy("marks.loading")} />;
   }
 
   if (error || !data) {
     return (
       <ErrorState
-        title="Marks page is unavailable"
-        message={error ?? "We could not load your saved marks right now."}
+        title={copy("marks.error.title")}
+        message={error ?? copy("marks.error.message")}
         onRetry={reload}
-        linkLabel="Back to books"
+        linkLabel={copy("page.books.title")}
         linkTo="/books"
       />
     );
@@ -38,19 +39,19 @@ export function GlobalMarksPage() {
         <Bookmark className="w-6 h-6 text-[var(--amber-accent)]" />
         <div>
           <h1 className="text-[var(--warm-900)]" style={{ fontSize: "1.875rem", fontWeight: 600 }}>
-            My Marks
+            {copy("page.marks.title")}
           </h1>
           <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem" }}>
-            Resonance, blindspot, and bookmark reactions saved across the whole workspace
+            {copy("marks.subtitle")}
           </p>
         </div>
       </div>
 
       {data.items.length === 0 ? (
         <EmptyState
-          title="No marks yet"
-          message="Review book and chapter result pages, then use the mark controls on individual reactions."
-          actionLabel="Open books"
+          title={copy("marks.empty.title")}
+          message={copy("marks.empty.message")}
+          actionLabel={copy("page.books.title")}
           actionTo="/books"
         />
       ) : (
@@ -63,7 +64,7 @@ export function GlobalMarksPage() {
                     {items[0]?.book_title}
                   </h2>
                   <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                    {items.length} saved marks
+                    {copy("marks.savedSummary", { count: items.length })}
                   </p>
                 </div>
                 <Link
@@ -71,7 +72,7 @@ export function GlobalMarksPage() {
                   className="text-[var(--amber-accent)] no-underline hover:text-[var(--warm-700)]"
                   style={{ fontSize: "0.8125rem", fontWeight: 500 }}
                 >
-                  Open book
+                  {copy("marks.action.openBook")}
                 </Link>
               </div>
 
@@ -108,7 +109,7 @@ export function GlobalMarksPage() {
                         className="inline-flex mt-4 text-[var(--amber-accent)] no-underline hover:text-[var(--warm-700)]"
                         style={{ fontSize: "0.8125rem", fontWeight: 500 }}
                       >
-                        Open chapter
+                        {copy("marks.action.openChapter")}
                       </Link>
                     </div>
                   );

@@ -1,6 +1,8 @@
 import { AlertTriangle, ArrowRight, BookOpen, CheckCircle2, LoaderCircle, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { copy } from "../config/controlled-copy";
+import { term } from "../config/product-lexicon";
 import { BookShelfCard, fetchBooks, toApiAssetUrl, toFrontendPath } from "../lib/api";
 import { useApiResource } from "../lib/use-api-resource";
 import { useUploadBookActions } from "../lib/use-upload-book-actions";
@@ -10,16 +12,16 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { UploadBookDialog } from "./upload-book-dialog";
 
 const statusMeta: Record<BookShelfCard["reading_status"], { label: string; icon: typeof BookOpen; color: string }> = {
-  not_started: { label: "未开始", icon: BookOpen, color: "text-[var(--warm-500)]" },
-  analyzing: { label: "分析中", icon: LoaderCircle, color: "text-[var(--amber-accent)]" },
-  paused: { label: "已暂停，可继续", icon: AlertTriangle, color: "text-[var(--amber-accent)]" },
-  completed: { label: "已完成", icon: CheckCircle2, color: "text-green-700" },
-  error: { label: "需要处理", icon: AlertTriangle, color: "text-[var(--destructive)]" },
+  not_started: { label: term("state.notStarted"), icon: BookOpen, color: "text-[var(--warm-500)]" },
+  analyzing: { label: term("state.analyzing"), icon: LoaderCircle, color: "text-[var(--amber-accent)]" },
+  paused: { label: term("state.paused"), icon: AlertTriangle, color: "text-[var(--amber-accent)]" },
+  completed: { label: term("state.completed"), icon: CheckCircle2, color: "text-green-700" },
+  error: { label: term("state.needsAttention"), icon: AlertTriangle, color: "text-[var(--destructive)]" },
 };
 
 function statusSummary(book: BookShelfCard) {
   if (book.reading_status === "analyzing") {
-    return `${statusMeta[book.reading_status].label} · ${book.completed_chapters}/${book.total_chapters} 章`;
+    return `${statusMeta[book.reading_status].label} · ${book.completed_chapters}/${book.total_chapters} ${term("view.chapters").toLowerCase()}`;
   }
   return statusMeta[book.reading_status].label;
 }
@@ -102,10 +104,10 @@ export function BookshelfPage() {
   if (error || !data) {
     return (
       <ErrorState
-        title="Bookshelf is unavailable"
-        message={error ?? "We could not load your books right now."}
+        title={copy("bookshelf.error.title")}
+        message={error ?? copy("bookshelf.error.message")}
         onRetry={reload}
-        linkLabel="Upload a book"
+        linkLabel={copy("bookshelf.action.addBook")}
         linkTo="/books?upload=1"
       />
     );
@@ -117,10 +119,10 @@ export function BookshelfPage() {
         <div className="flex items-center justify-between gap-4 mb-10 flex-wrap">
           <div>
             <h1 className="text-[var(--warm-900)] mb-1" style={{ fontSize: "1.875rem", fontWeight: 600 }}>
-              Books
+              {copy("page.books.title")}
             </h1>
             <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem" }}>
-              {data.items.length} books · {data.global_mark_count} total marks
+              {copy("bookshelf.count.summary", { books: data.items.length, marks: data.global_mark_count })}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -129,7 +131,7 @@ export function BookshelfPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--warm-300)]/60 text-[var(--warm-700)] no-underline hover:bg-[var(--warm-100)] transition-colors"
               style={{ fontSize: "0.875rem", fontWeight: 500 }}
             >
-              My marks
+              {copy("bookshelf.action.openMarks")}
               <ArrowRight className="w-4 h-4" />
             </Link>
             <button
@@ -140,16 +142,16 @@ export function BookshelfPage() {
               style={{ fontSize: "0.875rem", fontWeight: 500 }}
             >
               <Upload className="w-4 h-4" />
-              添加新书
+              {copy("bookshelf.action.addBook")}
             </button>
           </div>
         </div>
 
         {data.items.length === 0 ? (
           <EmptyState
-            title="No books yet"
-            message="Upload an EPUB to add the first book to this workspace."
-            actionLabel="添加新书"
+            title={copy("bookshelf.empty.title")}
+            message={copy("bookshelf.empty.message")}
+            actionLabel={copy("bookshelf.action.addBook")}
             actionTo="/books?upload=1"
           />
         ) : (
@@ -170,8 +172,8 @@ export function BookshelfPage() {
             setUploadDialogOpen(false);
           }
         }}
-        title="添加一本新书"
-        description="上传 EPUB 文件，书虫会解析全书结构，准备好后可以随时开始深读。"
+        title={copy("bookshelf.upload.title")}
+        description={copy("bookshelf.upload.description")}
         inputTestId="bookshelf-upload-input"
         dialogTestId="bookshelf-upload-dialog"
         statusText={uploadActions.statusText}
@@ -183,10 +185,14 @@ export function BookshelfPage() {
         <AlertDialogContent className="bg-[var(--warm-50)] border-[var(--warm-300)]/40">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              《{uploadActions.confirmation?.title ?? "这本书"}》已添加到书架
+              {copy("bookshelf.confirmation.title", {
+                title: uploadActions.confirmation?.title ?? "This book",
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              原书目录已解析完成，共 {uploadActions.confirmation?.totalChapters ?? 0} 章。要现在开始深读，还是先只进入书架？
+              {copy("bookshelf.confirmation.description", {
+                count: uploadActions.confirmation?.totalChapters ?? 0,
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {uploadActions.error ? (
@@ -195,9 +201,9 @@ export function BookshelfPage() {
             </p>
           ) : null}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={uploadActions.decideLater}>只进入书架</AlertDialogCancel>
+            <AlertDialogCancel onClick={uploadActions.decideLater}>{copy("bookshelf.confirmation.later")}</AlertDialogCancel>
             <AlertDialogAction onClick={() => void uploadActions.confirmStartNow()} data-testid="bookshelf-confirm-start-reading">
-              开始深读 →
+              {copy("bookshelf.confirmation.start")} →
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

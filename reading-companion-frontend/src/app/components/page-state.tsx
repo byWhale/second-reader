@@ -1,7 +1,8 @@
 import { AlertCircle, LoaderCircle } from "lucide-react";
 import { Link } from "react-router";
+import { copy } from "../config/controlled-copy";
 
-export function LoadingState({ title = "Loading..." }: { title?: string }) {
+export function LoadingState({ title = copy("state.loading.generic") }: { title?: string }) {
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
       <div className="bg-white rounded-2xl border border-[var(--warm-300)]/30 p-10 text-center shadow-sm">
@@ -15,7 +16,7 @@ export function LoadingState({ title = "Loading..." }: { title?: string }) {
 }
 
 export function ErrorState({
-  title = "Unable to load this page",
+  title = copy("state.error.title"),
   message,
   retryLabel,
   onRetry,
@@ -46,7 +47,7 @@ export function ErrorState({
               className="px-4 py-2 rounded-lg bg-[var(--amber-accent)] text-white hover:bg-[var(--warm-700)] transition-colors cursor-pointer"
               style={{ fontSize: "0.875rem", fontWeight: 500 }}
             >
-              {retryLabel ?? "Retry"}
+              {retryLabel ?? copy("action.retry")}
             </button>
           ) : null}
           {linkLabel && linkTo ? (

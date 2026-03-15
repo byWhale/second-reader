@@ -580,8 +580,12 @@ def test_analysis_state_prefers_parse_checkpoint_during_structure_stage(tmp_path
     assert payload["current_chapter_id"] == 2
     assert payload["current_chapter_ref"] == "Chapter 2"
     assert payload["current_phase_step"] == "后台准备后续章节"
+    assert payload["current_phase_step_key"] == "system.step.prefetchFutureChapters"
+    assert payload["current_phase_step_params"] is None
     assert payload["resume_available"] is True
     assert payload["stage_label"] == "正在解析 Chapter 2"
+    assert payload["stage_label_key"] == "system.stage.parsingChapter"
+    assert payload["stage_label_params"] == {"chapter": "Chapter 2"}
 
 
 def test_chapter_api_tolerates_empty_legacy_target_locator(tmp_path):
@@ -774,5 +778,6 @@ def test_websocket_streams_snapshot_activity_and_heartbeat(tmp_path):
 
     assert first["event_type"] == "job.snapshot"
     assert first["payload"]["status"] == "deep_reading"
+    assert first["payload"]["stage_label_key"] == "system.stage.deepReadingChapter"
     assert second["event_type"] in {"structure.ready", "activity.created"}
     assert third["event_type"] in {"activity.created", "heartbeat", "chapter.completed"}

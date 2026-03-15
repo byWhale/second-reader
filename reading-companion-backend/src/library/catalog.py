@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from .pagination import paginate_items
 from .storage import jobs_dir, load_json as load_state_json
@@ -745,22 +745,63 @@ def cover_asset_path(book_id: str, root: Path | None = None) -> Path | None:
     return existing_cover_asset_file(_book_dir(book_id, root))
 
 
-def _analysis_status(run_state: dict, *, current_chapter_id: int | None) -> tuple[str, str]:
+def _message_ref(key: str | None, params: dict[str, Any] | None = None) -> tuple[str | None, dict[str, Any] | None]:
+    """Normalize structured UI copy references for analysis status payloads."""
+    return key, params or None
+
+
+def _analysis_status(
+    run_state: dict,
+    *,
+    current_chapter_id: int | None,
+) -> tuple[str, str, str | None, dict[str, Any] | None]:
     """Map run_state into the public analysis page status vocabulary."""
     stage = str(run_state.get("stage", "ready"))
     if stage == "completed":
-        return "completed", "全部完成"
+        key, params = _message_ref("system.stage.completed")
+        return "completed", "全部完成", key, params
     if stage == "paused":
-        return "paused", "已暂停，可继续"
+        key, params = _message_ref("system.stage.paused")
+        return "paused", "已暂停，可继续", key, params
     if stage == "error":
-        return "error", "分析中断"
+        key, params = _message_ref("system.stage.error")
+        return "error", "分析中断", key, params
     if stage == "parsing_structure":
         if current_chapter_id is not None:
-            return "parsing_structure", f"正在解析 {run_state.get('current_chapter_ref', '')}"
-        return "parsing_structure", "正在解析书籍结构"
+            chapter_ref = str(run_state.get("current_chapter_ref", "") or "").strip()
+            key, params = _message_ref("system.stage.parsingChapter", {"chapter": chapter_ref})
+            return "parsing_structure", f"正在解析 {chapter_ref}", key, params
+        key, params = _message_ref("system.stage.parsingStructure")
+        return "parsing_structure", "正在解析书籍结构", key, params
     if current_chapter_id is not None:
-        return "deep_reading", f"正在分析 {run_state.get('current_chapter_ref', '')}"
-    return "parsing_structure", "正在解析书籍结构"
+        chapter_ref = str(run_state.get("current_chapter_ref", "") or "").strip()
+        key, params = _message_ref("system.stage.deepReadingChapter", {"chapter": chapter_ref})
+        return "deep_reading", f"正在分析 {chapter_ref}", key, params
+    key, params = _message_ref("system.stage.parsingStructure")
+    return "parsing_structure", "正在解析书籍结构", key, params
+
+
+_PHASE_STEP_KEYS: dict[str, tuple[str, dict[str, Any] | None]] = {
+    "等待继续执行": ("system.step.waitingToResume", None),
+    "准备章节结构": ("system.step.prepareChapterStructure", None),
+    "语义切分中": ("system.step.segmenting", None),
+    "已保存结构 checkpoint": ("system.step.structureCheckpointSaved", None),
+    "结构解析失败": ("system.step.structureParseFailed", None),
+    "等待当前章节切分完成": ("system.step.waitingCurrentChapterSegmentation", None),
+    "后台准备后续章节": ("system.step.prefetchFutureChapters", None),
+    "为首章准备语义结构": ("system.step.prepareFirstChapter", None),
+    "等待首章切分": ("system.step.waitingFirstChapterSegmentation", None),
+    "等待后续章节切分": ("system.step.waitingNextChapterSegmentation", None),
+}
+
+
+def _analysis_phase_step_message(step: str | None) -> tuple[str | None, dict[str, Any] | None]:
+    """Map the current raw phase-step string into a stable UI copy key when known."""
+    normalized = str(step or "").strip()
+    if not normalized:
+        return None, None
+    key, params = _PHASE_STEP_KEYS.get(normalized, (None, None))
+    return _message_ref(key, params)
 
 
 def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
@@ -835,7 +876,9 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         if str(item.get("visibility", "default") or "default") != "hidden"
     ]
 
-    status, stage_label = _analysis_status(run_state, current_chapter_id=current_chapter_id)
+    status, stage_label, stage_label_key, stage_label_params = _analysis_status(
+        run_state, current_chapter_id=current_chapter_id
+    )
     completed_chapters = int(run_state.get("completed_chapters", 0) or 0)
     total_chapters = int(run_state.get("total_chapters", len(chapters)) or len(chapters))
     current_phase_step = str(run_state.get("current_phase_step", "") or "") or None
@@ -851,7 +894,10 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
             current_chapter_id = int(parse_state.get("current_chapter_id", 0) or 0) or None
         if not run_state.get("current_chapter_ref") and parse_state.get("current_chapter_ref"):
             run_state["current_chapter_ref"] = parse_state.get("current_chapter_ref")
-    status, stage_label = _analysis_status(run_state, current_chapter_id=current_chapter_id)
+    status, stage_label, stage_label_key, stage_label_params = _analysis_status(
+        run_state, current_chapter_id=current_chapter_id
+    )
+    current_phase_step_key, current_phase_step_params = _analysis_phase_step_message(current_phase_step)
     progress_percent = round((completed_chapters / total_chapters) * 100, 2) if total_chapters > 0 else None
 
     return {
@@ -860,6 +906,8 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "author": str(manifest.get("author", "")),
         "status": status,
         "stage_label": stage_label,
+        "stage_label_key": stage_label_key,
+        "stage_label_params": stage_label_params,
         "progress_percent": progress_percent,
         "completed_chapters": completed_chapters,
         "total_chapters": total_chapters,
@@ -867,6 +915,8 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "current_chapter_ref": run_state.get("current_chapter_ref"),
         "eta_seconds": run_state.get("eta_seconds"),
         "current_phase_step": current_phase_step,
+        "current_phase_step_key": current_phase_step_key,
+        "current_phase_step_params": current_phase_step_params,
         "resume_available": resume_available,
         "last_checkpoint_at": last_checkpoint_at,
         "structure_ready": bool(chapters),
@@ -876,6 +926,8 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
             "current_chapter_ref": run_state.get("current_chapter_ref"),
             "current_section_ref": run_state.get("current_segment_ref") if status == "deep_reading" else None,
             "current_phase_step": current_phase_step,
+            "current_phase_step_key": current_phase_step_key,
+            "current_phase_step_params": current_phase_step_params,
             "recent_reactions": recent_reactions[:5],
             "reaction_counts": reaction_counts,
             "search_active": any(str(item.get("search_query", "") or "").strip() for item in recent_activity[:5]),

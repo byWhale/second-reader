@@ -431,6 +431,31 @@
             "description": "Human-readable label for the current parse or read step.",
             "title": "Current Phase Step"
           },
+          "current_phase_step_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable UI copy key for the current parse or read step when available.",
+            "title": "Current Phase Step Key"
+          },
+          "current_phase_step_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parameters used to render the current parse or read step.",
+            "title": "Current Phase Step Params"
+          },
           "current_state_panel": {
             "$ref": "#/components/schemas/CurrentStatePanel",
             "description": "Focused realtime state shown beside the structure tree."
@@ -500,6 +525,31 @@
             "description": "User-facing stage label shown at the top of the progress page.",
             "title": "Stage Label",
             "type": "string"
+          },
+          "stage_label_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable UI copy key for the current stage label when available.",
+            "title": "Stage Label Key"
+          },
+          "stage_label_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parameters used to render the current stage label.",
+            "title": "Stage Label Params"
           },
           "status": {
             "description": "Current lifecycle state of the active analysis.",
@@ -1399,6 +1449,31 @@
             "description": "Human-readable label of the current parse or read step.",
             "title": "Current Phase Step"
           },
+          "current_phase_step_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable UI copy key for the current parse or read step when available.",
+            "title": "Current Phase Step Key"
+          },
+          "current_phase_step_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parameters used to render the current parse or read step.",
+            "title": "Current Phase Step Params"
+          },
           "current_section_ref": {
             "anyOf": [
               {
@@ -1694,6 +1769,31 @@
             "description": "Human-readable label for the current parse or read step.",
             "title": "Current Phase Step"
           },
+          "current_phase_step_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable UI copy key for the current parse or read step when available.",
+            "title": "Current Phase Step Key"
+          },
+          "current_phase_step_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parameters used to render the current parse or read step.",
+            "title": "Current Phase Step Params"
+          },
           "current_section_ref": {
             "anyOf": [
               {
@@ -1763,6 +1863,31 @@
             "description": "Whether the job can resume from a checkpoint.",
             "title": "Resume Available",
             "type": "boolean"
+          },
+          "stage_label_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Stable UI copy key for the current stage label when available.",
+            "title": "Stage Label Key"
+          },
+          "stage_label_params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Parameters used to render the current stage label.",
+            "title": "Stage Label Params"
           },
           "status": {
             "description": "Current execution stage of the upload/analysis job.",

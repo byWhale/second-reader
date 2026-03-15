@@ -1,20 +1,14 @@
+import { copy } from "./controlled-copy";
+import { BRAND_LEXICON, term } from "./product-lexicon";
+
 export const BRAND_CONFIG = {
-  productName: "书虫",
+  productName: BRAND_LEXICON.productName,
   navigation: {
-    booksLabel: "Bookshelf",
-    marksLabel: "My Marks",
+    booksLabel: term("nav.books"),
+    marksLabel: term("nav.marks"),
   },
   footer: {
-    tagline: "An AI reading companion for those who read to think.",
-    signature: "书虫 · An AI reading companion for those who read to think.",
-  },
-  pageTitles: {
-    books: "书架",
-    marks: "我的标记",
-    upload: "上传",
-    analysis: "分析中",
-    book: "书籍详情",
-    chapter: "章节深读",
+    signature: BRAND_LEXICON.footerSignature.en,
   },
 } as const;
 
@@ -25,22 +19,22 @@ export function getDocumentTitle(pathname: string): string {
     return BRAND_CONFIG.productName;
   }
   if (normalized === "/books") {
-    return `${BRAND_CONFIG.productName} · ${BRAND_CONFIG.pageTitles.books}`;
+    return `${BRAND_CONFIG.productName} · ${copy("page.books.title")}`;
   }
   if (normalized === "/marks") {
-    return `${BRAND_CONFIG.productName} · ${BRAND_CONFIG.pageTitles.marks}`;
+    return `${BRAND_CONFIG.productName} · ${copy("page.marks.title")}`;
   }
   if (normalized === "/upload") {
-    return `${BRAND_CONFIG.productName} · ${BRAND_CONFIG.pageTitles.upload}`;
+    return `${BRAND_CONFIG.productName} · ${copy("page.upload.title")}`;
   }
   if (/^\/books\/[^/]+\/analysis$/.test(normalized)) {
-    return `${BRAND_CONFIG.productName} · ${BRAND_CONFIG.pageTitles.analysis}`;
+    return `${BRAND_CONFIG.productName} · ${copy("page.analysis.title")}`;
   }
   if (/^\/books\/[^/]+\/chapters\/[^/]+$/.test(normalized)) {
-    return `${BRAND_CONFIG.productName} · ${BRAND_CONFIG.pageTitles.chapter}`;
+    return `${BRAND_CONFIG.productName} · ${copy("page.chapter.title")}`;
   }
   if (/^\/books\/[^/]+$/.test(normalized)) {
-    return `${BRAND_CONFIG.productName} · ${BRAND_CONFIG.pageTitles.book}`;
+    return `${BRAND_CONFIG.productName} · ${copy("page.book.title")}`;
   }
   return BRAND_CONFIG.productName;
 }

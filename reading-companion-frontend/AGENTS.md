@@ -20,3 +20,10 @@
 - reintroducing mock data as the primary source of truth
 - large component framework rewrites
 - changing backend contract names on the frontend side without checking the backend
+
+## Language Governance
+- Follow `/Users/baiweijiang/Documents/Projects/reading-companion/docs/language-governance.md`.
+- Core UI text must come from the locale layer, not ad-hoc string literals in components.
+- Key terms must come from the product lexicon.
+- Key sentence-level UI copy must come from the controlled copy catalog.
+- Only content values may remain in the book/content language; control and status text must follow `appLocale`.
