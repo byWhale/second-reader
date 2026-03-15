@@ -175,6 +175,15 @@ except as migration compatibility text where the underlying value remains in the
 - chapter tree items with integer `chapter_id`
 - parse-stage and deep-reading-stage progress in the same payload
 - `current_phase_step`, `resume_available`, and `last_checkpoint_at` when available
+- `current_reading_activity` as a live snapshot, not a history event, including:
+  - `phase`
+  - `started_at`
+  - `updated_at`
+  - optional `segment_ref`
+  - optional `current_excerpt`
+  - optional `search_query`
+  - optional `thought_family`
+  - optional `problem_code`
 - `current_state_panel.reaction_counts` keyed only by the five canonical reaction types
 - `recent_completed_chapters[].result_url` pointing to canonical frontend routes
 

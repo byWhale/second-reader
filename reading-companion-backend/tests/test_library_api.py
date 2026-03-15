@@ -8,7 +8,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 from src.api.contract import to_api_book_id, to_api_reaction_id
-from src.iterator_reader.storage import parse_state_file
+from src.config import get_reader_resume_compat_version
+from src.iterator_reader.storage import existing_activity_file, parse_state_file
 from src.library.jobs import refresh_job, save_job
 from src.library.storage import upload_file
 from src.library.user_marks import delete_mark, list_book_marks, load_marks_state, put_mark
@@ -30,10 +31,46 @@ def _write_jsonl(path: Path, payloads: list[dict]) -> None:
     )
 
 
+def _load_jsonl(path: Path) -> list[dict]:
+    items: list[dict] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        items.append(json.loads(line))
+    return items
+
+
 def _bootstrap_book(root: Path, *, stage: str = "completed") -> str:
     book_id = "demo-book"
     output_dir = root / "output" / book_id
     output_dir.mkdir(parents=True, exist_ok=True)
+    structure_payload = {
+        "book": "Demo Book",
+        "author": "Tester",
+        "book_language": "en",
+        "output_language": "en",
+        "source_file": str((root / "state" / "uploads" / "job123.epub").resolve()),
+        "output_dir": str(output_dir),
+        "chapters": [
+            {
+                "id": 1,
+                "title": "Chapter 1",
+                "chapter_number": 1,
+                "status": "done" if stage == "completed" else "pending",
+                "output_file": "ch01_deep_read.md" if stage == "completed" else "",
+                "segments": [
+                    {
+                        "id": "1.1",
+                        "segment_ref": "1.1",
+                        "summary": "Segment 1",
+                        "text": "Alpha beta",
+                        "status": "done" if stage == "completed" else "pending",
+                    }
+                ],
+            }
+        ],
+    }
+    _write_json(output_dir / "structure.json", structure_payload)
     _write_json(
         output_dir / "book_manifest.json",
         {
@@ -423,6 +460,226 @@ def test_refresh_job_auto_resumes_reaped_child(tmp_path, monkeypatch):
     assert launched
 
 
+def test_launch_sequential_job_records_runtime_environment_error_when_python_is_unsupported(tmp_path, monkeypatch):
+    """Job launch should fail clearly when the backend runs under an unsupported interpreter."""
+    jobs_module = importlib.import_module("src.library.jobs")
+    upload_path = upload_file("job-env", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+    book_id = _bootstrap_book(tmp_path, stage="ready")
+
+    monkeypatch.setattr(jobs_module, "_python_runtime_issue", lambda: "unsupported python runtime")
+
+    record = jobs_module.launch_sequential_job(upload_path, root=tmp_path, book_id=book_id)
+    activity = _load_jsonl(existing_activity_file(tmp_path / "output" / book_id))
+
+    assert record["status"] == "error"
+    assert "unsupported python runtime" in str(record["error"])
+    assert activity[-1]["type"] == "runtime_environment_error"
+
+
+def test_refresh_job_pauses_running_job_when_runtime_updates_go_stale(tmp_path, monkeypatch):
+    """Jobs that keep a live PID but stop updating runtime state should move into a diagnosable paused state."""
+    jobs_module = importlib.import_module("src.library.jobs")
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    output_dir = tmp_path / "output" / book_id
+    run_state_path = output_dir / "run_state.json"
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["current_chapter_id"] = 1
+    run_state["current_chapter_ref"] = "Chapter 1"
+    run_state["current_segment_ref"] = "1.2"
+    run_state["updated_at"] = "2026-03-07T00:00:00Z"
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    upload_path = upload_file("job-stalled", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+    save_job(
+        {
+            "job_id": "job-stalled",
+            "status": "deep_reading",
+            "job_kind": "read",
+            "upload_path": str(upload_path),
+            "book_id": book_id,
+            "pid": 1234,
+            "created_at": "2026-03-07T00:00:00Z",
+            "updated_at": "2026-03-07T00:00:00Z",
+            "error": None,
+        },
+        tmp_path,
+    )
+
+    monkeypatch.setattr(jobs_module, "_process_running", lambda _pid: True)
+    monkeypatch.setattr(jobs_module, "ACTIVE_RUNTIME_STALE_SECONDS", 1)
+    monkeypatch.setattr(
+        jobs_module,
+        "_seconds_since",
+        lambda value: 120.0 if str(value) == "2026-03-07T00:00:00Z" else 120.0,
+    )
+
+    refreshed = refresh_job("job-stalled", root=tmp_path)
+    paused_run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    activity = _load_jsonl(existing_activity_file(output_dir))
+
+    assert refreshed["status"] == "paused"
+    assert "Runtime activity stalled" in str(refreshed["error"])
+    assert paused_run_state["stage"] == "paused"
+    assert {item["type"] for item in activity} >= {"runtime_stalled", "job_paused_by_runtime_guard"}
+
+
+def test_refresh_job_abandons_old_dev_boot_runs(tmp_path, monkeypatch):
+    """Development-mode jobs from an older boot should be abandoned instead of trusted."""
+    jobs_module = importlib.import_module("src.library.jobs")
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    upload_path = upload_file("job-old-dev", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+    save_job(
+        {
+            "job_id": "job-old-dev",
+            "status": "deep_reading",
+            "job_kind": "read",
+            "upload_path": str(upload_path),
+            "book_id": book_id,
+            "pid": 1234,
+            "boot_id": "old-boot",
+            "created_at": "2026-03-07T00:00:00Z",
+            "updated_at": "2026-03-07T00:00:00Z",
+            "error": None,
+        },
+        tmp_path,
+    )
+
+    terminated: list[int] = []
+
+    monkeypatch.setattr(jobs_module, "_process_running", lambda _pid: True)
+    monkeypatch.setattr(jobs_module, "get_backend_run_mode", lambda: "dev")
+    monkeypatch.setattr(jobs_module, "get_backend_boot_id", lambda: "new-boot")
+    monkeypatch.setattr(jobs_module.os, "kill", lambda pid, sig: terminated.append(pid))
+
+    refreshed = refresh_job("job-old-dev", root=tmp_path)
+    activity = _load_jsonl(existing_activity_file(tmp_path / "output" / book_id))
+
+    assert refreshed["status"] == "paused"
+    assert refreshed["pid"] is None
+    assert "older development boot" in str(refreshed["error"])
+    assert terminated == [1234]
+    assert activity[-1]["type"] == "dev_run_abandoned"
+
+
+def test_refresh_job_fresh_reruns_incompatible_prod_checkpoint(tmp_path, monkeypatch):
+    """Demo/prod should discard incompatible live artifacts and start a fresh run."""
+    jobs_module = importlib.import_module("src.library.jobs")
+    compat_version = get_reader_resume_compat_version()
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    output_dir = tmp_path / "output" / book_id
+    upload_path = upload_file("job-incompat", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+    save_job(
+        {
+            "job_id": "job-incompat",
+            "status": "deep_reading",
+            "job_kind": "read",
+            "upload_path": str(upload_path),
+            "book_id": book_id,
+            "pid": None,
+            "resume_compat_version": compat_version - 1,
+            "created_at": "2026-03-07T00:00:00Z",
+            "updated_at": "2026-03-07T00:00:00Z",
+            "error": None,
+        },
+        tmp_path,
+    )
+    run_state_path = output_dir / "run_state.json"
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["resume_compat_version"] = compat_version - 1
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    launched: list[list[str]] = []
+
+    class _FakeProcess:
+        pid = 8765
+
+    monkeypatch.setattr(jobs_module, "_process_running", lambda _pid: False)
+    monkeypatch.setattr(jobs_module, "get_backend_run_mode", lambda: "prod")
+    monkeypatch.setattr(
+        jobs_module.subprocess,
+        "Popen",
+        lambda command, cwd, stdout, stderr: launched.append(command) or _FakeProcess(),
+    )
+
+    refreshed = refresh_job("job-incompat", root=tmp_path)
+    activity = _load_jsonl(existing_activity_file(output_dir))
+    reset_run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    structure = json.loads((output_dir / "structure.json").read_text(encoding="utf-8"))
+
+    assert refreshed["job_id"] != "job-incompat"
+    assert refreshed["pid"] == 8765
+    assert launched and "--continue" not in launched[0]
+    assert [item["type"] for item in activity[:2]] == ["resume_incompatible", "fresh_rerun_started"]
+    assert reset_run_state["stage"] == "ready"
+    assert reset_run_state["completed_chapters"] == 0
+    assert structure["chapters"][0]["status"] == "pending"
+    assert structure["chapters"][0]["segments"][0]["status"] == "pending"
+
+
+def test_refresh_job_auto_resumes_stalled_runtime_once_in_prod(tmp_path, monkeypatch):
+    """Stalled prod/demo jobs should auto-resume once from the latest checkpoint."""
+    jobs_module = importlib.import_module("src.library.jobs")
+    compat_version = get_reader_resume_compat_version()
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    output_dir = tmp_path / "output" / book_id
+    run_state_path = output_dir / "run_state.json"
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["resume_compat_version"] = compat_version
+    run_state["updated_at"] = "2026-03-07T00:00:00Z"
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    upload_path = upload_file("job-prod-stalled", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+    save_job(
+        {
+            "job_id": "job-prod-stalled",
+            "status": "deep_reading",
+            "job_kind": "read",
+            "upload_path": str(upload_path),
+            "book_id": book_id,
+            "pid": 1234,
+            "resume_compat_version": compat_version,
+            "created_at": "2026-03-07T00:00:00Z",
+            "updated_at": "2026-03-07T00:00:00Z",
+            "error": None,
+        },
+        tmp_path,
+    )
+
+    launched: list[list[str]] = []
+
+    class _FakeProcess:
+        pid = 2222
+
+    monkeypatch.setattr(jobs_module, "_process_running", lambda _pid: True)
+    monkeypatch.setattr(jobs_module, "get_backend_run_mode", lambda: "prod")
+    monkeypatch.setattr(jobs_module, "ACTIVE_RUNTIME_STALE_SECONDS", 1)
+    monkeypatch.setattr(jobs_module, "_seconds_since", lambda _value: 120.0)
+    monkeypatch.setattr(
+        jobs_module.subprocess,
+        "Popen",
+        lambda command, cwd, stdout, stderr: launched.append(command) or _FakeProcess(),
+    )
+
+    refreshed = refresh_job("job-prod-stalled", root=tmp_path)
+    activity = _load_jsonl(existing_activity_file(output_dir))
+
+    assert refreshed["status"] == "deep_reading"
+    assert refreshed["pid"] == 2222
+    assert refreshed["auto_resume_count"] == 1
+    assert launched and "--continue" in launched[0]
+    assert {item["type"] for item in activity} >= {"runtime_stalled", "job_paused_by_runtime_guard", "resume_detected"}
+
+
 def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     """The API should expose typed bookshelf, result, marks, and docs endpoints."""
     book_id = _bootstrap_book(tmp_path)
@@ -636,6 +893,46 @@ def test_analysis_state_prefers_parse_checkpoint_during_structure_stage(tmp_path
     assert payload["pulse_message"] == "Preparing Chapter 2"
 
 
+def test_analysis_state_exposes_current_reading_activity_snapshot(tmp_path):
+    """analysis-state should expose the enriched live reading activity snapshot for the runtime panel."""
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    public_book_id = to_api_book_id(book_id)
+    output_dir = tmp_path / "output" / book_id
+    run_state_path = output_dir / "run_state.json"
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["current_reading_activity"] = {
+        "phase": "searching",
+        "started_at": "2026-03-15T07:04:50Z",
+        "updated_at": "2026-03-15T07:04:56Z",
+        "segment_ref": "1.2",
+        "current_excerpt": "Hormesis lost some scientific respect.",
+        "search_query": "homeopathy decline toxicology threshold model",
+        "thought_family": "curious",
+        "problem_code": "search_timeout",
+    }
+    run_state["current_segment_ref"] = "1.2"
+    run_state["updated_at"] = "2026-03-15T07:04:56Z"
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    api_module.app.state.root = tmp_path
+    client = TestClient(api_module.app)
+
+    response = client.get(f"/api/books/{public_book_id}/analysis-state")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["current_reading_activity"] == {
+        "phase": "searching",
+        "started_at": "2026-03-15T07:04:50Z",
+        "updated_at": "2026-03-15T07:04:56Z",
+        "segment_ref": "1.2",
+        "current_excerpt": "Hormesis lost some scientific respect.",
+        "search_query": "homeopathy decline toxicology threshold model",
+        "thought_family": "curious",
+        "problem_code": "search_timeout",
+    }
+
+
 def test_chapter_api_tolerates_empty_legacy_target_locator(tmp_path):
     """Legacy featured reactions with empty locator dicts should normalize to null, not 500."""
     book_id = _bootstrap_book(tmp_path)
@@ -797,6 +1094,10 @@ def test_api_errors_use_stable_error_envelope(tmp_path):
 def test_websocket_streams_snapshot_activity_and_heartbeat(tmp_path):
     """The job websocket should emit the snapshot, activity-created, and heartbeat events."""
     book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    run_state_path = tmp_path / "output" / book_id / "run_state.json"
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["updated_at"] = "3026-03-07T00:00:00Z"
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
     upload_path = upload_file("job123", tmp_path)
     upload_path.parent.mkdir(parents=True, exist_ok=True)
     upload_path.write_bytes(b"epub")

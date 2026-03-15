@@ -112,3 +112,19 @@ If a task changes:
 - healthcheck behavior
 
 then update this document in the same task.
+
+## Runtime Guardrails
+
+- Backend CLI and stable-server entrypoints require Python 3.11+ and should fail fast under older interpreters.
+- Background jobs inherit the backend interpreter. If the backend is started under an unsupported Python runtime, job launch is rejected and the affected book writes a `runtime_environment_error` event into `Program log`.
+- When a job process stays alive but runtime state stops updating, the backend pauses the job and emits system-side activity events such as `runtime_stalled` and `job_paused_by_runtime_guard`.
+- Raw stack traces remain in the technical log; operator-facing summaries belong in `Program log`.
+
+## Resume And Recovery
+
+- Sequential deep-reading checkpoints are segment-based. `last_checkpoint_at` now advances during deep reading, not only during structure parse.
+- Resume safety is governed by `resume_compat_version`, not by deploy version or git state. Only changes to persisted recovery semantics should bump it.
+- Development mode treats cross-boot unfinished jobs as untrusted. If an active job record carries an older `boot_id`, the backend abandons that run, writes `dev_run_abandoned` to `Program log`, and expects a fresh rerun.
+- Demo/prod mode resumes only when the job record and persisted runtime artifacts all match the current `resume_compat_version`.
+- If demo/prod detects an incompatible live checkpoint, it archives the current run under `_history/runs/<job_id>/`, clears live runtime artifacts, writes `resume_incompatible` plus `fresh_rerun_started`, and launches a fresh run without `--continue`.
+- Stalled demo/prod runtimes may auto-resume once from the latest checkpoint. A second stall leaves the run in `paused` for operator review instead of retrying indefinitely.

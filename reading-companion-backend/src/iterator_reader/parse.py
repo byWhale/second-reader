@@ -13,6 +13,7 @@ from xml.etree import ElementTree as ET
 import ebooklib
 from ebooklib import epub
 
+from src.config import get_backend_version, get_reader_resume_compat_version
 from src.parsers import parse_ebook
 from src.prompts.templates import (
     SEMANTIC_SEGMENTATION_PROMPT,
@@ -835,6 +836,8 @@ def write_parse_progress(
         )
     payload: ParseState = {
         "status": status,
+        "backend_version": get_backend_version(),
+        "resume_compat_version": get_reader_resume_compat_version(),
         "total_chapters": int(total_chapters),
         "completed_chapters": int(completed_chapters),
         "parsed_chapter_ids": normalized_parsed_ids,

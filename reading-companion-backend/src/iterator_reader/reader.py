@@ -24,10 +24,10 @@ from src.prompts.templates import (
     READER_THINK_PROMPT,
     READER_THINK_SYSTEM,
 )
-from src.tools.search import search_web
+from src.tools.search import classify_search_problem, search_web
 
 from .language import language_name
-from .llm_utils import invoke_json
+from .llm_utils import ReaderLLMError, invoke_json
 from .models import (
     ChapterMemorySummary,
     FindingStatus,
@@ -48,6 +48,7 @@ from .models import (
     SalienceLedgerItem,
     SalienceStatus,
     SearchHit,
+    CurrentReadingProblemCode,
     SearchResultPayload,
     SkillPolicy,
     ThoughtPayload,
@@ -86,6 +87,15 @@ _MODEL_CONTEXT_WINDOW_ESTIMATE = 16_000
 _PROMPT_RESERVED_OUTPUT_TOKENS = 4_096
 _PROMPT_RESERVED_SYSTEM_TOKENS = 1_400
 _TOKEN_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9'_-]*")
+_CURRENT_READING_PROBLEM_CODES: set[str] = {
+    "llm_timeout",
+    "llm_quota",
+    "llm_auth",
+    "search_timeout",
+    "search_quota",
+    "search_auth",
+    "network_blocked",
+}
 
 def _timestamp() -> str:
     """Return a stable UTC timestamp for memory updates."""
@@ -2017,16 +2027,19 @@ def search_if_curious_node(state: ReaderState) -> ReaderState:
     search_results: list[SearchResultPayload] = []
     for query in list(query_to_indexes)[:query_quota]:
         error = ""
+        problem_code = None
         try:
             raw_results = _invoke_curiosity_search(query, max_results=3)
         except Exception as exc:
             raw_results = []
             error = str(exc)
+            problem_code = _normalize_problem_code(classify_search_problem(error))
 
         if isinstance(raw_results, list):
             for item in raw_results:
                 if isinstance(item, dict) and item.get("error"):
                     error = _clean_text(item.get("error", ""))
+                    problem_code = _normalize_problem_code(item.get("problem_code", ""))
                     break
 
         normalized_results = _normalize_search_hits(raw_results, max_results=3)
@@ -2037,6 +2050,8 @@ def search_if_curious_node(state: ReaderState) -> ReaderState:
         }
         if error:
             result_payload["error"] = error
+        if problem_code:
+            result_payload["problem_code"] = problem_code
         search_results.append(result_payload)
 
     query_results = {
@@ -2073,6 +2088,8 @@ def _fuse_curiosity_reaction(reaction: ReactionPayload, state: ReaderState) -> R
             ),
             default={},
         )
+    except ReaderLLMError:
+        raise
     except Exception:
         return reaction
 
@@ -2288,6 +2305,14 @@ def _first_active_family(reactions: list[ReactionPayload]) -> str | None:
     return None
 
 
+def _normalize_problem_code(value: object) -> CurrentReadingProblemCode | None:
+    """Return one stable runtime problem code when recognized."""
+    normalized = _clean_text(value).lower()
+    if normalized in _CURRENT_READING_PROBLEM_CODES:
+        return normalized  # type: ignore[return-value]
+    return None
+
+
 def _reader_progress_event(
     message: str,
     *,
@@ -2297,6 +2322,7 @@ def _reader_progress_event(
     phase: str | None = None,
     current_excerpt: str | None = None,
     thought_family: str | None = None,
+    problem_code: str | None = None,
 ) -> ReaderProgressEvent:
     """Create one structured progress event for the outer iterator."""
     payload: ReaderProgressEvent = {
@@ -2313,6 +2339,9 @@ def _reader_progress_event(
         payload["current_excerpt"] = excerpt
     if thought_family in {"highlight", "association", "curious", "discern", "retrospect"}:
         payload["thought_family"] = thought_family  # type: ignore[typeddict-item]
+    normalized_problem_code = _normalize_problem_code(problem_code)
+    if normalized_problem_code:
+        payload["problem_code"] = normalized_problem_code
     return payload
 
 
@@ -2916,7 +2945,21 @@ def run_reader_segment(
                     current_excerpt=subsegment.get("text", current.get("segment_text", "")),
                 )
             )
-        substate.update(think_node(substate))
+        try:
+            substate.update(think_node(substate))
+        except ReaderLLMError as exc:
+            if progress:
+                progress(
+                    _reader_progress_event(
+                        "",
+                        kind="transition",
+                        visibility="hidden",
+                        phase="thinking",
+                        current_excerpt=subsegment.get("text", current.get("segment_text", "")),
+                        problem_code=exc.problem_code,
+                    )
+                )
+            raise
         _consume_work_units(budget, 1)
         thought = substate.get("thought") or {}
         if not thought.get("should_express"):
@@ -2932,7 +2975,21 @@ def run_reader_segment(
             continue
 
         substate["budget"] = dict(budget)
-        substate.update(express_node(substate))
+        try:
+            substate.update(express_node(substate))
+        except ReaderLLMError as exc:
+            if progress:
+                progress(
+                    _reader_progress_event(
+                        "",
+                        kind="transition",
+                        visibility="hidden",
+                        phase="thinking",
+                        current_excerpt=subsegment.get("text", current.get("segment_text", "")),
+                        problem_code=exc.problem_code,
+                    )
+                )
+            raise
         _consume_work_units(budget, 1)
 
         if progress:
@@ -2967,6 +3024,35 @@ def run_reader_segment(
                 )
             substate.update(search_if_curious_node(substate))
             sub_budget = dict(substate.get("budget") or sub_budget)
+            search_problem = next(
+                (
+                    _normalize_problem_code(result.get("problem_code", ""))
+                    for result in substate.get("search_results", [])
+                    if isinstance(result, dict) and _normalize_problem_code(result.get("problem_code", ""))
+                ),
+                None,
+            )
+            if progress and search_problem:
+                progress(
+                    _reader_progress_event(
+                        "",
+                        kind="search",
+                        visibility="hidden",
+                        phase="searching",
+                        current_excerpt=substate.get("segment_text", ""),
+                        search_query=_normalize_search_query(
+                            next(
+                                (
+                                    result.get("search_query", "")
+                                    for result in substate.get("search_results", [])
+                                    if isinstance(result, dict) and _clean_text(result.get("search_query", ""))
+                                ),
+                                "",
+                            )
+                        ),
+                        problem_code=search_problem,
+                    )
+                )
             _consume_work_units(budget, 1)
         else:
             sub_budget["search_queries_remaining_in_segment"] = 0
@@ -3005,7 +3091,32 @@ def run_reader_segment(
                     )
                 )
             substate["budget"] = dict(budget)
-            substate.update(fuse_curious_results_node(substate))
+            try:
+                substate.update(fuse_curious_results_node(substate))
+            except ReaderLLMError as exc:
+                if progress:
+                    progress(
+                        _reader_progress_event(
+                            "",
+                            kind="transition",
+                            visibility="hidden",
+                            phase="fusing",
+                            current_excerpt=substate.get("segment_text", ""),
+                            search_query=_normalize_search_query(
+                                next(
+                                    (
+                                        reaction.get("search_query", "")
+                                        for reaction in substate.get("reactions", [])
+                                        if reaction.get("type") == "curious"
+                                    ),
+                                    "",
+                                )
+                            ),
+                            thought_family=_first_active_family(substate.get("reactions", [])),
+                            problem_code=exc.problem_code,
+                        )
+                    )
+                raise
             _consume_work_units(budget, 1)
 
         if int(budget.get("work_units_remaining", 0)) > 0 and elapsed_seconds() <= timeout_seconds:
@@ -3021,7 +3132,22 @@ def run_reader_segment(
                     )
                 )
             substate["budget"] = dict(budget)
-            substate.update(reflect_node(substate))
+            try:
+                substate.update(reflect_node(substate))
+            except ReaderLLMError as exc:
+                if progress:
+                    progress(
+                        _reader_progress_event(
+                            "",
+                            kind="transition",
+                            visibility="hidden",
+                            phase="reflecting",
+                            current_excerpt=substate.get("segment_text", ""),
+                            thought_family=_first_active_family(substate.get("reactions", [])),
+                            problem_code=exc.problem_code,
+                        )
+                    )
+                raise
             reflection = dict(substate.get("reflection") or {})
             if reflection.get("verdict") == "revise":
                 reflection["verdict"] = "pass" if _active_reactions(substate.get("reactions", [])) else "skip"

@@ -1,6 +1,7 @@
 """Centralized configuration for LLM and API settings."""
 
 import os
+import uuid
 from functools import lru_cache
 from pathlib import Path
 
@@ -8,6 +9,10 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+
+READER_RESUME_COMPAT_VERSION = 1
+_BACKEND_BOOT_ID = uuid.uuid4().hex
 
 
 def _backend_root() -> Path:
@@ -115,6 +120,16 @@ def get_backend_run_mode() -> str:
     if mode in {"dev", "demo", "prod"}:
         return mode
     return "dev"
+
+
+def get_backend_boot_id() -> str:
+    """Return the current backend-process boot identifier."""
+    return _BACKEND_BOOT_ID
+
+
+def get_reader_resume_compat_version() -> int:
+    """Return the persisted compatibility marker used for resume decisions."""
+    return READER_RESUME_COMPAT_VERSION
 
 
 def get_backend_version() -> str | None:

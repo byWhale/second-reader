@@ -9,6 +9,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
+from src.config import get_backend_version, get_reader_resume_compat_version
+
 from .models import (
     ActivityEvent,
     ActivityKind,
@@ -95,6 +97,15 @@ def activity_semantics(event: ActivityEvent) -> tuple[ActivityStream, ActivityKi
         "structure_checkpoint_saved": ("system", "checkpoint", "default"),
         "structure_ready": ("system", "transition", "default"),
         "reader_waiting_for_segments": ("system", "waiting", "default"),
+        "runtime_stalled": ("system", "error", "default"),
+        "heartbeat_lost": ("system", "error", "default"),
+        "llm_timeout_detected": ("system", "error", "default"),
+        "search_timeout_detected": ("system", "error", "default"),
+        "runtime_environment_error": ("system", "error", "default"),
+        "job_paused_by_runtime_guard": ("system", "error", "default"),
+        "resume_incompatible": ("system", "error", "default"),
+        "fresh_rerun_started": ("system", "transition", "default"),
+        "dev_run_abandoned": ("system", "error", "default"),
         "segment_started": ("mindstream", "position", "default"),
         "segment_completed": ("mindstream", "segment_complete", "default"),
         "chapter_started": ("mindstream", "transition", "collapsed"),
@@ -307,6 +318,8 @@ def build_run_state(
     return {
         "mode": "sequential",
         "stage": stage,
+        "backend_version": get_backend_version(),
+        "resume_compat_version": get_reader_resume_compat_version(),
         "book": str(structure.get("book", "")),
         "current_chapter_id": current_chapter_id,
         "current_chapter_ref": current_chapter_ref,
@@ -345,6 +358,75 @@ def append_activity_event(output_dir: Path, event: ActivityEvent) -> ActivityEve
     payload["event_id"] = str(event.get("event_id") or _event_id(payload))
     append_jsonl(activity_file(output_dir), payload)
     return payload  # type: ignore[return-value]
+
+
+def append_deduped_activity_event(
+    output_dir: Path,
+    event: ActivityEvent,
+    *,
+    dedupe_window_seconds: int = 300,
+    history_limit: int = 120,
+) -> ActivityEvent | None:
+    """Append one event unless a near-identical recent event already exists."""
+    candidate = normalize_activity_event(dict(event))
+    path = activity_file(output_dir)
+    if path.exists():
+        try:
+            history = _load_recent_activity(path, limit=history_limit)
+        except (OSError, json.JSONDecodeError, ValueError):
+            history = []
+        candidate_timestamp = _event_timestamp(candidate)
+        for item in reversed(history):
+            if not _same_activity_signature(item, candidate):
+                continue
+            if candidate_timestamp is None:
+                return None
+            previous_timestamp = _event_timestamp(item)
+            if previous_timestamp is None:
+                return None
+            age_seconds = (candidate_timestamp - previous_timestamp).total_seconds()
+            if 0 <= age_seconds <= dedupe_window_seconds:
+                return None
+    return append_activity_event(output_dir, candidate)
+
+
+def _load_recent_activity(path: Path, *, limit: int) -> list[dict]:
+    """Return the trailing activity items from one JSONL file."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    items: list[dict] = []
+    for line in lines[-max(1, limit):]:
+        if not line.strip():
+            continue
+        payload = json.loads(line)
+        if isinstance(payload, dict):
+            items.append(payload)
+    return items
+
+
+def _event_timestamp(event: dict[str, object]) -> datetime | None:
+    """Parse one persisted event timestamp."""
+    raw = str(event.get("timestamp", "") or "").strip()
+    if not raw:
+        return None
+    normalized = raw.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
+def _same_activity_signature(left: dict[str, object], right: dict[str, object]) -> bool:
+    """Compare activity events on the fields that make them operationally identical."""
+    fields = (
+        "type",
+        "message",
+        "chapter_id",
+        "chapter_ref",
+        "segment_id",
+        "segment_ref",
+        "problem_code",
+    )
+    return all(str(left.get(field, "") or "") == str(right.get(field, "") or "") for field in fields)
 
 
 def estimate_eta_seconds(

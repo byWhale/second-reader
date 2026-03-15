@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
-from .catalog import find_book_id_by_source, get_book, source_asset_path
+from .catalog import find_book_id_by_source, source_asset_path
 from .storage import (
     job_file,
     job_log_file,
@@ -19,24 +21,50 @@ from .storage import (
     timestamp,
     upload_file,
 )
-from src.iterator_reader.frontend_artifacts import append_activity_event
+from src.config import (
+    get_backend_boot_id,
+    get_backend_run_mode,
+    get_backend_version,
+    get_reader_resume_compat_version,
+)
+from src.iterator_reader.frontend_artifacts import (
+    append_activity_event,
+    append_deduped_activity_event,
+    build_run_state,
+    reset_activity,
+    write_book_manifest,
+    write_run_state,
+)
 from src.iterator_reader.storage import (
+    chapter_qa_file,
     book_id_from_output_dir,
     existing_activity_file,
+    existing_book_manifest_file,
+    existing_chapter_markdown_file,
+    existing_chapter_result_file,
     existing_parse_state_file,
     existing_run_state_file,
+    existing_structure_file,
+    legacy_activity_file,
+    legacy_book_manifest_file,
+    legacy_run_state_file,
+    load_json as load_structure_json,
     load_json as load_runtime_json,
-    parse_state_file,
+    reader_memory_file,
+    runtime_dir,
     run_history_job_file,
     run_history_job_log_file,
     run_history_summary_file,
     run_history_trace_file,
+    save_structure,
 )
 
 
-AUTO_RESUME_LIMIT = 3
+AUTO_RESUME_LIMIT = 1
 ACTIVE_JOB_STATUSES = {"queued", "parsing_structure", "deep_reading", "chapter_note_generation"}
 TERMINAL_JOB_STATUSES = {"completed", "error"}
+MIN_SUPPORTED_PYTHON = (3, 11)
+ACTIVE_RUNTIME_STALE_SECONDS = 45
 
 
 def _job_record(
@@ -48,6 +76,7 @@ def _job_record(
     language: str = "auto",
     intent: str | None = None,
     resume_count: int = 0,
+    auto_resume_count: int = 0,
     book_id: str | None = None,
     pid: int | None = None,
     error: str | None = None,
@@ -64,7 +93,13 @@ def _job_record(
         "language": language,
         "intent": intent,
         "resume_count": int(resume_count),
+        "auto_resume_count": int(auto_resume_count),
         "pid": pid,
+        "boot_id": get_backend_boot_id(),
+        "backend_version": get_backend_version(),
+        "resume_compat_version": get_reader_resume_compat_version(),
+        "python_executable": sys.executable,
+        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
         "created_at": created_at or now,
         "updated_at": now,
         "error": error,
@@ -83,6 +118,10 @@ def _normalize_record(record: dict) -> dict:
         "language": str(record.get("language", "auto") or "auto"),
         "intent": str(record.get("intent", "") or "") or None,
         "resume_count": int(record.get("resume_count", 0) or 0),
+        "auto_resume_count": int(record.get("auto_resume_count", 0) or 0),
+        "boot_id": str(record.get("boot_id", "") or "") or None,
+        "backend_version": str(record.get("backend_version", "") or "") or None,
+        "resume_compat_version": _resume_compat_version(record.get("resume_compat_version")),
     }
 
 
@@ -101,6 +140,104 @@ def _process_running(pid: int | None) -> bool:
         return True
     except OSError:
         return False
+
+
+def _python_runtime_issue() -> str | None:
+    """Return a user-facing runtime issue when the current interpreter is unsupported."""
+    if sys.version_info < MIN_SUPPORTED_PYTHON:
+        return (
+            "Background jobs require Python "
+            f"{MIN_SUPPORTED_PYTHON[0]}.{MIN_SUPPORTED_PYTHON[1]}+ but the backend is running under "
+            f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro} "
+            f"({sys.executable})."
+        )
+    return None
+
+
+def _resume_compat_version(value: object) -> int | None:
+    """Normalize one persisted resume-compat marker."""
+    if value is None:
+        return None
+    if isinstance(value, str) and not value.strip():
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _run_state_resume_compat(run_state: dict | None) -> int | None:
+    """Return the resume-compat version recorded in runtime artifacts."""
+    return _resume_compat_version((run_state or {}).get("resume_compat_version"))
+
+
+def _record_resume_compat(record: dict) -> int | None:
+    """Return the resume-compat version recorded in the job record."""
+    return _resume_compat_version(record.get("resume_compat_version"))
+
+
+def _resume_compatible(*, record: dict, run_state: dict | None, parse_state: dict | None = None) -> bool:
+    """Return whether persisted job/runtime artifacts can be safely resumed."""
+    expected = get_reader_resume_compat_version()
+    if _record_resume_compat(record) != expected:
+        return False
+
+    known_state_versions: list[int | None] = []
+    if run_state is not None:
+        known_state_versions.append(_run_state_resume_compat(run_state))
+    if parse_state is not None:
+        known_state_versions.append(_resume_compat_version(parse_state.get("resume_compat_version")))
+    if not known_state_versions:
+        return True
+    return all(version == expected for version in known_state_versions)
+
+
+def _is_dev_boot_mismatch(record: dict) -> bool:
+    """Return whether a job belongs to an older development backend boot."""
+    if get_backend_run_mode() != "dev":
+        return False
+    recorded_boot_id = str(record.get("boot_id", "") or "").strip()
+    if not recorded_boot_id:
+        return False
+    return recorded_boot_id != get_backend_boot_id()
+
+
+def _parse_timestamp(value: object) -> datetime | None:
+    """Parse one UTC timestamp when available."""
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _seconds_since(value: object) -> float | None:
+    """Return age in seconds for one persisted timestamp."""
+    parsed = _parse_timestamp(value)
+    if parsed is None:
+        return None
+    return max(0.0, (datetime.now(timezone.utc) - parsed).total_seconds())
+
+
+def _activity_context(run_state: dict | None) -> dict[str, object]:
+    """Extract the recent reading location from run_state."""
+    state = run_state or {}
+    return {
+        "chapter_id": int(state.get("current_chapter_id", 0) or 0) or None,
+        "chapter_ref": str(state.get("current_chapter_ref", "") or "") or None,
+        "segment_ref": str(state.get("current_segment_ref", "") or "") or None,
+    }
+
+
+def _runtime_stalled_message(run_state: dict | None, *, stale_seconds: float) -> str:
+    """Build one operator-facing stalled-runtime summary."""
+    state = run_state or {}
+    segment_ref = str(state.get("current_segment_ref", "") or "").strip()
+    chapter_ref = str(state.get("current_chapter_ref", "") or "").strip()
+    target = segment_ref or chapter_ref or "the current section"
+    return f"Runtime activity stalled for {int(round(stale_seconds))}s while reading {target}."
 
 
 def _status_from_run_state(run_state: dict | None, *, running: bool) -> tuple[str, str | None]:
@@ -196,17 +333,34 @@ def _launch_subprocess_job(
 ) -> dict:
     """Start a detached subprocess and persist the tracking record."""
     resolved_job_id = job_id or upload_path.stem
+    runtime_issue = _python_runtime_issue()
     record = _job_record(
         job_id=resolved_job_id,
-        status=initial_status,
+        status="error" if runtime_issue else initial_status,
         upload_path=upload_path,
         job_kind=job_kind,
         language=language,
         intent=intent,
         book_id=book_id,
         resume_count=resume_count,
+        error=runtime_issue,
     )
-    save_job(record, root)
+    saved_record = save_job(record, root)
+    if runtime_issue:
+        if book_id:
+            append_deduped_activity_event(
+                _book_output_dir(book_id, root),
+                {
+                    "type": "runtime_environment_error",
+                    "message": "Background job started under unsupported Python runtime.",
+                    "details": {
+                        "reason": runtime_issue,
+                        "python_executable": sys.executable,
+                        "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                    },
+                },
+            )
+        return saved_record
 
     log_path = job_log_file(resolved_job_id, root)
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -397,6 +551,82 @@ def _book_output_dir(book_id: str, root: Path | None = None) -> Path:
     return (root or Path.cwd()) / "output" / book_id
 
 
+def _load_book_run_state(book_id: str, root: Path | None = None) -> dict | None:
+    """Read the raw persisted run_state payload for one book."""
+    path = existing_run_state_file(_book_output_dir(book_id, root))
+    return load_runtime_json(path) if path.exists() else None
+
+
+def _load_book_parse_state(book_id: str, root: Path | None = None) -> dict | None:
+    """Read the raw persisted parse_state payload for one book."""
+    path = existing_parse_state_file(_book_output_dir(book_id, root))
+    return load_runtime_json(path) if path.exists() else None
+
+
+def _terminate_process(pid: int | None) -> None:
+    """Best-effort terminate one stale background worker."""
+    if not pid:
+        return
+    try:
+        os.kill(int(pid), signal.SIGTERM)
+    except OSError:
+        return
+
+
+def _clear_live_analysis_artifacts(book_id: str, root: Path | None = None) -> None:
+    """Reset live deep-reading artifacts so one fresh run can start cleanly."""
+    output_dir = _book_output_dir(book_id, root)
+    structure_path = existing_structure_file(output_dir)
+    manifest_path = existing_book_manifest_file(output_dir)
+    legacy_manifest_path = legacy_book_manifest_file(output_dir)
+    legacy_run_state_path = legacy_run_state_file(output_dir)
+    legacy_activity_path = legacy_activity_file(output_dir)
+    preserve_legacy_manifest = legacy_manifest_path.exists()
+    preserve_legacy_run_state = legacy_run_state_path.exists()
+    preserve_legacy_activity = legacy_activity_path.exists()
+    if not structure_path.exists():
+        shutil.rmtree(runtime_dir(output_dir), ignore_errors=True)
+        return
+
+    structure = load_structure_json(structure_path)
+    chapters = list(structure.get("chapters", []))
+    for chapter in chapters:
+        chapter.pop("output_file", None)
+        chapter["status"] = "pending"
+        for segment in chapter.get("segments", []):
+            if isinstance(segment, dict):
+                segment["status"] = "pending"
+        existing_chapter_markdown_file(output_dir, chapter).unlink(missing_ok=True)
+        existing_chapter_result_file(output_dir, chapter).unlink(missing_ok=True)
+        chapter_qa_file(output_dir, chapter).unlink(missing_ok=True)
+
+    shutil.rmtree(runtime_dir(output_dir), ignore_errors=True)
+    reader_memory_file(output_dir).unlink(missing_ok=True)
+    save_structure(structure_path, structure)
+    if manifest_path.exists():
+        manifest = write_book_manifest(output_dir, structure)
+        if preserve_legacy_manifest:
+            save_job_json(legacy_manifest_path, manifest)
+    reset_activity(output_dir)
+    run_state = write_run_state(
+        output_dir,
+        build_run_state(
+            structure,
+            stage="ready",
+            total_chapters=len(chapters),
+            completed_chapters=0,
+            current_phase_step=None,
+            resume_available=False,
+            last_checkpoint_at=None,
+        ),
+    )
+    if preserve_legacy_activity:
+        legacy_activity_path.parent.mkdir(parents=True, exist_ok=True)
+        legacy_activity_path.write_text("", encoding="utf-8")
+    if preserve_legacy_run_state:
+        save_job_json(legacy_run_state_path, run_state)
+
+
 def _current_run_stage(book_id: str, root: Path | None = None) -> str:
     """Read the current runtime stage for one book when available."""
     run_state_path = existing_run_state_file(_book_output_dir(book_id, root))
@@ -445,6 +675,100 @@ def _pause_runtime_state(book_id: str, *, previous_status: str, error: str, root
         save_job_json(parse_state_path, payload)
 
 
+def _abandon_dev_run(record: dict, *, book_id: str | None, run_state: dict | None, root: Path | None = None) -> dict:
+    """Mark one cross-boot development run as abandoned instead of resuming it."""
+    normalized = _normalize_record(record)
+    pid = int(normalized.get("pid", 0) or 0) or None
+    _terminate_process(pid)
+    message = "Detected an unfinished reader from an older development boot; start a fresh run instead of resuming it."
+    if book_id:
+        _pause_runtime_state(
+            book_id,
+            previous_status=_resume_target_status(normalized, book_id, root),
+            error=message,
+            root=root,
+        )
+        append_deduped_activity_event(
+            _book_output_dir(book_id, root),
+            {
+                "type": "dev_run_abandoned",
+                "message": "Reader from an older development session was abandoned after a backend restart.",
+                **_activity_context(run_state),
+                "details": {
+                    "job_id": str(normalized.get("job_id", "")),
+                    "boot_id": normalized.get("boot_id"),
+                },
+            },
+        )
+    return save_job(
+        {
+            **normalized,
+            "status": "paused" if book_id else "error",
+            "book_id": book_id,
+            "pid": None,
+            "error": message,
+        },
+        root,
+    )
+
+
+def _fresh_rerun_after_incompatibility(record: dict, *, book_id: str | None, root: Path | None = None) -> dict:
+    """Archive one incompatible run, reset live artifacts, and launch a fresh job."""
+    normalized = _normalize_record(record)
+    resolved_book_id = str(book_id or normalized.get("book_id", "") or "").strip() or None
+    reason = "Detected an incompatible resume checkpoint; clearing live analysis artifacts and starting a fresh run."
+    _terminate_process(int(normalized.get("pid", 0) or 0) or None)
+    archived_job = save_job(
+        {
+            **normalized,
+            "status": "error",
+            "book_id": resolved_book_id,
+            "pid": None,
+            "error": reason,
+        },
+        root,
+    )
+    if resolved_book_id:
+        _archive_run_artifacts(book_id=resolved_book_id, job=archived_job, root=root)
+        _clear_live_analysis_artifacts(resolved_book_id, root)
+
+    fresh_record = _launch_subprocess_job(
+        upload_path=Path(str(normalized.get("upload_path", ""))),
+        command=_job_command(normalized, continue_mode=False),
+        job_kind=str(normalized.get("job_kind", "read") or "read"),
+        language=str(normalized.get("language", "auto") or "auto"),
+        intent=normalized.get("intent"),
+        root=root,
+        job_id=uuid.uuid4().hex[:12],
+        initial_status="queued",
+        book_id=resolved_book_id,
+    )
+    if resolved_book_id:
+        append_activity_event(
+            _book_output_dir(resolved_book_id, root),
+            {
+                "type": "resume_incompatible",
+                "message": "Detected an incompatible checkpoint from an older reader runtime; restarting this analysis from scratch.",
+                "details": {
+                    "previous_job_id": str(normalized.get("job_id", "")),
+                    "resume_compat_version": _record_resume_compat(normalized),
+                    "current_resume_compat_version": get_reader_resume_compat_version(),
+                },
+            },
+        )
+        append_activity_event(
+            _book_output_dir(resolved_book_id, root),
+            {
+                "type": "fresh_rerun_started",
+                "message": "Started a fresh analysis run after discarding incompatible live runtime artifacts.",
+                "details": {
+                    "job_id": str(fresh_record.get("job_id", "")),
+                },
+            },
+        )
+    return fresh_record
+
+
 def _resume_supported(record: dict) -> bool:
     """Return whether one job has enough context to resume."""
     upload_path = Path(str(record.get("upload_path", "") or ""))
@@ -487,6 +811,7 @@ def _resume_job(record: dict, root: Path | None = None, *, automatic: bool) -> d
             language=str(normalized.get("language", "auto")),
             intent=normalized.get("intent"),
             resume_count=int(normalized.get("resume_count", 0)) + 1,
+            auto_resume_count=int(normalized.get("auto_resume_count", 0) or 0) + (1 if automatic else 0),
             book_id=book_id,
             pid=process.pid,
             error=None,
@@ -498,7 +823,7 @@ def _resume_job(record: dict, root: Path | None = None, *, automatic: bool) -> d
 
 def _can_auto_resume(record: dict) -> bool:
     """Return whether one stalled job should be auto-resumed."""
-    return _resume_supported(record) and int(record.get("resume_count", 0) or 0) < AUTO_RESUME_LIMIT
+    return _resume_supported(record) and int(record.get("auto_resume_count", 0) or 0) < AUTO_RESUME_LIMIT
 
 
 def latest_job_for_book(book_id: str, root: Path | None = None) -> dict | None:
@@ -552,6 +877,16 @@ def resume_job_for_book(book_id: str, root: Path | None = None) -> dict:
         raise FileNotFoundError(book_id)
     if _process_running(int(record.get("pid", 0) or 0)):
         return save_job({**record, "book_id": book_id}, root)
+    run_state = _load_book_run_state(book_id, root)
+    parse_state = _load_book_parse_state(book_id, root)
+    if _is_dev_boot_mismatch(record):
+        raise RuntimeError("This analysis belongs to an older development boot. Start a fresh run instead of resuming it.")
+    if get_backend_run_mode() in {"demo", "prod"} and not _resume_compatible(
+        record=record,
+        run_state=run_state,
+        parse_state=parse_state,
+    ):
+        return _fresh_rerun_after_incompatibility(record, book_id=book_id, root=root)
     if not _resume_supported(record):
         raise RuntimeError("No resumable checkpoint is available for this book.")
     return _resume_job({**record, "book_id": book_id}, root, automatic=False)
@@ -578,14 +913,67 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
     book_id = str(record.get("book_id", "") or "") or find_book_id_by_source(upload_path, root=root)
     error = str(record.get("error", "") or "") or None
     status = str(record.get("status", "queued") or "queued")
+    run_state: dict | None = None
+    parse_state: dict | None = None
+    run_mode = get_backend_run_mode()
 
     if book_id:
-        book = get_book(book_id, root=root)
-        run_state = book.get("run_state") or {}
+        run_state = _load_book_run_state(book_id, root) or {}
+        parse_state = _load_book_parse_state(book_id, root)
         status, state_error = _status_from_run_state(run_state, running=running)
         error = state_error or error
     elif running:
         status = "parsing_structure"
+
+    if status in ACTIVE_JOB_STATUSES and _is_dev_boot_mismatch(record):
+        return _abandon_dev_run(record, book_id=book_id, run_state=run_state, root=root)
+
+    if status in ACTIVE_JOB_STATUSES and run_mode in {"demo", "prod"} and not _resume_compatible(
+        record=record,
+        run_state=run_state,
+        parse_state=parse_state,
+    ):
+        return _fresh_rerun_after_incompatibility(record, book_id=book_id, root=root)
+
+    stale_seconds = _seconds_since((run_state or {}).get("updated_at"))
+    runtime_stalled = (
+        bool(running)
+        and status in {"parsing_structure", "deep_reading", "ready"}
+        and stale_seconds is not None
+        and stale_seconds >= ACTIVE_RUNTIME_STALE_SECONDS
+    )
+    if runtime_stalled:
+        running = False
+        status = "paused" if book_id else "error"
+        error = _runtime_stalled_message(run_state, stale_seconds=stale_seconds)
+        if book_id:
+            _pause_runtime_state(book_id, previous_status=_resume_target_status(record, book_id, root), error=error, root=root)
+            append_deduped_activity_event(
+                _book_output_dir(book_id, root),
+                {
+                    "type": "runtime_stalled",
+                    "message": error,
+                    **_activity_context(run_state),
+                    "details": {
+                        "stale_seconds": int(round(stale_seconds)),
+                        "job_id": job_id,
+                    },
+                },
+            )
+            append_deduped_activity_event(
+                _book_output_dir(book_id, root),
+                {
+                    "type": "job_paused_by_runtime_guard",
+                    "message": "Reader paused because live runtime updates stopped arriving.",
+                    **_activity_context(run_state),
+                    "details": {
+                        "job_id": job_id,
+                        "resume_available": True,
+                    },
+                },
+            )
+            if run_mode in {"demo", "prod"} and _can_auto_resume(record):
+                return _resume_job({**record, "book_id": book_id}, root, automatic=True)
 
     if not running and status not in {"completed", "error", "ready", "paused"}:
         if _can_auto_resume(record):
@@ -595,6 +983,18 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
             status = "paused"
             error = error or "任务已停止，等待继续执行。"
             _pause_runtime_state(book_id, previous_status=_resume_target_status(record, book_id, root), error=error, root=root)
+            append_deduped_activity_event(
+                _book_output_dir(book_id, root),
+                {
+                    "type": "job_paused_by_runtime_guard",
+                    "message": f"Reader paused because the background job stopped unexpectedly: {error}",
+                    **_activity_context(run_state),
+                    "details": {
+                        "job_id": job_id,
+                        "resume_available": True,
+                    },
+                },
+            )
         else:
             status = "error"
             error = error or "Job exited before producing readable artifacts."
@@ -607,6 +1007,7 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
         language=str(record.get("language", "auto")),
         intent=record.get("intent"),
         resume_count=int(record.get("resume_count", 0) or 0),
+        auto_resume_count=int(record.get("auto_resume_count", 0) or 0),
         book_id=book_id,
         pid=pid if running else None,
         error=error,

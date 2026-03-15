@@ -17,6 +17,22 @@ from src.iterator_reader import parse_book, read_book
 from src.iterator_reader.language import language_name
 from src.iterator_reader.storage import chapter_reference, structure_file, structure_markdown_file
 
+MIN_SUPPORTED_PYTHON = (3, 11)
+
+
+def _require_supported_python() -> None:
+    """Exit early when the CLI is started under an unsupported interpreter."""
+    if sys.version_info >= MIN_SUPPORTED_PYTHON:
+        return
+    print(
+        "Error: Reading Companion backend requires Python "
+        f"{MIN_SUPPORTED_PYTHON[0]}.{MIN_SUPPORTED_PYTHON[1]}+ but received "
+        f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro} "
+        f"({sys.executable}).",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+
 
 def _require_book_path(book_file: str) -> Path:
     """Resolve and validate the input book path."""
@@ -267,6 +283,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     """CLI entry point."""
+    _require_supported_python()
     parser = build_parser()
     args = parser.parse_args()
     return args.func(args)

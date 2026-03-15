@@ -80,5 +80,8 @@ Important frontend variables:
 - Runtime data remains under `reading-companion-backend/`.
 - Legacy `structure.json`-only output folders are automatically backfilled into the current API-facing artifact format during `make setup` and `make dev-backend`.
 - `make dev-backend` is intentionally a reload-enabled developer server. Use `make run-demo` for interviews or live demos where backend restarts should be automatic.
+- Development-mode backend restarts generate a new in-memory `boot_id`; unfinished jobs from an older dev boot are treated as stale and should be restarted from a fresh run instead of resumed across code edits.
+- Demo/prod resume trusts only persisted artifacts that match the current `resume_compat_version`. Incompatible live checkpoints are archived, cleared, and restarted as a fresh run.
+- Long-running demo/prod reads now expose segment-level `last_checkpoint_at` progress and will auto-resume only once after a stalled runtime before settling into `paused`.
 - The backend is not expected to run correctly with Python 3.9.x.
 - The frontend is now wired to the backend API contract instead of the old mock-only flow.

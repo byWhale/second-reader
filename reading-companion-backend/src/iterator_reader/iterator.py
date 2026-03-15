@@ -13,12 +13,15 @@ from pathlib import Path
 from typing import Callable
 
 from src.config import (
+    get_backend_version,
     get_pipeline_prefetch_window,
     get_pipeline_segment_workers,
     get_pipeline_segment_workers_when_reader_blocked,
+    get_reader_resume_compat_version,
 )
 from .frontend_artifacts import (
     append_activity_event,
+    append_deduped_activity_event,
     build_run_state,
     estimate_eta_seconds,
     write_book_manifest,
@@ -32,6 +35,7 @@ from .models import (
     BookAnalysisPolicy,
     BookStructure,
     BudgetPolicy,
+    CurrentReadingProblemCode,
     CurrentReadingActivity,
     ReaderMemory,
     ReaderProgressEvent,
@@ -101,6 +105,22 @@ def _timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+_CURRENT_READING_PROBLEM_CODES: set[str] = {
+    "llm_timeout",
+    "llm_quota",
+    "llm_auth",
+    "search_timeout",
+    "search_quota",
+    "search_auth",
+    "network_blocked",
+}
+_PROBLEM_EVENT_TYPES = {
+    "llm_timeout": "llm_timeout_detected",
+    "search_timeout": "search_timeout_detected",
+}
+_READING_ACTIVITY_HEARTBEAT_SECONDS = 2.0
+
+
 def _activity_excerpt(text: str | None, limit: int = 96) -> str | None:
     """Return a short human-readable excerpt for the live reading activity."""
     normalized = re.sub(r"\s+", " ", str(text or "")).strip()
@@ -113,6 +133,30 @@ def _activity_excerpt(text: str | None, limit: int = 96) -> str | None:
     return excerpt[: limit - 1].rstrip() + "…"
 
 
+def _normalize_current_reading_problem_code(value: object) -> CurrentReadingProblemCode | None:
+    """Return one stable runtime problem code when recognized."""
+    normalized = re.sub(r"\s+", "_", str(value or "")).strip().lower()
+    if normalized in _CURRENT_READING_PROBLEM_CODES:
+        return normalized  # type: ignore[return-value]
+    return None
+
+
+def _resume_compat_matches(payload: object) -> bool:
+    """Return whether one persisted payload is compatible with the current reader runtime."""
+    if not isinstance(payload, dict):
+        return False
+    raw_version = payload.get("resume_compat_version")
+    if raw_version is None:
+        return False
+    if isinstance(raw_version, str) and not raw_version.strip():
+        return False
+    try:
+        normalized = int(raw_version)
+    except (TypeError, ValueError):
+        return False
+    return normalized == get_reader_resume_compat_version()
+
+
 def _build_current_reading_activity(
     *,
     phase: str,
@@ -120,16 +164,22 @@ def _build_current_reading_activity(
     current_excerpt: str | None = None,
     search_query: str | None = None,
     thought_family: str | None = None,
+    started_at: str | None = None,
+    updated_at: str | None = None,
+    problem_code: str | None = None,
 ) -> CurrentReadingActivity:
     """Construct one ephemeral reading-activity snapshot."""
+    now = updated_at or _timestamp()
     payload: CurrentReadingActivity = {
         "phase": phase,  # type: ignore[typeddict-item]
-        "updated_at": _timestamp(),
+        "started_at": started_at or now,
+        "updated_at": now,
     }
     normalized_segment_ref = str(segment_ref or "").strip()
     normalized_excerpt = _activity_excerpt(current_excerpt)
     normalized_query = re.sub(r"\s+", " ", str(search_query or "")).strip()
     normalized_family = str(thought_family or "").strip().lower()
+    normalized_problem_code = _normalize_current_reading_problem_code(problem_code)
 
     if normalized_segment_ref:
         payload["segment_ref"] = normalized_segment_ref
@@ -139,6 +189,8 @@ def _build_current_reading_activity(
         payload["search_query"] = normalized_query
     if normalized_family in {"highlight", "association", "curious", "discern", "retrospect"}:
         payload["thought_family"] = normalized_family  # type: ignore[typeddict-item]
+    if normalized_problem_code:
+        payload["problem_code"] = normalized_problem_code
     return payload
 
 
@@ -150,23 +202,45 @@ def _update_current_reading_activity(
     current_excerpt: str | None = None,
     search_query: str | None = None,
     thought_family: str | None = None,
+    problem_code: str | None = None,
 ) -> bool:
-    """Update the live reading activity only when its semantic payload changes."""
+    """Update the live reading activity while preserving phase start time."""
+    current_activity = tracker.get("current_reading_activity")
+    previous_started_at = (
+        str(current_activity.get("started_at", "") or "").strip()
+        if isinstance(current_activity, dict)
+        else ""
+    ) or None
+    now = _timestamp()
     next_activity = _build_current_reading_activity(
         phase=phase,
         segment_ref=segment_ref,
         current_excerpt=current_excerpt,
         search_query=search_query,
         thought_family=thought_family,
+        started_at=previous_started_at,
+        updated_at=now,
+        problem_code=problem_code,
     )
-    current_activity = tracker.get("current_reading_activity")
     comparable_keys = ("phase", "segment_ref", "current_excerpt", "search_query", "thought_family")
     if isinstance(current_activity, dict) and all(
         str(current_activity.get(key, "") or "") == str(next_activity.get(key, "") or "")
         for key in comparable_keys
     ):
-        return False
+        tracker["current_reading_activity"] = next_activity
+        return True
+    next_activity["started_at"] = now
     tracker["current_reading_activity"] = next_activity
+    return True
+
+
+def _touch_current_reading_activity(tracker: dict[str, object]) -> bool:
+    """Refresh the heartbeat timestamp for the current reading activity."""
+    current_activity = tracker.get("current_reading_activity")
+    if not isinstance(current_activity, dict):
+        return False
+    current_activity["updated_at"] = _timestamp()
+    tracker["current_reading_activity"] = current_activity
     return True
 
 
@@ -176,6 +250,77 @@ def _clear_current_reading_activity(tracker: dict[str, object]) -> bool:
         return False
     tracker["current_reading_activity"] = None
     return True
+
+
+class _ReadingActivityHeartbeat:
+    """Persist lightweight activity heartbeats while deep reading remains active."""
+
+    def __init__(
+        self,
+        *,
+        structure: BookStructure,
+        output_dir: Path,
+        tracker: dict[str, object],
+        io_lock: threading.RLock,
+        interval_seconds: float = _READING_ACTIVITY_HEARTBEAT_SECONDS,
+    ) -> None:
+        self._structure = structure
+        self._output_dir = output_dir
+        self._tracker = tracker
+        self._io_lock = io_lock
+        self._interval_seconds = max(0.5, interval_seconds)
+        self._stop = threading.Event()
+        self._thread = threading.Thread(
+            target=self._run,
+            name="reading-activity-heartbeat",
+            daemon=True,
+        )
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stop.set()
+        self._thread.join(timeout=self._interval_seconds * 2)
+
+    def _run(self) -> None:
+        try:
+            while not self._stop.wait(self._interval_seconds):
+                with self._io_lock:
+                    stage = str(self._tracker.get("_run_state_stage", "") or "").strip()
+                    if stage not in {"parsing_structure", "deep_reading", "ready"}:
+                        continue
+                    if not _touch_current_reading_activity(self._tracker):
+                        continue
+                    _write_sequential_run_state(
+                        self._structure,
+                        self._output_dir,
+                        self._tracker,
+                        stage=stage,  # type: ignore[arg-type]
+                        current_phase_step=(
+                            str(self._tracker.get("_run_state_current_phase_step", "") or "").strip() or None
+                        ),
+                        error=(str(self._tracker.get("_run_state_error", "") or "").strip() or None),
+                    )
+        except Exception as exc:  # pragma: no cover - defensive runtime path
+            self._tracker["_heartbeat_failed_at"] = _timestamp()
+            self._tracker["_heartbeat_failure_message"] = str(exc)
+            append_deduped_activity_event(
+                self._output_dir,
+                {
+                    "type": "heartbeat_lost",
+                    "message": (
+                        "Live heartbeat stopped while reading "
+                        f"{str(self._tracker.get('current_segment_ref', '') or self._tracker.get('current_chapter_ref', '') or 'the current section')}."
+                    ),
+                    "chapter_id": int(self._tracker.get("current_chapter_id", 0) or 0) or None,
+                    "chapter_ref": str(self._tracker.get("current_chapter_ref", "") or "") or None,
+                    "segment_ref": str(self._tracker.get("current_segment_ref", "") or "") or None,
+                    "details": {
+                        "reason": str(exc),
+                    },
+                },
+            )
 
 
 def _chapter_lookup_number(chapter: StructureChapter) -> int | None:
@@ -228,6 +373,9 @@ def _coerce_reader_progress_event(progress: ReaderProgressEvent | str) -> Reader
         thought_family = str(progress.get("thought_family", "") or "").strip().lower()
         if thought_family in {"highlight", "association", "curious", "discern", "retrospect"}:
             normalized["thought_family"] = thought_family  # type: ignore[typeddict-item]
+        problem_code = _normalize_current_reading_problem_code(progress.get("problem_code", ""))
+        if problem_code:
+            normalized["problem_code"] = problem_code
         return normalized
     text = str(progress or "")
     if text.startswith("📖"):
@@ -437,6 +585,9 @@ def _write_sequential_run_state(
     error: str | None = None,
 ) -> None:
     """Persist one coarse-grained run_state snapshot for sequential mode."""
+    tracker["_run_state_stage"] = stage
+    tracker["_run_state_current_phase_step"] = current_phase_step
+    tracker["_run_state_error"] = error
     completed_chapter_seconds = list(tracker.get("chapter_seconds", []))
     total_chapters = int(tracker.get("total_chapters", 0))
     completed_chapters = int(tracker.get("completed_chapters", 0))
@@ -444,6 +595,7 @@ def _write_sequential_run_state(
     current_chapter_ref = tracker.get("current_chapter_ref")
     current_segment_ref = tracker.get("current_segment_ref")
     current_reading_activity = tracker.get("current_reading_activity")
+    last_checkpoint_at = tracker.get("last_checkpoint_at")
     eta_seconds: int | None
 
     if stage == "completed":
@@ -480,7 +632,7 @@ def _write_sequential_run_state(
             eta_seconds=eta_seconds,
             current_phase_step=current_phase_step,
             resume_available=bool(current_chapter_id is not None or completed_chapters > 0),
-            last_checkpoint_at=None,
+            last_checkpoint_at=str(last_checkpoint_at) if last_checkpoint_at else None,
             error=error,
         ),
     )
@@ -492,6 +644,8 @@ def _persist_reader_memory(output_dir: Path, memory: ReaderMemory) -> None:
         reader_memory_file(output_dir),
         {
             "updated_at": _timestamp(),
+            "backend_version": get_backend_version(),
+            "resume_compat_version": get_reader_resume_compat_version(),
             "memory": coerce_reader_memory(memory),
         },
     )
@@ -576,9 +730,10 @@ def _load_reader_memory_snapshot(
     if path.exists():
         payload = load_json(path)
         if isinstance(payload, dict):
-            if isinstance(payload.get("memory"), dict):
+            if isinstance(payload.get("memory"), dict) and _resume_compat_matches(payload):
                 return coerce_reader_memory(payload.get("memory"))
-            return coerce_reader_memory(payload)
+            if _resume_compat_matches(payload):
+                return coerce_reader_memory(payload)
 
     backfilled = _backfill_reader_memory_from_results(output_dir, structure)
     if any(backfilled.get(key) for key in ["chapter_memory_summaries", "findings", "threads", "book_arc_summary"]):
@@ -894,7 +1049,7 @@ def _run_single_chapter(
 
     if allow_resume and checkpoint_path.exists():
         checkpoint_payload = load_json(checkpoint_path)
-        if isinstance(checkpoint_payload, dict):
+        if _resume_compat_matches(checkpoint_payload):
             for item in checkpoint_payload.get("rendered_segments", []):
                 if not isinstance(item, dict):
                     continue
@@ -917,20 +1072,25 @@ def _run_single_chapter(
                         )
                     ),
                 )
-        tracker["current_completed_segments"] = len(resumed_segment_map)
-        with write_context:
-            _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
-        print(f"  ├─ 检测到段级 checkpoint，恢复 {len(resumed_segment_map)} 个语义单元", flush=True)
-        pending_segments = [
-            segment
-            for segment in chapter.get("segments", [])
-            if segment.get("id", "") not in resumed_segment_map
-        ]
-        if pending_segments:
-            next_segment_id = _visible_segment_ref(chapter, pending_segments[0])
-            print(f"  ├─ checkpoint 恢复后继续从 {next_segment_id} 开始处理", flush=True)
+            tracker["last_checkpoint_at"] = str(
+                checkpoint_payload.get("last_checkpoint_at", "") or checkpoint_payload.get("checkpointed_at", "") or ""
+            ) or None
+            tracker["current_completed_segments"] = len(resumed_segment_map)
+            with write_context:
+                _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
+            print(f"  ├─ 检测到段级 checkpoint，恢复 {len(resumed_segment_map)} 个语义单元", flush=True)
+            pending_segments = [
+                segment
+                for segment in chapter.get("segments", [])
+                if segment.get("id", "") not in resumed_segment_map
+            ]
+            if pending_segments:
+                next_segment_id = _visible_segment_ref(chapter, pending_segments[0])
+                print(f"  ├─ checkpoint 恢复后继续从 {next_segment_id} 开始处理", flush=True)
+            else:
+                print("  ├─ checkpoint 已覆盖本章全部语义单元，直接收尾输出", flush=True)
         else:
-            print("  ├─ checkpoint 已覆盖本章全部语义单元，直接收尾输出", flush=True)
+            checkpoint_path.unlink(missing_ok=True)
     elif checkpoint_path.exists():
         checkpoint_path.unlink(missing_ok=True)
 
@@ -959,6 +1119,26 @@ def _run_single_chapter(
             normalized = _coerce_reader_progress_event(progress_event)
             stdout_progress(normalized)
             phase = str(normalized.get("phase", "") or "").strip().lower()
+            problem_code = _normalize_current_reading_problem_code(normalized.get("problem_code", ""))
+            if problem_code:
+                append_deduped_activity_event(
+                    output_dir,
+                    {
+                        "type": _PROBLEM_EVENT_TYPES.get(problem_code, "runtime_stalled"),
+                        "message": (
+                            f"Reader detected {problem_code.replace('_', ' ')} while working on {shown_segment_id}."
+                        ),
+                        "chapter_id": int(chapter.get("id", 0) or 0) or None,
+                        "chapter_ref": chapter_reference(chapter),
+                        "segment_id": str(segment_id or "") or None,
+                        "segment_ref": shown_segment_id,
+                        "problem_code": problem_code,
+                        "details": {
+                            "phase": phase or None,
+                            "source": "reader_progress",
+                        },
+                    },
+                )
             if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
                 activity_changed = _update_current_reading_activity(
                     tracker,
@@ -967,6 +1147,7 @@ def _run_single_chapter(
                     current_excerpt=str(normalized.get("current_excerpt", "") or ""),
                     search_query=str(normalized.get("search_query", "") or ""),
                     thought_family=str(normalized.get("thought_family", "") or ""),
+                    problem_code=str(problem_code or normalized.get("problem_code", "") or ""),
                 )
                 if activity_changed:
                     with write_context:
@@ -1018,10 +1199,15 @@ def _run_single_chapter(
         )
         segment["status"] = "skipped" if rendered.get("verdict") == "skip" else "done"
         with write_context:
+            checkpointed_at = _timestamp()
             save_structure(structure_file(output_dir), structure)
             save_json(
                 checkpoint_path,
                 {
+                    "backend_version": get_backend_version(),
+                    "resume_compat_version": get_reader_resume_compat_version(),
+                    "last_checkpoint_at": checkpointed_at,
+                    "checkpointed_at": checkpointed_at,
                     "chapter_id": chapter.get("id", 0),
                     "chapter_title": chapter.get("title", ""),
                     "rendered_segments": rendered_segments,
@@ -1029,6 +1215,7 @@ def _run_single_chapter(
                     "chapter_budget": chapter_budget_state,
                 },
             )
+            tracker["last_checkpoint_at"] = checkpointed_at
         tracker["current_completed_segments"] = len(rendered_segments)
         with write_context:
             _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
@@ -1168,6 +1355,7 @@ def _read_book_sequential(
         "current_reading_activity": None,
         "current_total_segments": 0,
         "current_completed_segments": 0,
+        "last_checkpoint_at": None,
     }
     coordinator = BackgroundSegmentationCoordinator(
         structure=structure,
@@ -1175,6 +1363,12 @@ def _read_book_sequential(
         book_path=book_path,
         selected_chapters=selected_chapters,
         tuning=tuning,
+        io_lock=io_lock,
+    )
+    heartbeat = _ReadingActivityHeartbeat(
+        structure=structure,
+        output_dir=output_dir,
+        tracker=tracker,
         io_lock=io_lock,
     )
     with io_lock:
@@ -1197,6 +1391,7 @@ def _read_book_sequential(
             stage="parsing_structure" if not selected_chapters[0].get("segments") else "ready",
             current_phase_step=None if selected_chapters[0].get("segments") else "等待首章切分",
         )
+    heartbeat.start()
     coordinator.start()
     try:
         for index, chapter in enumerate(selected_chapters, start=1):
@@ -1243,7 +1438,25 @@ def _read_book_sequential(
             )
             tracker["current_chapter_started_at"] = time.monotonic()
             with io_lock:
-                _clear_current_reading_activity(tracker)
+                first_segment = next(
+                    (
+                        segment
+                        for segment in chapter.get("segments", [])
+                        if str(segment.get("id", "") or "").strip()
+                    ),
+                    None,
+                )
+                if isinstance(first_segment, dict):
+                    _update_current_reading_activity(
+                        tracker,
+                        phase="reading",
+                        segment_ref=_visible_segment_ref(chapter, first_segment),
+                        current_excerpt=str(
+                            first_segment.get("text", "")
+                            or first_segment.get("summary", "")
+                            or ""
+                        ),
+                    )
                 _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
                 append_activity_event(
                     output_dir,
@@ -1301,6 +1514,7 @@ def _read_book_sequential(
             )
         return structure
     finally:
+        heartbeat.stop()
         coordinator.stop()
 
 

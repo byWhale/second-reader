@@ -87,6 +87,23 @@
 - Backend should not own UI localization except for content text itself.
 - For system-state UI, prefer structured `message_key`/`message_params` style fields and keep raw `message` as compatibility fallback.
 
+## Mindstream Language Split
+- `Reading mindstream` uses three distinct language layers that must not be mixed:
+  - **Live process language**
+    - Purpose: say what the reader is doing right now
+    - Owner: structured runtime snapshot (`current_reading_activity`) + controlled live copy
+    - Tone: in-progress, clear, lightly lyrical
+  - **History trace language**
+    - Purpose: say what kind of thought just surfaced
+    - Owner: frontend trace-copy layer driven by reaction results
+    - Tone: soft, already-happened trace language
+  - **Reaction labels**
+    - Purpose: fixed product taxonomy (`Highlight`, `Discern`, `Association`, `Curious`, `Retrospect`)
+    - Owner: product lexicon
+    - Tone: purely classificatory
+- Live process language must never be derived by reusing reaction labels.
+- History trace language may be guided by reaction-type families, but it must remain separate from the fixed labels.
+
 ## Current Scope
 - Governance is mandatory for main-path UI surfaces:
   - `/books`

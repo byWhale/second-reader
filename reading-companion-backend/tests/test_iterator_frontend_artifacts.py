@@ -8,9 +8,14 @@ import threading
 
 import pytest
 
+from src.config import get_reader_resume_compat_version
 from src.iterator_reader import iterator as iterator_module
 from src.iterator_reader import parse as parse_module
-from src.iterator_reader.frontend_artifacts import append_activity_event, estimate_eta_seconds
+from src.iterator_reader.frontend_artifacts import (
+    append_activity_event,
+    append_deduped_activity_event,
+    estimate_eta_seconds,
+)
 from src.iterator_reader.storage import (
     activity_file,
     book_manifest_file,
@@ -292,6 +297,8 @@ def test_read_book_sequential_writes_frontend_artifacts(tmp_path, monkeypatch):
     assert _load_json(chapter_qa_file(output_dir, structure["chapters"][0]))["chapter_insights"] == ["Arc"]
     assert run_state["stage"] == "completed"
     assert run_state["eta_seconds"] == 0
+    assert run_state["resume_compat_version"] == get_reader_resume_compat_version()
+    assert run_state["last_checkpoint_at"] is not None
     assert {"structure_ready", "chapter_started", "segment_completed", "chapter_completed", "run_completed"} <= {
         item["type"] for item in activity
     }
@@ -516,3 +523,84 @@ def test_append_activity_event_classifies_segment_progress_streams(tmp_path):
         ("transition", "hidden"),
     ]
     assert all(item["stream"] == "mindstream" for item in activity)
+
+
+def test_append_activity_event_classifies_runtime_guard_events_as_system_errors(tmp_path):
+    """Runtime guard events should land in the program log stream."""
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    append_activity_event(output_dir, {"type": "runtime_stalled", "message": "Runtime activity stalled."})
+    append_activity_event(output_dir, {"type": "heartbeat_lost", "message": "Heartbeat stopped."})
+    append_activity_event(output_dir, {"type": "job_paused_by_runtime_guard", "message": "Reader paused."})
+
+    activity = _load_jsonl(activity_file(output_dir))
+
+    assert [(item["stream"], item["kind"]) for item in activity] == [
+        ("system", "error"),
+        ("system", "error"),
+        ("system", "error"),
+    ]
+
+
+def test_append_deduped_activity_event_suppresses_recent_runtime_duplicates(tmp_path):
+    """Operational runtime events should not flood the program log."""
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    first = append_deduped_activity_event(
+        output_dir,
+        {
+            "type": "runtime_stalled",
+            "message": "Runtime activity stalled for 60s while reading Chapter 1.",
+            "chapter_ref": "Chapter 1",
+            "segment_ref": "1.2",
+            "problem_code": "network_blocked",
+        },
+    )
+    second = append_deduped_activity_event(
+        output_dir,
+        {
+            "type": "runtime_stalled",
+            "message": "Runtime activity stalled for 60s while reading Chapter 1.",
+            "chapter_ref": "Chapter 1",
+            "segment_ref": "1.2",
+            "problem_code": "network_blocked",
+        },
+    )
+
+    activity = _load_jsonl(activity_file(output_dir))
+
+    assert first is not None
+    assert second is None
+    assert len(activity) == 1
+
+
+def test_reading_activity_heartbeat_logs_operator_event_on_failure(tmp_path, monkeypatch):
+    """Heartbeat failures should be surfaced in the system activity stream."""
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    structure = _structure(output_dir)
+    tracker = {
+        "_run_state_stage": "deep_reading",
+        "current_chapter_id": 1,
+        "current_chapter_ref": "Chapter 1",
+        "current_segment_ref": "1.2",
+    }
+    heartbeat = iterator_module._ReadingActivityHeartbeat(
+        structure=structure,
+        output_dir=output_dir,
+        tracker=tracker,
+        io_lock=threading.RLock(),
+        interval_seconds=0.01,
+    )
+
+    monkeypatch.setattr(iterator_module, "_touch_current_reading_activity", lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("disk full")))
+    monkeypatch.setattr(heartbeat._stop, "wait", lambda _interval: False)
+
+    heartbeat._run()
+
+    activity = _load_jsonl(activity_file(output_dir))
+    assert activity[-1]["type"] == "heartbeat_lost"
+    assert activity[-1]["stream"] == "system"
+    assert activity[-1]["kind"] == "error"

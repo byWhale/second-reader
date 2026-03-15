@@ -278,7 +278,22 @@ class CurrentReadingActivity(ApiModel):
         default=None,
         description="Optional thought family hint attached to the current live activity when already known.",
     )
+    started_at: str = Field(description="Timestamp marking when the current live phase began.")
     updated_at: str = Field(description="Timestamp of the latest live-activity update.")
+    problem_code: Optional[
+        Literal[
+            "llm_timeout",
+            "llm_quota",
+            "llm_auth",
+            "search_timeout",
+            "search_quota",
+            "search_auth",
+            "network_blocked",
+        ]
+    ] = Field(
+        default=None,
+        description="Optional machine-readable problem code when the live activity is degraded by an external failure.",
+    )
 
 
 class CurrentStatePanel(ApiModel):

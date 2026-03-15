@@ -972,11 +972,16 @@ type MindstreamMoment = {
 type ContentLocale = "en" | "zh";
 type MindstreamActionFamily = "discern" | "association" | "curious" | "retrospect" | "highlight";
 type CurrentReadingActivitySnapshot = NonNullable<AnalysisStateResponse["current_reading_activity"]>;
+type MindstreamProblemCode = NonNullable<CurrentReadingActivitySnapshot["problem_code"]>;
 type CurrentMindstreamActivity = {
   message: string;
   context: string | null;
   contextKind: "excerpt" | "query" | "none";
+  mode: "active" | "waiting" | "slow" | "degraded";
 };
+
+const LIVE_PHASE_SLOW_THRESHOLD_MS = 8_000;
+const LIVE_HEARTBEAT_STALE_MS = 10_000;
 
 function normalizeContentLocale(language?: string | null): ContentLocale {
   return String(language ?? "").trim().toLowerCase().startsWith("zh") ? "zh" : "en";
@@ -999,6 +1004,14 @@ function excerptText(value?: string | null, maxLength = 120) {
     return normalized;
   }
   return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function timestampToMs(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? null : parsed;
 }
 
 const REACTION_PRIORITY: Record<string, number> = {
@@ -1178,14 +1191,21 @@ function reactionTracePhrase(reaction: MindstreamReaction, locale: ContentLocale
 
 const MINDSTREAM_LIVE_COPY_KEYS: Record<
   CurrentReadingActivitySnapshot["phase"],
-  { default: ControlledCopyKey; alternate?: ControlledCopyKey; families?: Partial<Record<MindstreamActionFamily, ControlledCopyKey>> }
+  {
+    default: ControlledCopyKey;
+    alternate?: ControlledCopyKey;
+    still?: ControlledCopyKey;
+    families?: Partial<Record<MindstreamActionFamily, ControlledCopyKey>>;
+  }
 > = {
   reading: {
     default: "overview.mindstream.live.reading.default",
     alternate: "overview.mindstream.live.reading.alternate",
+    still: "overview.mindstream.live.reading.still",
   },
   thinking: {
     default: "overview.mindstream.live.thinking.default",
+    still: "overview.mindstream.live.thinking.still",
     families: {
       discern: "overview.mindstream.live.thinking.discern",
       association: "overview.mindstream.live.thinking.association",
@@ -1196,6 +1216,7 @@ const MINDSTREAM_LIVE_COPY_KEYS: Record<
   },
   searching: {
     default: "overview.mindstream.live.searching.default",
+    still: "overview.mindstream.live.searching.still",
     families: {
       curious: "overview.mindstream.live.searching.curious",
     },
@@ -1203,10 +1224,12 @@ const MINDSTREAM_LIVE_COPY_KEYS: Record<
   fusing: {
     default: "overview.mindstream.live.fusing.default",
     alternate: "overview.mindstream.live.fusing.alternate",
+    still: "overview.mindstream.live.fusing.still",
   },
   reflecting: {
     default: "overview.mindstream.live.reflecting.default",
     alternate: "overview.mindstream.live.reflecting.alternate",
+    still: "overview.mindstream.live.reflecting.still",
   },
   waiting: {
     default: "overview.mindstream.live.waiting.default",
@@ -1214,6 +1237,16 @@ const MINDSTREAM_LIVE_COPY_KEYS: Record<
   preparing: {
     default: "overview.mindstream.live.preparing.default",
   },
+};
+
+const MINDSTREAM_LIVE_PROBLEM_COPY_KEYS: Record<MindstreamProblemCode, ControlledCopyKey> = {
+  llm_timeout: "overview.mindstream.live.problem.llm_timeout",
+  llm_quota: "overview.mindstream.live.problem.llm_quota",
+  llm_auth: "overview.mindstream.live.problem.llm_auth",
+  search_timeout: "overview.mindstream.live.problem.search_timeout",
+  search_quota: "overview.mindstream.live.problem.search_quota",
+  search_auth: "overview.mindstream.live.problem.search_auth",
+  network_blocked: "overview.mindstream.live.problem.network_blocked",
 };
 
 function isWaitingOrPreparingPulse(value: string) {
@@ -1269,9 +1302,47 @@ function liveCopyKeyForActivity(activity: CurrentReadingActivitySnapshot): Contr
   return copyGroup.default;
 }
 
+function stillLiveCopyKeyForActivity(activity: CurrentReadingActivitySnapshot): ControlledCopyKey {
+  const copyGroup = MINDSTREAM_LIVE_COPY_KEYS[activity.phase];
+  return copyGroup.still ?? copyGroup.alternate ?? copyGroup.default;
+}
+
+function liveProblemCopyKey(problemCode?: string | null): ControlledCopyKey {
+  const normalized = String(problemCode ?? "").trim().toLowerCase() as MindstreamProblemCode;
+  return MINDSTREAM_LIVE_PROBLEM_COPY_KEYS[normalized] ?? "overview.mindstream.live.problem.default";
+}
+
+function buildCurrentMindstreamContext(
+  activity: CurrentReadingActivitySnapshot,
+): Pick<CurrentMindstreamActivity, "context" | "contextKind"> {
+  const excerpt = String(activity.current_excerpt ?? "").trim();
+  const query = String(activity.search_query ?? "").trim();
+  const segmentRef = String(activity.segment_ref ?? "").trim();
+
+  if (query) {
+    return {
+      context: excerptText(query, 72),
+      contextKind: "query",
+    };
+  }
+
+  if (excerpt && !looksLikeLocationToken(excerpt, segmentRef)) {
+    return {
+      context: excerptText(excerpt, 96),
+      contextKind: "excerpt",
+    };
+  }
+
+  return {
+    context: null,
+    contextKind: "none",
+  };
+}
+
 function buildCurrentMindstreamActivity(
   analysis: AnalysisStateResponse | null,
   locale: ContentLocale,
+  nowMs: number,
 ): CurrentMindstreamActivity | null {
   if (!analysis) {
     return null;
@@ -1279,31 +1350,29 @@ function buildCurrentMindstreamActivity(
 
   const liveActivity = analysis.current_reading_activity ?? analysis.current_state_panel.current_reading_activity ?? null;
   if (liveActivity) {
-    const message = contentCopy(liveCopyKeyForActivity(liveActivity), locale);
-    const excerpt = String(liveActivity.current_excerpt ?? "").trim();
-    const query = String(liveActivity.search_query ?? "").trim();
-    const segmentRef = String(liveActivity.segment_ref ?? "").trim();
+    const startedAtMs = timestampToMs(liveActivity.started_at) ?? timestampToMs(liveActivity.updated_at) ?? nowMs;
+    const updatedAtMs = timestampToMs(liveActivity.updated_at) ?? startedAtMs;
+    const phaseDurationMs = Math.max(0, nowMs - startedAtMs);
+    const heartbeatAgeMs = Math.max(0, nowMs - updatedAtMs);
+    const context = buildCurrentMindstreamContext(liveActivity);
 
-    if (liveActivity.phase === "searching" && query) {
+    if (heartbeatAgeMs > LIVE_HEARTBEAT_STALE_MS) {
       return {
-        message,
-        context: excerptText(query, 72),
-        contextKind: "query",
+        message: contentCopy(liveProblemCopyKey(liveActivity.problem_code), locale),
+        context: context.context,
+        contextKind: context.contextKind,
+        mode: "degraded",
       };
     }
 
-    if (excerpt && !looksLikeLocationToken(excerpt, segmentRef)) {
-      return {
-        message,
-        context: excerptText(excerpt, 96),
-        contextKind: "excerpt",
-      };
-    }
+    const isWaiting = liveActivity.phase === "waiting" || liveActivity.phase === "preparing";
+    const isSlow = !isWaiting && phaseDurationMs >= LIVE_PHASE_SLOW_THRESHOLD_MS;
 
     return {
-      message,
-      context: null,
-      contextKind: "none",
+      message: contentCopy(isSlow ? stillLiveCopyKeyForActivity(liveActivity) : liveCopyKeyForActivity(liveActivity), locale),
+      context: context.context,
+      contextKind: context.contextKind,
+      mode: isWaiting ? "waiting" : (isSlow ? "slow" : "active"),
     };
   }
 
@@ -1313,6 +1382,7 @@ function buildCurrentMindstreamActivity(
       message: fallbackPulse,
       context: null,
       contextKind: "none",
+      mode: "waiting",
     };
   }
 
@@ -1321,6 +1391,7 @@ function buildCurrentMindstreamActivity(
       message: contentCopy("overview.mindstream.live.reading.default", locale),
       context: null,
       contextKind: "none",
+      mode: "degraded",
     };
   }
 
@@ -1350,16 +1421,40 @@ function CurrentMindstreamActivityLine({
   activity: CurrentMindstreamActivity;
   prefersReducedMotion: boolean;
 }) {
+  const indicatorTone = activity.mode === "degraded"
+    ? {
+      ring: "border-[var(--warm-400)]/45",
+      ember: "bg-[var(--warm-500)]",
+    }
+    : {
+      ring: "border-[var(--amber-accent)]/35",
+      ember: "bg-[var(--amber-accent)]",
+    };
+  const isWaiting = activity.mode === "waiting";
+  const isOrbiting = activity.mode === "active" || activity.mode === "slow";
+  const indicatorDuration = isWaiting ? "2.6s" : activity.mode === "degraded" ? "2.4s" : "1.6s";
+
   return (
     <div className="border-l border-[var(--amber-accent)]/30 pl-4">
       <div className="flex items-center gap-2 text-[var(--warm-700)]">
-        <span className="relative flex h-2.5 w-2.5 shrink-0">
+        <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
           <span
-            className={`absolute inline-flex h-full w-full rounded-full bg-[var(--amber-accent)]/35 ${
-              prefersReducedMotion ? "" : "motion-safe:animate-pulse"
+            className={`absolute inset-0 rounded-full border ${indicatorTone.ring} ${
+              prefersReducedMotion
+                ? ""
+                : isWaiting
+                  ? "motion-safe:animate-pulse"
+                  : ""
             }`}
+            style={isWaiting && !prefersReducedMotion ? { animationDuration: indicatorDuration } : undefined}
           />
-          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--amber-accent)]" />
+          <span
+            className={`absolute inset-0 ${prefersReducedMotion || !isOrbiting ? "" : "motion-safe:animate-spin"}`}
+            style={!prefersReducedMotion && isOrbiting ? { animationDuration: indicatorDuration, animationTimingFunction: "linear" } : undefined}
+          >
+            <span className={`absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full shadow-[0_0_0_2px_rgba(255,255,255,0.92)] ${indicatorTone.ember}`} />
+          </span>
+          <span className={`relative h-1.5 w-1.5 rounded-full ${indicatorTone.ember} ${prefersReducedMotion ? "" : "opacity-75"}`} />
         </span>
         <span style={{ fontSize: "0.875rem", fontWeight: 600, letterSpacing: "0.01em" }}>{activity.message}</span>
       </div>
@@ -1616,6 +1711,16 @@ function RuntimeFeedPanel({
   error: unknown | null;
   onRetry: () => void;
 }) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [liveNowMs, setLiveNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setLiveNowMs(Date.now());
+    }, 1_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   if (loading && !analysis) {
     return (
       <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
@@ -1652,8 +1757,7 @@ function RuntimeFeedPanel({
   const programEvents = activity.filter(
     (event) => activityStream(event) === "system" && activityVisibility(event) !== "hidden",
   );
-  const prefersReducedMotion = usePrefersReducedMotion();
-  const currentActivity = buildCurrentMindstreamActivity(analysis, contentLanguage);
+  const currentActivity = buildCurrentMindstreamActivity(analysis, contentLanguage, liveNowMs);
   const historyMoments = mainMindstreamMoments;
 
   return (

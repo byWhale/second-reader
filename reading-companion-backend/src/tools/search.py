@@ -1,4 +1,4 @@
-"""Tavily search tool definition with LangGraph tool decorator"""
+"""Tavily search tool definition with LangGraph tool decorator."""
 
 from typing import Optional, TypedDict, Union
 
@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 from tavily import TavilyClient
 
 from src.config import get_tavily_api_key
+from src.iterator_reader.models import CurrentReadingProblemCode
 
 
 class TavilySearchResult(TypedDict):
@@ -14,6 +15,21 @@ class TavilySearchResult(TypedDict):
     url: str
     content: str
     score: Optional[float]
+
+
+_SEARCH_TIMEOUT_SECONDS = 20
+
+
+def classify_search_problem(message: str) -> CurrentReadingProblemCode:
+    """Map one Tavily/network failure into a stable runtime problem code."""
+    lowered = str(message or "").lower()
+    if any(token in lowered for token in ("timed out", "timeout", "read timeout", "deadline exceeded")):
+        return "search_timeout"
+    if any(token in lowered for token in ("authentication", "unauthorized", "forbidden", "invalid api key", "api key not configured")):
+        return "search_auth"
+    if any(token in lowered for token in ("quota", "insufficient", "billing", "credit balance", "rate limit", "429")):
+        return "search_quota"
+    return "network_blocked"
 
 
 @tool
@@ -32,13 +48,19 @@ def search_web(query: str, max_results: int = 5) -> list[dict]:
     """
     api_key = get_tavily_api_key()
     if not api_key:
-        return [{"error": "TAVILY_API_KEY not configured"}]
+        error = "TAVILY_API_KEY not configured"
+        return [{"error": error, "problem_code": classify_search_problem(error)}]
 
     client = TavilyClient(api_key=api_key)
-    response = client.search(
-        query=query,
-        max_results=max_results,
-    )
+    try:
+        response = client.search(
+            query=query,
+            max_results=max_results,
+            timeout=_SEARCH_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:  # pragma: no cover - integration/runtime behavior
+        error = str(exc)
+        return [{"error": error, "problem_code": classify_search_problem(error)}]
 
     results = []
     for result in response.get("results", []):
@@ -80,6 +102,7 @@ def create_search_tool(api_key: Optional[str] = None):
         response = client.search(
             query=query,
             max_results=max_results,
+            timeout=_SEARCH_TIMEOUT_SECONDS,
         )
         return [
             TavilySearchResult(

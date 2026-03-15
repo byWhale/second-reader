@@ -63,6 +63,15 @@ CurrentReadingPhase = Literal[
     "preparing",
 ]
 ThoughtFamily = Literal["highlight", "association", "curious", "discern", "retrospect"]
+CurrentReadingProblemCode = Literal[
+    "llm_timeout",
+    "llm_quota",
+    "llm_auth",
+    "search_timeout",
+    "search_quota",
+    "search_auth",
+    "network_blocked",
+]
 
 
 class SourceAsset(TypedDict):
@@ -207,6 +216,8 @@ class RunState(TypedDict):
 
     mode: Literal["sequential"]
     stage: RunStage
+    backend_version: str | None
+    resume_compat_version: int
     book: str
     current_chapter_id: int | None
     current_chapter_ref: str | None
@@ -226,6 +237,8 @@ class ParseState(TypedDict):
     """Parse-stage checkpoint state persisted for resuming structure generation."""
 
     status: Literal["parsing_structure", "ready", "paused", "error"]
+    backend_version: str | None
+    resume_compat_version: int
     total_chapters: int
     completed_chapters: int
     parsed_chapter_ids: list[int]
@@ -276,6 +289,8 @@ class ActivityEvent(TypedDict, total=False):
     reaction_types: list[str]
     highlight_quote: str
     search_query: str
+    problem_code: CurrentReadingProblemCode
+    details: dict[str, object]
     visible_reaction_count: int
     visible_reactions: list[dict[str, object]]
     featured_reactions: list[dict[str, object]]
@@ -293,16 +308,19 @@ class ReaderProgressEvent(TypedDict, total=False):
     phase: CurrentReadingPhase
     current_excerpt: str
     thought_family: ThoughtFamily
+    problem_code: CurrentReadingProblemCode
 
 
 class CurrentReadingActivity(TypedDict, total=False):
     """Ephemeral snapshot describing what the reader is doing right now."""
 
     phase: CurrentReadingPhase
+    started_at: str
     segment_ref: str
     current_excerpt: str
     search_query: str
     thought_family: ThoughtFamily
+    problem_code: CurrentReadingProblemCode
     updated_at: str
 
 
@@ -436,6 +454,7 @@ class SearchResultPayload(TypedDict, total=False):
     search_query: str
     results: list[SearchHit]
     error: str
+    problem_code: CurrentReadingProblemCode
 
 
 class ReflectionPayload(TypedDict):

@@ -1524,6 +1524,27 @@
             "title": "Phase",
             "type": "string"
           },
+          "problem_code": {
+            "anyOf": [
+              {
+                "enum": [
+                  "llm_timeout",
+                  "llm_quota",
+                  "llm_auth",
+                  "search_timeout",
+                  "search_quota",
+                  "search_auth",
+                  "network_blocked"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional machine-readable problem code when the live activity is degraded by an external failure.",
+            "title": "Problem Code"
+          },
           "search_query": {
             "anyOf": [
               {
@@ -1547,6 +1568,11 @@
             ],
             "description": "Current semantic segment reference when known.",
             "title": "Segment Ref"
+          },
+          "started_at": {
+            "description": "Timestamp marking when the current live phase began.",
+            "title": "Started At",
+            "type": "string"
           },
           "thought_family": {
             "anyOf": [
@@ -1575,6 +1601,7 @@
         },
         "required": [
           "phase",
+          "started_at",
           "updated_at"
         ],
         "title": "CurrentReadingActivity",

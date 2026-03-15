@@ -1260,6 +1260,11 @@ export interface components {
              */
             phase: "reading" | "thinking" | "searching" | "fusing" | "reflecting" | "waiting" | "preparing";
             /**
+             * Problem Code
+             * @description Optional machine-readable problem code when the live activity is degraded by an external failure.
+             */
+            problem_code?: ("llm_timeout" | "llm_quota" | "llm_auth" | "search_timeout" | "search_quota" | "search_auth" | "network_blocked") | null;
+            /**
              * Search Query
              * @description Search query being investigated when the reader is searching.
              */
@@ -1269,6 +1274,11 @@ export interface components {
              * @description Current semantic segment reference when known.
              */
             segment_ref?: string | null;
+            /**
+             * Started At
+             * @description Timestamp marking when the current live phase began.
+             */
+            started_at: string;
             /**
              * Thought Family
              * @description Optional thought family hint attached to the current live activity when already known.

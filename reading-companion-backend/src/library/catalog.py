@@ -903,6 +903,7 @@ def _synthesized_current_reading_activity(
 
     payload: dict[str, Any] = {
         "phase": phase,
+        "started_at": updated_at or _timestamp(),
         "updated_at": updated_at or _timestamp(),
     }
     if current_segment_ref:
@@ -925,12 +926,14 @@ def _analysis_current_reading_activity(
         if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
             payload = {
                 "phase": phase,
+                "started_at": str(current.get("started_at", "") or current.get("updated_at", "") or run_state.get("updated_at", "") or _timestamp()),
                 "updated_at": str(current.get("updated_at", "") or run_state.get("updated_at", "") or _timestamp()),
             }
             segment_ref = str(current.get("segment_ref", "") or "").strip()
             current_excerpt = str(current.get("current_excerpt", "") or "").strip()
             search_query = str(current.get("search_query", "") or "").strip()
             thought_family = str(current.get("thought_family", "") or "").strip().lower()
+            problem_code = str(current.get("problem_code", "") or "").strip().lower()
             if segment_ref:
                 payload["segment_ref"] = segment_ref
             if current_excerpt:
@@ -939,6 +942,8 @@ def _analysis_current_reading_activity(
                 payload["search_query"] = search_query
             if thought_family in {"highlight", "association", "curious", "discern", "retrospect"}:
                 payload["thought_family"] = thought_family
+            if problem_code in {"llm_timeout", "llm_quota", "llm_auth", "search_timeout", "search_quota", "search_auth", "network_blocked"}:
+                payload["problem_code"] = problem_code
             return payload
 
     return _synthesized_current_reading_activity(

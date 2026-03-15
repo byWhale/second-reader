@@ -12,9 +12,30 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_anthropic import ChatAnthropic
 
 from src.config import get_llm_config, get_llm_max_concurrency, get_llm_retry_attempts
+from .models import CurrentReadingProblemCode
 
 
 _LLM_SEMAPHORE = threading.BoundedSemaphore(get_llm_max_concurrency())
+
+
+class ReaderLLMError(RuntimeError):
+    """Typed LLM invocation failure surfaced to the runtime activity tracker."""
+
+    def __init__(self, message: str, *, problem_code: CurrentReadingProblemCode):
+        super().__init__(message)
+        self.problem_code = problem_code
+
+
+def _classify_llm_problem(exc: Exception) -> CurrentReadingProblemCode:
+    """Map provider/network failures into one stable runtime problem code."""
+    message = str(exc).lower()
+    if any(token in message for token in ("timed out", "timeout", "read timeout", "deadline exceeded")):
+        return "llm_timeout"
+    if any(token in message for token in ("authentication", "unauthorized", "forbidden", "invalid api key", "invalid x-api-key")):
+        return "llm_auth"
+    if any(token in message for token in ("quota", "insufficient", "billing", "credit balance", "rate limit", "429")):
+        return "llm_quota"
+    return "network_blocked"
 
 
 def get_reader_llm() -> ChatAnthropic:
@@ -107,9 +128,11 @@ def _invoke_with_limits(system_prompt: str, user_prompt: str) -> Any:
                 llm = get_reader_llm()
                 return llm.invoke(messages)
         except Exception as exc:  # pragma: no cover - exercised in integration/runtime behavior
-            last_error = exc
-            if attempt >= max_attempts:
-                raise
+            classified = _classify_llm_problem(exc)
+            last_error = ReaderLLMError(str(exc), problem_code=classified)
+            non_retryable = classified in {"llm_auth", "llm_quota"}
+            if attempt >= max_attempts or non_retryable:
+                raise last_error
             time.sleep(min(4.0, 0.5 * (2 ** (attempt - 1))))
     if last_error is not None:  # pragma: no cover - defensive fallback
         raise last_error
