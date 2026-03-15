@@ -462,6 +462,7 @@ def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     assert activity_response.json()["items"][0]["stream"] == "mindstream"
     assert activity_response.json()["items"][0]["kind"] == "chapter_complete"
     assert activity_response.json()["items"][0]["visibility"] == "default"
+    assert activity_response.json()["items"][0]["result_url"] == f"/books/{public_book_id}/chapters/1"
 
     chapter_response = client.get(f"/api/books/{public_book_id}/chapters/1")
     assert chapter_response.status_code == 200
@@ -541,6 +542,48 @@ def test_book_activity_supports_stream_filter(tmp_path):
     assert [item["event_id"] for item in system_response.json()["items"]] == ["evt-2"]
 
 
+def test_activity_result_url_is_hidden_until_chapter_workspace_is_ready(tmp_path):
+    """Sentence-level activity items should not advertise a chapter URL until the result workspace exists."""
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    public_book_id = to_api_book_id(book_id)
+    output_dir = tmp_path / "output" / book_id
+    (output_dir / "ch01_deep_read.json").unlink(missing_ok=True)
+    _write_jsonl(
+        output_dir / "activity.jsonl",
+        [
+            {
+                "event_id": "evt-segment",
+                "timestamp": "2026-03-07T00:00:02Z",
+                "type": "segment_completed",
+                "message": "Alpha beta",
+                "chapter_id": 1,
+                "chapter_ref": "Chapter 1",
+                "segment_ref": "1.1",
+                "anchor_quote": "Alpha beta",
+                "reaction_types": ["discern"],
+                "visible_reactions": [
+                    {
+                        "reaction_id": "r1",
+                        "type": "discern",
+                        "anchor_quote": "Alpha beta",
+                        "content": "Testing the opening claim.",
+                    }
+                ],
+                "visible_reaction_count": 1,
+            }
+        ],
+    )
+
+    api_module.app.state.root = tmp_path
+    client = TestClient(api_module.app)
+
+    response = client.get(f"/api/books/{public_book_id}/activity")
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["event_id"] == "evt-segment"
+    assert response.json()["items"][0]["result_url"] is None
+
+
 def test_analysis_state_prefers_parse_checkpoint_during_structure_stage(tmp_path):
     """analysis-state should surface parse checkpoint details while the book is still preparing readable chapters."""
     book_id = _bootstrap_book(tmp_path, stage="parsing_structure")
@@ -579,13 +622,12 @@ def test_analysis_state_prefers_parse_checkpoint_during_structure_stage(tmp_path
     assert payload["total_chapters"] == 3
     assert payload["current_chapter_id"] == 2
     assert payload["current_chapter_ref"] == "Chapter 2"
-    assert payload["current_phase_step"] == "后台准备后续章节"
     assert payload["current_phase_step_key"] == "system.step.prefetchFutureChapters"
     assert payload["current_phase_step_params"] is None
     assert payload["resume_available"] is True
-    assert payload["stage_label"] == "正在解析 Chapter 2"
     assert payload["stage_label_key"] == "system.stage.parsingChapter"
     assert payload["stage_label_params"] == {"chapter": "Chapter 2"}
+    assert payload["pulse_message"] == "Preparing Chapter 2"
 
 
 def test_chapter_api_tolerates_empty_legacy_target_locator(tmp_path):

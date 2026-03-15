@@ -1,5 +1,6 @@
 import { Activity, BookOpen, Clock3, FileText, LoaderCircle, RotateCcw, Search, TreePine } from "lucide-react";
 import { Link } from "react-router";
+import { copy, maybeCopy } from "../config/controlled-copy";
 import { type ActivityEvent, type AnalysisLogResponse, type AnalysisStateResponse, toFrontendPath } from "../lib/api";
 import { canonicalBookPath, canonicalChapterPath } from "../lib/contract";
 import { reactionLabel } from "../lib/reactions";
@@ -10,6 +11,14 @@ function formatTimestamp(value: string) {
     return value;
   }
   return parsed.toLocaleString();
+}
+
+function renderStructuredText(
+  key?: string | null,
+  params?: Record<string, unknown> | null,
+  fallback?: string,
+) {
+  return maybeCopy(key, params as Record<string, string | number | null> | undefined) ?? fallback ?? "";
 }
 
 export function BookAnalysisOverview({
@@ -29,7 +38,12 @@ export function BookAnalysisOverview({
 }) {
   const isParsing = analysis.status === "parsing_structure";
   const isPaused = analysis.status === "paused";
-  const stepLabel = analysis.current_state_panel.current_phase_step ?? analysis.current_phase_step ?? (isParsing ? "Preparing structure" : "Pending");
+  const stepLabel =
+    renderStructuredText(
+      analysis.current_state_panel.current_phase_step_key ?? analysis.current_phase_step_key,
+      analysis.current_state_panel.current_phase_step_params ?? analysis.current_phase_step_params,
+      isParsing ? "Preparing structure" : "Pending",
+    ) || (isParsing ? "Preparing structure" : "Pending");
 
   return (
     <div className="space-y-6">
@@ -37,7 +51,7 @@ export function BookAnalysisOverview({
         <div className="flex items-center gap-4 flex-wrap mb-4 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
           <span className="inline-flex items-center gap-1.5">
             <LoaderCircle className={`w-4 h-4 ${analysis.status === "completed" || isPaused ? "" : "animate-spin text-[var(--amber-accent)]"}`} />
-            {analysis.stage_label}
+            {renderStructuredText(analysis.stage_label_key, analysis.stage_label_params, copy("overview.runtime.syncing"))}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock3 className="w-4 h-4" />
@@ -191,7 +205,7 @@ export function BookAnalysisOverview({
             ) : null}
 
             <p className="text-[var(--warm-600)] mt-4" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
-              {analysis.current_state_panel.last_activity_message ?? "No recent activity message yet."}
+              {analysis.current_state_panel.pulse_message ?? analysis.pulse_message ?? "No live pulse yet."}
             </p>
           </section>
 

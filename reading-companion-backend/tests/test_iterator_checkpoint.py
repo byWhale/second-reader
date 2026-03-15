@@ -135,7 +135,8 @@ def test_segment_checkpoint_resumes_remaining_segments(tmp_path, monkeypatch, ca
     assert saved_after["chapters"][0]["segments"][1]["status"] == "done"
     assert reader_memory["memory"]["chapter_memory_summaries"][0]["chapter_ref"] == "Chapter 1"
     assert run_state["stage"] == "completed"
-    assert "segment_started" in {item["type"] for item in activity}
+    assert "segment_started" not in {item["type"] for item in activity}
+    assert "segment_completed" in {item["type"] for item in activity}
     assert "chapter_completed" in {item["type"] for item in activity}
 
 

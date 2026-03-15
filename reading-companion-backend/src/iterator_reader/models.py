@@ -261,10 +261,12 @@ class ActivityEvent(TypedDict, total=False):
     chapter_ref: str
     segment_id: str
     segment_ref: str
+    anchor_quote: str
     reaction_types: list[str]
     highlight_quote: str
     search_query: str
     visible_reaction_count: int
+    visible_reactions: list[dict[str, object]]
     featured_reactions: list[dict[str, object]]
     result_file: str
     result_url: str

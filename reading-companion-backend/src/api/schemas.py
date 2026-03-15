@@ -143,6 +143,17 @@ class FeaturedReactionPreview(ApiModel):
     )
 
 
+class ActivityReactionPreview(ApiModel):
+    """Compact reaction payload used inside one sentence-level mindstream event."""
+
+    reaction_id: int = Field(description="Stable public integer identifier for the reaction.")
+    type: ReactionType = Field(description="Reaction type key.")
+    anchor_quote: str = Field(description="Quoted anchor text from the source book.")
+    content: str = Field(description="AI-authored reaction text shown to the user.")
+    section_ref: str = Field(description="Human-readable section reference, such as 3.2.")
+    search_query: Optional[str] = Field(default=None, description="Search query attached to the reaction when applicable.")
+
+
 class BookShelfCard(ApiModel):
     """One bookshelf card."""
 
@@ -214,9 +225,9 @@ class JobStatusResponse(ApiModel):
     current_section_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current section.")
     stage_label_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current stage label when available.")
     stage_label_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current stage label.")
-    current_phase_step: Optional[str] = Field(default=None, description="Human-readable label for the current parse or read step.")
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
+    pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds.")
     resume_available: bool = Field(default=False, description="Whether the job can resume from a checkpoint.")
     last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when available.")
@@ -244,13 +255,12 @@ class CurrentStatePanel(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Identifier of the chapter currently being processed.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Human-readable reference of the chapter currently being processed.")
     current_section_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current section.")
-    current_phase_step: Optional[str] = Field(default=None, description="Human-readable label of the current parse or read step.")
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
+    pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
     recent_reactions: list[FeaturedReactionPreview] = Field(description="Small set of recently surfaced reactions for quick feedback.")
     reaction_counts: dict[ReactionType, int] = Field(description="Visible reaction counts grouped by reaction type.")
     search_active: bool = Field(description="Whether the agent has recent active search behavior.")
-    last_activity_message: Optional[str] = Field(default=None, description="Most recent user-facing activity line.")
 
 
 class ChapterCompletionCard(ApiModel):
@@ -273,7 +283,6 @@ class AnalysisStateResponse(ApiModel):
     status: Literal["queued", "parsing_structure", "deep_reading", "chapter_note_generation", "paused", "completed", "error"] = Field(
         description="Current lifecycle state of the active analysis.",
     )
-    stage_label: str = Field(description="User-facing stage label shown at the top of the progress page.")
     stage_label_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current stage label when available.")
     stage_label_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current stage label.")
     progress_percent: Optional[float] = Field(default=None, description="Overall progress percentage from 0 to 100 when known.")
@@ -282,9 +291,9 @@ class AnalysisStateResponse(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Identifier of the chapter currently being processed.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Human-readable reference of the current chapter.")
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds.")
-    current_phase_step: Optional[str] = Field(default=None, description="Human-readable label for the current parse or read step.")
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
+    pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
     resume_available: bool = Field(default=False, description="Whether this analysis can resume from the latest checkpoint.")
     last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when available.")
     structure_ready: bool = Field(description="Whether the structure tree is ready to render.")
@@ -320,9 +329,11 @@ class ActivityEvent(ApiModel):
     chapter_id: Optional[int] = Field(default=None, description="Related chapter identifier when applicable.")
     chapter_ref: Optional[str] = Field(default=None, description="Related chapter reference when applicable.")
     section_ref: Optional[str] = Field(default=None, description="Related section reference when applicable.")
+    anchor_quote: Optional[str] = Field(default=None, description="Sentence-level anchor quote used to group visible reactions when available.")
     highlight_quote: Optional[str] = Field(default=None, description="High-signal anchor quote attached to the event when available.")
     reaction_types: list[ReactionType] = Field(description="Reaction types represented in this event.")
     search_query: Optional[str] = Field(default=None, description="Search query attached to the event when applicable.")
+    visible_reactions: list[ActivityReactionPreview] = Field(description="Visible reactions grouped under the same sentence-level mindstream event.")
     featured_reactions: list[FeaturedReactionPreview] = Field(description="Featured reactions attached to the event when applicable.")
     visible_reaction_count: Optional[int] = Field(default=None, description="Visible reaction count attached to the event when applicable.")
     result_url: Optional[str] = Field(default=None, description="Frontend result route associated with the event when available.")
@@ -532,7 +543,6 @@ class JobSnapshotPayload(ApiModel):
     """Initial or refreshed job snapshot payload."""
 
     status: str = Field(description="Current job status.")
-    stage_label: str = Field(description="User-facing stage label.")
     stage_label_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current stage label when available.")
     stage_label_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current stage label.")
     progress_percent: Optional[float] = Field(default=None, description="Overall progress percentage when known.")
@@ -541,9 +551,9 @@ class JobSnapshotPayload(ApiModel):
     current_chapter_id: Optional[int] = Field(default=None, description="Current chapter identifier when known.")
     current_chapter_ref: Optional[str] = Field(default=None, description="Current chapter reference when known.")
     current_section_ref: Optional[str] = Field(default=None, description="Current section reference when known.")
-    current_phase_step: Optional[str] = Field(default=None, description="Current parse or read step when known.")
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
+    pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds when known.")
     resume_available: bool = Field(default=False, description="Whether the current run can resume from a checkpoint.")
     last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when known.")
@@ -554,7 +564,6 @@ class StageChangedPayload(ApiModel):
 
     previous_status: Optional[str] = Field(default=None, description="Previous top-level status before this change.")
     current_status: str = Field(description="New top-level status after this change.")
-    stage_label: str = Field(description="User-facing label for the new stage.")
     stage_label_key: Optional[str] = Field(default=None, description="Stable UI copy key for the new stage label when available.")
     stage_label_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the new stage label.")
 
@@ -575,15 +584,6 @@ class ChapterStartedPayload(ApiModel):
     chapter_ref: str = Field(description="Human-readable chapter reference.")
     title: str = Field(description="Chapter title.")
     segment_count: int = Field(description="Number of sections in the chapter.")
-
-
-class SegmentStartedPayload(ApiModel):
-    """WebSocket payload emitted when a section begins processing."""
-
-    chapter_id: int = Field(description="Parent chapter identifier.")
-    chapter_ref: str = Field(description="Parent chapter reference.")
-    section_ref: str = Field(description="Section reference currently being processed.")
-    section_summary: str = Field(description="One-line summary of the section when available.")
 
 
 class ActivityCreatedPayload(ApiModel):

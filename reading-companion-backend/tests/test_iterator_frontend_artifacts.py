@@ -292,17 +292,17 @@ def test_read_book_sequential_writes_frontend_artifacts(tmp_path, monkeypatch):
     assert _load_json(chapter_qa_file(output_dir, structure["chapters"][0]))["chapter_insights"] == ["Arc"]
     assert run_state["stage"] == "completed"
     assert run_state["eta_seconds"] == 0
-    assert {"structure_ready", "chapter_started", "segment_started", "segment_completed", "chapter_completed", "run_completed"} <= {
+    assert {"structure_ready", "chapter_started", "segment_completed", "chapter_completed", "run_completed"} <= {
         item["type"] for item in activity
     }
-    position_event = next(item for item in activity if item["type"] == "segment_progress" and item["message"].startswith("📖"))
-    assert position_event["stream"] == "mindstream"
-    assert position_event["kind"] == "position"
-    assert position_event["visibility"] == "default"
-    thought_event = next(item for item in activity if item["type"] == "segment_progress" and item["message"].startswith("💡"))
-    assert thought_event["stream"] == "mindstream"
-    assert thought_event["kind"] == "thought"
-    assert thought_event["visibility"] == "default"
+    assert "segment_started" not in {item["type"] for item in activity}
+    assert "segment_progress" not in {item["type"] for item in activity}
+    segment_events = [item for item in activity if item["type"] == "segment_completed"]
+    assert segment_events
+    assert all(item["stream"] == "mindstream" for item in segment_events)
+    assert all(item["kind"] == "segment_complete" for item in segment_events)
+    assert all(item["visibility"] == "default" for item in segment_events)
+    assert any(item.get("visible_reactions") for item in segment_events)
     chapter_event = next(item for item in activity if item["type"] == "chapter_completed")
     assert chapter_event["stream"] == "mindstream"
     assert chapter_event["kind"] == "chapter_complete"

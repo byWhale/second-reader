@@ -358,6 +358,11 @@ export interface components {
          */
         ActivityEvent: {
             /**
+             * Anchor Quote
+             * @description Sentence-level anchor quote used to group visible reactions when available.
+             */
+            anchor_quote?: string | null;
+            /**
              * Chapter Id
              * @description Related chapter identifier when applicable.
              */
@@ -440,6 +445,11 @@ export interface components {
              * @description Visible reaction count attached to the event when applicable.
              */
             visible_reaction_count?: number | null;
+            /**
+             * Visible Reactions
+             * @description Visible reactions grouped under the same sentence-level mindstream event.
+             */
+            visible_reactions: components["schemas"]["ActivityReactionPreview"][];
         };
         /**
          * ActivityEventsPageResponse
@@ -453,6 +463,43 @@ export interface components {
             items: components["schemas"]["ActivityEvent"][];
             /** @description Pagination metadata for the activity query. */
             page_info: components["schemas"]["PageInfo"];
+        };
+        /**
+         * ActivityReactionPreview
+         * @description Compact reaction payload used inside one sentence-level mindstream event.
+         */
+        ActivityReactionPreview: {
+            /**
+             * Anchor Quote
+             * @description Quoted anchor text from the source book.
+             */
+            anchor_quote: string;
+            /**
+             * Content
+             * @description AI-authored reaction text shown to the user.
+             */
+            content: string;
+            /**
+             * Reaction Id
+             * @description Stable public integer identifier for the reaction.
+             */
+            reaction_id: number;
+            /**
+             * Search Query
+             * @description Search query attached to the reaction when applicable.
+             */
+            search_query?: string | null;
+            /**
+             * Section Ref
+             * @description Human-readable section reference, such as 3.2.
+             */
+            section_ref: string;
+            /**
+             * Type
+             * @description Reaction type key.
+             * @enum {string}
+             */
+            type: "highlight" | "association" | "discern" | "retrospect" | "curious";
         };
         /**
          * AnalysisLogResponse
@@ -580,11 +627,6 @@ export interface components {
              */
             current_chapter_ref?: string | null;
             /**
-             * Current Phase Step
-             * @description Human-readable label for the current parse or read step.
-             */
-            current_phase_step?: string | null;
-            /**
              * Current Phase Step Key
              * @description Stable UI copy key for the current parse or read step when available.
              */
@@ -616,6 +658,11 @@ export interface components {
              */
             progress_percent?: number | null;
             /**
+             * Pulse Message
+             * @description Single-line runtime pulse shown near the mindstream while the run is active.
+             */
+            pulse_message?: string | null;
+            /**
              * Recent Completed Chapters
              * @description Recently completed chapters shown as micro-ritual cards.
              */
@@ -626,11 +673,6 @@ export interface components {
              * @default false
              */
             resume_available: boolean;
-            /**
-             * Stage Label
-             * @description User-facing stage label shown at the top of the progress page.
-             */
-            stage_label: string;
             /**
              * Stage Label Key
              * @description Stable UI copy key for the current stage label when available.
@@ -1195,11 +1237,6 @@ export interface components {
              */
             current_chapter_ref?: string | null;
             /**
-             * Current Phase Step
-             * @description Human-readable label of the current parse or read step.
-             */
-            current_phase_step?: string | null;
-            /**
              * Current Phase Step Key
              * @description Stable UI copy key for the current parse or read step when available.
              */
@@ -1217,10 +1254,10 @@ export interface components {
              */
             current_section_ref?: string | null;
             /**
-             * Last Activity Message
-             * @description Most recent user-facing activity line.
+             * Pulse Message
+             * @description Single-line runtime pulse shown near the mindstream while the run is active.
              */
-            last_activity_message?: string | null;
+            pulse_message?: string | null;
             /**
              * Reaction Counts
              * @description Visible reaction counts grouped by reaction type.
@@ -1378,11 +1415,6 @@ export interface components {
              */
             current_chapter_ref?: string | null;
             /**
-             * Current Phase Step
-             * @description Human-readable label for the current parse or read step.
-             */
-            current_phase_step?: string | null;
-            /**
              * Current Phase Step Key
              * @description Stable UI copy key for the current parse or read step when available.
              */
@@ -1421,6 +1453,11 @@ export interface components {
              * @description Overall progress percentage from 0 to 100 when known.
              */
             progress_percent?: number | null;
+            /**
+             * Pulse Message
+             * @description Single-line runtime pulse shown near the mindstream while the run is active.
+             */
+            pulse_message?: string | null;
             /**
              * Resume Available
              * @description Whether the job can resume from a checkpoint.

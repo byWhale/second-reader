@@ -1,6 +1,7 @@
 import { Activity, ArrowRight, BookOpen, Clock3, LoaderCircle, Search, TreePine } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
+import { copy, maybeCopy } from "../config/controlled-copy";
 import { ActivityEvent, AnalysisStateResponse, fetchActivity, fetchAnalysisState, toFrontendPath, toWebSocketUrl } from "../lib/api";
 import { canonicalBookAnalysisPath, canonicalBookPath, canonicalChapterPath } from "../lib/contract";
 import { reactionLabel } from "../lib/reactions";
@@ -12,6 +13,14 @@ function formatTimestamp(value: string) {
     return value;
   }
   return parsed.toLocaleString();
+}
+
+function renderStructuredText(
+  key?: string | null,
+  params?: Record<string, unknown> | null,
+  fallback?: string,
+) {
+  return maybeCopy(key, params as Record<string, string | number | null> | undefined) ?? fallback ?? "";
 }
 
 export function AnalysisPage() {
@@ -128,7 +137,7 @@ export function AnalysisPage() {
         <div className="flex items-center gap-4 flex-wrap mb-4 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
           <span className="inline-flex items-center gap-1.5">
             <LoaderCircle className={`w-4 h-4 ${analysis.status === "completed" ? "" : "animate-spin text-[var(--amber-accent)]"}`} />
-            {analysis.stage_label}
+            {renderStructuredText(analysis.stage_label_key, analysis.stage_label_params, copy("overview.runtime.syncing"))}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock3 className="w-4 h-4" />
@@ -261,7 +270,7 @@ export function AnalysisPage() {
             </div>
 
             <p className="text-[var(--warm-600)] mt-4" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
-              {analysis.current_state_panel.last_activity_message ?? "No recent activity message yet."}
+              {analysis.current_state_panel.pulse_message ?? analysis.pulse_message ?? "No live pulse yet."}
             </p>
           </section>
 

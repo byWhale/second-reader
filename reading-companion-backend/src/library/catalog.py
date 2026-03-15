@@ -33,6 +33,7 @@ from src.iterator_reader.storage import (
     run_state_file,
 )
 from src.iterator_reader.frontend_artifacts import normalize_activity_event
+from src.iterator_reader.language import runtime_label
 
 
 def output_root(root: Path | None = None) -> Path:
@@ -157,6 +158,19 @@ def _chapter_result_path(book_id: str, chapter: dict, root: Path | None = None) 
         relative_path,
         fallback=existing_chapter_result_file(output_dir, chapter),
     )
+
+
+def _chapter_result_urls(book_id: str, manifest: dict, root: Path | None = None) -> dict[int, str]:
+    """Return ready-to-open chapter result URLs keyed by chapter id."""
+    public_book_id = to_api_book_id(book_id)
+    urls: dict[int, str] = {}
+    for chapter in manifest.get("chapters", []):
+        chapter_id = int(chapter.get("id", 0) or 0)
+        if chapter_id <= 0:
+            continue
+        if _chapter_result_path(book_id, chapter, root=root).exists():
+            urls[chapter_id] = canonical_chapter_path(public_book_id, chapter_id)
+    return urls
 
 
 def _sort_by_updated_and_id(items: list[dict], *, updated_key: str, id_key: str) -> list[dict]:
@@ -408,12 +422,49 @@ def _featured_reaction_preview(book_id: str, chapter_id: int, chapter_ref: str, 
     }
 
 
-def _decorate_activity_event(book_id: str, event: dict) -> dict:
+def _activity_reaction_preview(
+    book_id: str,
+    chapter_id: int,
+    section_ref: str,
+    item: dict,
+    index: int,
+) -> dict:
+    """Normalize one compact reaction payload embedded in an activity event."""
+    raw_reaction_id = str(item.get("reaction_id", "") or "").strip() or f"{section_ref}:{index}"
+    return {
+        "reaction_id": to_api_reaction_id(book_id=book_id, reaction_id=raw_reaction_id),
+        "type": to_api_reaction_type(str(item.get("type", ""))),
+        "anchor_quote": str(item.get("anchor_quote", "")),
+        "content": str(item.get("content", "")),
+        "section_ref": section_ref,
+        "search_query": str(item.get("search_query", "") or "") or None,
+    }
+
+
+def _decorate_activity_event(
+    book_id: str,
+    event: dict,
+    *,
+    chapter_result_urls: dict[int, str] | None = None,
+) -> dict:
     """Decorate one persisted activity event into the public API shape."""
     event = normalize_activity_event(event)
     chapter_id = int(event.get("chapter_id", 0) or 0) or None
     chapter_ref = str(event.get("chapter_ref", "") or "") or None
     section_ref = str(event.get("segment_ref", event.get("section_ref", "")) or "") or None
+    visible_reactions = []
+    for index, item in enumerate(event.get("visible_reactions", []), start=1):
+        if not isinstance(item, dict):
+            continue
+        visible_reactions.append(
+            _activity_reaction_preview(
+                book_id,
+                chapter_id or 0,
+                section_ref or "",
+                item,
+                index,
+            )
+        )
     featured = []
     for item in event.get("featured_reactions", []):
         if not isinstance(item, dict):
@@ -438,20 +489,27 @@ def _decorate_activity_event(book_id: str, event: dict) -> dict:
         "chapter_id": chapter_id,
         "chapter_ref": chapter_ref,
         "section_ref": section_ref,
+        "anchor_quote": str(event.get("anchor_quote", "") or "") or None,
         "highlight_quote": str(event.get("highlight_quote", "") or "") or None,
         "reaction_types": [to_api_reaction_type(str(item)) for item in event.get("reaction_types", []) if str(item).strip()],
         "search_query": str(event.get("search_query", "") or "") or None,
+        "visible_reactions": visible_reactions,
         "featured_reactions": featured,
         "visible_reaction_count": (
             int(event.get("visible_reaction_count", 0) or 0) if event.get("visible_reaction_count") is not None else None
         ),
-        "result_url": canonical_chapter_path(to_api_book_id(book_id), chapter_id) if chapter_id is not None else None,
+        "result_url": chapter_result_urls.get(chapter_id) if chapter_id is not None and chapter_result_urls else None,
     }
 
 
 def get_activity(book_id: str, root: Path | None = None) -> list[dict]:
     """Load the user-facing activity stream for one book."""
-    return [_decorate_activity_event(book_id, item) for item in _load_jsonl(existing_activity_file(_book_dir(book_id, root)))]
+    manifest = _manifest(book_id, root)
+    chapter_result_urls = _chapter_result_urls(book_id, manifest, root=root)
+    return [
+        _decorate_activity_event(book_id, item, chapter_result_urls=chapter_result_urls)
+        for item in _load_jsonl(existing_activity_file(_book_dir(book_id, root)))
+    ]
 
 
 def get_activity_page(
@@ -754,31 +812,31 @@ def _analysis_status(
     run_state: dict,
     *,
     current_chapter_id: int | None,
-) -> tuple[str, str, str | None, dict[str, Any] | None]:
+) -> tuple[str, str | None, dict[str, Any] | None]:
     """Map run_state into the public analysis page status vocabulary."""
     stage = str(run_state.get("stage", "ready"))
     if stage == "completed":
         key, params = _message_ref("system.stage.completed")
-        return "completed", "全部完成", key, params
+        return "completed", key, params
     if stage == "paused":
         key, params = _message_ref("system.stage.paused")
-        return "paused", "已暂停，可继续", key, params
+        return "paused", key, params
     if stage == "error":
         key, params = _message_ref("system.stage.error")
-        return "error", "分析中断", key, params
+        return "error", key, params
     if stage == "parsing_structure":
         if current_chapter_id is not None:
             chapter_ref = str(run_state.get("current_chapter_ref", "") or "").strip()
             key, params = _message_ref("system.stage.parsingChapter", {"chapter": chapter_ref})
-            return "parsing_structure", f"正在解析 {chapter_ref}", key, params
+            return "parsing_structure", key, params
         key, params = _message_ref("system.stage.parsingStructure")
-        return "parsing_structure", "正在解析书籍结构", key, params
+        return "parsing_structure", key, params
     if current_chapter_id is not None:
         chapter_ref = str(run_state.get("current_chapter_ref", "") or "").strip()
         key, params = _message_ref("system.stage.deepReadingChapter", {"chapter": chapter_ref})
-        return "deep_reading", f"正在分析 {chapter_ref}", key, params
+        return "deep_reading", key, params
     key, params = _message_ref("system.stage.parsingStructure")
-    return "parsing_structure", "正在解析书籍结构", key, params
+    return "parsing_structure", key, params
 
 
 _PHASE_STEP_KEYS: dict[str, tuple[str, dict[str, Any] | None]] = {
@@ -804,9 +862,54 @@ def _analysis_phase_step_message(step: str | None) -> tuple[str | None, dict[str
     return _message_ref(key, params)
 
 
+def _analysis_pulse_message(
+    *,
+    status: str,
+    output_language: str,
+    current_chapter_ref: str | None,
+    current_section_ref: str | None,
+    current_phase_step_key: str | None,
+) -> str | None:
+    """Return one single-line runtime pulse for the active mindstream."""
+    if status in {"completed", "paused", "error"}:
+        return None
+
+    chapter_ref = str(current_chapter_ref or "").strip()
+    section_ref = str(current_section_ref or "").strip()
+    step_key = str(current_phase_step_key or "").strip()
+
+    if status == "deep_reading":
+        if section_ref:
+            return runtime_label(output_language, "pulse.readingSection", value=section_ref)
+        if step_key in {
+            "system.step.waitingCurrentChapterSegmentation",
+            "system.step.waitingNextChapterSegmentation",
+        }:
+            if chapter_ref:
+                return runtime_label(output_language, "pulse.waitingChapterSegmentation", value=chapter_ref)
+            return runtime_label(output_language, "pulse.waitingFirstChapter")
+        if chapter_ref:
+            return runtime_label(output_language, "pulse.readingChapter", value=chapter_ref)
+        return None
+
+    if step_key == "system.step.waitingFirstChapterSegmentation":
+        return runtime_label(output_language, "pulse.waitingFirstChapter")
+    if step_key == "system.step.waitingCurrentChapterSegmentation" and chapter_ref:
+        return runtime_label(output_language, "pulse.waitingChapterSegmentation", value=chapter_ref)
+    if chapter_ref:
+        return runtime_label(output_language, "pulse.preparingChapter", value=chapter_ref)
+    return runtime_label(output_language, "pulse.preparingStructure")
+
+
 def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
     """Build the progress-page snapshot from persisted artifacts."""
     manifest = _manifest(book_id, root)
+    chapter_result_urls = _chapter_result_urls(book_id, manifest, root=root)
+    output_language = str(
+        manifest.get("output_language", "")
+        or manifest.get("book_language", "")
+        or "en"
+    )
     run_state = _run_state(book_id, root)
     if not run_state:
         raise FileNotFoundError(book_id)
@@ -846,6 +949,9 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         if str(item.get("type", "")) != "chapter_completed":
             continue
         chapter_id = int(item.get("chapter_id", 0) or 0)
+        result_url = chapter_result_urls.get(chapter_id)
+        if not result_url:
+            continue
         chapter_ref = str(item.get("chapter_ref", ""))
         title = chapter_ref
         for chapter in manifest.get("chapters", []):
@@ -859,7 +965,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
                 "title": title,
                 "visible_reaction_count": int(item.get("visible_reaction_count", 0) or 0),
                 "featured_reactions": list(item.get("featured_reactions", [])),
-                "result_url": canonical_chapter_path(to_api_book_id(book_id), chapter_id),
+                "result_url": result_url,
             }
         )
         if len(completed_cards) >= 3:
@@ -870,13 +976,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         recent_reactions.extend(card.get("featured_reactions", []))
         if len(recent_reactions) >= 5:
             break
-    recent_visible_activity = [
-        item
-        for item in recent_activity
-        if str(item.get("visibility", "default") or "default") != "hidden"
-    ]
-
-    status, stage_label, stage_label_key, stage_label_params = _analysis_status(
+    status, stage_label_key, stage_label_params = _analysis_status(
         run_state, current_chapter_id=current_chapter_id
     )
     completed_chapters = int(run_state.get("completed_chapters", 0) or 0)
@@ -894,10 +994,17 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
             current_chapter_id = int(parse_state.get("current_chapter_id", 0) or 0) or None
         if not run_state.get("current_chapter_ref") and parse_state.get("current_chapter_ref"):
             run_state["current_chapter_ref"] = parse_state.get("current_chapter_ref")
-    status, stage_label, stage_label_key, stage_label_params = _analysis_status(
+    status, stage_label_key, stage_label_params = _analysis_status(
         run_state, current_chapter_id=current_chapter_id
     )
     current_phase_step_key, current_phase_step_params = _analysis_phase_step_message(current_phase_step)
+    pulse_message = _analysis_pulse_message(
+        status=status,
+        output_language=output_language,
+        current_chapter_ref=str(run_state.get("current_chapter_ref", "") or "") or None,
+        current_section_ref=str(run_state.get("current_segment_ref", "") or "") if status == "deep_reading" else None,
+        current_phase_step_key=current_phase_step_key,
+    )
     progress_percent = round((completed_chapters / total_chapters) * 100, 2) if total_chapters > 0 else None
 
     return {
@@ -905,7 +1012,6 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "title": str(manifest.get("book", "")),
         "author": str(manifest.get("author", "")),
         "status": status,
-        "stage_label": stage_label,
         "stage_label_key": stage_label_key,
         "stage_label_params": stage_label_params,
         "progress_percent": progress_percent,
@@ -914,9 +1020,9 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "current_chapter_id": current_chapter_id,
         "current_chapter_ref": run_state.get("current_chapter_ref"),
         "eta_seconds": run_state.get("eta_seconds"),
-        "current_phase_step": current_phase_step,
         "current_phase_step_key": current_phase_step_key,
         "current_phase_step_params": current_phase_step_params,
+        "pulse_message": pulse_message,
         "resume_available": resume_available,
         "last_checkpoint_at": last_checkpoint_at,
         "structure_ready": bool(chapters),
@@ -925,13 +1031,12 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
             "current_chapter_id": current_chapter_id,
             "current_chapter_ref": run_state.get("current_chapter_ref"),
             "current_section_ref": run_state.get("current_segment_ref") if status == "deep_reading" else None,
-            "current_phase_step": current_phase_step,
             "current_phase_step_key": current_phase_step_key,
             "current_phase_step_params": current_phase_step_params,
+            "pulse_message": pulse_message,
             "recent_reactions": recent_reactions[:5],
             "reaction_counts": reaction_counts,
             "search_active": any(str(item.get("search_query", "") or "").strip() for item in recent_activity[:5]),
-            "last_activity_message": recent_visible_activity[0].get("message") if recent_visible_activity else None,
         },
         "recent_completed_chapters": completed_cards,
         "last_error": (

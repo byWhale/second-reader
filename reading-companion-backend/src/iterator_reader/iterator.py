@@ -27,6 +27,7 @@ from .frontend_artifacts import (
     write_run_state,
 )
 from .markdown import render_chapter_markdown
+from .language import runtime_label
 from .models import (
     BookAnalysisPolicy,
     BookStructure,
@@ -236,29 +237,93 @@ def _segment_visible_reactions(rendered: dict[str, object]) -> list[dict[str, ob
     return visible
 
 
-def _reaction_event_fields(rendered: dict[str, object]) -> dict[str, object]:
-    """Extract compact reaction metadata for activity events."""
-    visible = _segment_visible_reactions(rendered)
-    reaction_types: list[str] = []
-    highlight_quote = ""
-    search_query = ""
-    for reaction in visible:
-        reaction_type = str(reaction.get("type", "")).strip()
-        if reaction_type and reaction_type not in reaction_types:
-            reaction_types.append(reaction_type)
-        if not highlight_quote and reaction_type == "highlight":
-            highlight_quote = str(reaction.get("anchor_quote", "")).strip()
-        if not search_query and str(reaction.get("search_query", "")).strip():
-            search_query = str(reaction.get("search_query", "")).strip()
+def _event_reaction_preview(reaction: dict[str, object]) -> dict[str, object]:
+    """Return one compact reaction payload for activity events."""
+    return {
+        "type": str(reaction.get("type", "") or "").strip(),
+        "content": str(reaction.get("content", "") or "").strip(),
+        "anchor_quote": str(reaction.get("anchor_quote", "") or "").strip(),
+        "search_query": str(reaction.get("search_query", "") or "").strip(),
+    }
 
-    payload: dict[str, object] = {}
-    if reaction_types:
-        payload["reaction_types"] = reaction_types
-    if highlight_quote:
-        payload["highlight_quote"] = highlight_quote
+
+def _reaction_group_key(reaction: dict[str, object], index: int) -> str:
+    """Build one stable grouping key for sentence-level mindstream events."""
+    anchor_quote = str(reaction.get("anchor_quote", "") or "").strip()
+    if anchor_quote:
+        return f"quote:{anchor_quote}"
+    search_query = str(reaction.get("search_query", "") or "").strip()
     if search_query:
-        payload["search_query"] = search_query
-    return payload
+        return f"search:{search_query}"
+    return f"reaction:{index}"
+
+
+def _sentence_level_mindstream_events(
+    rendered: dict[str, object],
+    *,
+    chapter_id: int,
+    chapter_ref: str,
+    segment_id: str,
+    segment_ref: str,
+) -> list[dict[str, object]]:
+    """Convert one rendered segment into sentence-level reaction-group events."""
+    visible = _segment_visible_reactions(rendered)
+    grouped: dict[str, dict[str, object]] = {}
+    ordered_keys: list[str] = []
+
+    for index, reaction in enumerate(visible, start=1):
+        key = _reaction_group_key(reaction, index)
+        if key not in grouped:
+            ordered_keys.append(key)
+            grouped[key] = {
+                "anchor_quote": str(reaction.get("anchor_quote", "") or "").strip(),
+                "search_query": str(reaction.get("search_query", "") or "").strip(),
+                "reaction_types": [],
+                "visible_reactions": [],
+            }
+        bucket = grouped[key]
+        reaction_type = str(reaction.get("type", "") or "").strip()
+        if reaction_type and reaction_type not in bucket["reaction_types"]:
+            bucket["reaction_types"].append(reaction_type)
+        bucket["visible_reactions"].append(_event_reaction_preview(reaction))
+        if not bucket["anchor_quote"]:
+            bucket["anchor_quote"] = str(reaction.get("anchor_quote", "") or "").strip()
+        if not bucket["search_query"]:
+            bucket["search_query"] = str(reaction.get("search_query", "") or "").strip()
+
+    events: list[dict[str, object]] = []
+    for key in ordered_keys:
+        bucket = grouped[key]
+        visible_reactions = list(bucket.get("visible_reactions", []))
+        if not visible_reactions:
+            continue
+        anchor_quote = str(bucket.get("anchor_quote", "") or "").strip()
+        search_query = str(bucket.get("search_query", "") or "").strip()
+        first_reaction = visible_reactions[0]
+        fallback_message = anchor_quote or search_query or str(first_reaction.get("content", "") or "").strip()
+        event_payload: dict[str, object] = {
+            "type": "segment_completed",
+            "message": fallback_message,
+            "chapter_id": chapter_id,
+            "chapter_ref": chapter_ref,
+            "segment_id": segment_id,
+            "segment_ref": segment_ref,
+            "anchor_quote": anchor_quote,
+            "reaction_types": list(bucket.get("reaction_types", [])),
+            "visible_reactions": visible_reactions,
+            "visible_reaction_count": len(visible_reactions),
+        }
+        if search_query:
+            event_payload["search_query"] = search_query
+        if anchor_quote:
+            event_payload["highlight_quote"] = anchor_quote
+        events.append(event_payload)
+    return events
+
+
+def _chapter_completed_message(output_language: str, chapter_ref: str, reaction_count: int) -> str:
+    """Render the user-facing chapter completion line in the content language."""
+    return runtime_label(output_language, "chapterCompleted", chapter=chapter_ref, count=reaction_count) or chapter_ref
 
 
 def _write_sequential_run_state(
@@ -778,38 +843,11 @@ def _run_single_chapter(
         tracker["current_completed_segments"] = len(rendered_segments)
         with write_context:
             _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
-            append_activity_event(
-                output_dir,
-                {
-                    "type": "segment_started",
-                    "message": f"开始阅读 {shown_segment_id}：{segment.get('summary', '')}",
-                    "chapter_id": int(chapter.get("id", 0)),
-                    "chapter_ref": chapter_reference(chapter),
-                    "segment_id": str(segment_id),
-                    "segment_ref": shown_segment_id,
-                },
-            )
         stdout_progress = _segment_progress(shown_segment_id)
 
         def progress(progress_event: ReaderProgressEvent | str) -> None:
             normalized = _coerce_reader_progress_event(progress_event)
             stdout_progress(normalized)
-            with write_context:
-                append_activity_event(
-                    output_dir,
-                    {
-                        "type": "segment_progress",
-                        "stream": "mindstream",
-                        "kind": normalized.get("kind", "transition"),
-                        "visibility": normalized.get("visibility", "default"),
-                        "message": normalized.get("message", ""),
-                        "chapter_id": int(chapter.get("id", 0)),
-                        "chapter_ref": chapter_reference(chapter),
-                        "segment_id": str(segment_id),
-                        "segment_ref": shown_segment_id,
-                        "search_query": normalized.get("search_query", ""),
-                    },
-                )
 
         progress(_read_progress_event(shown_segment_id, segment.get("summary", "")))
         chapter_index, total_chapters, nearby_outline = _chapter_position_context(structure, chapter)
@@ -874,18 +912,14 @@ def _run_single_chapter(
         visible_reactions = _segment_visible_reactions(rendered)
         if visible_reactions:
             with write_context:
-                append_activity_event(
-                    output_dir,
-                    {
-                        "type": "segment_completed",
-                        "message": f"完成 {shown_segment_id}，保留了 {len(visible_reactions)} 条反应。",
-                        "chapter_id": int(chapter.get("id", 0)),
-                        "chapter_ref": chapter_reference(chapter),
-                        "segment_id": str(segment_id),
-                        "segment_ref": shown_segment_id,
-                        **_reaction_event_fields(rendered),
-                    },
-                )
+                for activity_event in _sentence_level_mindstream_events(
+                    rendered,
+                    chapter_id=int(chapter.get("id", 0)),
+                    chapter_ref=chapter_reference(chapter),
+                    segment_id=str(segment_id),
+                    segment_ref=shown_segment_id,
+                ):
+                    append_activity_event(output_dir, activity_event)
 
     output_language = structure.get("output_language", "en")
     chapter_reflection = run_chapter_reflection(
@@ -965,7 +999,11 @@ def _run_single_chapter(
             output_dir,
             {
                 "type": "chapter_completed",
-                "message": f"{chapter_reference(chapter)} 完成，已生成结果文件。",
+                "message": _chapter_completed_message(
+                    output_language,
+                    chapter_reference(chapter),
+                    int(chapter_result.get("visible_reaction_count", 0) or 0),
+                ),
                 "chapter_id": int(chapter.get("id", 0)),
                 "chapter_ref": chapter_reference(chapter),
                 "visible_reaction_count": int(chapter_result.get("visible_reaction_count", 0)),

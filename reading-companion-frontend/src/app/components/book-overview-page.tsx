@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowUpRight,
   ArrowRight,
   BookOpen,
   Bookmark,
@@ -8,10 +9,11 @@ import {
   FileText,
   Globe2,
   LoaderCircle,
+  Search,
   Sparkles,
   TreePine,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
   type ActivityEvent,
@@ -28,7 +30,8 @@ import {
 import { canonicalChapterPath } from "../lib/contract";
 import { useBookAnalysisResource } from "../lib/use-book-analysis-resource";
 import { useApiResource } from "../lib/use-api-resource";
-import { copy, maybeCopy } from "../config/controlled-copy";
+import { copy, copyForLocale, maybeCopy, type ControlledCopyKey } from "../config/controlled-copy";
+import type { AppLocale } from "../config/app-locale";
 import { term } from "../config/product-lexicon";
 import { markLabel } from "../lib/marks";
 import { reactionLabel } from "../lib/reactions";
@@ -117,7 +120,7 @@ function resolveStructuredCopy(
 
 function resolveStageLabel(detail: BookDetailResponse, analysis: AnalysisStateResponse | null) {
   return (
-    resolveStructuredCopy(analysis?.stage_label_key, analysis?.stage_label_params, analysis?.stage_label) ??
+    resolveStructuredCopy(analysis?.stage_label_key, analysis?.stage_label_params) ??
     (detail.status === "paused" ? term("state.paused") : copy("overview.runtime.syncing"))
   );
 }
@@ -127,7 +130,6 @@ function resolveCurrentStep(analysis: AnalysisStateResponse | null) {
     resolveStructuredCopy(
       analysis?.current_state_panel.current_phase_step_key ?? analysis?.current_phase_step_key,
       analysis?.current_state_panel.current_phase_step_params ?? analysis?.current_phase_step_params,
-      analysis?.current_state_panel.current_phase_step ?? analysis?.current_phase_step,
     ) ?? copy("overview.runtime.pending")
   );
 }
@@ -143,8 +145,7 @@ function hasWaitingStep(analysis: AnalysisStateResponse | null) {
   ) {
     return true;
   }
-  const raw = analysis?.current_state_panel.current_phase_step ?? analysis?.current_phase_step ?? "";
-  return /(waiting)/i.test(raw.trim());
+  return false;
 }
 
 function isAnalysisParsing(analysis: AnalysisStateResponse | null) {
@@ -163,8 +164,7 @@ function isAnalysisParsing(analysis: AnalysisStateResponse | null) {
   ) {
     return true;
   }
-  const stepLabel = analysis.current_state_panel.current_phase_step ?? analysis.current_phase_step ?? "";
-  return analysis.status === "parsing_structure" || /(segment|structure)/i.test(stepLabel);
+  return analysis.status === "parsing_structure";
 }
 
 function buildOverviewChapters(detail: BookDetailResponse, analysis: AnalysisStateResponse | null): OverviewChapter[] {
@@ -308,7 +308,6 @@ function currentChapterRuntimeLabel(
     resolveStructuredCopy(
       panel.current_phase_step_key ?? analysis.current_phase_step_key,
       panel.current_phase_step_params ?? analysis.current_phase_step_params,
-      panel.current_phase_step ?? analysis.current_phase_step,
     )?.trim() ?? "";
   if (options.isParsing) {
     if (hasWaitingStep(analysis)) {
@@ -956,6 +955,58 @@ function activityVisibility(event: ActivityEvent) {
   return event.visibility ?? "default";
 }
 
+type MindstreamReaction = ActivityEvent["visible_reactions"][number];
+
+type MindstreamMoment = {
+  momentId: string;
+  timestamp: string;
+  chapterRef: string | null;
+  sectionRef: string | null;
+  anchorQuote: string;
+  reactions: MindstreamReaction[];
+  resultUrl: string | null;
+};
+
+type ContentLocale = "en" | "zh";
+type MindstreamActionFamily = "discern" | "association" | "curious" | "retrospect" | "highlight";
+
+const MINDSTREAM_ACTION_COPY_KEYS: Record<
+  MindstreamActionFamily,
+  { default: ControlledCopyKey; alternate?: ControlledCopyKey; search?: ControlledCopyKey }
+> = {
+  discern: {
+    default: "overview.mindstream.action.discern.default",
+    alternate: "overview.mindstream.action.discern.question",
+  },
+  association: {
+    default: "overview.mindstream.action.association.default",
+    alternate: "overview.mindstream.action.association.echo",
+  },
+  curious: {
+    default: "overview.mindstream.action.curious.default",
+    search: "overview.mindstream.action.curious.search",
+  },
+  retrospect: {
+    default: "overview.mindstream.action.retrospect.default",
+    alternate: "overview.mindstream.action.retrospect.echo",
+  },
+  highlight: {
+    default: "overview.mindstream.action.highlight.default",
+  },
+};
+
+function normalizeContentLocale(language?: string | null): ContentLocale {
+  return String(language ?? "").trim().toLowerCase().startsWith("zh") ? "zh" : "en";
+}
+
+function contentCopy(
+  key: ControlledCopyKey,
+  locale: ContentLocale,
+  params?: Record<string, string | number | null | undefined>,
+) {
+  return copyForLocale(key, locale as AppLocale, params);
+}
+
 function excerptText(value?: string | null, maxLength = 120) {
   const normalized = String(value ?? "").replace(/\s+/g, " ").trim();
   if (!normalized) {
@@ -965,6 +1016,172 @@ function excerptText(value?: string | null, maxLength = 120) {
     return normalized;
   }
   return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+const REACTION_PRIORITY: Record<string, number> = {
+  discern: 0,
+  association: 1,
+  curious: 2,
+  retrospect: 3,
+  highlight: 4,
+};
+
+function reactionPriority(type?: string | null) {
+  return REACTION_PRIORITY[String(type ?? "").toLowerCase()] ?? 99;
+}
+
+function buildMindstreamMoments(activity: ActivityEvent[]) {
+  const rawEvents = activity.filter((event) => {
+    if (activityStream(event) !== "mindstream" || activityVisibility(event) !== "default") {
+      return false;
+    }
+    return activityKind(event) === "segment_complete" && (event.visible_reactions?.length ?? 0) > 0;
+  });
+
+  const grouped = new Map<string, MindstreamMoment>();
+  const order: string[] = [];
+
+  for (const event of rawEvents) {
+    const anchorQuote = (event.anchor_quote ?? event.highlight_quote ?? "").trim();
+    const groupingKey = anchorQuote
+      ? `${event.chapter_id ?? "chapter"}:${event.section_ref ?? "section"}:${anchorQuote}`
+      : event.event_id;
+    const visibleReactions = event.visible_reactions ?? [];
+
+    if (!grouped.has(groupingKey)) {
+      grouped.set(groupingKey, {
+        momentId: groupingKey,
+        timestamp: event.timestamp,
+        chapterRef: event.chapter_ref ?? null,
+        sectionRef: event.section_ref ?? null,
+        anchorQuote,
+        reactions: [],
+        resultUrl: event.result_url ?? null,
+      });
+      order.push(groupingKey);
+    }
+
+    const current = grouped.get(groupingKey);
+    if (!current) {
+      continue;
+    }
+
+    for (const reaction of visibleReactions) {
+      if (current.reactions.some((item) => item.reaction_id === reaction.reaction_id)) {
+        continue;
+      }
+      current.reactions.push(reaction);
+    }
+  }
+
+  return order
+    .map((key) => grouped.get(key))
+    .filter((item): item is MindstreamMoment => Boolean(item))
+    .map((moment) => {
+      const reactions = [...moment.reactions].sort((left, right) => reactionPriority(left.type) - reactionPriority(right.type));
+      return {
+        ...moment,
+        reactions,
+      };
+    });
+}
+
+function clampStyle(lines: number): CSSProperties {
+  return {
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: lines,
+    overflow: "hidden",
+  };
+}
+
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setPrefersReducedMotion(media.matches);
+    update();
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", update);
+      return () => media.removeEventListener("change", update);
+    }
+
+    media.addListener(update);
+    return () => media.removeListener(update);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function reactionActionFamily(reaction: MindstreamReaction): MindstreamActionFamily {
+  const normalizedType = String(reaction.type ?? "").toLowerCase();
+  if (normalizedType === "association") {
+    return "association";
+  }
+  if (normalizedType === "curious") {
+    return "curious";
+  }
+  if (normalizedType === "retrospect") {
+    return "retrospect";
+  }
+  if (normalizedType === "highlight") {
+    return "highlight";
+  }
+  return "discern";
+}
+
+function looksQuestioning(text: string) {
+  return /[?\uFF1F]/.test(text)
+    || /\b(why|how|what|does|is|are|should|could|would)\b/i.test(text)
+    || /(\u4e3a\u4ec0\u4e48|\u5982\u4f55|\u662f\u5426|\u662f\u4e0d\u662f|\u96be\u9053|\u5417|\u4e48)/.test(text);
+}
+
+function looksEchoing(text: string) {
+  return /\b(earlier|previous|before|again|echo|recalls|comes back|returns to)\b/i.test(text)
+    || /(\u524d\u6587|\u524d\u9762|\u56de\u54cd|\u547c\u5e94|\u53c8\u4e00\u6b21|\u518d\u4e00\u6b21|\u56de\u5230\u524d\u9762)/.test(text);
+}
+
+function actionCopyKeyForReaction(reaction: MindstreamReaction): ControlledCopyKey {
+  const family = reactionActionFamily(reaction);
+  const copyGroup = MINDSTREAM_ACTION_COPY_KEYS[family];
+  const content = String(reaction.content ?? "");
+
+  if (family === "curious" && reaction.search_query) {
+    return copyGroup.search ?? copyGroup.default;
+  }
+  if (family === "discern" && looksQuestioning(content) && copyGroup.alternate) {
+    return copyGroup.alternate;
+  }
+  if ((family === "association" || family === "retrospect") && looksEchoing(content) && copyGroup.alternate) {
+    return copyGroup.alternate;
+  }
+  return copyGroup.default;
+}
+
+function reactionActionPhrase(reaction: MindstreamReaction, locale: ContentLocale) {
+  return contentCopy(actionCopyKeyForReaction(reaction), locale);
+}
+
+function currentPulseFromMoment(
+  moment: MindstreamMoment | null,
+  locale: ContentLocale,
+  currentSectionRef: string | null | undefined,
+  fallbackPulse: string,
+) {
+  if (!moment || !currentSectionRef || moment.sectionRef !== currentSectionRef) {
+    return fallbackPulse;
+  }
+  const leadReaction = moment.reactions[0];
+  if (!leadReaction) {
+    return fallbackPulse;
+  }
+  return `${reactionActionPhrase(leadReaction, locale)} · ${currentSectionRef}`;
 }
 
 function ActivityMeta({
@@ -984,104 +1201,206 @@ function ActivityMeta({
 }
 
 function MindstreamEventCard({
-  event,
+  moment,
+  isCompact,
+  contentLocale,
+  prefersReducedMotion,
 }: {
-  event: ActivityEvent;
+  moment: MindstreamMoment;
+  isCompact: boolean;
+  contentLocale: ContentLocale;
+  prefersReducedMotion: boolean;
 }) {
-  const kind = activityKind(event);
-
-  if (kind === "chapter_complete") {
-    return (
-      <div className="rounded-2xl border border-[var(--amber-accent)]/25 bg-[var(--amber-bg)] px-4 py-4">
-        <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
-          {event.message}
-        </p>
-        <ActivityMeta event={event} />
-        <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--warm-600)]" style={{ fontSize: "0.75rem" }}>
-          {event.visible_reaction_count != null ? <span>{event.visible_reaction_count} reactions</span> : null}
-        </div>
-        {event.featured_reactions.length > 0 ? (
-          <div className="mt-4 space-y-3">
-            {event.featured_reactions.slice(0, 2).map((reaction) => (
-              <div key={reaction.reaction_id} className="rounded-xl bg-white/90 border border-[var(--warm-300)]/20 px-3 py-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="inline-flex rounded-full bg-[var(--warm-100)] px-2.5 py-1 text-[var(--warm-700)]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-                    {reactionLabel(reaction.type)}
-                  </span>
-                  <span className="text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
-                    {reaction.section_ref}
-                  </span>
-                </div>
-                {reaction.anchor_quote ? (
-                  <blockquote className="mt-2 text-[var(--warm-600)] italic" style={{ fontSize: "0.75rem", lineHeight: 1.7 }}>
-                    “{excerptText(reaction.anchor_quote, 150)}”
-                  </blockquote>
-                ) : null}
-                <p className="mt-2 text-[var(--warm-800)]" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
-                  {excerptText(reaction.content, 180)}
-                </p>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {event.result_url ? (
-          <Link
-            to={event.result_url}
-            className="mt-4 inline-flex items-center gap-1 text-[var(--amber-accent)] no-underline hover:text-[var(--warm-700)]"
-            style={{ fontSize: "0.8125rem", fontWeight: 600 }}
-          >
-            {copy("overview.structure.openCompletedChapter")}
-            <ArrowRight className="w-3 h-3" />
-          </Link>
-        ) : null}
-      </div>
-    );
+  const [expanded, setExpanded] = useState(false);
+  const [entered, setEntered] = useState(false);
+  const leadReaction = moment.reactions[0];
+  if (!leadReaction) {
+    return null;
   }
+  const remainingReactions = moment.reactions.slice(1);
+  const isHighlightOnly = moment.reactions.every((reaction) => reaction.type === "highlight");
+  const teaserLines = isCompact ? 2 : 3;
+  const leadAction = reactionActionPhrase(leadReaction, contentLocale);
 
-  if (kind === "segment_complete") {
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setEntered(true);
+      return;
+    }
+    const frame = window.requestAnimationFrame(() => setEntered(true));
+    return () => window.cancelAnimationFrame(frame);
+  }, [prefersReducedMotion]);
+
+  function ReactionTeaser({
+    reaction,
+    compact = false,
+  }: {
+    reaction: MindstreamReaction;
+    compact?: boolean;
+  }) {
+    const actionPhrase = reactionActionPhrase(reaction, contentLocale);
     return (
-      <div className="border-l-2 border-[var(--amber-accent)]/35 pl-4">
-        <p className="text-[var(--warm-900)]" style={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.6 }}>
-          {event.message}
+      <div className={compact ? "space-y-1.5" : "space-y-2"}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={isHighlightOnly ? "text-[var(--warm-500)]" : "text-[var(--warm-700)]"}
+            style={{ fontSize: compact ? "0.6875rem" : "0.75rem", fontWeight: 600, letterSpacing: "0.01em" }}
+          >
+            {actionPhrase}
+          </span>
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 ${
+              isHighlightOnly ? "bg-[var(--warm-100)] text-[var(--warm-600)]" : "bg-[var(--amber-bg)] text-[var(--warm-800)]"
+            }`}
+            style={{ fontSize: "0.625rem", fontWeight: 600 }}
+          >
+            {reactionLabel(reaction.type)}
+          </span>
+          {compact && moment.sectionRef ? (
+            <span className="text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
+              {moment.sectionRef}
+            </span>
+          ) : null}
+        </div>
+        <p
+          className={isHighlightOnly ? "text-[var(--warm-700)]" : "text-[var(--warm-900)]"}
+          style={{
+            fontSize: compact ? "0.8125rem" : "0.9375rem",
+            lineHeight: compact ? 1.7 : 1.75,
+            ...clampStyle(compact ? 2 : teaserLines),
+          }}
+        >
+          {reaction.content}
         </p>
-        {event.reaction_types.length > 0 ? (
-          <div className="mt-2 flex items-center gap-2 flex-wrap">
-            {event.reaction_types.map((type) => (
-              <span
-                key={type}
-                className="inline-flex rounded-full bg-[var(--warm-100)] px-2.5 py-1 text-[var(--warm-700)]"
-                style={{ fontSize: "0.6875rem", fontWeight: 600 }}
-              >
-                {reactionLabel(type)}
-              </span>
-            ))}
+        {expanded && reaction.search_query ? (
+          <div className="flex items-center gap-1.5 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+            <Search className="w-3 h-3" />
+            <span className="truncate">{reaction.search_query}</span>
           </div>
         ) : null}
-        {event.highlight_quote ? (
-          <blockquote className="mt-2 text-[var(--warm-600)] italic" style={{ fontSize: "0.8125rem", lineHeight: 1.7 }}>
-            “{event.highlight_quote}”
-          </blockquote>
-        ) : null}
-        <ActivityMeta event={event} />
       </div>
     );
   }
 
   return (
-    <div className={`border-l-2 pl-4 ${kind === "position" ? "border-[var(--warm-300)]" : "border-[var(--amber-accent)]/35"}`}>
-      <p
-        className={kind === "position" ? "text-[var(--warm-700)]" : "text-[var(--warm-900)]"}
-        style={{ fontSize: kind === "position" ? "0.8125rem" : "0.875rem", fontWeight: kind === "position" ? 500 : 600, lineHeight: 1.6 }}
-      >
-        {event.message}
-      </p>
-      {kind === "search" && event.search_query ? (
-        <div className="mt-2 inline-flex rounded-full bg-[var(--warm-100)] px-2.5 py-1 text-[var(--warm-700)]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-          {event.search_query}
+    <article
+      className="relative border-l border-[var(--warm-300)]/35 pl-5"
+      style={
+        prefersReducedMotion
+          ? undefined
+          : {
+              opacity: entered ? 1 : 0,
+              transform: entered ? "translateY(0)" : "translateY(5px)",
+              transition: "opacity 220ms ease, transform 220ms ease",
+            }
+      }
+    >
+      <span
+        className={`absolute -left-[4px] top-1.5 block h-2 w-2 rounded-full ${
+          isHighlightOnly ? "bg-[var(--warm-300)]" : "bg-[var(--amber-accent)]"
+        }`}
+      />
+
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className={isHighlightOnly ? "text-[var(--warm-500)]" : "text-[var(--warm-700)]"}
+                style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.01em" }}
+              >
+                {leadAction}
+              </span>
+              {moment.sectionRef ? (
+                <span className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
+                  {moment.sectionRef}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          {moment.resultUrl ? (
+            <Link
+              to={moment.resultUrl}
+              aria-label={copy("overview.mindstream.openInChapterTooltip")}
+              title={copy("overview.mindstream.openInChapterTooltip")}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--warm-500)] no-underline hover:bg-[var(--warm-100)] hover:text-[var(--warm-800)] transition-colors"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          ) : null}
         </div>
-      ) : null}
-      <ActivityMeta event={event} />
-    </div>
+
+        <div className="mt-2 space-y-3">
+          {moment.anchorQuote ? (
+            <blockquote
+              className="text-[var(--warm-500)] italic"
+              style={{
+                fontSize: "0.75rem",
+                lineHeight: 1.55,
+                ...clampStyle(isCompact ? 1 : 2),
+              }}
+            >
+              “{moment.anchorQuote}”
+            </blockquote>
+          ) : null}
+
+          <div>
+            <ReactionTeaser reaction={leadReaction} />
+          </div>
+
+          <div
+            className="grid overflow-hidden"
+            style={
+              prefersReducedMotion
+                ? { gridTemplateRows: expanded && remainingReactions.length > 0 ? "1fr" : "0fr" }
+                : {
+                    gridTemplateRows: expanded && remainingReactions.length > 0 ? "1fr" : "0fr",
+                    transition: "grid-template-rows 200ms ease, opacity 200ms ease",
+                    opacity: expanded && remainingReactions.length > 0 ? 1 : 0.72,
+                  }
+            }
+          >
+            <div className="min-h-0 overflow-hidden">
+              {remainingReactions.length > 0 ? (
+                <div className="space-y-3 border-l border-[var(--warm-300)]/25 pl-4 pt-1">
+                  {remainingReactions.map((reaction) => (
+                    <ReactionTeaser key={reaction.reaction_id} reaction={reaction} compact />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 ${
+                isHighlightOnly ? "bg-[var(--warm-100)] text-[var(--warm-500)]" : "bg-[var(--warm-100)]/70 text-[var(--warm-600)]"
+              }`}
+              style={{ fontWeight: 600 }}
+            >
+              {reactionLabel(leadReaction.type)}
+            </span>
+            {moment.chapterRef ? <span>{moment.chapterRef}</span> : null}
+            <span>{formatTimestamp(moment.timestamp)}</span>
+          </div>
+
+          <div className="flex items-center gap-4 flex-wrap">
+            {remainingReactions.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((value) => !value)}
+                className="inline-flex items-center gap-1 text-[var(--amber-accent)] hover:text-[var(--warm-700)] transition-colors cursor-pointer"
+                style={{ fontSize: "0.8125rem", fontWeight: 600 }}
+              >
+                {expanded
+                  ? copy("overview.mindstream.hideExtraThoughts")
+                  : copy("overview.mindstream.moreThoughts", { count: remainingReactions.length })}
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -1104,6 +1423,8 @@ function RuntimeFeedPanel({
   analysis,
   activity,
   log,
+  isCompact,
+  contentLanguage,
   loading,
   error,
   onRetry,
@@ -1111,6 +1432,8 @@ function RuntimeFeedPanel({
   analysis: AnalysisStateResponse | null;
   activity: ActivityEvent[];
   log: AnalysisLogResponse | null;
+  isCompact: boolean;
+  contentLanguage: ContentLocale;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
@@ -1143,16 +1466,22 @@ function RuntimeFeedPanel({
     );
   }
 
-  const mindstreamEvents = activity.filter((event) => activityStream(event) === "mindstream");
-  const mainMindstreamEvents = mindstreamEvents.filter((event) => activityVisibility(event) === "default");
-  const collapsedMindstreamEvents = mindstreamEvents.filter((event) => activityVisibility(event) === "collapsed");
+  const mainMindstreamMoments = buildMindstreamMoments(activity);
   const programEvents = activity.filter(
     (event) => activityStream(event) === "system" && activityVisibility(event) !== "hidden",
+  );
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const fallbackPulse = analysis.pulse_message?.trim() ?? analysis.current_state_panel.pulse_message?.trim() ?? "";
+  const pulseMessage = currentPulseFromMoment(
+    mainMindstreamMoments[0] ?? null,
+    contentLanguage,
+    analysis.current_state_panel.current_section_ref ?? null,
+    fallbackPulse,
   );
 
   return (
     <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm md:p-6">
-      <div className="flex items-start justify-between gap-4 flex-col md:flex-row">
+      <div>
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
@@ -1160,54 +1489,39 @@ function RuntimeFeedPanel({
               {copy("overview.mindstream.title")}
             </h2>
           </div>
-          <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
-            {copy("overview.mindstream.description")}
-          </p>
+          {pulseMessage ? (
+            <div className="flex items-center gap-2 text-[var(--warm-500)]" style={{ fontSize: "0.8125rem", lineHeight: 1.6 }}>
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--amber-accent)]/35 motion-safe:animate-pulse" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--amber-accent)]" />
+              </span>
+              <span className="truncate">{pulseMessage}</span>
+            </div>
+          ) : null}
         </div>
-        <span className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-          {copy("overview.mindstream.visibleMoments", { count: mainMindstreamEvents.length })}
-        </span>
       </div>
 
-      <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
-          <h3 className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-            {copy("overview.mindstream.liveTrail")}
-          </h3>
-        </div>
-        {mainMindstreamEvents.length === 0 ? (
+      <div className="mt-5">
+        {mainMindstreamMoments.length === 0 ? (
           <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
             {copy("overview.mindstream.empty")}
           </p>
         ) : (
-          <div className="max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[26rem]">
-            <div className="space-y-4">
-              {mainMindstreamEvents.map((event) => (
-                <MindstreamEventCard key={event.event_id} event={event} />
+          <div className="max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[24rem]">
+            <div className="space-y-5">
+              {mainMindstreamMoments.map((moment) => (
+                <MindstreamEventCard
+                  key={moment.momentId}
+                  moment={moment}
+                  isCompact={isCompact}
+                  contentLocale={contentLanguage}
+                  prefersReducedMotion={prefersReducedMotion}
+                />
               ))}
             </div>
           </div>
         )}
       </div>
-
-      {collapsedMindstreamEvents.length > 0 ? (
-        <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
-          <details className="group">
-            <summary
-            className="cursor-pointer text-[var(--warm-700)] hover:text-[var(--warm-900)]"
-            style={{ fontSize: "0.875rem", fontWeight: 600 }}
-          >
-            {copy("overview.mindstream.quietTransitions", { count: collapsedMindstreamEvents.length })}
-          </summary>
-            <div className="mt-4 space-y-3">
-              {collapsedMindstreamEvents.map((event) => (
-                <MindstreamEventCard key={event.event_id} event={event} />
-              ))}
-            </div>
-          </details>
-        </div>
-      ) : null}
 
       <div className="mt-6 border-t border-[var(--warm-300)]/30 pt-6">
         <details className="group">
@@ -1344,6 +1658,7 @@ export function BookOverviewPage() {
     detail.status === "not_started"
       ? copy("overview.structure.emptyNotReadyMessage")
       : copy("overview.structure.emptyProgressMessage");
+  const contentLanguage = normalizeContentLocale(detail.output_language || detail.book_language);
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 md:px-6 md:py-10">
@@ -1467,6 +1782,8 @@ export function BookOverviewPage() {
               analysis={analysisResource.analysis}
               activity={analysisResource.activity}
               log={analysisResource.log}
+              isCompact={tier === "mobile" || tier === "narrow" || tier === "compact"}
+              contentLanguage={contentLanguage}
               loading={analysisResource.loading}
               error={analysisResource.error}
               onRetry={analysisResource.refresh}

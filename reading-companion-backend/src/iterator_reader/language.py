@@ -48,6 +48,27 @@ MARKDOWN_LABELS = {
     },
 }
 
+RUNTIME_LABELS = {
+    "zh": {
+        "pulse.readingSection": "正在阅读 {value}",
+        "pulse.readingChapter": "正在阅读 {value}",
+        "pulse.waitingChapterSegmentation": "等待 {value} 完成切分",
+        "pulse.waitingFirstChapter": "正在准备首个可读章节",
+        "pulse.preparingChapter": "正在准备 {value}",
+        "pulse.preparingStructure": "正在准备书籍结构",
+        "chapterCompleted": "完成 {chapter}，保留了 {count} 条反应。",
+    },
+    "en": {
+        "pulse.readingSection": "Reading {value}",
+        "pulse.readingChapter": "Reading {value}",
+        "pulse.waitingChapterSegmentation": "Waiting for {value} to finish segmentation",
+        "pulse.waitingFirstChapter": "Preparing the first readable chapter",
+        "pulse.preparingChapter": "Preparing {value}",
+        "pulse.preparingStructure": "Preparing the book structure",
+        "chapterCompleted": "Finished {chapter} with {count} visible reactions.",
+    },
+}
+
 
 def _normalize_language(value: str | None) -> LanguageCode | None:
     """Normalize raw language metadata to supported codes."""
@@ -100,3 +121,9 @@ def language_name(language: LanguageCode) -> str:
 def markdown_labels(language: LanguageCode) -> dict[str, str]:
     """Get markdown labels for the chosen output language."""
     return MARKDOWN_LABELS.get(language, MARKDOWN_LABELS["en"])
+
+
+def runtime_label(language: LanguageCode, key: str, **params: object) -> str:
+    """Render one lightweight runtime label in the chosen content language."""
+    template = RUNTIME_LABELS.get(language, RUNTIME_LABELS["en"]).get(key, "")
+    return template.format(**params) if template else ""

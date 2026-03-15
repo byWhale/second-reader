@@ -1,4 +1,4 @@
-import { APP_LOCALE, formatTemplate, resolveLocalizedText, type LocalizedText } from "./app-locale";
+import { APP_LOCALE, formatTemplate, resolveLocalizedText, type AppLocale, type LocalizedText } from "./app-locale";
 
 type ControlledCopyEntry = {
   en: string;
@@ -786,27 +786,6 @@ export const CONTROLLED_COPY = {
     toneNote: "Productive and evocative.",
     usageScope: "Book overview runtime panel.",
   },
-  "overview.mindstream.description": {
-    en: "This view keeps the real trail of the AI's reading: movement, associations, searches, and completed moments. Parsing, checkpoints, and waits stay in the program log below.",
-    zh: "这里只保留 AI 阅读时真实留下的推进、联想、搜索和收束。解析、checkpoint 与等待事件被收进下面的程序日志。",
-    intent: "Runtime narrative panel description.",
-    toneNote: "Clear and slightly evocative.",
-    usageScope: "Book overview runtime panel.",
-  },
-  "overview.mindstream.visibleMoments": {
-    en: "{count} visible moments",
-    zh: "{count} 个可见时刻",
-    intent: "Count summary for visible mindstream items.",
-    toneNote: "Compact and factual.",
-    usageScope: "Book overview runtime panel header.",
-  },
-  "overview.mindstream.liveTrail": {
-    en: "Live trail",
-    zh: "实时轨迹",
-    intent: "Heading for the default mindstream list.",
-    toneNote: "Short and vivid.",
-    usageScope: "Book overview runtime panel.",
-  },
   "overview.mindstream.empty": {
     en: "The co-reader's visible trail will appear here once it starts reacting to the text.",
     zh: "当共读 AI 开始对文本产生反应时，它的可见轨迹会出现在这里。",
@@ -814,11 +793,95 @@ export const CONTROLLED_COPY = {
     toneNote: "Warm and anticipatory.",
     usageScope: "Book overview runtime panel.",
   },
-  "overview.mindstream.quietTransitions": {
-    en: "Quiet transitions ({count})",
-    zh: "安静过渡（{count}）",
-    intent: "Label for collapsed low-salience mindstream events.",
-    toneNote: "Gentle and descriptive.",
+  "overview.mindstream.moreThoughts": {
+    en: "+{count} more thoughts",
+    zh: "+{count} 条延伸思路",
+    intent: "Expand control for additional reactions attached to one sentence-level moment.",
+    toneNote: "Light and literary.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.hideExtraThoughts": {
+    en: "Hide extra thoughts",
+    zh: "收起延伸思路",
+    intent: "Collapse control for additional reactions attached to one sentence-level moment.",
+    toneNote: "Light and calm.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.openInChapterTooltip": {
+    en: "Open the chapter workspace",
+    zh: "打开章节工作区",
+    intent: "Tooltip and aria label for the icon-only jump from one mindstream moment into a completed chapter.",
+    toneNote: "Quiet and actionable.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.openInChapter": {
+    en: "Open in chapter",
+    zh: "在章节中查看",
+    intent: "Secondary link from one mindstream moment into the completed chapter result.",
+    toneNote: "Quiet and actionable.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.discern.default": {
+    en: "Testing a claim",
+    zh: "试着检验这个说法",
+    intent: "Default action-framing line for discern reactions in the live mindstream.",
+    toneNote: "Quiet, incisive, and in-progress.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.discern.question": {
+    en: "Questioning a claim",
+    zh: "追问这个说法",
+    intent: "Action-framing line for discern reactions that read like active questioning.",
+    toneNote: "Quiet, incisive, and in-progress.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.association.default": {
+    en: "Making a connection",
+    zh: "把一条线索接上",
+    intent: "Default action-framing line for association reactions in the live mindstream.",
+    toneNote: "Quiet, connective, and in-progress.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.association.echo": {
+    en: "Hearing an echo",
+    zh: "听见前文的回响",
+    intent: "Action-framing line for association reactions that feel like an echo or resonance.",
+    toneNote: "Quiet, literary, and in-progress.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.curious.default": {
+    en: "Following a thread",
+    zh: "顺着线索追下去",
+    intent: "Default action-framing line for curious reactions in the live mindstream.",
+    toneNote: "Curious, light, and in-progress.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.curious.search": {
+    en: "Chasing a question",
+    zh: "顺着问题查下去",
+    intent: "Action-framing line for curious reactions that trigger a search.",
+    toneNote: "Curious, active, and in-progress.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.retrospect.default": {
+    en: "Linking back",
+    zh: "回扣前文",
+    intent: "Default action-framing line for retrospect reactions in the live mindstream.",
+    toneNote: "Quiet and reflective.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.retrospect.echo": {
+    en: "Looking backward",
+    zh: "回头照一照前文",
+    intent: "Alternate action-framing line for retrospect reactions when the text explicitly looks backward.",
+    toneNote: "Quiet and reflective.",
+    usageScope: "Book overview runtime panel.",
+  },
+  "overview.mindstream.action.highlight.default": {
+    en: "Holding onto a line",
+    zh: "先记住这句话",
+    intent: "Default action-framing line for highlight-only moments in the live mindstream.",
+    toneNote: "Quiet and attentive.",
     usageScope: "Book overview runtime panel.",
   },
   "overview.programLog.title": {
@@ -1226,6 +1289,14 @@ export type ControlledCopyKey = keyof typeof CONTROLLED_COPY;
 
 export function copy(key: ControlledCopyKey, params?: Record<string, string | number | null | undefined>): string {
   return formatTemplate(resolveLocalizedText(CONTROLLED_COPY[key], APP_LOCALE), params);
+}
+
+export function copyForLocale(
+  key: ControlledCopyKey,
+  locale: AppLocale,
+  params?: Record<string, string | number | null | undefined>,
+): string {
+  return formatTemplate(resolveLocalizedText(CONTROLLED_COPY[key], locale), params);
 }
 
 export function maybeCopy(
