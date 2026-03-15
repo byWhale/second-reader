@@ -7,6 +7,8 @@ Update when: startup commands, reload behavior, supervision, healthchecks, deplo
 
 This document defines how the Reading Companion project should be started in different environments.
 
+Unless noted otherwise, the runtime and recovery behavior described here refers to the current sequential deep-reading workflow rather than the older `book_analysis` capability.
+
 ## Why This Exists
 - The project now has more than one valid way to run.
 - Those modes are intentionally different.

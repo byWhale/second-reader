@@ -41,14 +41,13 @@ Update when: document layering, reading order, task routing, or cross-project co
 - `docs/api-integration.md`: active endpoint surface, polling/WebSocket coordination, and runtime data flow
 - `docs/runtime-modes.md`: startup, supervision, healthchecks, deployment entrypoints, and resume rules
 - `docs/language-governance.md`: visible-text governance, terminology ownership, and locale policy
+- `docs/backend-sequential-lifecycle.md`: sequential deep-reading job lifecycle, entrypoints, and runtime-state semantics
+- `docs/backend-state-aggregation.md`: backend artifact aggregation, public state surfaces, and normalization boundary
 
 ### Case Study Layer
-- `docs/case-study/README.md`: case-study doc map, allowed evidence sources, and writing constraints
-- `docs/case-study/overview.md`: one-page project summary for demos and portfolio use
-- `docs/case-study/architecture.md`: architecture story, system boundaries, and evolution narrative
-- `docs/case-study/decisions.md`: high-value design decisions and trade-offs likely to come up in interviews
-- `docs/case-study/evidence.md`: hard evidence index for evals, tests, examples, and quantitative checkpoints
-- `docs/case-study/interview-notes.md`: concise interview-ready narratives built from the other case-study docs
+- `docs/case-study/README.md`: maintenance boundary, allowed sources, and retention rules
+- `docs/case-study/decisions.md`: key design decisions and trade-offs that would be hard to reconstruct later
+- `docs/case-study/evidence.md`: hard evidence index for evals, validation, and artifacts worth citing later
 
 ### Temporary Working Layer
 - `docs/agent-handoff.md`: current focus, active risks, migration status, and temporary warnings
@@ -72,6 +71,8 @@ Update when: document layering, reading order, task routing, or cross-project co
 - current frontend-used endpoints, polling, WebSocket wiring: `docs/api-integration.md`
 - startup commands, runtime supervision, deployment, resume rules: `docs/runtime-modes.md`
 - UI copy, locale policy, governed terminology: `docs/language-governance.md`
+- backend sequential workflow, job lifecycle, resume behavior: `docs/backend-sequential-lifecycle.md`
+- backend artifact aggregation, state surfaces, normalization boundary: `docs/backend-state-aggregation.md`
 
 ### Career / Case-Study Tasks
 - portfolio packaging, interview prep, demo storytelling, technical summaries: `docs/case-study/README.md`
@@ -92,6 +93,8 @@ Update when: document layering, reading order, task routing, or cross-project co
 - setup, env vars, local URLs, verification commands -> `README.md`
 - startup mode semantics, healthchecks, deploy entrypoints, resume behavior -> `docs/runtime-modes.md`
 - visible text, locale boundaries, governed terminology -> `docs/language-governance.md`
+- backend sequential workflow, job lifecycle, start/resume semantics -> `docs/backend-sequential-lifecycle.md`
+- backend artifact aggregation, analysis-state sourcing, normalization boundary -> `docs/backend-state-aggregation.md`
 - current focus, temporary risks, active migration notes -> `docs/agent-handoff.md`
 - portfolio packaging, interview prep, demo storytelling, technical summaries -> `docs/case-study/README.md`
 
@@ -138,6 +141,16 @@ Update when: document layering, reading order, task routing, or cross-project co
   - healthcheck behavior
   - deployment entrypoints
   - recovery or resume runtime rules
+- `docs/backend-sequential-lifecycle.md`
+  - upload -> parse/deferred -> start/resume -> job -> realtime lifecycle
+  - job kinds and status progression
+  - frontend-facing lifecycle dependencies
+  - runtime-mode-specific recovery semantics
+- `docs/backend-state-aggregation.md`
+  - source artifacts used by backend views
+  - how bookshelf, detail, chapter, marks, and analysis-state are assembled
+  - endpoint-level shaping vs aggregation responsibilities
+  - internal-to-public normalization boundary
 - `docs/language-governance.md`
   - visible-text governance
   - terminology ownership
@@ -149,17 +162,6 @@ Update when: document layering, reading order, task routing, or cross-project co
   - temporary warnings
   - active risks
   - project context that is useful now but not yet a stable rule
-- `docs/case-study/overview.md`
-  - core product positioning for demos
-  - primary user path summary for external presentation
-  - project completion or showcase status
-  - top showcase points or demo framing
-- `docs/case-study/architecture.md`
-  - architecture story
-  - system boundaries
-  - main-path module map
-  - runtime/recovery story
-  - prototype-to-main-path evolution
 - `docs/case-study/decisions.md`
   - high-value architecture or product trade-offs
   - superseded decisions that matter for interview discussion
@@ -169,11 +171,6 @@ Update when: document layering, reading order, task routing, or cross-project co
   - before/after comparisons
   - tests, validation commands, and quantitative checkpoints worth citing
   - example outputs and demos worth showing
-- `docs/case-study/interview-notes.md`
-  - interview talk tracks
-  - STAR stories
-  - frequent follow-up questions
-  - concise positioning statements for recruiting contexts
 - root `AGENTS.md`
   - document layering
   - load matrix
@@ -187,7 +184,9 @@ Update when: document layering, reading order, task routing, or cross-project co
 ### Cross-Doc Rules
 - If the product interaction flow changes and that also changes routes or public payloads, update `docs/product-interaction-model.md`, `docs/api-contract.md`, and `docs/api-integration.md` in the same task.
 - If the same change also shifts workspace ownership boundaries or the recommended reading order for agents, update `docs/workspace-overview.md` and root `AGENTS.md`.
-- If a major project change alters demo framing, interview positioning, high-value trade-offs, or showcase evidence, update the affected files under `docs/case-study/` in the same task.
+- If a backend change materially alters the sequential deep-reading job lifecycle, upload/start/resume semantics, or runtime recovery behavior, update `docs/backend-sequential-lifecycle.md` in the same task.
+- If a backend change materially alters which artifacts feed public state surfaces, or where normalization between internal and public shapes happens, update `docs/backend-state-aggregation.md` in the same task.
+- If a major project change alters a high-value trade-off or creates evidence worth citing later, update the affected files under `docs/case-study/` in the same task.
 - If a task adds or replaces quantitative evaluation evidence, update `docs/case-study/evidence.md` instead of relying on memory or chat-only notes.
 - If a temporary handoff note repeats across tasks, promote it into the relevant `AGENTS.md` or stable doc.
 - If a new key document becomes part of the standard reading path, add it to the load matrix here before linking it elsewhere.
@@ -196,14 +195,12 @@ Update when: document layering, reading order, task routing, or cross-project co
 - Default engineering tasks do not need to load `docs/case-study/`.
 - Tasks about portfolio packaging, interview prep, demo storytelling, technical summaries, or project highlight extraction must load `docs/case-study/README.md` and maintain the relevant files.
 - Even when a task is not explicitly about job-search materials, update the relevant `docs/case-study/` file if the task makes a major change to:
-  - the primary product path or top showcase value
-  - the main architecture or ownership boundaries
   - a decision likely to be explained in interviews
   - available hard evidence such as evals, validation runs, or output comparisons
 - If `docs/case-study/` is not updated after a major change, you should have a concrete reason, such as:
   - it is a narrow bugfix
-  - it does not change the project story, evidence, or meaningful trade-offs
-  - it does not materially affect later interview preparation
+  - it does not change meaningful trade-offs or later-worthy evidence
+  - it can be regenerated later from stable docs and code without losing context
 
 ## First Files To Read
 - `AGENTS.md`

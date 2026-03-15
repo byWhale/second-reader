@@ -1,25 +1,25 @@
 # Case Study Docs
 
-Purpose: define the project's job-search and portfolio documentation set, its allowed evidence sources, and its maintenance rules.
-Use when: preparing interview materials, packaging the project for demos, extracting highlights, or updating project-story assets after major changes.
-Not for: source-of-truth product behavior, public API authority, runtime semantics, or temporary migration notes.
-Update when: this case-study doc set changes, its writing rules change, or the allowed evidence sources change.
+Purpose: define the minimal long-lived job-search documentation set and its maintenance boundary.
+Use when: recording design trade-offs or evidence that would be hard to reconstruct later from code and stable docs alone.
+Not for: reusable interview scripts, one-page summaries, architecture restatements, or source-of-truth engineering behavior.
+Update when: the retained case-study files change, their maintenance rules change, or their allowed evidence sources change.
 
-This directory is the project's case-study layer. It sits between stable engineering docs and archive/reference material.
+This directory is intentionally minimal. It only keeps information that is easy to forget and expensive to reconstruct later.
 
 ## What Belongs Here
-- `overview.md`: one-page project summary for demos and external introductions
-- `architecture.md`: system shape, main-path modules, and architecture evolution
-- `decisions.md`: interview-worthy design trade-offs and why they were made
-- `evidence.md`: hard evidence index for evals, tests, examples, and measurable checkpoints
-- `interview-notes.md`: concise talk tracks and common follow-up answers
+- `decisions.md`: key product or engineering trade-offs, especially rejected alternatives and why the chosen path won
+- `evidence.md`: the strongest evidence worth citing later, with links back to raw reports, commands, or artifacts
+
+## What Does Not Belong Here
+- summaries that can be regenerated later from stable docs and code
+- architecture overviews that mostly restate engineering docs
+- interview notes or talk tracks that can be generated on demand during interview prep
+- implementation facts that are already authoritative in `docs/` or straightforward to recover from code
 
 ## Reading Order
-1. `overview.md`
-2. `architecture.md`
-3. `decisions.md`
-4. `evidence.md`
-5. `interview-notes.md`
+1. `decisions.md`
+2. `evidence.md`
 
 ## Allowed Sources
 All factual claims in this directory must trace back to one or more of these sources:
@@ -30,11 +30,11 @@ All factual claims in this directory must trace back to one or more of these sou
 
 ## Writing Rules
 - Do not redefine engineering authority here. Link back to stable docs when a fact is already defined there.
-- Prefer short, interview-usable summaries over long narrative reports.
+- If a point can be regenerated later from stable docs and code with low effort, do not store it here.
+- Prefer recording why a decision was made or why a piece of evidence matters over repeating implementation details.
 - Every claim in `evidence.md` should point to a real file, command, output sample, or evaluation report.
-- `interview-notes.md` may be more narrative, but it must not invent facts that do not already exist in the other files here.
 
 ## Maintenance Defaults
 - Default engineering tasks should not load this directory.
-- Major changes to product framing, architecture, trade-offs, or showcase evidence should update the relevant file here in the same task.
-- Narrow bugfixes and routine refactors do not need to update this directory unless they materially change the project story.
+- Only update this directory when a major trade-off or a later-worthy evidence artifact would otherwise be lost.
+- Narrow bugfixes, routine refactors, and summary-level project changes do not need to update this directory.
