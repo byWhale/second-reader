@@ -1,4 +1,4 @@
-"""Stable server entrypoint for demo and production-style runs."""
+"""Development server entrypoint with autoreload enabled."""
 
 from __future__ import annotations
 
@@ -17,5 +17,5 @@ if __name__ == "__main__":
         "src.api.app:app",
         host=host,
         port=port,
-        reload=False,
+        reload=True,
     )

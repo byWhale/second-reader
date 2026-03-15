@@ -41,6 +41,7 @@
 - Use child directories when a task is clearly isolated.
 - Keep runtime data in `reading-companion-backend/`.
 - Do not assume the parent directory is the Git root.
+- Runtime launcher intent is documented in `docs/runtime-modes.md`; do not infer it only from shell script names.
 
 ## Primary Integration Files
 - Contract:

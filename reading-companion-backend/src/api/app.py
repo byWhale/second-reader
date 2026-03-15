@@ -35,6 +35,7 @@ from src.api.schemas import (
     ChapterOutlineResponse,
     DeleteMarkResponse,
     ErrorResponse,
+    HealthResponse,
     JobStatusResponse,
     MarksPageResponse,
     MarkRecord,
@@ -45,9 +46,13 @@ from src.api.schemas import (
 from src.api.test_mode import fixture_upload_path, launch_e2e_fixture_analysis, launch_e2e_fixture_job
 from src.config import (
     get_backend_cors_origins,
+    get_backend_host,
+    get_backend_port,
+    get_backend_run_mode,
     get_backend_runtime_root,
     get_backend_test_fixture_profile,
     get_backend_test_mode,
+    get_backend_version,
     get_upload_max_bytes,
 )
 from src.library.catalog import (
@@ -105,6 +110,20 @@ if cors_origins:
 def recover_jobs_on_startup() -> None:
     """Refresh resumable jobs so long-running work continues after restarts."""
     recover_unfinished_jobs(_root())
+
+
+@app.get("/api/health", response_model=HealthResponse)
+def healthcheck() -> HealthResponse:
+    """Return a lightweight backend liveness snapshot."""
+    return HealthResponse(
+        status="ok",
+        service="backend",
+        mode=get_backend_run_mode(),
+        host=get_backend_host(),
+        port=get_backend_port(),
+        runtime_root=str(_root()),
+        version=get_backend_version(),
+    )
 
 
 @app.post("/api/uploads/epub", response_model=UploadAcceptedResponse, status_code=202, responses=ERROR_MODELS)

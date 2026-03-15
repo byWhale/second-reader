@@ -1,7 +1,7 @@
 import { Bookmark } from "lucide-react";
 import { Link } from "react-router";
 import { copy } from "../config/controlled-copy";
-import { fetchGlobalMarks } from "../lib/api";
+import { fetchGlobalMarks, getErrorPresentation } from "../lib/api";
 import { markLabel } from "../lib/marks";
 import { reactionLabel } from "../lib/reactions";
 import { useApiResource } from "../lib/use-api-resource";
@@ -15,10 +15,14 @@ export function GlobalMarksPage() {
   }
 
   if (error || !data) {
+    const errorState = getErrorPresentation(error, {
+      title: copy("marks.error.title"),
+      message: copy("marks.error.message"),
+    });
     return (
       <ErrorState
-        title={copy("marks.error.title")}
-        message={error ?? copy("marks.error.message")}
+        title={errorState.title}
+        message={errorState.message}
         onRetry={reload}
         linkLabel={copy("page.books.title")}
         linkTo="/books"

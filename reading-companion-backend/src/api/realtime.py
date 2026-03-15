@@ -94,6 +94,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
     current_phase_step_key = None
     current_phase_step_params = None
     pulse_message = None
+    current_reading_activity = None
 
     if internal_book_id:
         analysis = None
@@ -114,6 +115,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
             current_phase_step_key = analysis.get("current_phase_step_key")
             current_phase_step_params = analysis.get("current_phase_step_params")
             pulse_message = analysis.get("pulse_message")
+            current_reading_activity = analysis.get("current_reading_activity")
             eta_seconds = analysis.get("eta_seconds")
             resume_available = bool(analysis.get("resume_available", False))
             last_checkpoint_at = analysis.get("last_checkpoint_at")
@@ -154,6 +156,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
         current_phase_step_key=current_phase_step_key,
         current_phase_step_params=current_phase_step_params,
         pulse_message=pulse_message,
+        current_reading_activity=current_reading_activity,
         eta_seconds=eta_seconds,
         resume_available=resume_available,
         last_checkpoint_at=last_checkpoint_at,
@@ -179,6 +182,7 @@ def build_job_snapshot_payload(job_status: JobStatusResponse) -> JobSnapshotPayl
         current_phase_step_key=job_status.current_phase_step_key,
         current_phase_step_params=job_status.current_phase_step_params,
         pulse_message=job_status.pulse_message,
+        current_reading_activity=job_status.current_reading_activity,
         eta_seconds=job_status.eta_seconds,
         resume_available=job_status.resume_available,
         last_checkpoint_at=job_status.last_checkpoint_at,
@@ -201,6 +205,7 @@ def build_book_snapshot_payload(book_id: str, root: Path) -> JobSnapshotPayload:
         current_phase_step_key=analysis.get("current_phase_step_key"),
         current_phase_step_params=analysis.get("current_phase_step_params"),
         pulse_message=analysis.get("pulse_message"),
+        current_reading_activity=analysis.get("current_reading_activity"),
         eta_seconds=analysis.get("eta_seconds"),
         resume_available=bool(analysis.get("resume_available", False)),
         last_checkpoint_at=analysis.get("last_checkpoint_at"),

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { copy } from "../config/controlled-copy";
 import { term } from "../config/product-lexicon";
-import { BookShelfCard, fetchBooks, toApiAssetUrl, toFrontendPath } from "../lib/api";
+import { BookShelfCard, fetchBooks, getErrorPresentation, toApiAssetUrl, toFrontendPath } from "../lib/api";
 import { useApiResource } from "../lib/use-api-resource";
 import { useUploadBookActions } from "../lib/use-upload-book-actions";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
@@ -102,10 +102,14 @@ export function BookshelfPage() {
   }
 
   if (error || !data) {
+    const errorState = getErrorPresentation(error, {
+      title: copy("bookshelf.error.title"),
+      message: copy("bookshelf.error.message"),
+    });
     return (
       <ErrorState
-        title={copy("bookshelf.error.title")}
-        message={error ?? copy("bookshelf.error.message")}
+        title={errorState.title}
+        message={errorState.message}
         onRetry={reload}
         linkLabel={copy("bookshelf.action.addBook")}
         linkTo="/books?upload=1"

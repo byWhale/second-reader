@@ -109,6 +109,23 @@ def get_backend_port() -> int:
     return 8000
 
 
+def get_backend_run_mode() -> str:
+    """Return the backend launcher mode used for logs and health reporting."""
+    mode = os.getenv("BACKEND_RUN_MODE", "dev").strip().lower()
+    if mode in {"dev", "demo", "prod"}:
+        return mode
+    return "dev"
+
+
+def get_backend_version() -> str | None:
+    """Return a deploy/version identifier when one is available."""
+    for name in ("APP_VERSION", "RAILWAY_GIT_COMMIT_SHA", "GIT_COMMIT", "COMMIT_SHA"):
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return None
+
+
 def get_backend_test_mode() -> bool:
     """Return whether backend fixture mode is enabled."""
     raw = os.getenv("BACKEND_TEST_MODE", "").strip().lower()

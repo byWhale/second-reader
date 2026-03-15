@@ -264,6 +264,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Healthcheck
+         * @description Return a lightweight backend liveness snapshot.
+         */
+        get: operations["healthcheck_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/{job_id}": {
         parameters: {
             query?: never;
@@ -638,6 +658,8 @@ export interface components {
             current_phase_step_params?: {
                 [key: string]: unknown;
             } | null;
+            /** @description Live snapshot of what the reader is actively doing right now. */
+            current_reading_activity?: components["schemas"]["CurrentReadingActivity"] | null;
             /** @description Focused realtime state shown beside the structure tree. */
             current_state_panel: components["schemas"]["CurrentStatePanel"];
             /**
@@ -1222,6 +1244,43 @@ export interface components {
             title: string;
         };
         /**
+         * CurrentReadingActivity
+         * @description Ephemeral snapshot of the live reading step currently underway.
+         */
+        CurrentReadingActivity: {
+            /**
+             * Current Excerpt
+             * @description Short excerpt of the text currently under attention.
+             */
+            current_excerpt?: string | null;
+            /**
+             * Phase
+             * @description Current live reading phase.
+             * @enum {string}
+             */
+            phase: "reading" | "thinking" | "searching" | "fusing" | "reflecting" | "waiting" | "preparing";
+            /**
+             * Search Query
+             * @description Search query being investigated when the reader is searching.
+             */
+            search_query?: string | null;
+            /**
+             * Segment Ref
+             * @description Current semantic segment reference when known.
+             */
+            segment_ref?: string | null;
+            /**
+             * Thought Family
+             * @description Optional thought family hint attached to the current live activity when already known.
+             */
+            thought_family?: ("highlight" | "association" | "discern" | "retrospect" | "curious") | null;
+            /**
+             * Updated At
+             * @description Timestamp of the latest live-activity update.
+             */
+            updated_at: string;
+        };
+        /**
          * CurrentStatePanel
          * @description Focused realtime status block for the analysis page.
          */
@@ -1248,6 +1307,8 @@ export interface components {
             current_phase_step_params?: {
                 [key: string]: unknown;
             } | null;
+            /** @description Live snapshot of what the reader is actively doing right now. */
+            current_reading_activity?: components["schemas"]["CurrentReadingActivity"] | null;
             /**
              * Current Section Ref
              * @description Human-readable reference of the current section.
@@ -1380,6 +1441,49 @@ export interface components {
             type: "highlight" | "association" | "discern" | "retrospect" | "curious";
         };
         /**
+         * HealthResponse
+         * @description Lightweight liveness response for supervision and deploy platforms.
+         */
+        HealthResponse: {
+            /**
+             * Host
+             * @description Configured bind host.
+             */
+            host: string;
+            /**
+             * Mode
+             * @description Current backend launcher mode.
+             */
+            mode: string;
+            /**
+             * Port
+             * @description Configured bind port.
+             */
+            port: number;
+            /**
+             * Runtime Root
+             * @description Resolved backend runtime root path.
+             */
+            runtime_root: string;
+            /**
+             * Service
+             * @description Service name for the healthcheck response.
+             * @constant
+             */
+            service: "backend";
+            /**
+             * Status
+             * @description Simple liveness status.
+             * @constant
+             */
+            status: "ok";
+            /**
+             * Version
+             * @description Deploy or commit version when available.
+             */
+            version?: string | null;
+        };
+        /**
          * JobStatusResponse
          * @description Snapshot of one background sequential-read job.
          */
@@ -1426,6 +1530,8 @@ export interface components {
             current_phase_step_params?: {
                 [key: string]: unknown;
             } | null;
+            /** @description Live snapshot of what the reader is actively doing right now. */
+            current_reading_activity?: components["schemas"]["CurrentReadingActivity"] | null;
             /**
              * Current Section Ref
              * @description Human-readable reference of the current section.
@@ -2898,6 +3004,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    healthcheck_api_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
                 };
             };
         };

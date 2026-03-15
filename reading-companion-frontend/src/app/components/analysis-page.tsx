@@ -2,7 +2,7 @@ import { Activity, ArrowRight, BookOpen, Clock3, LoaderCircle, Search, TreePine 
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { copy, maybeCopy } from "../config/controlled-copy";
-import { ActivityEvent, AnalysisStateResponse, fetchActivity, fetchAnalysisState, toFrontendPath, toWebSocketUrl } from "../lib/api";
+import { ActivityEvent, AnalysisStateResponse, fetchActivity, fetchAnalysisState, getErrorPresentation, toFrontendPath, toWebSocketUrl } from "../lib/api";
 import { canonicalBookAnalysisPath, canonicalBookPath, canonicalChapterPath } from "../lib/contract";
 import { reactionLabel } from "../lib/reactions";
 import { ErrorState, LoadingState } from "./page-state";
@@ -30,7 +30,7 @@ export function AnalysisPage() {
   const [analysis, setAnalysis] = useState<AnalysisStateResponse | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export function AnalysisPage() {
         if (!active) {
           return;
         }
-        setError(reason instanceof Error ? reason.message : "Failed to load analysis state.");
+        setError(reason);
       } finally {
         if (active) {
           setLoading(false);
@@ -107,10 +107,14 @@ export function AnalysisPage() {
   }
 
   if (error || !analysis) {
+    const errorState = getErrorPresentation(error, {
+      title: "Analysis view is unavailable",
+      message: "The reading progress is not available right now.",
+    });
     return (
       <ErrorState
-        title="Analysis view is unavailable"
-        message={error ?? "The reading progress is not available right now."}
+        title={errorState.title}
+        message={errorState.message}
         onRetry={() => {
           setLoading(true);
           setRefreshTick((value) => value + 1);

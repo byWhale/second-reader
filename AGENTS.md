@@ -24,6 +24,22 @@
 - Keep runtime artifacts in `reading-companion-backend/` unless a task explicitly migrates them.
 - Do not remove the frontend repo’s Figma Make history or generated structure unless the change has a clear maintenance benefit.
 
+## Documentation Maintenance
+- When a change alters how the product behaves, runs, or is maintained, update the relevant docs in the same task.
+- Do not treat docs as optional follow-up work when the implementation changes any of the following:
+  - runtime/startup/deploy workflows
+  - frontend/backend API contract or integration behavior
+  - language governance or controlled product copy
+  - product interaction models or major UX conventions
+- Minimum doc destinations:
+  - `README.md` for operator-facing commands and quick-start behavior
+  - `docs/api-contract.md` for public contract changes
+  - `docs/api-integration.md` for runtime integration changes
+  - `docs/language-governance.md` for visible-text governance changes
+  - `docs/runtime-modes.md` for launcher, healthcheck, demo, and deploy mode changes
+  - `docs/workspace-overview.md` or `docs/agent-handoff.md` when the cross-project working model changes
+- If you intentionally leave docs unchanged, you should have a concrete reason, not just “code is self-explanatory.”
+
 ## First Files To Read
 - Root:
   - `README.md`
@@ -31,6 +47,7 @@
   - `docs/api-contract.md`
   - `docs/api-integration.md`
   - `docs/agent-handoff.md`
+  - `docs/runtime-modes.md`
 - Backend:
   - `reading-companion-backend/AGENTS.md`
   - `reading-companion-backend/src/api/app.py`

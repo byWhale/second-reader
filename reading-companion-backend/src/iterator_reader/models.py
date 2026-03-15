@@ -53,6 +53,16 @@ SalienceKind = Literal["concept", "character", "institution", "place", "motif"]
 SalienceStatus = Literal["emerging", "active", "stable", "contested", "resolved"]
 PromptBudgetTier = Literal["tight", "normal", "ample"]
 ReaderPromptNode = Literal["think", "express", "reflect"]
+CurrentReadingPhase = Literal[
+    "reading",
+    "thinking",
+    "searching",
+    "fusing",
+    "reflecting",
+    "waiting",
+    "preparing",
+]
+ThoughtFamily = Literal["highlight", "association", "curious", "discern", "retrospect"]
 
 
 class SourceAsset(TypedDict):
@@ -201,6 +211,7 @@ class RunState(TypedDict):
     current_chapter_id: int | None
     current_chapter_ref: str | None
     current_segment_ref: str | None
+    current_reading_activity: "CurrentReadingActivity | None"
     completed_chapters: int
     total_chapters: int
     eta_seconds: int | None
@@ -279,6 +290,20 @@ class ReaderProgressEvent(TypedDict, total=False):
     kind: Literal["position", "thought", "search", "transition"]
     visibility: ActivityVisibility
     search_query: str
+    phase: CurrentReadingPhase
+    current_excerpt: str
+    thought_family: ThoughtFamily
+
+
+class CurrentReadingActivity(TypedDict, total=False):
+    """Ephemeral snapshot describing what the reader is doing right now."""
+
+    phase: CurrentReadingPhase
+    segment_ref: str
+    current_excerpt: str
+    search_query: str
+    thought_family: ThoughtFamily
+    updated_at: str
 
 
 class RecentSegmentFlowEntry(TypedDict, total=False):

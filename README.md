@@ -20,11 +20,13 @@ The project is maintained as one product with two sub-applications:
 4. Start the backend with `make dev-backend`
 5. Start the frontend with `make dev-frontend`
 6. Or run both together with `make dev`
+7. For a more stable local demo loop, use `make run-demo`
 
 ## Default Local URLs
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8000`
 - Backend docs: `http://localhost:8000/docs`
+- Backend health: `http://localhost:8000/api/health`
 
 ## Environment
 
@@ -53,6 +55,7 @@ Important frontend variables:
 - `make dev-backend`: run FastAPI from the workspace root safely, including legacy output backfill
 - `make dev-frontend`: run Vite with the shared API defaults
 - `make dev`: run both apps together
+- `make run-demo`: run frontend plus a supervised non-reload backend that auto-restarts if it exits
 - `make test`: run backend tests, frontend typecheck/build, and contract drift checks
 - `make contract-check`: verify docs appendix, backend OpenAPI snapshot, and frontend contract guards
 - `make e2e`: run the fixture-backed upload -> analysis -> book -> chapter -> marks Playwright flow
@@ -76,5 +79,6 @@ Important frontend variables:
 ## Notes
 - Runtime data remains under `reading-companion-backend/`.
 - Legacy `structure.json`-only output folders are automatically backfilled into the current API-facing artifact format during `make setup` and `make dev-backend`.
+- `make dev-backend` is intentionally a reload-enabled developer server. Use `make run-demo` for interviews or live demos where backend restarts should be automatic.
 - The backend is not expected to run correctly with Python 3.9.x.
 - The frontend is now wired to the backend API contract instead of the old mock-only flow.

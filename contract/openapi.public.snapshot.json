@@ -524,6 +524,17 @@
             "description": "Parameters used to render the current parse or read step.",
             "title": "Current Phase Step Params"
           },
+          "current_reading_activity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentReadingActivity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Live snapshot of what the reader is actively doing right now."
+          },
           "current_state_panel": {
             "$ref": "#/components/schemas/CurrentStatePanel",
             "description": "Focused realtime state shown beside the structure tree."
@@ -1483,6 +1494,92 @@
         "title": "ChapterTreeItem",
         "type": "object"
       },
+      "CurrentReadingActivity": {
+        "additionalProperties": false,
+        "description": "Ephemeral snapshot of the live reading step currently underway.",
+        "properties": {
+          "current_excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Short excerpt of the text currently under attention.",
+            "title": "Current Excerpt"
+          },
+          "phase": {
+            "description": "Current live reading phase.",
+            "enum": [
+              "reading",
+              "thinking",
+              "searching",
+              "fusing",
+              "reflecting",
+              "waiting",
+              "preparing"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "search_query": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Search query being investigated when the reader is searching.",
+            "title": "Search Query"
+          },
+          "segment_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current semantic segment reference when known.",
+            "title": "Segment Ref"
+          },
+          "thought_family": {
+            "anyOf": [
+              {
+                "enum": [
+                  "highlight",
+                  "association",
+                  "discern",
+                  "retrospect",
+                  "curious"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional thought family hint attached to the current live activity when already known.",
+            "title": "Thought Family"
+          },
+          "updated_at": {
+            "description": "Timestamp of the latest live-activity update.",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phase",
+          "updated_at"
+        ],
+        "title": "CurrentReadingActivity",
+        "type": "object"
+      },
       "CurrentStatePanel": {
         "additionalProperties": false,
         "description": "Focused realtime status block for the analysis page.",
@@ -1535,6 +1632,17 @@
             ],
             "description": "Parameters used to render the current parse or read step.",
             "title": "Current Phase Step Params"
+          },
+          "current_reading_activity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentReadingActivity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Live snapshot of what the reader is actively doing right now."
           },
           "current_section_ref": {
             "anyOf": [
@@ -1750,6 +1858,66 @@
         "title": "FeaturedReactionPreview",
         "type": "object"
       },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "description": "Lightweight liveness response for supervision and deploy platforms.",
+        "properties": {
+          "host": {
+            "description": "Configured bind host.",
+            "title": "Host",
+            "type": "string"
+          },
+          "mode": {
+            "description": "Current backend launcher mode.",
+            "title": "Mode",
+            "type": "string"
+          },
+          "port": {
+            "description": "Configured bind port.",
+            "title": "Port",
+            "type": "integer"
+          },
+          "runtime_root": {
+            "description": "Resolved backend runtime root path.",
+            "title": "Runtime Root",
+            "type": "string"
+          },
+          "service": {
+            "const": "backend",
+            "description": "Service name for the healthcheck response.",
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "description": "Simple liveness status.",
+            "title": "Status",
+            "type": "string"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Deploy or commit version when available.",
+            "title": "Version"
+          }
+        },
+        "required": [
+          "status",
+          "service",
+          "mode",
+          "host",
+          "port",
+          "runtime_root"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
       "JobStatusResponse": {
         "additionalProperties": false,
         "description": "Snapshot of one background sequential-read job.",
@@ -1843,6 +2011,17 @@
             ],
             "description": "Parameters used to render the current parse or read step.",
             "title": "Current Phase Step Params"
+          },
+          "current_reading_activity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurrentReadingActivity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Live snapshot of what the reader is actively doing right now."
           },
           "current_section_ref": {
             "anyOf": [
@@ -4096,6 +4275,25 @@
           }
         },
         "summary": "Book Source"
+      }
+    },
+    "/api/health": {
+      "get": {
+        "description": "Return a lightweight backend liveness snapshot.",
+        "operationId": "healthcheck_api_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Healthcheck"
       }
     },
     "/api/jobs/{job_id}": {

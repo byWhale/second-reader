@@ -434,6 +434,12 @@ def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     docs_response = client.get("/docs")
     assert docs_response.status_code == 200
 
+    health_response = client.get("/api/health")
+    assert health_response.status_code == 200
+    assert health_response.json()["status"] == "ok"
+    assert health_response.json()["service"] == "backend"
+    assert health_response.json()["runtime_root"] == str(tmp_path)
+
     openapi_response = client.get("/openapi.json")
     assert openapi_response.status_code == 200
     assert "/api/books" in openapi_response.json()["paths"]

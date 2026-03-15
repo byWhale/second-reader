@@ -2266,12 +2266,37 @@ def _short_progress_text(text: str, limit: int = 36) -> str:
     return sentence[: limit - 1].rstrip() + "…"
 
 
+def _progress_excerpt(text: str, limit: int = 88) -> str:
+    """Return a short excerpt for the live reading-activity snapshot."""
+    cleaned = _clean_text(text)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    if not cleaned:
+        return ""
+    sentence = re.split(r"(?<=[。!！?？.])\s+", cleaned, maxsplit=1)[0].strip()
+    if len(sentence) <= limit:
+        return sentence
+    return sentence[: limit - 1].rstrip() + "…"
+
+
+def _first_active_family(reactions: list[ReactionPayload]) -> str | None:
+    """Return the most prominent visible reaction family in stable UI priority order."""
+    family_priority = ("discern", "association", "curious", "retrospect", "highlight")
+    active = _active_reactions(reactions)
+    for family in family_priority:
+        if any(str(reaction.get("type", "")) == family for reaction in active):
+            return family
+    return None
+
+
 def _reader_progress_event(
     message: str,
     *,
     kind: ReaderProgressEvent["kind"],
     visibility: ReaderProgressEvent["visibility"] = "default",
     search_query: str | None = None,
+    phase: str | None = None,
+    current_excerpt: str | None = None,
+    thought_family: str | None = None,
 ) -> ReaderProgressEvent:
     """Create one structured progress event for the outer iterator."""
     payload: ReaderProgressEvent = {
@@ -2281,6 +2306,13 @@ def _reader_progress_event(
     }
     if search_query:
         payload["search_query"] = search_query
+    if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
+        payload["phase"] = phase  # type: ignore[typeddict-item]
+    excerpt = _progress_excerpt(current_excerpt or "")
+    if excerpt:
+        payload["current_excerpt"] = excerpt
+    if thought_family in {"highlight", "association", "curious", "discern", "retrospect"}:
+        payload["thought_family"] = thought_family  # type: ignore[typeddict-item]
     return payload
 
 
@@ -2289,7 +2321,13 @@ def express_progress_event(state: ReaderState) -> ReaderProgressEvent:
     reactions = state.get("reactions", [])
     active_reactions = _active_reactions(reactions)
     if not active_reactions:
-        return _reader_progress_event("🤫 这段是过渡，安静读过", kind="transition", visibility="collapsed")
+        return _reader_progress_event(
+            "🤫 这段是过渡，安静读过",
+            kind="transition",
+            visibility="collapsed",
+            phase="thinking",
+            current_excerpt=state.get("segment_text", ""),
+        )
 
     retrospect = next(
         (reaction for reaction in active_reactions if reaction.get("type") == "retrospect"),
@@ -2300,6 +2338,9 @@ def express_progress_event(state: ReaderState) -> ReaderProgressEvent:
         return _reader_progress_event(
             f"🔗 {snippet}..." if snippet else "🔗 这和前文某处呼应了...",
             kind="thought",
+            phase="thinking",
+            current_excerpt=retrospect.get("anchor_quote", "") or state.get("segment_text", ""),
+            thought_family="retrospect",
         )
 
     discern = next(
@@ -2311,6 +2352,9 @@ def express_progress_event(state: ReaderState) -> ReaderProgressEvent:
         return _reader_progress_event(
             f"⚡ {snippet}..." if snippet else "⚡ 这里的前提值得再推敲...",
             kind="thought",
+            phase="thinking",
+            current_excerpt=discern.get("anchor_quote", "") or state.get("segment_text", ""),
+            thought_family="discern",
         )
 
     curious = next(
@@ -2327,11 +2371,20 @@ def express_progress_event(state: ReaderState) -> ReaderProgressEvent:
             f"🔍 好奇 {query}，查一下..." if query else "🔍 这里有点好奇，查一下...",
             kind="search",
             search_query=search_query,
+            phase="thinking",
+            current_excerpt=curious.get("anchor_quote", "") or state.get("segment_text", ""),
+            thought_family="curious",
         )
 
     highlights = [reaction for reaction in active_reactions if reaction.get("type") == "highlight"]
     if len(highlights) >= 2:
-        return _reader_progress_event("💡 好几句都有感触...", kind="thought")
+        return _reader_progress_event(
+            "💡 好几句都有感触...",
+            kind="thought",
+            phase="thinking",
+            current_excerpt=highlights[0].get("anchor_quote", "") or state.get("segment_text", ""),
+            thought_family="highlight",
+        )
     if highlights:
         snippet = _short_progress_text(
             highlights[0].get("content", "") or highlights[0].get("anchor_quote", "")
@@ -2339,6 +2392,9 @@ def express_progress_event(state: ReaderState) -> ReaderProgressEvent:
         return _reader_progress_event(
             f"💡 {snippet}..." if snippet else "💡 先把这句划下来...",
             kind="thought",
+            phase="thinking",
+            current_excerpt=highlights[0].get("anchor_quote", "") or state.get("segment_text", ""),
+            thought_family="highlight",
         )
 
     association = next(
@@ -2350,9 +2406,19 @@ def express_progress_event(state: ReaderState) -> ReaderProgressEvent:
         return _reader_progress_event(
             f"✍️ {snippet}..." if snippet else "✍️ 这几句开始串起来了...",
             kind="thought",
+            phase="thinking",
+            current_excerpt=association.get("anchor_quote", "") or state.get("segment_text", ""),
+            thought_family="association",
         )
 
-    return _reader_progress_event("🤫 这段先安静读过", kind="transition", visibility="collapsed")
+    return _reader_progress_event(
+        "🤫 这段先安静读过",
+        kind="transition",
+        visibility="collapsed",
+        phase="thinking",
+        current_excerpt=state.get("segment_text", ""),
+        thought_family=_first_active_family(reactions),
+    )
 
 
 def express_progress_message(state: ReaderState) -> str:
@@ -2378,6 +2444,9 @@ def search_progress_event(state: ReaderState) -> ReaderProgressEvent | None:
         f"🔎 搜索: {' / '.join(queries)}",
         kind="search",
         search_query=queries[0],
+        phase="searching",
+        current_excerpt=state.get("segment_text", ""),
+        thought_family="curious",
     )
 
 
@@ -2395,7 +2464,7 @@ def reflect_progress_event(reflection: ReflectionPayload | dict | None) -> Reade
     choices = [message for message in pool if message != previous] or list(pool)
     message = random.choice(choices)
     _LAST_REFLECT_MESSAGE[verdict] = message
-    return _reader_progress_event(message, kind="transition", visibility="hidden")
+    return _reader_progress_event(message, kind="transition", visibility="hidden", phase="reflecting")
 
 
 def reflect_progress_message(reflection: ReflectionPayload | dict | None) -> str:
@@ -2825,7 +2894,28 @@ def run_reader_segment(
         substate["revision_instruction"] = ""
         substate["budget"] = dict(budget)
 
+        if progress:
+            progress(
+                _reader_progress_event(
+                    "",
+                    kind="position",
+                    visibility="hidden",
+                    phase="reading",
+                    current_excerpt=subsegment.get("text", current.get("segment_text", "")),
+                )
+            )
+
         substate.update(read_node(substate))
+        if progress:
+            progress(
+                _reader_progress_event(
+                    "",
+                    kind="transition",
+                    visibility="hidden",
+                    phase="thinking",
+                    current_excerpt=subsegment.get("text", current.get("segment_text", "")),
+                )
+            )
         substate.update(think_node(substate))
         _consume_work_units(budget, 1)
         thought = substate.get("thought") or {}
@@ -2893,11 +2983,43 @@ def run_reader_segment(
         )
 
         if substate.get("search_results") and int(budget.get("work_units_remaining", 0)) > 0:
+            if progress:
+                progress(
+                    _reader_progress_event(
+                        "",
+                        kind="transition",
+                        visibility="hidden",
+                        phase="fusing",
+                        current_excerpt=substate.get("segment_text", ""),
+                        search_query=_normalize_search_query(
+                            next(
+                                (
+                                    reaction.get("search_query", "")
+                                    for reaction in substate.get("reactions", [])
+                                    if reaction.get("type") == "curious"
+                                ),
+                                "",
+                            )
+                        ),
+                        thought_family=_first_active_family(substate.get("reactions", [])),
+                    )
+                )
             substate["budget"] = dict(budget)
             substate.update(fuse_curious_results_node(substate))
             _consume_work_units(budget, 1)
 
         if int(budget.get("work_units_remaining", 0)) > 0 and elapsed_seconds() <= timeout_seconds:
+            if progress:
+                progress(
+                    _reader_progress_event(
+                        "",
+                        kind="transition",
+                        visibility="hidden",
+                        phase="reflecting",
+                        current_excerpt=substate.get("segment_text", ""),
+                        thought_family=_first_active_family(substate.get("reactions", [])),
+                    )
+                )
             substate["budget"] = dict(budget)
             substate.update(reflect_node(substate))
             reflection = dict(substate.get("reflection") or {})

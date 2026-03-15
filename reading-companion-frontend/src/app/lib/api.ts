@@ -6,6 +6,7 @@ import {
   CANONICAL_ROUTE_PATTERNS,
   COMPAT_ROUTE_PATTERNS,
 } from "./contract";
+import { copy } from "../config/controlled-copy";
 import type {
   ActivityEvent,
   ActivityEventsPageResponse,
@@ -63,6 +64,8 @@ export class ApiRequestError extends Error {
   }
 }
 
+const NETWORK_ERROR_PATTERNS = [/failed to fetch/i, /networkerror/i, /load failed/i, /fetch failed/i];
+
 function normalizeBaseUrl(value: string): string {
   return value.replace(/\/+$/, "");
 }
@@ -98,6 +101,32 @@ export function getErrorMessage(error: unknown): string {
     return error.message;
   }
   return "Unknown request error";
+}
+
+export function isBackendUnavailableError(error: unknown): boolean {
+  if (error instanceof ApiRequestError) {
+    return false;
+  }
+  if (error instanceof Error) {
+    return NETWORK_ERROR_PATTERNS.some((pattern) => pattern.test(error.message));
+  }
+  return false;
+}
+
+export function getErrorPresentation(
+  error: unknown,
+  fallback: { title: string; message: string },
+): { title: string; message: string } {
+  if (isBackendUnavailableError(error)) {
+    return {
+      title: copy("state.error.backendUnavailable.title"),
+      message: copy("state.error.backendUnavailable.message"),
+    };
+  }
+  return {
+    title: fallback.title,
+    message: error ? getErrorMessage(error) : fallback.message,
+  };
 }
 
 export function toApiAssetUrl(path?: string | null): string | null {

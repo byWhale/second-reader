@@ -6,6 +6,7 @@
 3. `docs/workspace-overview.md`
 4. `docs/api-contract.md`
 5. `docs/api-integration.md`
+6. `docs/runtime-modes.md` when the task touches startup, demo reliability, healthchecks, or deploy behavior
 
 ## If You Are Changing Backend API
 - update backend schemas and handlers first
@@ -16,6 +17,11 @@
 - do not reintroduce mock data as the primary source of truth
 - keep canonical route compatibility with backend-returned URLs
 - preserve the thin API adapter pattern instead of scattering raw fetch calls
+
+## If You Are Changing Runtime Or Deploy Behavior
+- update `README.md` if user-facing commands change
+- update `docs/runtime-modes.md` if launcher intent, supervision, or healthchecks change
+- do not leave startup/deploy conventions discoverable only through scripts
 
 ## API Contract Authority
 - `docs/api-contract.md` is the current authority for frontend/backend integration.

@@ -23,6 +23,8 @@ import {
   type BookMarksResponse,
   fetchBookDetail,
   fetchBookMarks,
+  getErrorMessage,
+  getErrorPresentation,
   resumeBookAnalysis,
   startBookAnalysis,
   toApiAssetUrl,
@@ -428,7 +430,7 @@ function BookOverviewStatusBand({
   detail: BookDetailResponse;
   analysis: AnalysisStateResponse | null;
   analysisLoading: boolean;
-  analysisError: string | null;
+  analysisError: unknown | null;
   onRetryAnalysis: () => void;
 }) {
   if (detail.status === "not_started") {
@@ -594,7 +596,7 @@ function BookOverviewStatusBand({
         {analysisError ? (
           <>
             <span className="text-[var(--destructive)]" style={{ fontSize: "0.8125rem" }}>
-              {analysisError}
+              {getErrorMessage(analysisError)}
             </span>
             <button
               type="button"
@@ -969,30 +971,11 @@ type MindstreamMoment = {
 
 type ContentLocale = "en" | "zh";
 type MindstreamActionFamily = "discern" | "association" | "curious" | "retrospect" | "highlight";
-
-const MINDSTREAM_ACTION_COPY_KEYS: Record<
-  MindstreamActionFamily,
-  { default: ControlledCopyKey; alternate?: ControlledCopyKey; search?: ControlledCopyKey }
-> = {
-  discern: {
-    default: "overview.mindstream.action.discern.default",
-    alternate: "overview.mindstream.action.discern.question",
-  },
-  association: {
-    default: "overview.mindstream.action.association.default",
-    alternate: "overview.mindstream.action.association.echo",
-  },
-  curious: {
-    default: "overview.mindstream.action.curious.default",
-    search: "overview.mindstream.action.curious.search",
-  },
-  retrospect: {
-    default: "overview.mindstream.action.retrospect.default",
-    alternate: "overview.mindstream.action.retrospect.echo",
-  },
-  highlight: {
-    default: "overview.mindstream.action.highlight.default",
-  },
+type CurrentReadingActivitySnapshot = NonNullable<AnalysisStateResponse["current_reading_activity"]>;
+type CurrentMindstreamActivity = {
+  message: string;
+  context: string | null;
+  contextKind: "excerpt" | "query" | "none";
 };
 
 function normalizeContentLocale(language?: string | null): ContentLocale {
@@ -1147,9 +1130,34 @@ function looksEchoing(text: string) {
     || /(\u524d\u6587|\u524d\u9762|\u56de\u54cd|\u547c\u5e94|\u53c8\u4e00\u6b21|\u518d\u4e00\u6b21|\u56de\u5230\u524d\u9762)/.test(text);
 }
 
-function actionCopyKeyForReaction(reaction: MindstreamReaction): ControlledCopyKey {
+const MINDSTREAM_TRACE_COPY_KEYS: Record<
+  MindstreamActionFamily,
+  { default: ControlledCopyKey; alternate?: ControlledCopyKey; search?: ControlledCopyKey }
+> = {
+  discern: {
+    default: "overview.mindstream.trace.discern.default",
+    alternate: "overview.mindstream.trace.discern.question",
+  },
+  association: {
+    default: "overview.mindstream.trace.association.default",
+    alternate: "overview.mindstream.trace.association.echo",
+  },
+  curious: {
+    default: "overview.mindstream.trace.curious.default",
+    search: "overview.mindstream.trace.curious.search",
+  },
+  retrospect: {
+    default: "overview.mindstream.trace.retrospect.default",
+    alternate: "overview.mindstream.trace.retrospect.echo",
+  },
+  highlight: {
+    default: "overview.mindstream.trace.highlight.default",
+  },
+};
+
+function traceCopyKeyForReaction(reaction: MindstreamReaction): ControlledCopyKey {
   const family = reactionActionFamily(reaction);
-  const copyGroup = MINDSTREAM_ACTION_COPY_KEYS[family];
+  const copyGroup = MINDSTREAM_TRACE_COPY_KEYS[family];
   const content = String(reaction.content ?? "");
 
   if (family === "curious" && reaction.search_query) {
@@ -1164,24 +1172,159 @@ function actionCopyKeyForReaction(reaction: MindstreamReaction): ControlledCopyK
   return copyGroup.default;
 }
 
-function reactionActionPhrase(reaction: MindstreamReaction, locale: ContentLocale) {
-  return contentCopy(actionCopyKeyForReaction(reaction), locale);
+function reactionTracePhrase(reaction: MindstreamReaction, locale: ContentLocale) {
+  return contentCopy(traceCopyKeyForReaction(reaction), locale);
 }
 
-function currentPulseFromMoment(
-  moment: MindstreamMoment | null,
+const MINDSTREAM_LIVE_COPY_KEYS: Record<
+  CurrentReadingActivitySnapshot["phase"],
+  { default: ControlledCopyKey; alternate?: ControlledCopyKey; families?: Partial<Record<MindstreamActionFamily, ControlledCopyKey>> }
+> = {
+  reading: {
+    default: "overview.mindstream.live.reading.default",
+    alternate: "overview.mindstream.live.reading.alternate",
+  },
+  thinking: {
+    default: "overview.mindstream.live.thinking.default",
+    families: {
+      discern: "overview.mindstream.live.thinking.discern",
+      association: "overview.mindstream.live.thinking.association",
+      curious: "overview.mindstream.live.thinking.curious",
+      retrospect: "overview.mindstream.live.thinking.retrospect",
+      highlight: "overview.mindstream.live.thinking.highlight",
+    },
+  },
+  searching: {
+    default: "overview.mindstream.live.searching.default",
+    families: {
+      curious: "overview.mindstream.live.searching.curious",
+    },
+  },
+  fusing: {
+    default: "overview.mindstream.live.fusing.default",
+    alternate: "overview.mindstream.live.fusing.alternate",
+  },
+  reflecting: {
+    default: "overview.mindstream.live.reflecting.default",
+    alternate: "overview.mindstream.live.reflecting.alternate",
+  },
+  waiting: {
+    default: "overview.mindstream.live.waiting.default",
+  },
+  preparing: {
+    default: "overview.mindstream.live.preparing.default",
+  },
+};
+
+function isWaitingOrPreparingPulse(value: string) {
+  return /^waiting\b/i.test(value)
+    || /^preparing\b/i.test(value)
+    || /^readying\b/i.test(value)
+    || /^(\u7b49\u5f85|\u6b63\u5728\u51c6\u5907|\u51c6\u5907)/.test(value);
+}
+
+function normalizeThoughtFamily(value?: string | null): MindstreamActionFamily | null {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (
+    normalized === "discern" ||
+    normalized === "association" ||
+    normalized === "curious" ||
+    normalized === "retrospect" ||
+    normalized === "highlight"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function looksLikeLocationToken(value: string, segmentRef?: string | null) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) {
+    return false;
+  }
+  if (segmentRef && normalized === segmentRef.trim()) {
+    return true;
+  }
+  return /^[A-Za-z0-9][A-Za-z0-9_\-]*(?:\.[A-Za-z0-9_\-]+)*$/.test(normalized);
+}
+
+function liveCopyKeyForActivity(activity: CurrentReadingActivitySnapshot): ControlledCopyKey {
+  const copyGroup = MINDSTREAM_LIVE_COPY_KEYS[activity.phase];
+  const family = normalizeThoughtFamily(activity.thought_family);
+
+  if (family && copyGroup.families?.[family]) {
+    return copyGroup.families[family]!;
+  }
+
+  if (activity.phase === "reading" && activity.current_excerpt) {
+    return copyGroup.alternate ?? copyGroup.default;
+  }
+  if (activity.phase === "fusing" && (activity.search_query || activity.current_excerpt)) {
+    return copyGroup.alternate ?? copyGroup.default;
+  }
+  if (activity.phase === "reflecting" && activity.current_excerpt) {
+    return copyGroup.alternate ?? copyGroup.default;
+  }
+
+  return copyGroup.default;
+}
+
+function buildCurrentMindstreamActivity(
+  analysis: AnalysisStateResponse | null,
   locale: ContentLocale,
-  currentSectionRef: string | null | undefined,
-  fallbackPulse: string,
-) {
-  if (!moment || !currentSectionRef || moment.sectionRef !== currentSectionRef) {
-    return fallbackPulse;
+): CurrentMindstreamActivity | null {
+  if (!analysis) {
+    return null;
   }
-  const leadReaction = moment.reactions[0];
-  if (!leadReaction) {
-    return fallbackPulse;
+
+  const liveActivity = analysis.current_reading_activity ?? analysis.current_state_panel.current_reading_activity ?? null;
+  if (liveActivity) {
+    const message = contentCopy(liveCopyKeyForActivity(liveActivity), locale);
+    const excerpt = String(liveActivity.current_excerpt ?? "").trim();
+    const query = String(liveActivity.search_query ?? "").trim();
+    const segmentRef = String(liveActivity.segment_ref ?? "").trim();
+
+    if (liveActivity.phase === "searching" && query) {
+      return {
+        message,
+        context: excerptText(query, 72),
+        contextKind: "query",
+      };
+    }
+
+    if (excerpt && !looksLikeLocationToken(excerpt, segmentRef)) {
+      return {
+        message,
+        context: excerptText(excerpt, 96),
+        contextKind: "excerpt",
+      };
+    }
+
+    return {
+      message,
+      context: null,
+      contextKind: "none",
+    };
   }
-  return `${reactionActionPhrase(leadReaction, locale)} · ${currentSectionRef}`;
+
+  const fallbackPulse = analysis.pulse_message?.trim() ?? analysis.current_state_panel.pulse_message?.trim() ?? "";
+  if (fallbackPulse && isWaitingOrPreparingPulse(fallbackPulse)) {
+    return {
+      message: fallbackPulse,
+      context: null,
+      contextKind: "none",
+    };
+  }
+
+  if (analysis.status === "deep_reading") {
+    return {
+      message: contentCopy("overview.mindstream.live.reading.default", locale),
+      context: null,
+      contextKind: "none",
+    };
+  }
+
+  return null;
 }
 
 function ActivityMeta({
@@ -1196,6 +1339,44 @@ function ActivityMeta({
       <span>{formatTimestamp(event.timestamp)}</span>
       {event.chapter_ref ? <span>{event.chapter_ref}</span> : null}
       {event.section_ref ? <span>{event.section_ref}</span> : null}
+    </div>
+  );
+}
+
+function CurrentMindstreamActivityLine({
+  activity,
+  prefersReducedMotion,
+}: {
+  activity: CurrentMindstreamActivity;
+  prefersReducedMotion: boolean;
+}) {
+  return (
+    <div className="border-l border-[var(--amber-accent)]/30 pl-4">
+      <div className="flex items-center gap-2 text-[var(--warm-700)]">
+        <span className="relative flex h-2.5 w-2.5 shrink-0">
+          <span
+            className={`absolute inline-flex h-full w-full rounded-full bg-[var(--amber-accent)]/35 ${
+              prefersReducedMotion ? "" : "motion-safe:animate-pulse"
+            }`}
+          />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--amber-accent)]" />
+        </span>
+        <span style={{ fontSize: "0.875rem", fontWeight: 600, letterSpacing: "0.01em" }}>{activity.message}</span>
+      </div>
+
+      {activity.context ? (
+        <p
+          className={`mt-2 max-w-[40rem] ${activity.contextKind === "excerpt" ? "italic text-[var(--warm-500)]" : "text-[var(--warm-600)]"}`}
+          style={{
+            fontSize: activity.contextKind === "excerpt" ? "0.75rem" : "0.8125rem",
+            fontWeight: activity.contextKind === "excerpt" ? 400 : 500,
+            lineHeight: activity.contextKind === "excerpt" ? 1.55 : 1.6,
+            ...clampStyle(1),
+          }}
+        >
+          {activity.contextKind === "excerpt" ? `“${activity.context}”` : activity.context}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -1219,8 +1400,8 @@ function MindstreamEventCard({
   }
   const remainingReactions = moment.reactions.slice(1);
   const isHighlightOnly = moment.reactions.every((reaction) => reaction.type === "highlight");
-  const teaserLines = isCompact ? 2 : 3;
-  const leadAction = reactionActionPhrase(leadReaction, contentLocale);
+  const teaserLines = 2;
+  const traceLabel = reactionTracePhrase(leadReaction, contentLocale);
 
   useEffect(() => {
     if (prefersReducedMotion) {
@@ -1234,34 +1415,31 @@ function MindstreamEventCard({
   function ReactionTeaser({
     reaction,
     compact = false,
+    showHeader = true,
   }: {
     reaction: MindstreamReaction;
     compact?: boolean;
+    showHeader?: boolean;
   }) {
-    const actionPhrase = reactionActionPhrase(reaction, contentLocale);
     return (
       <div className={compact ? "space-y-1.5" : "space-y-2"}>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span
-            className={isHighlightOnly ? "text-[var(--warm-500)]" : "text-[var(--warm-700)]"}
-            style={{ fontSize: compact ? "0.6875rem" : "0.75rem", fontWeight: 600, letterSpacing: "0.01em" }}
-          >
-            {actionPhrase}
-          </span>
-          <span
-            className={`inline-flex rounded-full px-2 py-0.5 ${
-              isHighlightOnly ? "bg-[var(--warm-100)] text-[var(--warm-600)]" : "bg-[var(--amber-bg)] text-[var(--warm-800)]"
-            }`}
-            style={{ fontSize: "0.625rem", fontWeight: 600 }}
-          >
-            {reactionLabel(reaction.type)}
-          </span>
-          {compact && moment.sectionRef ? (
-            <span className="text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
-              {moment.sectionRef}
+        {showHeader ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={`inline-flex rounded-full px-2 py-0.5 ${
+                isHighlightOnly ? "bg-[var(--warm-100)] text-[var(--warm-600)]" : "bg-[var(--amber-bg)] text-[var(--warm-800)]"
+              }`}
+              style={{ fontSize: "0.625rem", fontWeight: 600 }}
+            >
+              {reactionLabel(reaction.type)}
             </span>
-          ) : null}
-        </div>
+            {compact && moment.sectionRef ? (
+              <span className="text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
+                {moment.sectionRef}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <p
           className={isHighlightOnly ? "text-[var(--warm-700)]" : "text-[var(--warm-900)]"}
           style={{
@@ -1284,7 +1462,7 @@ function MindstreamEventCard({
 
   return (
     <article
-      className="relative border-l border-[var(--warm-300)]/35 pl-5"
+      className="relative border-l border-[var(--warm-300)]/25 pl-5"
       style={
         prefersReducedMotion
           ? undefined
@@ -1297,11 +1475,11 @@ function MindstreamEventCard({
     >
       <span
         className={`absolute -left-[4px] top-1.5 block h-2 w-2 rounded-full ${
-          isHighlightOnly ? "bg-[var(--warm-300)]" : "bg-[var(--amber-accent)]"
+          isHighlightOnly ? "bg-[var(--warm-200)]" : "bg-[var(--warm-300)]"
         }`}
       />
 
-      <div className="min-w-0">
+      <div className="min-w-0 max-w-[44rem]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1309,7 +1487,7 @@ function MindstreamEventCard({
                 className={isHighlightOnly ? "text-[var(--warm-500)]" : "text-[var(--warm-700)]"}
                 style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.01em" }}
               >
-                {leadAction}
+                {traceLabel}
               </span>
               {moment.sectionRef ? (
                 <span className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
@@ -1337,7 +1515,7 @@ function MindstreamEventCard({
               style={{
                 fontSize: "0.75rem",
                 lineHeight: 1.55,
-                ...clampStyle(isCompact ? 1 : 2),
+                ...clampStyle(1),
               }}
             >
               “{moment.anchorQuote}”
@@ -1345,7 +1523,7 @@ function MindstreamEventCard({
           ) : null}
 
           <div>
-            <ReactionTeaser reaction={leadReaction} />
+            <ReactionTeaser reaction={leadReaction} showHeader={false} />
           </div>
 
           <div
@@ -1435,7 +1613,7 @@ function RuntimeFeedPanel({
   isCompact: boolean;
   contentLanguage: ContentLocale;
   loading: boolean;
-  error: string | null;
+  error: unknown | null;
   onRetry: () => void;
 }) {
   if (loading && !analysis) {
@@ -1449,10 +1627,14 @@ function RuntimeFeedPanel({
   }
 
   if (error || !analysis) {
+    const errorState = getErrorPresentation(error, {
+      title: copy("state.error.backendUnavailable.title"),
+      message: copy("overview.syncError.default"),
+    });
     return (
       <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
         <p className="text-[var(--destructive)] mb-3" style={{ fontSize: "0.875rem" }}>
-          {error ?? copy("overview.syncError.default")}
+          {errorState.message}
         </p>
         <button
           type="button"
@@ -1471,13 +1653,8 @@ function RuntimeFeedPanel({
     (event) => activityStream(event) === "system" && activityVisibility(event) !== "hidden",
   );
   const prefersReducedMotion = usePrefersReducedMotion();
-  const fallbackPulse = analysis.pulse_message?.trim() ?? analysis.current_state_panel.pulse_message?.trim() ?? "";
-  const pulseMessage = currentPulseFromMoment(
-    mainMindstreamMoments[0] ?? null,
-    contentLanguage,
-    analysis.current_state_panel.current_section_ref ?? null,
-    fallbackPulse,
-  );
+  const currentActivity = buildCurrentMindstreamActivity(analysis, contentLanguage);
+  const historyMoments = mainMindstreamMoments;
 
   return (
     <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm md:p-6">
@@ -1489,27 +1666,24 @@ function RuntimeFeedPanel({
               {copy("overview.mindstream.title")}
             </h2>
           </div>
-          {pulseMessage ? (
-            <div className="flex items-center gap-2 text-[var(--warm-500)]" style={{ fontSize: "0.8125rem", lineHeight: 1.6 }}>
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--amber-accent)]/35 motion-safe:animate-pulse" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--amber-accent)]" />
-              </span>
-              <span className="truncate">{pulseMessage}</span>
-            </div>
-          ) : null}
         </div>
       </div>
 
       <div className="mt-5">
-        {mainMindstreamMoments.length === 0 ? (
+        {currentActivity ? (
+          <CurrentMindstreamActivityLine activity={currentActivity} prefersReducedMotion={prefersReducedMotion} />
+        ) : null}
+
+        {!currentActivity && historyMoments.length === 0 ? (
           <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
             {copy("overview.mindstream.empty")}
           </p>
-        ) : (
-          <div className="max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[24rem]">
+        ) : null}
+
+        {historyMoments.length > 0 ? (
+          <div className={`${currentActivity ? "mt-5 border-t border-[var(--warm-300)]/25 pt-5" : ""} max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[24rem]`}>
             <div className="space-y-5">
-              {mainMindstreamMoments.map((moment) => (
+              {historyMoments.map((moment) => (
                 <MindstreamEventCard
                   key={moment.momentId}
                   moment={moment}
@@ -1519,6 +1693,12 @@ function RuntimeFeedPanel({
                 />
               ))}
             </div>
+          </div>
+        ) : currentActivity ? (
+          <div className="mt-4 min-h-8" aria-hidden="true" />
+        ) : (
+          <div className="max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[24rem]">
+            <div className="space-y-5" />
           </div>
         )}
       </div>
@@ -1634,10 +1814,14 @@ export function BookOverviewPage() {
   }
 
   if (error || !data) {
+    const errorState = getErrorPresentation(error, {
+      title: copy("overview.error.title"),
+      message: copy("overview.error.message"),
+    });
     return (
       <ErrorState
-        title={copy("overview.error.title")}
-        message={error ?? copy("overview.error.message")}
+        title={errorState.title}
+        message={errorState.message}
         onRetry={reload}
         linkLabel={copy("page.books.title")}
         linkTo="/books"

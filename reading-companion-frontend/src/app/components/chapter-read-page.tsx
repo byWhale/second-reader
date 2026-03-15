@@ -9,6 +9,8 @@ import {
   fetchBookDetail,
   fetchChapterDetail,
   fetchChapterOutline,
+  getErrorMessage,
+  getErrorPresentation,
   putReactionMark,
   toApiAssetUrl,
 } from "../lib/api";
@@ -248,7 +250,7 @@ export function ChapterReadPage() {
   const [payload, setPayload] = useState<ChapterDetailResponse | null>(null);
   const [bookDetail, setBookDetail] = useState<BookDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [activeReactionId, setActiveReactionId] = useState<ReactionId | null>(null);
   const [activeFilter, setActiveFilter] = useState<ReactionFilter>(() => readChapterFilterPreference(resolvedBookId));
   const [reloadTick, setReloadTick] = useState(0);
@@ -558,7 +560,7 @@ export function ChapterReadPage() {
           return;
         }
         setBookDetail(null);
-        setError(reason instanceof Error ? reason.message : "Failed to load chapter data.");
+        setError(reason);
       })
       .finally(() => {
         if (active) {
@@ -694,10 +696,14 @@ export function ChapterReadPage() {
   }
 
   if (error || !payload) {
+    const errorState = getErrorPresentation(error, {
+      title: copy("chapter.error.title"),
+      message: copy("chapter.error.message"),
+    });
     return (
       <ErrorState
-        title={copy("chapter.error.title")}
-        message={error ?? copy("chapter.error.message")}
+        title={errorState.title}
+        message={errorState.message}
         onRetry={() => {
           setPayload(null);
           setLoading(true);
@@ -1752,7 +1758,7 @@ export function ChapterReadPage() {
       {error ? (
         <div className="px-6 pt-4">
           <p className="text-[var(--destructive)]" style={{ fontSize: "0.8125rem" }}>
-            {error}
+            {getErrorMessage(error)}
           </p>
         </div>
       ) : null}

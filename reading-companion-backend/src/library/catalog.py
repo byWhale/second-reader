@@ -862,6 +862,94 @@ def _analysis_phase_step_message(step: str | None) -> tuple[str | None, dict[str
     return _message_ref(key, params)
 
 
+def _synthesized_current_reading_activity(
+    *,
+    status: str,
+    current_phase_step_key: str | None,
+    current_segment_ref: str | None,
+    current_chapter_ref: str | None,
+    updated_at: str | None,
+) -> dict[str, Any] | None:
+    """Build a best-effort live activity snapshot for legacy run states."""
+    if status in {"completed", "paused", "error"}:
+        return None
+
+    step_key = str(current_phase_step_key or "").strip()
+    phase = None
+    excerpt = None
+    if step_key in {
+        "system.step.waitingToResume",
+        "system.step.waitingCurrentChapterSegmentation",
+        "system.step.waitingFirstChapterSegmentation",
+        "system.step.waitingNextChapterSegmentation",
+    }:
+        phase = "waiting"
+        excerpt = current_chapter_ref or current_segment_ref
+    elif status == "parsing_structure" or step_key in {
+        "system.step.prepareChapterStructure",
+        "system.step.segmenting",
+        "system.step.structureCheckpointSaved",
+        "system.step.prefetchFutureChapters",
+        "system.step.prepareFirstChapter",
+    }:
+        phase = "preparing"
+        excerpt = current_chapter_ref
+    elif status == "deep_reading":
+        phase = "reading"
+        excerpt = current_segment_ref
+
+    if not phase:
+        return None
+
+    payload: dict[str, Any] = {
+        "phase": phase,
+        "updated_at": updated_at or _timestamp(),
+    }
+    if current_segment_ref:
+        payload["segment_ref"] = current_segment_ref
+    if excerpt:
+        payload["current_excerpt"] = excerpt
+    return payload
+
+
+def _analysis_current_reading_activity(
+    *,
+    run_state: dict[str, Any],
+    status: str,
+    current_phase_step_key: str | None,
+) -> dict[str, Any] | None:
+    """Return the live reading activity snapshot for the current analysis state."""
+    current = run_state.get("current_reading_activity")
+    if isinstance(current, dict):
+        phase = str(current.get("phase", "") or "").strip()
+        if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
+            payload = {
+                "phase": phase,
+                "updated_at": str(current.get("updated_at", "") or run_state.get("updated_at", "") or _timestamp()),
+            }
+            segment_ref = str(current.get("segment_ref", "") or "").strip()
+            current_excerpt = str(current.get("current_excerpt", "") or "").strip()
+            search_query = str(current.get("search_query", "") or "").strip()
+            thought_family = str(current.get("thought_family", "") or "").strip().lower()
+            if segment_ref:
+                payload["segment_ref"] = segment_ref
+            if current_excerpt:
+                payload["current_excerpt"] = current_excerpt
+            if search_query:
+                payload["search_query"] = search_query
+            if thought_family in {"highlight", "association", "curious", "discern", "retrospect"}:
+                payload["thought_family"] = thought_family
+            return payload
+
+    return _synthesized_current_reading_activity(
+        status=status,
+        current_phase_step_key=current_phase_step_key,
+        current_segment_ref=str(run_state.get("current_segment_ref", "") or "") or None,
+        current_chapter_ref=str(run_state.get("current_chapter_ref", "") or "") or None,
+        updated_at=str(run_state.get("updated_at", "") or "") or None,
+    )
+
+
 def _analysis_pulse_message(
     *,
     status: str,
@@ -998,6 +1086,11 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         run_state, current_chapter_id=current_chapter_id
     )
     current_phase_step_key, current_phase_step_params = _analysis_phase_step_message(current_phase_step)
+    current_reading_activity = _analysis_current_reading_activity(
+        run_state=run_state,
+        status=status,
+        current_phase_step_key=current_phase_step_key,
+    )
     pulse_message = _analysis_pulse_message(
         status=status,
         output_language=output_language,
@@ -1023,6 +1116,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "current_phase_step_key": current_phase_step_key,
         "current_phase_step_params": current_phase_step_params,
         "pulse_message": pulse_message,
+        "current_reading_activity": current_reading_activity,
         "resume_available": resume_available,
         "last_checkpoint_at": last_checkpoint_at,
         "structure_ready": bool(chapters),
@@ -1034,6 +1128,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
             "current_phase_step_key": current_phase_step_key,
             "current_phase_step_params": current_phase_step_params,
             "pulse_message": pulse_message,
+            "current_reading_activity": current_reading_activity,
             "recent_reactions": recent_reactions[:5],
             "reaction_counts": reaction_counts,
             "search_active": any(str(item.get("search_query", "") or "").strip() for item in recent_activity[:5]),

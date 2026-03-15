@@ -1,10 +1,9 @@
 import { DependencyList, startTransition, useEffect, useState } from "react";
-import { getErrorMessage } from "./api";
 
 export function useApiResource<T>(loader: () => Promise<T>, deps: DependencyList) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
@@ -26,7 +25,7 @@ export function useApiResource<T>(loader: () => Promise<T>, deps: DependencyList
         if (!active) {
           return;
         }
-        setError(getErrorMessage(reason));
+        setError(reason);
       })
       .finally(() => {
         if (!active) {

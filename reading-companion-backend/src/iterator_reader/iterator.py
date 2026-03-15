@@ -32,6 +32,7 @@ from .models import (
     BookAnalysisPolicy,
     BookStructure,
     BudgetPolicy,
+    CurrentReadingActivity,
     ReaderMemory,
     ReaderProgressEvent,
     ReadMode,
@@ -100,6 +101,83 @@ def _timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
+def _activity_excerpt(text: str | None, limit: int = 96) -> str | None:
+    """Return a short human-readable excerpt for the live reading activity."""
+    normalized = re.sub(r"\s+", " ", str(text or "")).strip()
+    if not normalized:
+        return None
+    parts = re.split(r"(?<=[.!?。！？])\s+", normalized, maxsplit=1)
+    excerpt = parts[0].strip() if parts else normalized
+    if len(excerpt) <= limit:
+        return excerpt
+    return excerpt[: limit - 1].rstrip() + "…"
+
+
+def _build_current_reading_activity(
+    *,
+    phase: str,
+    segment_ref: str | None = None,
+    current_excerpt: str | None = None,
+    search_query: str | None = None,
+    thought_family: str | None = None,
+) -> CurrentReadingActivity:
+    """Construct one ephemeral reading-activity snapshot."""
+    payload: CurrentReadingActivity = {
+        "phase": phase,  # type: ignore[typeddict-item]
+        "updated_at": _timestamp(),
+    }
+    normalized_segment_ref = str(segment_ref or "").strip()
+    normalized_excerpt = _activity_excerpt(current_excerpt)
+    normalized_query = re.sub(r"\s+", " ", str(search_query or "")).strip()
+    normalized_family = str(thought_family or "").strip().lower()
+
+    if normalized_segment_ref:
+        payload["segment_ref"] = normalized_segment_ref
+    if normalized_excerpt:
+        payload["current_excerpt"] = normalized_excerpt
+    if normalized_query:
+        payload["search_query"] = normalized_query
+    if normalized_family in {"highlight", "association", "curious", "discern", "retrospect"}:
+        payload["thought_family"] = normalized_family  # type: ignore[typeddict-item]
+    return payload
+
+
+def _update_current_reading_activity(
+    tracker: dict[str, object],
+    *,
+    phase: str,
+    segment_ref: str | None = None,
+    current_excerpt: str | None = None,
+    search_query: str | None = None,
+    thought_family: str | None = None,
+) -> bool:
+    """Update the live reading activity only when its semantic payload changes."""
+    next_activity = _build_current_reading_activity(
+        phase=phase,
+        segment_ref=segment_ref,
+        current_excerpt=current_excerpt,
+        search_query=search_query,
+        thought_family=thought_family,
+    )
+    current_activity = tracker.get("current_reading_activity")
+    comparable_keys = ("phase", "segment_ref", "current_excerpt", "search_query", "thought_family")
+    if isinstance(current_activity, dict) and all(
+        str(current_activity.get(key, "") or "") == str(next_activity.get(key, "") or "")
+        for key in comparable_keys
+    ):
+        return False
+    tracker["current_reading_activity"] = next_activity
+    return True
+
+
+def _clear_current_reading_activity(tracker: dict[str, object]) -> bool:
+    """Clear the ephemeral reading activity when the run leaves an active thought."""
+    if tracker.get("current_reading_activity") is None:
+        return False
+    tracker["current_reading_activity"] = None
+    return True
+
+
 def _chapter_lookup_number(chapter: StructureChapter) -> int | None:
     """Return the number users naturally expect for --chapter."""
     return chapter.get("chapter_number")
@@ -141,6 +219,15 @@ def _coerce_reader_progress_event(progress: ReaderProgressEvent | str) -> Reader
         search_query = str(progress.get("search_query", "") or "").strip()
         if search_query:
             normalized["search_query"] = search_query
+        phase = str(progress.get("phase", "") or "").strip().lower()
+        if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
+            normalized["phase"] = phase  # type: ignore[typeddict-item]
+        current_excerpt = _activity_excerpt(str(progress.get("current_excerpt", "") or ""))
+        if current_excerpt:
+            normalized["current_excerpt"] = current_excerpt
+        thought_family = str(progress.get("thought_family", "") or "").strip().lower()
+        if thought_family in {"highlight", "association", "curious", "discern", "retrospect"}:
+            normalized["thought_family"] = thought_family  # type: ignore[typeddict-item]
         return normalized
     text = str(progress or "")
     if text.startswith("📖"):
@@ -158,7 +245,9 @@ def _segment_progress(segment_id: str) -> Callable[[ReaderProgressEvent | str], 
     """Create a CLI printer for one segment."""
     def emit(progress: ReaderProgressEvent | str) -> None:
         normalized = _coerce_reader_progress_event(progress)
-        print(f"  ├─ {normalized.get('message', '')}", flush=True)
+        message = str(normalized.get("message", "") or "").strip()
+        if message:
+            print(f"  ├─ {message}", flush=True)
 
     return emit
 
@@ -216,13 +305,25 @@ def _normalize_memory_refs(structure: BookStructure, memory: ReaderMemory) -> Re
     return coerce_reader_memory(normalized)
 
 
-def _read_progress_event(segment_id: str, segment_summary: str) -> ReaderProgressEvent:
+def _read_progress_event(segment_id: str, segment_text: str, segment_summary: str) -> ReaderProgressEvent:
     """Render the initial read-stage progress event."""
     summary = (segment_summary or "").strip()
     summary = summary[:18].rstrip() + ("..." if len(summary) > 18 else "")
     if summary:
-        return {"message": f"📖 读到 {segment_id}「{summary}」...", "kind": "position", "visibility": "default"}
-    return {"message": f"📖 读到 {segment_id}...", "kind": "position", "visibility": "default"}
+        return {
+            "message": f"📖 读到 {segment_id}「{summary}」...",
+            "kind": "position",
+            "visibility": "default",
+            "phase": "reading",
+            "current_excerpt": segment_text or segment_summary,
+        }
+    return {
+        "message": f"📖 读到 {segment_id}...",
+        "kind": "position",
+        "visibility": "default",
+        "phase": "reading",
+        "current_excerpt": segment_text or segment_summary,
+    }
 
 
 def _segment_visible_reactions(rendered: dict[str, object]) -> list[dict[str, object]]:
@@ -342,6 +443,7 @@ def _write_sequential_run_state(
     current_chapter_id = tracker.get("current_chapter_id")
     current_chapter_ref = tracker.get("current_chapter_ref")
     current_segment_ref = tracker.get("current_segment_ref")
+    current_reading_activity = tracker.get("current_reading_activity")
     eta_seconds: int | None
 
     if stage == "completed":
@@ -349,6 +451,7 @@ def _write_sequential_run_state(
         current_chapter_id = None
         current_chapter_ref = None
         current_segment_ref = None
+        current_reading_activity = None
     elif stage == "ready":
         eta_seconds = None
     else:
@@ -373,6 +476,7 @@ def _write_sequential_run_state(
             current_chapter_id=current_chapter_id if isinstance(current_chapter_id, int) else None,
             current_chapter_ref=str(current_chapter_ref) if current_chapter_ref else None,
             current_segment_ref=str(current_segment_ref) if current_segment_ref else None,
+            current_reading_activity=current_reading_activity if isinstance(current_reading_activity, dict) else None,
             eta_seconds=eta_seconds,
             current_phase_step=current_phase_step,
             resume_available=bool(current_chapter_id is not None or completed_chapters > 0),
@@ -842,14 +946,33 @@ def _run_single_chapter(
         tracker["current_segment_ref"] = shown_segment_id
         tracker["current_completed_segments"] = len(rendered_segments)
         with write_context:
+            _update_current_reading_activity(
+                tracker,
+                phase="reading",
+                segment_ref=shown_segment_id,
+                current_excerpt=str(segment.get("text", "") or segment.get("summary", "") or ""),
+            )
             _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
         stdout_progress = _segment_progress(shown_segment_id)
 
         def progress(progress_event: ReaderProgressEvent | str) -> None:
             normalized = _coerce_reader_progress_event(progress_event)
             stdout_progress(normalized)
+            phase = str(normalized.get("phase", "") or "").strip().lower()
+            if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
+                activity_changed = _update_current_reading_activity(
+                    tracker,
+                    phase=phase,
+                    segment_ref=shown_segment_id,
+                    current_excerpt=str(normalized.get("current_excerpt", "") or ""),
+                    search_query=str(normalized.get("search_query", "") or ""),
+                    thought_family=str(normalized.get("thought_family", "") or ""),
+                )
+                if activity_changed:
+                    with write_context:
+                        _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
 
-        progress(_read_progress_event(shown_segment_id, segment.get("summary", "")))
+        progress(_read_progress_event(shown_segment_id, str(segment.get("text", "") or ""), str(segment.get("summary", "") or "")))
         chapter_index, total_chapters, nearby_outline = _chapter_position_context(structure, chapter)
         state = create_reader_state(
             book_title=str(structure.get("book", "") or ""),
@@ -992,6 +1115,7 @@ def _run_single_chapter(
             time.monotonic() - float(tracker.get("current_chapter_started_at", 0.0))
         )
     tracker["current_segment_ref"] = None
+    _clear_current_reading_activity(tracker)
     tracker["current_completed_segments"] = len(chapter.get("segments", []))
     with write_context:
         _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
@@ -1041,6 +1165,7 @@ def _read_book_sequential(
         "current_chapter_id": None,
         "current_chapter_ref": None,
         "current_segment_ref": None,
+        "current_reading_activity": None,
         "current_total_segments": 0,
         "current_completed_segments": 0,
     }
@@ -1053,6 +1178,11 @@ def _read_book_sequential(
         io_lock=io_lock,
     )
     with io_lock:
+        _update_current_reading_activity(
+            tracker,
+            phase="preparing",
+            current_excerpt=str(selected_chapters[0].get("title", "") or "") if selected_chapters else None,
+        )
         append_activity_event(
             output_dir,
             {
@@ -1078,6 +1208,11 @@ def _read_book_sequential(
             if not chapter.get("segments"):
                 wait_step = "等待首章切分" if not coordinator.reader_started else "等待后续章节切分"
                 with io_lock:
+                    _update_current_reading_activity(
+                        tracker,
+                        phase="waiting" if coordinator.reader_started else "preparing",
+                        current_excerpt=str(chapter.get("title", "") or ""),
+                    )
                     _write_sequential_run_state(
                         structure,
                         output_dir,
@@ -1108,6 +1243,7 @@ def _read_book_sequential(
             )
             tracker["current_chapter_started_at"] = time.monotonic()
             with io_lock:
+                _clear_current_reading_activity(tracker)
                 _write_sequential_run_state(structure, output_dir, tracker, stage="deep_reading")
                 append_activity_event(
                     output_dir,

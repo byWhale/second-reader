@@ -68,6 +68,18 @@ class ErrorResponse(ApiModel):
     )
 
 
+class HealthResponse(ApiModel):
+    """Lightweight liveness response for supervision and deploy platforms."""
+
+    status: Literal["ok"] = Field(description="Simple liveness status.")
+    service: Literal["backend"] = Field(description="Service name for the healthcheck response.")
+    mode: str = Field(description="Current backend launcher mode.")
+    host: str = Field(description="Configured bind host.")
+    port: int = Field(description="Configured bind port.")
+    runtime_root: str = Field(description="Resolved backend runtime root path.")
+    version: Optional[str] = Field(default=None, description="Deploy or commit version when available.")
+
+
 class SearchHit(ApiModel):
     """One external search result attached to a reaction."""
 
@@ -228,6 +240,10 @@ class JobStatusResponse(ApiModel):
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
     pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
+    current_reading_activity: Optional[CurrentReadingActivity] = Field(
+        default=None,
+        description="Live snapshot of what the reader is actively doing right now.",
+    )
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds.")
     resume_available: bool = Field(default=False, description="Whether the job can resume from a checkpoint.")
     last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when available.")
@@ -249,6 +265,22 @@ class ChapterTreeItem(ApiModel):
     result_ready: bool = Field(description="Whether the chapter result page can already be opened.")
 
 
+class CurrentReadingActivity(ApiModel):
+    """Ephemeral snapshot of the live reading step currently underway."""
+
+    phase: Literal["reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"] = Field(
+        description="Current live reading phase."
+    )
+    segment_ref: Optional[str] = Field(default=None, description="Current semantic segment reference when known.")
+    current_excerpt: Optional[str] = Field(default=None, description="Short excerpt of the text currently under attention.")
+    search_query: Optional[str] = Field(default=None, description="Search query being investigated when the reader is searching.")
+    thought_family: Optional[ReactionType] = Field(
+        default=None,
+        description="Optional thought family hint attached to the current live activity when already known.",
+    )
+    updated_at: str = Field(description="Timestamp of the latest live-activity update.")
+
+
 class CurrentStatePanel(ApiModel):
     """Focused realtime status block for the analysis page."""
 
@@ -258,6 +290,10 @@ class CurrentStatePanel(ApiModel):
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
     pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
+    current_reading_activity: Optional[CurrentReadingActivity] = Field(
+        default=None,
+        description="Live snapshot of what the reader is actively doing right now.",
+    )
     recent_reactions: list[FeaturedReactionPreview] = Field(description="Small set of recently surfaced reactions for quick feedback.")
     reaction_counts: dict[ReactionType, int] = Field(description="Visible reaction counts grouped by reaction type.")
     search_active: bool = Field(description="Whether the agent has recent active search behavior.")
@@ -294,6 +330,10 @@ class AnalysisStateResponse(ApiModel):
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
     pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
+    current_reading_activity: Optional[CurrentReadingActivity] = Field(
+        default=None,
+        description="Live snapshot of what the reader is actively doing right now.",
+    )
     resume_available: bool = Field(default=False, description="Whether this analysis can resume from the latest checkpoint.")
     last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when available.")
     structure_ready: bool = Field(description="Whether the structure tree is ready to render.")
@@ -554,6 +594,10 @@ class JobSnapshotPayload(ApiModel):
     current_phase_step_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current parse or read step when available.")
     current_phase_step_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current parse or read step.")
     pulse_message: Optional[str] = Field(default=None, description="Single-line runtime pulse shown near the mindstream while the run is active.")
+    current_reading_activity: Optional[CurrentReadingActivity] = Field(
+        default=None,
+        description="Live snapshot of what the reader is actively doing right now.",
+    )
     eta_seconds: Optional[int] = Field(default=None, description="Estimated remaining time in seconds when known.")
     resume_available: bool = Field(default=False, description="Whether the current run can resume from a checkpoint.")
     last_checkpoint_at: Optional[str] = Field(default=None, description="Last checkpoint timestamp when known.")

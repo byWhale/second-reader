@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { ActivityEvent, AnalysisLogResponse, AnalysisStateResponse, fetchActivity, fetchAnalysisLog, fetchAnalysisState, getErrorMessage, toWebSocketUrl } from "./api";
+import { ActivityEvent, AnalysisLogResponse, AnalysisStateResponse, fetchActivity, fetchAnalysisLog, fetchAnalysisState, toWebSocketUrl } from "./api";
 
 export function useBookAnalysisResource(bookId: number, enabled = true) {
   const [analysis, setAnalysis] = useState<AnalysisStateResponse | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [log, setLog] = useState<AnalysisLogResponse | null>(null);
   const [loading, setLoading] = useState(enabled);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function useBookAnalysisResource(bookId: number, enabled = true) {
         if (!active) {
           return;
         }
-        setError(getErrorMessage(reason));
+        setError(reason);
       } finally {
         if (active) {
           setLoading(false);
