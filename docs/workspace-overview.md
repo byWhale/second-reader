@@ -1,66 +1,55 @@
 # Workspace Overview
 
+Purpose: define workspace structure, ownership boundaries, and shared entrypoints.
+Use when: deciding where changes belong or which side owns a behavior.
+Not for: startup commands, runtime mode semantics, public API payload details, or temporary migration notes.
+Update when: workspace structure, ownership boundaries, or primary shared entrypoints change.
+
 ## What This Root Is For
 - one place to understand the full product
-- one place to understand the primary product interaction model
-- one place to run local setup and dev commands
-- one place to document front/back integration rules
-
-## Key Workspace Docs
-- Product interaction model: `docs/product-interaction-model.md`
-- Public web/API contract: `docs/api-contract.md`
-- Runtime integration notes: `docs/api-integration.md`
-- Runtime launcher and deploy behavior: `docs/runtime-modes.md`
-- Current focus, migration notes, and active risks: `docs/agent-handoff.md`
+- one place to understand backend/frontend ownership boundaries
+- one place to find shared entrypoints before diving into subproject-local code
 
 ## Subprojects
 
 ### `reading-companion-backend`
 - Python project declared in `pyproject.toml`
 - FastAPI app in `src/api/app.py`
-- CLI entrypoint in `main.py`
-- runtime artifacts stored in:
+- public contract helpers in `src/api/contract.py`
+- book/catalog shaping in `src/library/catalog.py`
+- runtime artifacts stored under:
   - `output/`
   - `state/`
-- local server entrypoint: `serve.py`
 
 ### `reading-companion-frontend`
 - Vite + React application
 - routes in `src/app/routes.tsx`
 - API client layer in `src/app/lib/api.ts`
-- canonical frontend routes align with backend-returned route targets
+- generated API types in `src/app/lib/generated/`
 
-## Runtime Boundaries
+## Ownership Boundaries
 - Backend owns:
   - upload processing
   - background jobs
   - book manifests
   - chapter results
   - marks persistence
-  - OpenAPI contract
+  - OpenAPI contract and payload normalization
 - Frontend owns:
   - route rendering
   - upload form UX
   - polling/WebSocket UI updates
   - result views and mark actions
+  - locale-driven interface copy
 
-## Local Workflow
-- Use the parent directory for shared commands.
+## Shared Entry Points
+- Backend application entrypoint: `reading-companion-backend/src/api/app.py`
+- Backend contract and payload shaping: `reading-companion-backend/src/api/contract.py`, `reading-companion-backend/src/api/schemas.py`, `reading-companion-backend/src/library/catalog.py`
+- Frontend route entrypoint: `reading-companion-frontend/src/app/routes.tsx`
+- Frontend API adapter entrypoint: `reading-companion-frontend/src/app/lib/api.ts`
+
+## Workflow Notes
+- Use the workspace root for shared commands and cross-project work.
 - Use child directories when a task is clearly isolated.
 - Keep runtime data in `reading-companion-backend/`.
-- Do not assume the parent directory is the Git root.
-- Runtime launcher intent is documented in `docs/runtime-modes.md`; do not infer it only from shell script names.
-
-## Primary Integration Files
-- Product flow:
-  - `docs/product-interaction-model.md`
-- Contract:
-  - `docs/api-contract.md`
-- Backend:
-  - `reading-companion-backend/src/api/app.py`
-  - `reading-companion-backend/src/api/schemas.py`
-  - `reading-companion-backend/src/library/catalog.py`
-- Frontend:
-  - `reading-companion-frontend/src/app/lib/api.ts`
-  - `reading-companion-frontend/src/app/lib/reactions.ts`
-  - `reading-companion-frontend/src/app/routes.tsx`
+- The workspace root is the shared Git root for both sub-applications.

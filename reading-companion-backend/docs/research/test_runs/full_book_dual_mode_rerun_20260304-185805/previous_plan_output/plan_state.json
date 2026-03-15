@@ -1,0 +1,530 @@
+{
+  "version": 1,
+  "mode": "plan",
+  "objective": "deepen_understanding_and_improve_output_quality",
+  "queue": [],
+  "deferred": [],
+  "completed": [
+    15,
+    17,
+    12,
+    8,
+    16,
+    10,
+    11,
+    13,
+    7,
+    9,
+    18,
+    14,
+    5,
+    19,
+    6
+  ],
+  "chapter_states": [
+    {
+      "chapter_id": 15,
+      "title": "Chapter 9",
+      "priority": 12.95,
+      "reasons": [
+        "segment_density=16",
+        "structural_centrality=0.62"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 17,
+      "title": "Chapter 11",
+      "priority": 12.25,
+      "reasons": [
+        "segment_density=16",
+        "structural_centrality=0.38"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 12,
+      "title": "Chapter 6",
+      "priority": 11.899999999999999,
+      "reasons": [
+        "segment_density=13",
+        "structural_centrality=1.00"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 8,
+      "title": "Chapter 2",
+      "priority": 11.2,
+      "reasons": [
+        "segment_density=14",
+        "structural_centrality=0.50"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 16,
+      "title": "Chapter 10",
+      "priority": 10.5,
+      "reasons": [
+        "segment_density=13",
+        "structural_centrality=0.50"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 10,
+      "title": "Chapter 4",
+      "priority": 9.799999999999999,
+      "reasons": [
+        "segment_density=11",
+        "structural_centrality=0.75"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 11,
+      "title": "Chapter 5",
+      "priority": 9.45,
+      "reasons": [
+        "segment_density=10",
+        "structural_centrality=0.88"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 13,
+      "title": "Chapter 7",
+      "priority": 9.45,
+      "reasons": [
+        "segment_density=10",
+        "structural_centrality=0.88"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 7,
+      "title": "Chapter 1",
+      "priority": 8.05,
+      "reasons": [
+        "segment_density=10",
+        "structural_centrality=0.38"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 9,
+      "title": "Chapter 3",
+      "priority": 7.35,
+      "reasons": [
+        "segment_density=8",
+        "structural_centrality=0.62"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 18,
+      "title": "Chapter 12",
+      "priority": 6.3,
+      "reasons": [
+        "segment_density=8",
+        "structural_centrality=0.25"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 14,
+      "title": "Chapter 8",
+      "priority": 5.6,
+      "reasons": [
+        "segment_density=5",
+        "structural_centrality=0.75"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 5,
+      "title": "Preface",
+      "priority": 1.549999999999999,
+      "reasons": [
+        "segment_density=6",
+        "structural_centrality=0.12",
+        "defer_low_value_section"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 19,
+      "title": "Epilogue",
+      "priority": -0.5500000000000003,
+      "reasons": [
+        "segment_density=3",
+        "structural_centrality=0.12",
+        "defer_low_value_section"
+      ],
+      "status": "pending"
+    },
+    {
+      "chapter_id": 6,
+      "title": "Prologue",
+      "priority": -0.9000000000000004,
+      "reasons": [
+        "segment_density=2",
+        "structural_centrality=0.25",
+        "defer_low_value_section"
+      ],
+      "status": "pending"
+    }
+  ],
+  "replan_history": [
+    {
+      "type": "replan",
+      "after_chapter_id": 15,
+      "after_chapter_title": "Chapter 9",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.175,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 1.919,
+        "chapter_id": 15,
+        "chapter_title": "Chapter 9"
+      },
+      "next_queue": [
+        17,
+        12,
+        8,
+        16,
+        10
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 17,
+      "after_chapter_title": "Chapter 11",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 2.4,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.47,
+        "chapter_id": 17,
+        "chapter_title": "Chapter 11"
+      },
+      "next_queue": [
+        12,
+        8,
+        16,
+        10,
+        11
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 12,
+      "after_chapter_title": "Chapter 6",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.0,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 1.84,
+        "chapter_id": 12,
+        "chapter_title": "Chapter 6"
+      },
+      "next_queue": [
+        8,
+        16,
+        10,
+        11,
+        13
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 8,
+      "after_chapter_title": "Chapter 2",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.6,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.11,
+        "chapter_id": 8,
+        "chapter_title": "Chapter 2"
+      },
+      "next_queue": [
+        16,
+        10,
+        11,
+        13,
+        7
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 16,
+      "after_chapter_title": "Chapter 10",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.862,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.228,
+        "chapter_id": 16,
+        "chapter_title": "Chapter 10"
+      },
+      "next_queue": [
+        10,
+        11,
+        13,
+        7,
+        9
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 10,
+      "after_chapter_title": "Chapter 4",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.764,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.184,
+        "chapter_id": 10,
+        "chapter_title": "Chapter 4"
+      },
+      "next_queue": [
+        11,
+        13,
+        7,
+        9,
+        18
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 11,
+      "after_chapter_title": "Chapter 5",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.84,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.218,
+        "chapter_id": 11,
+        "chapter_title": "Chapter 5"
+      },
+      "next_queue": [
+        13,
+        7,
+        9,
+        18,
+        14
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 13,
+      "after_chapter_title": "Chapter 7",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.28,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 1.966,
+        "chapter_id": 13,
+        "chapter_title": "Chapter 7"
+      },
+      "next_queue": [
+        7,
+        9,
+        18,
+        14
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 7,
+      "after_chapter_title": "Chapter 1",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.56,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.092,
+        "chapter_id": 7,
+        "chapter_title": "Chapter 1"
+      },
+      "next_queue": [
+        9,
+        18,
+        14
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 9,
+      "after_chapter_title": "Chapter 3",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.7,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.155,
+        "chapter_id": 9,
+        "chapter_title": "Chapter 3"
+      },
+      "next_queue": [
+        18,
+        14
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 18,
+      "after_chapter_title": "Chapter 12",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.35,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 1.998,
+        "chapter_id": 18,
+        "chapter_title": "Chapter 12"
+      },
+      "next_queue": [
+        14
+      ],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 14,
+      "after_chapter_title": "Chapter 8",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 1.0,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 1.84,
+        "chapter_id": 14,
+        "chapter_title": "Chapter 8"
+      },
+      "next_queue": [],
+      "deferred": [
+        5,
+        19,
+        6
+      ]
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 5,
+      "after_chapter_title": "Preface",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 2.4,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.47,
+        "chapter_id": 5,
+        "chapter_title": "Preface"
+      },
+      "next_queue": [
+        19,
+        6
+      ],
+      "deferred": []
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 19,
+      "after_chapter_title": "Epilogue",
+      "strategy": "increase_novelty",
+      "signal": {
+        "reflection_score": 3.8,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 3.1,
+        "chapter_id": 19,
+        "chapter_title": "Epilogue"
+      },
+      "next_queue": [
+        6
+      ],
+      "deferred": []
+    },
+    {
+      "type": "replan",
+      "after_chapter_id": 6,
+      "after_chapter_title": "Prologue",
+      "strategy": "recover_reflection_quality",
+      "signal": {
+        "reflection_score": 2.4,
+        "evidence_score": 2.8,
+        "novelty_score": 2.2,
+        "combined_score": 2.47,
+        "chapter_id": 6,
+        "chapter_title": "Prologue"
+      },
+      "next_queue": [],
+      "deferred": []
+    }
+  ]
+}

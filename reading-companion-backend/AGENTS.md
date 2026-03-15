@@ -1,8 +1,13 @@
 # Reading Companion Backend Agent Guide
 
+Purpose: define backend-local engineering constraints for API, runtime, prompt, and artifact changes.
+Use when: changing backend code, prompt flow, runtime behavior, artifact layout, or API payload shaping.
+Not for: canonical product flow, public contract authority, or workspace-level document routing.
+Update when: backend-local constraints, recurring pitfalls, or stable implementation boundaries change.
+
 ## Scope
 - This directory contains the FastAPI API, sequential deep-reading engine, and runtime artifacts.
-- Use `/Users/baiweijiang/Documents/Projects/reading-companion/docs/product-interaction-model.md` for product flow and `/Users/baiweijiang/Documents/Projects/reading-companion/docs/api-contract.md` for the public contract. This file is for backend-local constraints.
+- Use `../docs/product-interaction-model.md` for product flow and `../docs/api-contract.md` for the public contract.
 
 ## Stable Defaults
 - Default to improving `sequential` deep-reading quality.
@@ -28,7 +33,7 @@
 - Be conservative about changes that mainly benefit `book_analysis` but add complexity to the main sequential path.
 
 ## Language Governance
-- Follow `/Users/baiweijiang/Documents/Projects/reading-companion/docs/language-governance.md`.
+- Follow `../docs/language-governance.md`.
 - Backend owns content language, not full UI localization.
 - When a system-state message must drive primary UI decisions, expose structured keys/params in addition to raw text.
 - Raw activity/program-log text may remain backend-authored for compatibility and debugging.

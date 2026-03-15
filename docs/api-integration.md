@@ -1,10 +1,11 @@
 # API Integration
 
-This file is the operational companion to [API Contract](api-contract.md).
+Purpose: describe the active frontend-used endpoint surface and runtime coordination behavior.
+Use when: changing endpoint usage, polling, WebSocket refresh behavior, or frontend/runtime data flow.
+Not for: canonical field definitions, route authority, or product-level page responsibilities.
+Update when: the connected endpoint surface, runtime coordination model, or frontend/backend data flow changes.
 
-Use `docs/api-contract.md` for canonical fields, routes, enums, and identifier rules.
-Use `docs/product-interaction-model.md` for the primary user journey and page responsibilities.
-Use this file for local runtime notes and the currently connected endpoint surface.
+This file is the operational companion to `docs/api-contract.md`.
 
 ## Local Base URLs
 - API base: `http://localhost:8000`
@@ -42,4 +43,4 @@ Frontend defaults can be overridden with:
 - Additional system-side recovery events now include `resume_incompatible`, `fresh_rerun_started`, and `dev_run_abandoned`.
 - Deferred upload stops after the chapter-level structure parse; `analysis/start` and `analysis/resume` then perform semantic segmentation as the preparation phase before deep reading continues on the same long-task surface.
 - Public `book_id`, `reaction_id`, and `mark_id` values are integer IDs even when backend runtime artifacts still use internal string identifiers.
-- `analysis-state.last_checkpoint_at` now reflects deep-reading segment checkpoints as well as parse checkpoints, so the overview and runtime guards can point to the latest resumable point with one field.
+- `analysis-state.last_checkpoint_at` reflects deep-reading segment checkpoints as well as parse checkpoints, so the overview and runtime guards can point to the latest resumable point with one field.

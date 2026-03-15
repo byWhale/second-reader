@@ -1,72 +1,33 @@
 # Agent Handoff
 
-## Read This First
-1. Root `AGENTS.md`
-2. Root `README.md`
-3. `docs/workspace-overview.md`
-4. `docs/product-interaction-model.md`
-5. `docs/api-contract.md`
-6. `docs/api-integration.md`
-7. `docs/runtime-modes.md` when the task touches startup, demo reliability, healthchecks, or deploy behavior
+Purpose: capture current focus, active risks, and temporary migration notes that are useful right now.
+Use when: the task depends on current delivery priorities, active risks, or short-lived migration context.
+Not for: stable product behavior, public API authority, runtime facts, or standard reading order.
+Update when: current focus, active risks, temporary warnings, or migration status changes.
 
-## Current Product Focus
-- `sequential` deep-reading mode is the primary product path and default optimization target.
-- Primary user value: help readers discover viewpoints, tensions, and blind spots they did not notice while reading nonfiction.
-- The output should feel like a thoughtful co-reader, not a summary generator.
-- `book_analysis` exists, but it should not drive default product or architecture decisions.
+This file is a temporary working note. It is not a source-of-truth document.
 
-## Current Delivery Focus
+Last updated: `2026-03-15`
+
+## Current Focus
 - better segment-level reading reactions
 - better prompt quality and context packing
 - stronger chapter-level coherence
 - search supplementation that adds genuine curiosity instead of noise
 - reliability features such as checkpoint, resume, and budget control
 
-## Avoid By Default
-- expanding `book_analysis` as the default product path
-- designing new high-level modes without a clear request
-- broadening into a generic "book summary" product
-- large UI rewrites that are not required for the active backend-integrated flows
+## Active Risks
+- route mismatches between frontend routes and backend-returned targets
+- reaction taxonomy drift between runtime artifacts, API normalization, and frontend filters
+- upload flow and live progress integration regressions
+- resume edge cases around runtime artifacts under `reading-companion-backend/output/` and `reading-companion-backend/state/`
 
-## If You Are Changing Backend API
-- update backend schemas and handlers first
-- verify frontend route/client assumptions in `reading-companion-frontend/src/app/lib/api.ts`
-- review canonical route expectations in `docs/api-contract.md`
+## Migration Status
+- Landing remains frontend-owned. Do not reintroduce backend-owned landing or sample endpoints unless the stable docs change first.
+- Landing live preview can pin real reactions by public ID. Configure `reading-companion-frontend/src/app/content/landing-content.ts` with `LANDING_PREVIEW_CONFIG.api.bookId`, `chapterId`, and optional `selectedReactionIds`.
+- Backend still accepts legacy `connect_back` artifacts on read, but new runtime outputs should write `retrospect`.
+- Public IDs are integer contract IDs. Some internal runtime artifacts still use string identifiers and must continue to be normalized at the API layer.
 
-## If You Are Changing Frontend Data Flows
-- do not reintroduce mock data as the primary source of truth
-- keep canonical route compatibility with backend-returned URLs
-- preserve the thin API adapter pattern instead of scattering raw fetch calls
-
-## If You Are Changing Runtime Or Deploy Behavior
-- update `README.md` if user-facing commands change
-- update `docs/runtime-modes.md` if launcher intent, supervision, or healthchecks change
-- do not leave startup/deploy conventions discoverable only through scripts
-
-## API Contract Authority
-- `docs/api-contract.md` is the current authority for frontend/backend integration.
-- The machine-readable appendix in `docs/api-contract.md` is now part of the root contract drift gate. Keep it aligned with backend `src/api/contract.py` and frontend `src/app/lib/contract.ts`.
-- If implementation and `docs/api-contract.md` disagree, do not patch one side in isolation. Verify both sides and correct the mismatch.
-- `docs/api-integration.md` is the runtime companion doc, not the canonical contract.
-- `make contract-check` is the first guard for contract drift, and `make e2e` is the canonical upload -> analysis -> chapter -> marks regression.
-
-## Local Runtime Facts
-- backend runtime root defaults to `reading-companion-backend/`
-- backend requires Python 3.11+
-- backend startup automatically backfills legacy `output/*/structure.json` directories into current manifest/run-state artifacts
-- frontend local defaults target backend `localhost:8000`
-- the workspace root is the single Git root for both sub-applications
-
-## High-Risk Areas
-- backend path handling for `output/` and `state/`
-- route mismatches between frontend and backend-returned URLs
-- reaction type mapping drift
-- upload flow and live progress integration
-
-## Current Migration Notes
-- Landing is frontend-only now. Do not reintroduce backend-owned landing/sample endpoints unless the contract doc is updated first.
-- Landing live preview can now pin real reactions by public ID. Configure `reading-companion-frontend/src/app/content/landing-content.ts` with `LANDING_PREVIEW_CONFIG.api.bookId`, `chapterId`, and optional `selectedReactionIds`.
-- To discover candidate preview IDs for one chapter, run `make preview-reactions BOOK_ID=<bookId> CHAPTER_ID=<chapterId>` while the backend API is running.
-- Backend still accepts old `connect_back` artifacts on read, but new runtime outputs should write `retrospect`, and the public API must keep normalizing old payloads.
-- Public IDs are now integer contract IDs. Internal runtime artifacts still use string identifiers under `reading-companion-backend/output/`, and the API layer is responsible for the translation.
-- Frontend request/response types should come from the committed OpenAPI snapshot via `src/app/lib/generated/api-schema.d.ts` and `src/app/lib/api-types.ts`. Keep runtime helpers in `src/app/lib/api.ts` thin.
+## Temporary Warnings
+- If a note here becomes repeated guidance across tasks, promote it into `AGENTS.md` or the relevant stable doc.
+- Do not use this file as the first stop for setup, runtime, contract, or product-flow questions; route those back to the control layer and stable docs.

@@ -1,18 +1,13 @@
 # API Contract
 
-## Purpose
+Purpose: define the public web/API boundary for routes, fields, enums, identifiers, and stable envelopes.
+Use when: changing frontend/backend contract details, route targets, compatibility mappings, or generated API types.
+Not for: product journey decisions, endpoint polling strategy, or temporary migration notes.
+Update when: public routes, public fields, enums, identifier conventions, or stable response/request schemas change.
+
 This document is the current single source of truth for frontend and backend API integration in the Reading Companion workspace.
 
-Use it to align:
-- backend response schemas and OpenAPI output
-- frontend route assumptions and type definitions
-- mark/reaction/book/chapter identifiers exposed to the web client
-
-This document describes the public product contract. It does not require the backend's internal artifact layout or reader pipeline to use the same names internally.
-
-For the primary user journey, page responsibilities, and core interaction model, use `docs/product-interaction-model.md`.
-
-## Source Of Truth
+## Contract Authority
 - Canonical public contract: this file
 - Backend schema implementation: `reading-companion-backend/src/api/schemas.py`
 - Backend route handlers and payload shaping: `reading-companion-backend/src/api/app.py` and `reading-companion-backend/src/library/catalog.py`

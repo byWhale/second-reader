@@ -1,5 +1,10 @@
 # Reading Companion Workspace Guide
 
+Purpose: define workspace-level rules, document load order, and doc-to-task routing.
+Use when: starting any task in this workspace or deciding which docs must be updated together.
+Not for: stable product behavior, public API details, runtime semantics, or temporary migration notes.
+Update when: document layering, reading order, task routing, or cross-project collaboration rules change.
+
 ## Scope
 - This parent directory is the shared workspace root for the Reading Companion project.
 - Treat the codebase as one product with two sub-applications:
@@ -7,29 +12,83 @@
   - `reading-companion-frontend`: Vite/React web client
 
 ## Precedence
-- Root `AGENTS.md` defines cross-project rules.
-- Child `AGENTS.md` files define local rules for that subproject.
+- Root `AGENTS.md` defines workspace-level behavior.
+- Child `AGENTS.md` files define subproject-local constraints.
 - If rules conflict:
   1. obey this root file for workspace-level behavior
   2. obey the child file for subproject-local behavior
 
 ## Working Rules
 - Start from the parent directory unless a task is explicitly isolated to one subproject.
-- Check `README.md` and `docs/` before making structural changes.
 - Preserve the two existing subdirectories and their boundaries. Do not collapse them into a new monorepo layout unless explicitly requested.
 - Keep API changes synchronized across both sides:
   - backend contract changes require frontend route/client review
   - frontend integration changes require backend contract verification
 - Prefer codifying workflows in root scripts and docs instead of leaving process knowledge only in chat.
 - Keep runtime artifacts in `reading-companion-backend/` unless a task explicitly migrates them.
-- Do not remove the frontend repo’s Figma Make history or generated structure unless the change has a clear maintenance benefit.
+- Do not remove the frontend repo's Figma Make history or generated structure unless the change has a clear maintenance benefit.
+
+## Documentation Layers
+### Control Layer
+- Root `AGENTS.md`: workspace rules, reading order, and document routing
+- Child `AGENTS.md`: subproject-local engineering constraints
+- Root `README.md`: setup, run commands, env vars, local URLs, and verification commands
+
+### Stable Facts Layer
+- `docs/workspace-overview.md`: workspace structure, ownership boundaries, and shared entrypoints
+- `docs/product-interaction-model.md`: canonical product journey, page responsibilities, and interaction rules
+- `docs/api-contract.md`: public routes, fields, enums, IDs, and stable envelopes
+- `docs/api-integration.md`: active endpoint surface, polling/WebSocket coordination, and runtime data flow
+- `docs/runtime-modes.md`: startup, supervision, healthchecks, deployment entrypoints, and resume rules
+- `docs/language-governance.md`: visible-text governance, terminology ownership, and locale policy
+
+### Temporary Working Layer
+- `docs/agent-handoff.md`: current focus, active risks, migration status, and temporary warnings
+- `docs/agent-handoff.md` is not a source-of-truth doc. Promote repeated guidance into `AGENTS.md` or a stable doc.
+
+### Archive / Reference Layer
+- `reading-companion-backend/docs/research/`: historical analysis and planning notes
+- `reading-companion-backend/docs/evaluation/`: prompt and output evaluation reports
+- `reading-companion-frontend/ATTRIBUTIONS.md`: license and attribution reference
+
+## Load Matrix
+### Always Load
+- Root `AGENTS.md`
+- Relevant child `AGENTS.md`
+- Root `README.md`
+
+### Task-Gated Stable Docs
+- workspace ownership, file placement, shared entrypoints: `docs/workspace-overview.md`
+- product flow, canonical routes, page responsibilities: `docs/product-interaction-model.md`
+- public API fields, enums, IDs, stable payloads: `docs/api-contract.md`
+- current frontend-used endpoints, polling, WebSocket wiring: `docs/api-integration.md`
+- startup commands, runtime supervision, deployment, resume rules: `docs/runtime-modes.md`
+- UI copy, locale policy, governed terminology: `docs/language-governance.md`
+
+### Temporary Only
+- `docs/agent-handoff.md`: read only when the task needs current focus, open risks, or active migration notes
+
+### Archive / Reference Only
+- `reading-companion-backend/docs/research/`
+- `reading-companion-backend/docs/evaluation/`
+- `reading-companion-frontend/ATTRIBUTIONS.md`
+
+## Task Routing
+- workspace ownership boundaries or shared entrypoints -> `docs/workspace-overview.md`
+- product journey, page responsibilities, canonical user path -> `docs/product-interaction-model.md`
+- public routes, fields, enums, IDs, compatibility mappings -> `docs/api-contract.md`
+- runtime wiring, long-task coordination, polling/WebSocket behavior -> `docs/api-integration.md`
+- setup, env vars, local URLs, verification commands -> `README.md`
+- startup mode semantics, healthchecks, deploy entrypoints, resume behavior -> `docs/runtime-modes.md`
+- visible text, locale boundaries, governed terminology -> `docs/language-governance.md`
+- current focus, temporary risks, active migration notes -> `docs/agent-handoff.md`
 
 ## Documentation Maintenance
 - Update required docs in the same task when a change alters product behavior, runtime behavior, integration behavior, or maintenance expectations.
 - Trigger conditions are additive. One change may require updates in more than one document.
-- Keep `AGENTS.md` files rule-oriented and concise. Move detailed reference material into `docs/`.
+- Keep `AGENTS.md` files rule-oriented and concise. Move detailed reference material into stable docs.
 - Avoid duplicating detailed guidance across files. Keep one primary source of truth and add short pointers elsewhere when needed.
-- If you intentionally leave docs unchanged, you should have a concrete reason, not just “code is self-explanatory.”
+- If you intentionally leave docs unchanged, you should have a concrete reason, not just "code is self-explanatory."
 
 ### Trigger Matrix
 - `README.md`
@@ -37,7 +96,7 @@
   - startup commands
   - environment variables
   - default local URLs
-  - quick-start or operator-facing run behavior
+  - quick-start or operator-facing verification commands
 - `docs/workspace-overview.md`
   - workspace structure
   - backend/frontend ownership boundaries
@@ -78,8 +137,8 @@
   - active risks
   - project context that is useful now but not yet a stable rule
 - root `AGENTS.md`
-  - document map
-  - this trigger matrix
+  - document layering
+  - load matrix
   - cross-project collaboration rules
   - reading order for new agent tasks
 - child `AGENTS.md`
@@ -90,42 +149,12 @@
 ### Cross-Doc Rules
 - If the product interaction flow changes and that also changes routes or public payloads, update `docs/product-interaction-model.md`, `docs/api-contract.md`, and `docs/api-integration.md` in the same task.
 - If the same change also shifts workspace ownership boundaries or the recommended reading order for agents, update `docs/workspace-overview.md` and root `AGENTS.md`.
-- If a temporary handoff note repeats across tasks, promote it into the relevant `AGENTS.md` as a stable rule.
-- If a new key document becomes part of the standard reading path, add it to `README.md` and the "First Files To Read" section here.
+- If a temporary handoff note repeats across tasks, promote it into the relevant `AGENTS.md` or stable doc.
+- If a new key document becomes part of the standard reading path, add it to the load matrix here before linking it elsewhere.
 
 ## First Files To Read
-- Root:
-  - `README.md`
-  - `docs/workspace-overview.md`
-  - `docs/product-interaction-model.md`
-  - `docs/api-contract.md`
-  - `docs/api-integration.md`
-  - `docs/agent-handoff.md`
-  - `docs/runtime-modes.md`
-- Backend:
-  - `reading-companion-backend/AGENTS.md`
-  - `reading-companion-backend/src/api/app.py`
-  - `reading-companion-backend/src/library/catalog.py`
-- Frontend:
-  - `reading-companion-frontend/AGENTS.md`
-  - `reading-companion-frontend/src/app/lib/api.ts`
-  - `reading-companion-frontend/src/app/routes.tsx`
-
-## Default Local Commands
-- `make doctor`
-- `make setup`
-- `make dev-backend`
-- `make dev-frontend`
-- `make dev`
-- `make test`
-- `make build`
-
-## Language Governance
-- Follow `docs/language-governance.md` before adding or changing visible text.
-- Classify user-visible text first:
-  - content text
-  - interface/control text
-  - system/program-state text
-  - fixed brand/governed terminology
-- Do not handwrite key terminology or key product copy directly in UI components.
-- Brand name `书虫` stays fixed; app interface copy follows the frontend locale layer.
+- `AGENTS.md`
+- `README.md`
+- `reading-companion-backend/AGENTS.md` when the task touches backend code, prompts, runtime, or API shaping
+- `reading-companion-frontend/AGENTS.md` when the task touches frontend routes, API adapters, UI copy, or generated structure
+- Then load only the task-gated stable doc that matches the work at hand

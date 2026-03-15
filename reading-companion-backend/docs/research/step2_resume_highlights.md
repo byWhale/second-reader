@@ -1,6 +1,6 @@
 # 技术亮点提炼（Step 2：面向简历的萃取）
 
-- 基础依据：`analysis_reports/step1_project_health_report.md`、当前源码、`git log`、`eval/*.md`、`output/*`
+- 基础依据：`docs/research/step1_project_health_report.md`、当前源码、`git log`、`docs/evaluation/*.md`、`output/*`
 - 目标：把“项目做了什么”翻译成“简历上能讲什么、面试里能怎么讲”
 - 重要说明：
   - 以下内容只使用仓库中可验证的事实。
@@ -229,7 +229,7 @@
   - 目前只能给出间接证据：
     - `SEMANTIC_SEGMENTATION_SYSTEM` 明确防止“概念定义与展开被拆散”
     - `tests/test_iterator_prompts.py` 专门为这一 guardrail 写了回归测试
-    - `eval/highlight_comparison_*.md` 里也能看到 parse 分段问题被单独识别为遗漏原因
+    - `docs/evaluation/highlight_comparison_*.md` 里也能看到 parse 分段问题被单独识别为遗漏原因
 - 关于耗时：
   - 仓库内未记录 parse/read 的稳定 benchmark 耗时
   - 因此这一项不能写成简历数字，只能写成“支持整书分阶段处理”

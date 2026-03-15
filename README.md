@@ -1,5 +1,10 @@
 # Reading Companion Workspace
 
+Purpose: provide setup, run, environment, local URL, and verification information for the workspace.
+Use when: installing dependencies, starting local services, checking env vars, or running validation commands.
+Not for: product flow decisions, public API contract details, runtime semantics, or temporary migration notes.
+Update when: install/setup commands, startup commands, environment variables, default URLs, or validation commands change.
+
 This directory is the unified working root for the Reading Companion project.
 
 The project is maintained as one product with two sub-applications:
@@ -9,9 +14,8 @@ The project is maintained as one product with two sub-applications:
 ## Structure
 - `reading-companion-backend/`: backend code, runtime artifacts, tests, `.env`
 - `reading-companion-frontend/`: frontend code, Vite app, `.env.example`
-- `docs/`: workspace-level docs for product flow, integration, runtime, and handoff
+- `docs/`: workspace-level stable docs and temporary handoff notes
 - `scripts/`: root task wrappers used by the `Makefile`
-- `.codex/`: local notes for future Codex threads
 
 ## Quick Start
 1. Run `make doctor`
@@ -29,7 +33,6 @@ The project is maintained as one product with two sub-applications:
 - Backend health: `http://localhost:8000/api/health`
 
 ## Environment
-
 Backend environment lives in `reading-companion-backend/.env`.
 
 Important backend variables:
@@ -52,7 +55,7 @@ Important frontend variables:
 ## Common Commands
 - `make doctor`: validate prerequisites, ports, and env files
 - `make setup`: install frontend deps and create/install backend virtualenv
-- `make dev-backend`: run FastAPI from the workspace root safely, including legacy output backfill
+- `make dev-backend`: run FastAPI from the workspace root safely
 - `make dev-frontend`: run Vite with the shared API defaults
 - `make dev`: run both apps together
 - `make run-demo`: run frontend plus a supervised non-reload backend that auto-restarts if it exits
@@ -63,26 +66,10 @@ Important frontend variables:
 - `make backfill-covers`: scan existing backend outputs, extract missing EPUB covers, and refresh manifests
 - `cd reading-companion-frontend && npm run generate-api-types`: refresh generated frontend API types after the backend OpenAPI snapshot changes
 
-## Key Docs
-- [Workspace overview](docs/workspace-overview.md)
-- [Product interaction model](docs/product-interaction-model.md)
-- [API contract](docs/api-contract.md)
-- [API integration](docs/api-integration.md)
-- [Agent handoff](docs/agent-handoff.md)
+## Validation
+- `make contract-check` is the first guard for public contract drift.
+- `make e2e` is the canonical upload -> analysis -> book -> chapter -> marks regression.
 
-## Contract Validation
-- `docs/api-contract.md` remains the human authority for the web/API boundary.
-- The machine-readable appendix at the bottom of that file is checked against backend `src/api/contract.py` and frontend `src/app/lib/contract.ts`.
-- Frontend API response/request types are generated from `contract/openapi.public.snapshot.json` into `reading-companion-frontend/src/app/lib/generated/api-schema.d.ts`.
-- Run `make contract-check` before merging contract changes.
-- Run `make e2e` for the fixture-backed canonical-route regression when changing upload, analysis, marks, or route wiring.
-
-## Notes
-- Runtime data remains under `reading-companion-backend/`.
-- Legacy `structure.json`-only output folders are automatically backfilled into the current API-facing artifact format during `make setup` and `make dev-backend`.
-- `make dev-backend` is intentionally a reload-enabled developer server. Use `make run-demo` for interviews or live demos where backend restarts should be automatic.
-- Development-mode backend restarts generate a new in-memory `boot_id`; unfinished jobs from an older dev boot are treated as stale and should be restarted from a fresh run instead of resumed across code edits.
-- Demo/prod resume trusts only persisted artifacts that match the current `resume_compat_version`. Incompatible live checkpoints are archived, cleared, and restarted as a fresh run.
-- Long-running demo/prod reads now expose segment-level `last_checkpoint_at` progress and will auto-resume only once after a stalled runtime before settling into `paused`.
-- The backend is not expected to run correctly with Python 3.9.x.
-- The frontend is now wired to the backend API contract instead of the old mock-only flow.
+## Next Docs
+- Start with `AGENTS.md` for workspace rules and document routing.
+- Read the relevant child `AGENTS.md` before making subproject-local changes.

@@ -1,5 +1,10 @@
 # Runtime Modes
 
+Purpose: define startup, supervision, healthcheck, deployment, and resume semantics across runtime modes.
+Use when: changing launcher behavior, deploy entrypoints, resume/recovery rules, or operator-facing runtime expectations.
+Not for: local setup commands, public API field definitions, or temporary migration notes.
+Update when: startup commands, reload behavior, supervision, healthchecks, deployment entrypoints, or recovery rules change.
+
 This document defines how the Reading Companion project should be started in different environments.
 
 ## Why This Exists
@@ -87,7 +92,7 @@ Current response includes:
 Railway should use the stable backend entrypoint, not the development launcher.
 
 Current config:
-- [`railway.json`](/Users/baiweijiang/Documents/Projects/reading-companion/railway.json)
+- `railway.json`
 
 Expected behavior:
 - start command uses stable backend mode

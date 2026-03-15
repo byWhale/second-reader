@@ -1,8 +1,13 @@
 # Frontend Agent Guide
 
+Purpose: define frontend-local constraints for routes, API adapters, UI copy, and generated structure.
+Use when: changing frontend routes, API integration, locale-driven text, or Figma Make-derived code.
+Not for: canonical product flow, public contract authority, or workspace-level document routing.
+Update when: frontend-local constraints, recurring pitfalls, or stable implementation boundaries change.
+
 ## Scope
 - This directory contains the Reading Companion web client.
-- Use `/Users/baiweijiang/Documents/Projects/reading-companion/docs/product-interaction-model.md` for product flow and `/Users/baiweijiang/Documents/Projects/reading-companion/docs/api-contract.md` for the public contract. This file is for frontend-local constraints.
+- Use `../docs/product-interaction-model.md` for product flow and `../docs/api-contract.md` for the public contract.
 
 ## Local Rules
 - Keep route definitions centralized in `src/app/routes.tsx`.
@@ -19,7 +24,7 @@
 - Avoid large component framework rewrites unless the task explicitly calls for one.
 
 ## Language Governance
-- Follow `/Users/baiweijiang/Documents/Projects/reading-companion/docs/language-governance.md`.
+- Follow `../docs/language-governance.md`.
 - Core UI text must come from the locale layer, not ad-hoc string literals in components.
 - Key terms must come from the product lexicon.
 - Key sentence-level UI copy must come from the controlled copy catalog.

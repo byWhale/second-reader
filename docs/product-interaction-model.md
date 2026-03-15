@@ -1,9 +1,9 @@
 # Product Interaction Model
 
-## Purpose
-- This document is the repo-local source of truth for the primary product journey, page responsibilities, and interaction model.
-- Use `docs/api-contract.md` for stable routes, public fields, enums, and identifier rules.
-- Use `docs/api-integration.md` for runtime wiring, endpoint usage, polling, and WebSocket coordination.
+Purpose: define the canonical product journey, page responsibilities, and interaction rules.
+Use when: changing user flow, canonical frontend routes, page responsibilities, or compatibility-path behavior.
+Not for: field-level API schemas, endpoint wiring details, or temporary migration notes.
+Update when: the primary product path, page responsibilities, or interaction model changes.
 
 ## Core Product Promise
 - Help readers discover viewpoints, tensions, and blind spots they did not notice while reading nonfiction.
@@ -70,7 +70,3 @@
 - `book_analysis` is a secondary capability and should not drive default product or architecture decisions.
 - Do not reintroduce backend-owned landing or sample-browser flows unless that is an intentional product change.
 - Do not broaden the default experience into a generic book-summary product without an explicit product decision.
-
-## Documentation Rule
-- If the primary product journey, page responsibilities, or interaction model changes, update this file in the same task.
-- If the same change also affects public routes or payloads, update `docs/api-contract.md` and `docs/api-integration.md` in the same task.

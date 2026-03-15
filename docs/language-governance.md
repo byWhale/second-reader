@@ -1,6 +1,11 @@
 # Language Governance
 
-## Purpose
+Purpose: govern visible text, terminology ownership, locale boundaries, and controlled copy usage.
+Use when: adding or changing UI copy, system-state text, governed labels, or locale behavior.
+Not for: product flow decisions, API wiring, or temporary migration notes.
+Update when: visible-text policy, terminology ownership, locale rules, or governed copy sources change.
+
+## Goals
 - Prevent mixed-language UI drift.
 - Keep content language, interface language, and brand language separate.
 - Make key terminology and key product copy maintainable over time.
