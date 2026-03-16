@@ -4,9 +4,7 @@ import {
   ArrowRight,
   BookOpen,
   Bookmark,
-  Clock3,
   Download,
-  Globe2,
   LoaderCircle,
   Search,
   Sparkles,
@@ -70,6 +68,22 @@ function formatTimestamp(value?: string | null) {
   return parsed.toLocaleString();
 }
 
+function formatCompactTimestamp(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const now = new Date();
+  const sameYear = parsed.getFullYear() === now.getFullYear();
+  return parsed.toLocaleString(undefined, sameYear
+    ? { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }
+    : { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 function formatEta(seconds?: number | null) {
   if (seconds == null) {
     return copy("overview.metric.etaUnavailable");
@@ -120,13 +134,6 @@ function resolveStructuredCopy(
   fallback?: string | null,
 ) {
   return maybeCopy(key, normalizeMessageParams(params)) ?? fallback ?? null;
-}
-
-function resolveStageLabel(detail: BookDetailResponse, analysis: AnalysisStateResponse | null) {
-  return (
-    resolveStructuredCopy(analysis?.stage_label_key, analysis?.stage_label_params) ??
-    (detail.status === "paused" ? term("state.paused") : copy("overview.runtime.syncing"))
-  );
 }
 
 function resolveCurrentStep(analysis: AnalysisStateResponse | null) {
@@ -246,25 +253,6 @@ function describeRuntimeState(
   };
 }
 
-function isRedundantStatusLine(primary: string, secondary: string) {
-  const normalize = (value: string) =>
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[.,:;!?]/g, "")
-      .replace(/\s+/g, " ");
-
-  const normalizedPrimary = normalize(primary);
-  const normalizedSecondary = normalize(secondary);
-  if (!normalizedPrimary || !normalizedSecondary) {
-    return false;
-  }
-  return (
-    normalizedPrimary === normalizedSecondary ||
-    normalizedSecondary.startsWith(normalizedPrimary)
-  );
-}
-
 function structureStatusLabel(
   chapter: OverviewChapter,
   viewMode: StructureViewMode,
@@ -359,16 +347,12 @@ function BookOverviewHeader({
   title,
   author,
   coverImageUrl,
-  bookLanguage,
-  outputLanguage,
   markCount,
   children,
 }: {
   title: string;
   author: string;
   coverImageUrl?: string | null;
-  bookLanguage: string;
-  outputLanguage: string;
   markCount: number;
   children?: ReactNode;
 }) {
@@ -400,10 +384,6 @@ function BookOverviewHeader({
         </p>
 
         <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[var(--warm-600)] md:mb-5" style={{ fontSize: "0.8125rem" }}>
-          <span className="inline-flex items-center gap-1.5">
-            <Globe2 className="w-4 h-4" />
-            {bookLanguage} → {outputLanguage}
-          </span>
           <span className="inline-flex items-center gap-1.5">
             <Bookmark className="w-4 h-4" />
             {markCount} marks
@@ -443,12 +423,16 @@ function StatusMetric({
 function BookOverviewStatusBand({
   detail,
   analysis,
+  activity,
+  contentLanguage,
   analysisLoading,
   analysisError,
   onRetryAnalysis,
 }: {
   detail: BookDetailResponse;
   analysis: AnalysisStateResponse | null;
+  activity: ActivityEvent[];
+  contentLanguage: ContentLocale;
   analysisLoading: boolean;
   analysisError: unknown | null;
   onRetryAnalysis: () => void;
@@ -503,7 +487,17 @@ function BookOverviewStatusBand({
   }
 
   if (detail.status === "analyzing" || detail.status === "paused") {
-    return null;
+    return (
+      <MindstreamHeroCard
+        detail={detail}
+        analysis={analysis}
+        activity={activity}
+        contentLanguage={contentLanguage}
+        loading={analysisLoading}
+        error={analysisError}
+        onRetry={onRetryAnalysis}
+      />
+    );
   }
 
   if (detail.status === "error") {
@@ -739,16 +733,16 @@ function ProcessingStructureNavigator({
         <details>
           <summary className="list-none cursor-pointer">
             <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
-                <div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <TreePine className="w-[1.05rem] h-[1.05rem] text-[var(--amber-accent)]" />
                   <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
                     {term("view.structure")}
                   </h2>
-                  <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                    {copy("overview.structure.mobileHint")}
-                  </p>
                 </div>
+                <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+                  {copy("overview.structure.mobileHint")}
+                </p>
               </div>
               <span className="text-[var(--amber-accent)]" style={{ fontSize: "0.8125rem", fontWeight: 600 }}>
                 {copy("overview.structure.expand")}
@@ -764,16 +758,16 @@ function ProcessingStructureNavigator({
   return (
     <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm lg:sticky lg:top-28">
       <div className="flex items-start justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
-          <div>
+        <div>
+          <div className="flex items-center gap-2">
+            <TreePine className="w-[1.05rem] h-[1.05rem] text-[var(--amber-accent)]" />
             <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
               {term("view.structure")}
             </h2>
-            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-              {copy("overview.structure.desktopHint")}
-            </p>
           </div>
+          <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+            {copy("overview.structure.desktopHint")}
+          </p>
         </div>
       </div>
       {content}
@@ -1378,9 +1372,11 @@ function ActivityMeta({
 function CurrentMindstreamActivityLine({
   activity,
   prefersReducedMotion,
+  emphasis = "compact",
 }: {
   activity: CurrentMindstreamActivity;
   prefersReducedMotion: boolean;
+  emphasis?: "compact" | "hero";
 }) {
   const indicatorTone = activity.mode === "degraded"
     ? {
@@ -1394,11 +1390,12 @@ function CurrentMindstreamActivityLine({
   const isWaiting = activity.mode === "waiting";
   const isOrbiting = activity.mode === "active" || activity.mode === "slow";
   const indicatorDuration = isWaiting ? "2.6s" : activity.mode === "degraded" ? "2.4s" : "1.6s";
+  const hero = emphasis === "hero";
 
   return (
-    <div className="border-l border-[var(--amber-accent)]/30 pl-4">
-      <div className="flex items-center gap-2 text-[var(--warm-700)]">
-        <span className="relative flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+    <div className={hero ? "" : "border-l border-[var(--amber-accent)]/30 pl-4"}>
+      <div className={`text-[var(--warm-700)] ${hero ? "flex items-start gap-3" : "flex items-center gap-3"}`}>
+        <span className={`relative flex shrink-0 items-center justify-center ${hero ? "mt-1 h-4 w-4" : "h-3.5 w-3.5"}`}>
           <span
             className={`absolute inset-0 rounded-full border ${indicatorTone.ring} ${
               prefersReducedMotion
@@ -1413,21 +1410,34 @@ function CurrentMindstreamActivityLine({
             className={`absolute inset-0 ${prefersReducedMotion || !isOrbiting ? "" : "motion-safe:animate-spin"}`}
             style={!prefersReducedMotion && isOrbiting ? { animationDuration: indicatorDuration, animationTimingFunction: "linear" } : undefined}
           >
-            <span className={`absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full shadow-[0_0_0_2px_rgba(255,255,255,0.92)] ${indicatorTone.ember}`} />
+            <span className={`absolute left-1/2 top-0 -translate-x-1/2 rounded-full shadow-[0_0_0_2px_rgba(255,255,255,0.92)] ${indicatorTone.ember} ${hero ? "h-2 w-2" : "h-1.5 w-1.5"}`} />
           </span>
-          <span className={`relative h-1.5 w-1.5 rounded-full ${indicatorTone.ember} ${prefersReducedMotion ? "" : "opacity-75"}`} />
+          <span className={`relative rounded-full ${indicatorTone.ember} ${prefersReducedMotion ? "" : "opacity-75"} ${hero ? "h-2 w-2" : "h-1.5 w-1.5"}`} />
         </span>
-        <span style={{ fontSize: "0.875rem", fontWeight: 600, letterSpacing: "0.01em" }}>{activity.message}</span>
+        <span
+          className="text-[var(--warm-900)]"
+          style={{
+            fontFamily: hero ? "Lora, Georgia, serif" : undefined,
+            fontSize: hero ? "1.25rem" : "0.875rem",
+            fontWeight: 600,
+            lineHeight: hero ? 1.35 : undefined,
+            letterSpacing: "0.01em",
+          }}
+        >
+          {activity.message}
+        </span>
       </div>
 
       {activity.context ? (
         <p
-          className={`mt-2 max-w-[40rem] ${activity.contextKind === "excerpt" ? "italic text-[var(--warm-500)]" : "text-[var(--warm-600)]"}`}
+          className={`max-w-[40rem] ${hero ? "text-[var(--warm-600)]" : (activity.contextKind === "excerpt" ? "italic text-[var(--warm-500)]" : "text-[var(--warm-600)]")} ${hero ? "mt-3" : "mt-2"}`}
           style={{
-            fontSize: activity.contextKind === "excerpt" ? "0.75rem" : "0.8125rem",
-            fontWeight: activity.contextKind === "excerpt" ? 400 : 500,
-            lineHeight: activity.contextKind === "excerpt" ? 1.55 : 1.6,
-            ...clampStyle(1),
+            fontSize: hero
+              ? "0.9375rem"
+              : (activity.contextKind === "excerpt" ? "0.75rem" : "0.8125rem"),
+            fontWeight: hero ? 400 : (activity.contextKind === "excerpt" ? 400 : 500),
+            lineHeight: hero ? 1.7 : (activity.contextKind === "excerpt" ? 1.55 : 1.6),
+            ...clampStyle(hero ? 2 : 1),
           }}
         >
           {activity.contextKind === "excerpt" ? `“${activity.context}”` : activity.context}
@@ -1437,78 +1447,22 @@ function CurrentMindstreamActivityLine({
   );
 }
 
-function RuntimeStatusStrip({
+function MindstreamHeroMetrics({
   detail,
   analysis,
-  loading,
-  error,
 }: {
   detail: BookDetailResponse;
   analysis: AnalysisStateResponse | null;
-  loading: boolean;
-  error: unknown | null;
 }) {
   const parsing = isAnalysisParsing(analysis);
   const runtimeState = describeRuntimeState(detail, analysis, { isParsing: parsing });
-  const stageLabel = resolveStageLabel(detail, analysis).trim();
-  const secondaryLine =
-    stageLabel && !isRedundantStatusLine(runtimeState.label, stageLabel)
-      ? stageLabel
-      : null;
-  const checkpointLabel = formatTimestamp(analysis?.last_checkpoint_at);
+  const checkpointLabel = formatCompactTimestamp(analysis?.last_checkpoint_at) ?? copy("overview.runtime.pending");
 
   return (
-    <div className="rounded-2xl border border-[var(--warm-300)]/25 bg-[var(--warm-50)] px-4 py-3">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
-            {copy("overview.section.runConsole")}
-          </p>
-          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-            <span className={runtimeState.toneClassName} style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.35 }}>
-              {runtimeState.label}
-            </span>
-            {secondaryLine ? (
-              <>
-                <span className="text-[var(--warm-400)]" aria-hidden="true">
-                  •
-                </span>
-                <span className="text-[var(--warm-600)]" style={{ fontSize: "0.8125rem", fontWeight: 500, lineHeight: 1.5 }}>
-                  {secondaryLine}
-                </span>
-              </>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-x-4 gap-y-2 flex-wrap text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
-          <span className="inline-flex items-center gap-1.5">
-            <Clock3 className="w-4 h-4" />
-            {formatEta(analysis?.eta_seconds)}
-          </span>
-          {loading ? (
-            <span className="inline-flex items-center gap-1.5">
-              <LoaderCircle className="w-4 h-4 animate-spin text-[var(--amber-accent)]" />
-              {copy("overview.runtime.syncing")}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {(checkpointLabel || error) ? (
-        <div className="mt-2 flex items-center gap-3 flex-wrap">
-          {checkpointLabel ? (
-            <span className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-              {copy("overview.runtime.lastCheckpoint", { value: checkpointLabel })}
-            </span>
-          ) : null}
-          {error ? (
-            <span className="text-[var(--destructive)]" style={{ fontSize: "0.75rem" }}>
-              {getErrorMessage(error)}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[30rem]">
+      <StatusMetric label={copy("overview.metric.runtimeState")} value={runtimeState.label} />
+      <StatusMetric label={copy("overview.metric.eta")} value={formatEta(analysis?.eta_seconds)} />
+      <StatusMetric label={copy("overview.metric.resumePoint")} value={checkpointLabel} />
     </div>
   );
 }
@@ -1534,6 +1488,7 @@ function MindstreamEventCard({
   const isHighlightOnly = moment.reactions.every((reaction) => reaction.type === "highlight");
   const teaserLines = 2;
   const traceLabel = reactionTracePhrase(leadReaction, contentLocale);
+  const showExpandedReactions = !isCompact && remainingReactions.length > 0;
 
   useEffect(() => {
     if (prefersReducedMotion) {
@@ -1575,14 +1530,14 @@ function MindstreamEventCard({
         <p
           className={isHighlightOnly ? "text-[var(--warm-700)]" : "text-[var(--warm-900)]"}
           style={{
-            fontSize: compact ? "0.8125rem" : "0.9375rem",
-            lineHeight: compact ? 1.7 : 1.75,
+            fontSize: compact ? "0.75rem" : "0.9375rem",
+            lineHeight: compact ? 1.65 : 1.75,
             ...clampStyle(compact ? 2 : teaserLines),
           }}
         >
           {reaction.content}
         </p>
-        {expanded && reaction.search_query ? (
+        {expanded && !compact && reaction.search_query ? (
           <div className="flex items-center gap-1.5 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
             <Search className="w-3 h-3" />
             <span className="truncate">{reaction.search_query}</span>
@@ -1617,12 +1572,12 @@ function MindstreamEventCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={isHighlightOnly ? "text-[var(--warm-500)]" : "text-[var(--warm-700)]"}
-                style={{ fontSize: "0.75rem", fontWeight: 600, letterSpacing: "0.01em" }}
+                style={{ fontSize: isCompact ? "0.6875rem" : "0.75rem", fontWeight: 600, letterSpacing: "0.01em" }}
               >
                 {traceLabel}
               </span>
               {moment.sectionRef ? (
-                <span className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 500 }}>
+                <span className="text-[var(--warm-400)]" style={{ fontSize: isCompact ? "0.625rem" : "0.6875rem", fontWeight: 500 }}>
                   {moment.sectionRef}
                 </span>
               ) : null}
@@ -1645,7 +1600,7 @@ function MindstreamEventCard({
             <blockquote
               className="text-[var(--warm-500)] italic"
               style={{
-                fontSize: "0.75rem",
+                fontSize: isCompact ? "0.6875rem" : "0.75rem",
                 lineHeight: 1.55,
                 ...clampStyle(1),
               }}
@@ -1655,31 +1610,31 @@ function MindstreamEventCard({
           ) : null}
 
           <div>
-            <ReactionTeaser reaction={leadReaction} showHeader={false} />
+            <ReactionTeaser reaction={leadReaction} compact={isCompact} showHeader={false} />
           </div>
 
-          <div
-            className="grid overflow-hidden"
-            style={
-              prefersReducedMotion
-                ? { gridTemplateRows: expanded && remainingReactions.length > 0 ? "1fr" : "0fr" }
-                : {
-                    gridTemplateRows: expanded && remainingReactions.length > 0 ? "1fr" : "0fr",
-                    transition: "grid-template-rows 200ms ease, opacity 200ms ease",
-                    opacity: expanded && remainingReactions.length > 0 ? 1 : 0.72,
-                  }
-            }
-          >
-            <div className="min-h-0 overflow-hidden">
-              {remainingReactions.length > 0 ? (
+          {showExpandedReactions ? (
+            <div
+              className="grid overflow-hidden"
+              style={
+                prefersReducedMotion
+                  ? { gridTemplateRows: expanded ? "1fr" : "0fr" }
+                  : {
+                      gridTemplateRows: expanded ? "1fr" : "0fr",
+                      transition: "grid-template-rows 200ms ease, opacity 200ms ease",
+                      opacity: expanded ? 1 : 0.72,
+                    }
+              }
+            >
+              <div className="min-h-0 overflow-hidden">
                 <div className="space-y-3 border-l border-[var(--warm-300)]/25 pl-4 pt-1">
                   {remainingReactions.map((reaction) => (
                     <ReactionTeaser key={reaction.reaction_id} reaction={reaction} compact />
                   ))}
                 </div>
-              ) : null}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <div className="flex items-center gap-2 flex-wrap text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
             <span
@@ -1695,7 +1650,7 @@ function MindstreamEventCard({
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
-            {remainingReactions.length > 0 ? (
+            {showExpandedReactions ? (
               <button
                 type="button"
                 onClick={() => setExpanded((value) => !value)}
@@ -1714,11 +1669,107 @@ function MindstreamEventCard({
   );
 }
 
-function RuntimeFeedPanel({
+function MindstreamHistoryDisclosure({
+  analysis,
+  activity,
+  contentLanguage,
+  loading,
+  error,
+  onRetry,
+}: {
+  analysis: AnalysisStateResponse | null;
+  activity: ActivityEvent[];
+  contentLanguage: ContentLocale;
+  loading: boolean;
+  error: unknown | null;
+  onRetry: () => void;
+}) {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const [expanded, setExpanded] = useState(false);
+  const historyMoments = buildMindstreamMoments(activity).slice(0, 3);
+
+  if (loading && !analysis) {
+    return (
+      <section className="rounded-2xl border border-[var(--warm-300)]/25 bg-[var(--warm-50)] px-5 py-4">
+        <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem" }}>
+          {copy("overview.runtime.syncing")}
+        </p>
+      </section>
+    );
+  }
+
+  if (error || !analysis) {
+    const errorState = getErrorPresentation(error, {
+      title: copy("state.error.backendUnavailable.title"),
+      message: copy("overview.syncError.default"),
+    });
+    return (
+      <section className="rounded-2xl border border-[var(--warm-300)]/25 bg-[var(--warm-50)] px-5 py-4">
+        <p className="text-[var(--destructive)] mb-3" style={{ fontSize: "0.875rem" }}>
+          {errorState.message}
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-[var(--amber-accent)] text-white hover:bg-[var(--warm-700)] transition-colors cursor-pointer"
+          style={{ fontSize: "0.875rem", fontWeight: 500 }}
+        >
+          {copy("overview.runtime.retry")}
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-6 border-t border-[var(--warm-300)]/25 pt-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
+            {copy("overview.mindstream.recentTrail")}
+          </p>
+          <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+            {historyMoments.length > 0 ? formatCompactTimestamp(historyMoments[0].timestamp) : copy("overview.mindstream.trailEmpty")}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded((value) => !value)}
+          className="inline-flex items-center gap-2 rounded-xl border border-[var(--warm-300)]/45 px-3.5 py-2 text-[var(--warm-700)] transition-colors hover:bg-[var(--warm-100)] cursor-pointer"
+          style={{ fontSize: "0.8125rem", fontWeight: 500 }}
+        >
+          {expanded ? copy("overview.mindstream.hideRecentTrail") : copy("overview.mindstream.showRecentTrail")}
+        </button>
+      </div>
+
+      {expanded ? (
+        historyMoments.length > 0 ? (
+          <div className="mt-4 max-h-[16rem] overflow-y-auto overscroll-contain pr-2">
+            <div className="space-y-4">
+              {historyMoments.map((moment) => (
+                <MindstreamEventCard
+                  key={moment.momentId}
+                  moment={moment}
+                  isCompact
+                  contentLocale={contentLanguage}
+                  prefersReducedMotion={prefersReducedMotion}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
+            {copy("overview.mindstream.trailEmpty")}
+          </p>
+        )
+      ) : null}
+    </section>
+  );
+}
+
+function MindstreamHeroCard({
   detail,
   analysis,
   activity,
-  isCompact,
   contentLanguage,
   loading,
   error,
@@ -1727,7 +1778,6 @@ function RuntimeFeedPanel({
   detail: BookDetailResponse;
   analysis: AnalysisStateResponse | null;
   activity: ActivityEvent[];
-  isCompact: boolean;
   contentLanguage: ContentLocale;
   loading: boolean;
   error: unknown | null;
@@ -1745,7 +1795,7 @@ function RuntimeFeedPanel({
 
   if (loading && !analysis) {
     return (
-      <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
+      <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm mb-8">
         <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem" }}>
           {copy("overview.runtime.syncing")}
         </p>
@@ -1759,7 +1809,7 @@ function RuntimeFeedPanel({
       message: copy("overview.syncError.default"),
     });
     return (
-      <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
+      <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm mb-8">
         <p className="text-[var(--destructive)] mb-3" style={{ fontSize: "0.875rem" }}>
           {errorState.message}
         </p>
@@ -1775,56 +1825,101 @@ function RuntimeFeedPanel({
     );
   }
 
-  const mainMindstreamMoments = buildMindstreamMoments(activity);
   const currentActivity = buildCurrentMindstreamActivity(analysis, contentLanguage, liveNowMs);
-  const historyMoments = mainMindstreamMoments;
+  const runtimeState = describeRuntimeState(detail, analysis, { isParsing: isAnalysisParsing(analysis) });
 
   return (
-    <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-5 shadow-sm md:p-6">
-      <div>
-        <div className="flex items-center gap-2 mb-2">
-          <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
+    <section className="mb-8 rounded-3xl border border-[var(--warm-300)]/30 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex items-center gap-2">
+        <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
+        <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+          {copy("overview.mindstream.title")}
+        </h2>
+      </div>
+
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="mb-3 text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+            {copy("overview.mindstream.liveNow")}
+          </p>
+          {currentActivity ? (
+            <CurrentMindstreamActivityLine activity={currentActivity} prefersReducedMotion={prefersReducedMotion} emphasis="hero" />
+          ) : (
+            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.9375rem", lineHeight: 1.7 }}>
+              {copy("overview.mindstream.empty")}
+            </p>
+          )}
+          {currentActivity && !currentActivity.context ? (
+            <p className="mt-3 max-w-2xl text-[var(--warm-600)]" style={{ fontSize: "0.9375rem", lineHeight: 1.7 }}>
+              {runtimeState.detail}
+            </p>
+          ) : null}
+          {loading || error ? (
+            <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+              {loading ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <LoaderCircle className="w-3.5 h-3.5 animate-spin text-[var(--amber-accent)]" />
+                  {copy("overview.runtime.syncing")}
+                </span>
+              ) : null}
+              {error ? (
+                <span className="text-[var(--destructive)]">{getErrorMessage(error)}</span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+
+        <MindstreamHeroMetrics detail={detail} analysis={analysis} />
+      </div>
+
+      <MindstreamHistoryDisclosure
+        analysis={analysis}
+        activity={activity}
+        contentLanguage={contentLanguage}
+        loading={loading}
+        error={error}
+        onRetry={onRetry}
+      />
+    </section>
+  );
+}
+
+function RuntimeSupportingRail({
+  detail,
+  analysis,
+}: {
+  detail: BookDetailResponse;
+  analysis: AnalysisStateResponse | null;
+}) {
+  const currentStep = resolveCurrentStep(analysis);
+
+  return (
+    <div className="space-y-4 lg:sticky lg:top-28">
+      <section className="rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[var(--amber-accent)]" />
           <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-            {copy("overview.mindstream.title")}
+            {copy("overview.summary.title")}
           </h2>
         </div>
-        <RuntimeStatusStrip detail={detail} analysis={analysis} loading={loading} error={error} />
-      </div>
+        <div className="grid grid-cols-1 gap-3">
+          <StatusMetric label={copy("overview.metric.completedChapters")} value={`${detail.completed_chapter_count}/${detail.chapter_count}`} compact />
+          <StatusMetric label={copy("overview.metric.savedMarks")} value={detail.my_mark_count} compact />
+        </div>
+      </section>
 
-      <div className="mt-4">
-        {currentActivity ? (
-          <CurrentMindstreamActivityLine activity={currentActivity} prefersReducedMotion={prefersReducedMotion} />
-        ) : null}
-
-        {!currentActivity && historyMoments.length === 0 ? (
-          <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
-            {copy("overview.mindstream.empty")}
-          </p>
-        ) : null}
-
-        {historyMoments.length > 0 ? (
-          <div className={`${currentActivity ? "mt-5 border-t border-[var(--warm-300)]/25 pt-5" : ""} max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[24rem]`}>
-            <div className="space-y-5">
-              {historyMoments.map((moment) => (
-                <MindstreamEventCard
-                  key={moment.momentId}
-                  moment={moment}
-                  isCompact={isCompact}
-                  contentLocale={contentLanguage}
-                  prefersReducedMotion={prefersReducedMotion}
-                />
-              ))}
-            </div>
-          </div>
-        ) : currentActivity ? (
-          <div className="mt-4 min-h-8" aria-hidden="true" />
-        ) : (
-          <div className="max-h-[18rem] overflow-y-auto overscroll-contain pr-2 md:max-h-[24rem]">
-            <div className="space-y-5" />
-          </div>
-        )}
-      </div>
-    </section>
+      <section className="rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm">
+        <div className="mb-2 flex items-center gap-2">
+          <Activity className="h-4 w-4 text-[var(--amber-accent)]" />
+          <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+            {copy("overview.section.runConsole")}
+          </h2>
+        </div>
+        <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
+          {currentStep}
+        </p>
+      </section>
+    </div>
   );
 }
 
@@ -1897,6 +1992,7 @@ export function BookOverviewPage() {
   }
 
   const { detail, marks } = data;
+  const contentLanguage = normalizeContentLocale(detail.output_language || detail.book_language);
   const isRuntimeState = detail.status === "analyzing" || detail.status === "paused";
   const viewMode: StructureViewMode =
     detail.status === "completed" ? "result" : isRuntimeState || detail.status === "error" ? "progress" : "outline";
@@ -1909,16 +2005,12 @@ export function BookOverviewPage() {
     detail.status === "not_started"
       ? copy("overview.structure.emptyNotReadyMessage")
       : copy("overview.structure.emptyProgressMessage");
-  const contentLanguage = normalizeContentLocale(detail.output_language || detail.book_language);
-
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 md:px-6 md:py-10">
       <BookOverviewHeader
         title={detail.title}
         author={detail.author}
         coverImageUrl={detail.cover_image_url}
-        bookLanguage={detail.book_language}
-        outputLanguage={detail.output_language}
         markCount={detail.my_mark_count}
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -1980,6 +2072,8 @@ export function BookOverviewPage() {
       <BookOverviewStatusBand
         detail={detail}
         analysis={analysisResource.analysis}
+        activity={analysisResource.activity}
+        contentLanguage={contentLanguage}
         analysisLoading={analysisResource.loading}
         analysisError={analysisResource.error}
         onRetryAnalysis={analysisResource.refresh}
@@ -2015,7 +2109,7 @@ export function BookOverviewPage() {
 
       {activeTab === "chapters" ? (
         isRuntimeState ? (
-          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <ProcessingStructureNavigator
               bookId={detail.book_id}
               chapters={structureChapters}
@@ -2028,15 +2122,9 @@ export function BookOverviewPage() {
               emptyMessage={structureEmptyMessage}
             />
 
-            <RuntimeFeedPanel
+            <RuntimeSupportingRail
               detail={detail}
               analysis={analysisResource.analysis}
-              activity={analysisResource.activity}
-              isCompact={tier === "mobile" || tier === "narrow" || tier === "compact"}
-              contentLanguage={contentLanguage}
-              loading={analysisResource.loading}
-              error={analysisResource.error}
-              onRetry={analysisResource.refresh}
             />
           </div>
         ) : detail.status === "completed" ? (
