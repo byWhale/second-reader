@@ -91,6 +91,10 @@ function formatEta(seconds?: number | null) {
     : copy("overview.metric.etaHoursRemaining", { hours });
 }
 
+function totalBookReactionCount(detail: BookDetailResponse) {
+  return Object.values(detail.reaction_counts ?? {}).reduce((sum, count) => sum + Number(count || 0), 0);
+}
+
 function normalizeMessageParams(
   value?: Record<string, unknown> | null,
 ): MessageParams | undefined {
@@ -402,16 +406,21 @@ function BookOverviewHeader({
 function StatusMetric({
   label,
   value,
+  compact = false,
 }: {
   label: string;
   value: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-3.5 md:p-4">
-      <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
+    <div className={`rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 ${compact ? "p-3" : "p-3.5 md:p-4"}`}>
+      <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: compact ? "0.6875rem" : "0.75rem" }}>
         {label}
       </p>
-      <p className="text-[var(--warm-900)]" style={{ fontSize: "1.125rem", fontWeight: 600 }}>
+      <p
+        className="text-[var(--warm-900)]"
+        style={{ fontSize: compact ? "0.9375rem" : "1.125rem", fontWeight: 600, lineHeight: compact ? 1.5 : undefined }}
+      >
         {value}
       </p>
     </div>
@@ -455,13 +464,26 @@ function BookOverviewStatusBand({
   }
 
   if (detail.status === "completed") {
+    const surfacedReactions = totalBookReactionCount(detail);
     return (
-      <section className="mb-8 max-w-xl rounded-3xl border border-[var(--warm-300)]/30 bg-white p-6 shadow-sm">
-        <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-4" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+      <section className="mb-8 rounded-3xl border border-[var(--warm-300)]/30 bg-white p-6 shadow-sm">
+        <p className="mb-3 text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
           {copy("overview.section.completed")}
         </p>
-        <div className="grid grid-cols-1 gap-4 md:max-w-sm">
-          <StatusMetric label={copy("overview.metric.completedChapters")} value={`${detail.completed_chapter_count}/${detail.chapter_count}`} />
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <h2 className="mb-2 text-[var(--warm-900)]" style={{ fontSize: "1.25rem", fontWeight: 600 }}>
+              {copy("overview.completed.title")}
+            </h2>
+            <p className="text-[var(--warm-600)]" style={{ fontSize: "0.9375rem", lineHeight: 1.7 }}>
+              {copy("overview.completed.description")}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:w-[30rem]">
+            <StatusMetric label={copy("overview.metric.completedChapters")} value={`${detail.completed_chapter_count}/${detail.chapter_count}`} />
+            <StatusMetric label={copy("overview.metric.totalReactions")} value={surfacedReactions} />
+            <StatusMetric label={copy("overview.metric.savedMarks")} value={detail.my_mark_count} />
+          </div>
         </div>
       </section>
     );
@@ -493,18 +515,24 @@ function BookOverviewStatusBand({
     : analysis?.current_state_panel.current_section_ref ?? stepLabel;
   const currentChapter = analysis?.current_state_panel.current_chapter_ref ?? copy("overview.runtime.waitingForStructure");
   const runtimeState = describeRuntimeState(detail, analysis, { isParsing: parsing });
-  const reactionEntries = Object.entries(analysis?.current_state_panel.reaction_counts ?? {}).filter(([, count]) => count > 0);
-  const reactionTotal = reactionEntries.reduce((sum, [, count]) => sum + count, 0);
   const checkpointLabel = formatTimestamp(analysis?.last_checkpoint_at);
+  const chapterProgress = `${analysis?.completed_chapters ?? detail.completed_chapter_count}/${analysis?.total_chapters ?? detail.chapter_count}`;
 
   return (
-    <section className="mb-6 rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm md:mb-8 md:p-6">
-      <div className="flex items-start gap-4 flex-col">
-        <div>
-          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em] mb-2" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+    <section className="mb-6 rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm md:mb-8 md:p-5.5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="mb-2 text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
             {copy("overview.section.runConsole")}
           </p>
-          <div className="flex items-center gap-4 flex-wrap text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
+          <h2 className={`${runtimeState.toneClassName} mb-2`} style={{ fontSize: "1.05rem", fontWeight: 600, lineHeight: 1.2 }}>
+            {runtimeState.label}
+          </h2>
+          <p className="max-w-xl text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.6 }}>
+            {runtimeState.detail}
+          </p>
+
+          <div className="mt-3 flex items-center gap-x-4 gap-y-2 flex-wrap text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
             <span className="inline-flex items-center gap-1.5">
               <LoaderCircle
                 className={`w-4 h-4 ${detail.status === "paused" ? "" : "animate-spin text-[var(--amber-accent)]"}`}
@@ -517,70 +545,30 @@ function BookOverviewStatusBand({
             </span>
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="w-4 h-4" />
-              {(analysis?.completed_chapters ?? detail.completed_chapter_count)}/{analysis?.total_chapters ?? detail.chapter_count} chapters
+              {copy("overview.metric.chapterProgress", { value: chapterProgress })}
             </span>
           </div>
         </div>
+
+        <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:w-[36rem] xl:max-w-[36rem]">
+          <StatusMetric
+            label={copy("overview.metric.currentChapter")}
+            compact
+            value={<span className="block line-clamp-2 text-[0.9375rem] leading-[1.45]">{currentChapter}</span>}
+          />
+          <StatusMetric
+            label={parsing ? copy("overview.metric.currentStep") : copy("overview.metric.currentFocus")}
+            compact
+            value={<span className="block line-clamp-2 text-[0.9375rem] leading-[1.45]">{currentFocus}</span>}
+          />
+        </div>
       </div>
 
-      <div className="mt-5 h-2 bg-[var(--warm-200)] rounded-full overflow-hidden">
+      <div className="mt-4 h-1.5 bg-[var(--warm-200)] rounded-full overflow-hidden">
         <div className="h-full bg-[var(--amber-accent)]" style={{ width: `${progressPercent}%` }} />
       </div>
 
-      <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
-          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-            {copy("overview.metric.currentChapter")}
-          </p>
-          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
-            {currentChapter}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
-          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-            {parsing ? copy("overview.metric.currentStep") : copy("overview.metric.currentFocus")}
-          </p>
-          <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
-            {currentFocus}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-[var(--warm-100)] border border-[var(--warm-300)]/20 p-4">
-          <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-            {copy("overview.metric.runtimeState")}
-          </p>
-          <p className={runtimeState.toneClassName} style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.5 }}>
-            {runtimeState.label}
-          </p>
-          <p className="text-[var(--warm-600)] mt-1" style={{ fontSize: "0.8125rem", lineHeight: 1.6 }}>
-            {runtimeState.detail}
-          </p>
-        </div>
-      </div>
-
-      {reactionEntries.length > 0 && !parsing ? (
-        <details className="mt-4 rounded-2xl border border-[var(--warm-300)]/20 bg-[var(--warm-50)] px-4 py-3">
-          <summary
-            className="cursor-pointer list-none text-[var(--warm-700)]"
-            style={{ fontSize: "0.8125rem", fontWeight: 600 }}
-          >
-            {copy("overview.runtime.reactionsSummary", { count: reactionTotal })}
-          </summary>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {reactionEntries.map(([type, count]) => (
-              <span
-                key={type}
-                className="inline-flex items-center gap-2 rounded-full bg-white border border-[var(--warm-300)]/20 px-3 py-1.5 text-[var(--warm-700)]"
-                style={{ fontSize: "0.75rem", fontWeight: 500 }}
-              >
-                {reactionLabel(type)}
-                <span className="text-[var(--warm-500)]">{count}</span>
-              </span>
-            ))}
-          </div>
-        </details>
-      ) : null}
-
-      <div className="mt-4 flex items-center gap-3 flex-wrap">
+      <div className="mt-3 flex items-center gap-3 flex-wrap">
         {checkpointLabel ? (
           <span className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem" }}>
             {copy("overview.runtime.lastCheckpoint", { value: checkpointLabel })}
@@ -868,6 +856,59 @@ function ProcessingStructureNavigator({
       </div>
       {content}
     </section>
+  );
+}
+
+function CompletedBookSupportingRail({
+  detail,
+  onOpenMarks,
+}: {
+  detail: BookDetailResponse;
+  onOpenMarks: () => void;
+}) {
+  const surfacedReactions = totalBookReactionCount(detail);
+
+  return (
+    <div className="space-y-4 lg:sticky lg:top-28">
+      <section className="rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[var(--amber-accent)]" />
+          <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+            {copy("overview.summary.title")}
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <StatusMetric label={copy("overview.metric.totalReactions")} value={surfacedReactions} />
+          <StatusMetric label={copy("overview.metric.savedMarks")} value={detail.my_mark_count} />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-[var(--warm-300)]/30 bg-white p-5 shadow-sm">
+        <div className="mb-2 flex items-center gap-2">
+          <Bookmark className="h-4 w-4 text-[var(--amber-accent)]" />
+          <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+            {copy("overview.marks.summaryTitle")}
+          </h2>
+        </div>
+
+        <p className="text-[var(--warm-600)]" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
+          {detail.my_mark_count > 0
+            ? copy("overview.marks.summaryReady", { count: detail.my_mark_count })
+            : copy("overview.marks.summaryEmpty")}
+        </p>
+
+        <button
+          type="button"
+          onClick={onOpenMarks}
+          className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[var(--warm-300)]/60 px-4 py-2 text-[var(--warm-700)] transition-colors hover:bg-[var(--warm-100)] cursor-pointer"
+          style={{ fontSize: "0.875rem", fontWeight: 500 }}
+        >
+          <Bookmark className="h-4 w-4" />
+          {copy("overview.marks.summaryAction")}
+        </button>
+      </section>
+    </div>
   );
 }
 
@@ -1976,7 +2017,7 @@ export function BookOverviewPage() {
 
       {activeTab === "chapters" ? (
         isRuntimeState ? (
-          <div className="grid grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)] gap-6 items-start">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[22rem_minmax(0,1fr)]">
             <ProcessingStructureNavigator
               bookId={detail.book_id}
               chapters={structureChapters}
@@ -1997,6 +2038,27 @@ export function BookOverviewPage() {
               loading={analysisResource.loading}
               error={analysisResource.error}
               onRetry={analysisResource.refresh}
+            />
+          </div>
+        ) : detail.status === "completed" ? (
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <section className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
+                <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
+                  {term("view.structure")}
+                </h2>
+              </div>
+              {structureChapters.length === 0 ? (
+                <EmptyState title={structureEmptyTitle} message={structureEmptyMessage} />
+              ) : (
+                <StructureChapterList bookId={detail.book_id} chapters={structureChapters} viewMode={viewMode} />
+              )}
+            </section>
+
+            <CompletedBookSupportingRail
+              detail={detail}
+              onOpenMarks={() => setActiveTab("marks")}
             />
           </div>
         ) : (
