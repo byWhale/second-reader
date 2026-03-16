@@ -68,38 +68,6 @@ function formatTimestamp(value?: string | null) {
   return parsed.toLocaleString();
 }
 
-function formatCompactTimestamp(value?: string | null) {
-  if (!value) {
-    return null;
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  const now = new Date();
-  const sameYear = parsed.getFullYear() === now.getFullYear();
-  return parsed.toLocaleString(undefined, sameYear
-    ? { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" }
-    : { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
-function formatEtaCompact(seconds?: number | null) {
-  if (seconds == null) {
-    return copy("overview.metric.etaUnavailable");
-  }
-  if (seconds < 60) {
-    return copy("overview.metric.etaSecondsRemaining", { seconds });
-  }
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) {
-    return `${minutes}m`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
-}
-
 function totalBookReactionCount(detail: BookDetailResponse) {
   return Object.values(detail.reaction_counts ?? {}).reduce((sum, count) => sum + Number(count || 0), 0);
 }
@@ -930,6 +898,16 @@ type CurrentMindstreamActivity = {
   mode: "active" | "waiting" | "slow" | "degraded";
 };
 
+type MindstreamTrailPreview = {
+  label: string;
+  teaser: string | null;
+};
+
+type ReadingLocus = {
+  chapterRef: string | null;
+  sectionRef: string | null;
+};
+
 const LIVE_PHASE_SLOW_THRESHOLD_MS = 8_000;
 const LIVE_HEARTBEAT_STALE_MS = 10_000;
 
@@ -1137,6 +1115,19 @@ function traceCopyKeyForReaction(reaction: MindstreamReaction): ControlledCopyKe
 
 function reactionTracePhrase(reaction: MindstreamReaction, locale: ContentLocale) {
   return contentCopy(traceCopyKeyForReaction(reaction), locale);
+}
+
+function buildMindstreamTrailPreview(moment: MindstreamMoment, locale: ContentLocale): MindstreamTrailPreview | null {
+  const leadReaction = moment.reactions[0];
+  if (!leadReaction) {
+    return null;
+  }
+
+  const teaserSource = String(leadReaction.content ?? "").trim() || String(moment.anchorQuote ?? "").trim();
+  return {
+    label: reactionTracePhrase(leadReaction, locale),
+    teaser: teaserSource ? excerptText(teaserSource, 92) : null,
+  };
 }
 
 const MINDSTREAM_LIVE_COPY_KEYS: Record<
@@ -1348,6 +1339,25 @@ function buildCurrentMindstreamActivity(
   return null;
 }
 
+function buildReadingLocus(analysis: AnalysisStateResponse | null): ReadingLocus {
+  const chapterRef = String(
+    analysis?.current_state_panel.current_chapter_ref
+      ?? analysis?.current_chapter_ref
+      ?? "",
+  ).trim();
+  const sectionRef = String(
+    analysis?.current_state_panel.current_section_ref
+      ?? analysis?.current_reading_activity?.segment_ref
+      ?? analysis?.current_state_panel.current_reading_activity?.segment_ref
+      ?? "",
+  ).trim();
+
+  return {
+    chapterRef: chapterRef || null,
+    sectionRef: sectionRef || null,
+  };
+}
+
 function ActivityMeta({
   event,
   compact = false,
@@ -1442,42 +1452,82 @@ function CurrentMindstreamActivityLine({
   );
 }
 
-function MindstreamHeroMetrics({
-  detail,
-  analysis,
+function MindstreamStatusChip({
+  runtimeState,
+  className = "",
 }: {
-  detail: BookDetailResponse;
-  analysis: AnalysisStateResponse | null;
+  runtimeState: RuntimeStateSummary;
+  className?: string;
 }) {
-  const parsing = isAnalysisParsing(analysis);
-  const runtimeState = describeRuntimeState(detail, analysis, { isParsing: parsing });
-  const checkpointLabel = formatCompactTimestamp(analysis?.last_checkpoint_at) ?? copy("overview.runtime.pending");
+  return (
+    <div className={className}>
+      <span
+        className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--warm-300)]/45 bg-[var(--warm-50)] px-3 py-1.5 text-[var(--warm-800)]"
+        style={{ fontSize: "0.75rem", lineHeight: 1.4 }}
+      >
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--amber-accent)]" />
+        <span style={{ fontWeight: 600 }}>{runtimeState.label}</span>
+        <span className="text-[var(--warm-400)]">·</span>
+        <span className="min-w-0 text-[var(--warm-600)]" style={{ fontSize: "0.75rem", lineHeight: 1.35, ...clampStyle(1) }}>
+          {runtimeState.detail}
+        </span>
+      </span>
+    </div>
+  );
+}
 
-  function MetricPill({
-    label,
-    value,
-  }: {
-    label: string;
-    value: ReactNode;
-  }) {
-    return (
-      <div className="min-w-[8.25rem] rounded-xl border border-[var(--warm-300)]/20 bg-[var(--warm-50)] px-3.5 py-2.5">
-        <p className="mb-1 text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
-          {label}
-        </p>
-        <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.45 }}>
-          {value}
-        </p>
-      </div>
-    );
-  }
+function ReadingLocusSidecar({
+  analysis,
+  runtimeState,
+}: {
+  analysis: AnalysisStateResponse | null;
+  runtimeState: RuntimeStateSummary;
+}) {
+  const locus = buildReadingLocus(analysis);
+  const hasLocus = Boolean(locus.chapterRef || locus.sectionRef);
 
   return (
-    <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-      <MetricPill label={copy("overview.metric.runtimeState")} value={runtimeState.label} />
-      <MetricPill label={copy("overview.metric.eta")} value={formatEtaCompact(analysis?.eta_seconds)} />
-      <MetricPill label={copy("overview.metric.resumePoint")} value={checkpointLabel} />
-    </div>
+    <aside className="hidden lg:block lg:w-[18rem] lg:flex-none">
+      <div className="rounded-[1.5rem] border border-[var(--warm-300)]/30 bg-[linear-gradient(180deg,rgba(251,248,242,0.96)_0%,rgba(248,244,236,0.86)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
+        <MindstreamStatusChip runtimeState={runtimeState} />
+
+        <div className="mt-3 border-t border-[var(--warm-300)]/22 pt-3">
+          <p className="text-[var(--warm-500)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
+            {copy("overview.mindstream.locus.title")}
+          </p>
+
+          {hasLocus ? (
+            <div className="mt-2 flex flex-wrap items-start gap-x-4 gap-y-2">
+              {locus.chapterRef ? (
+                <div className="min-w-[7rem]">
+                  <p className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.02em" }}>
+                    {copy("overview.mindstream.locus.chapter")}
+                  </p>
+                  <p className="mt-0.5 text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.35 }}>
+                    {locus.chapterRef}
+                  </p>
+                </div>
+              ) : null}
+
+              {locus.sectionRef ? (
+                <div className="min-w-[6rem]">
+                  <p className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.02em" }}>
+                    {copy("overview.mindstream.locus.section")}
+                  </p>
+                  <p className="mt-0.5 text-[var(--warm-700)]" style={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.35 }}>
+                    {locus.sectionRef}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-2 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
+              {copy("overview.mindstream.locus.empty")}
+            </p>
+          )}
+        </div>
+      </div>
+    </aside>
   );
 }
 
@@ -1701,6 +1751,7 @@ function MindstreamHistoryDisclosure({
   const prefersReducedMotion = usePrefersReducedMotion();
   const [expanded, setExpanded] = useState(false);
   const historyMoments = buildMindstreamMoments(activity).slice(0, 3);
+  const trailPreview = historyMoments.length > 0 ? buildMindstreamTrailPreview(historyMoments[0], contentLanguage) : null;
 
   if (loading && !analysis) {
     return (
@@ -1735,20 +1786,33 @@ function MindstreamHistoryDisclosure({
   }
 
   return (
-    <section className="mt-6 border-t border-[var(--warm-300)]/25 pt-5">
+    <section className="mt-6 border-t border-[var(--warm-300)]/18 pt-4">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
+        <div className="min-w-0">
+          <p className="text-[var(--warm-500)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
             {copy("overview.mindstream.recentTrail")}
           </p>
-          <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-            {historyMoments.length > 0 ? formatCompactTimestamp(historyMoments[0].timestamp) : copy("overview.mindstream.trailEmpty")}
-          </p>
+          {trailPreview ? (
+            <div className="mt-1 min-w-0">
+              <p className="text-[var(--warm-600)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                {trailPreview.label}
+              </p>
+              {trailPreview.teaser ? (
+                <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem", lineHeight: 1.55, ...clampStyle(1) }}>
+                  {trailPreview.teaser}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+              {copy("overview.mindstream.trailEmpty")}
+            </p>
+          )}
         </div>
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="inline-flex items-center gap-2 text-[var(--amber-accent)] transition-colors hover:text-[var(--warm-700)] cursor-pointer"
+          className="inline-flex shrink-0 items-center gap-2 text-[var(--warm-600)] transition-colors hover:text-[var(--warm-800)] cursor-pointer"
           style={{ fontSize: "0.8125rem", fontWeight: 600 }}
         >
           {expanded ? copy("overview.mindstream.hideRecentTrail") : copy("overview.mindstream.showRecentTrail")}
@@ -1848,8 +1912,8 @@ function MindstreamHeroCard({
         {copy("overview.mindstream.title")}
       </p>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-2xl">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8">
+        <div className="min-w-0 max-w-3xl flex-1">
           {currentActivity ? (
             <CurrentMindstreamActivityLine activity={currentActivity} prefersReducedMotion={prefersReducedMotion} emphasis="hero" />
           ) : (
@@ -1857,11 +1921,7 @@ function MindstreamHeroCard({
               {copy("overview.mindstream.empty")}
             </p>
           )}
-          {currentActivity && !currentActivity.context ? (
-            <p className="mt-3 max-w-2xl text-[var(--warm-600)]" style={{ fontSize: "0.9375rem", lineHeight: 1.7 }}>
-              {runtimeState.detail}
-            </p>
-          ) : null}
+          <MindstreamStatusChip runtimeState={runtimeState} className="mt-4 lg:hidden" />
           {loading || error ? (
             <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
               {loading ? (
@@ -1877,7 +1937,7 @@ function MindstreamHeroCard({
           ) : null}
         </div>
 
-        <MindstreamHeroMetrics detail={detail} analysis={analysis} />
+        <ReadingLocusSidecar analysis={analysis} runtimeState={runtimeState} />
       </div>
 
       <MindstreamHistoryDisclosure

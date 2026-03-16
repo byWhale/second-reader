@@ -16,6 +16,9 @@ Update when: frontend-local constraints, recurring pitfalls, or stable implement
 - Preserve the useful Figma Make-generated structure unless a clear maintenance problem justifies cleanup.
 - Prefer preserving the existing visual language unless a task explicitly asks for redesign.
 - Keep compatibility routes if backend-returned paths or older links still rely on them.
+- For changes that affect visible UI, interaction flows, layout, scrolling, responsiveness, or route behavior, validate the result in a real browser after implementation.
+- Prefer using Playwright-based tooling to inspect the actual page state instead of relying only on static code review.
+- If browser validation is skipped because the environment blocks it, say so explicitly in the handoff and name the missing verification.
 
 ## Integration Constraints
 - Do not reintroduce mock data as the primary source of truth.
