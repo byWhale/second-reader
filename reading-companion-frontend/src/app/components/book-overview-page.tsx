@@ -6,6 +6,7 @@ import {
   Bookmark,
   Download,
   LoaderCircle,
+  MapPin,
   Search,
   Sparkles,
   TreePine,
@@ -1269,7 +1270,7 @@ function buildCurrentMindstreamContext(
 
   if (excerpt && !looksLikeLocationToken(excerpt, segmentRef)) {
     return {
-      context: excerptText(excerpt, 96),
+      context: excerptText(excerpt, 180),
       contextKind: "excerpt",
     };
   }
@@ -1374,160 +1375,130 @@ function ActivityMeta({
   );
 }
 
-function CurrentMindstreamActivityLine({
-  activity,
-  prefersReducedMotion,
-  emphasis = "compact",
-}: {
-  activity: CurrentMindstreamActivity;
-  prefersReducedMotion: boolean;
-  emphasis?: "compact" | "hero";
-}) {
-  const indicatorTone = activity.mode === "degraded"
-    ? {
-      ring: "border-[var(--warm-400)]/45",
-      ember: "bg-[var(--warm-500)]",
-    }
-    : {
-      ring: "border-[var(--amber-accent)]/35",
-      ember: "bg-[var(--amber-accent)]",
-    };
-  const isWaiting = activity.mode === "waiting";
-  const isOrbiting = activity.mode === "active" || activity.mode === "slow";
-  const indicatorDuration = isWaiting ? "2.6s" : activity.mode === "degraded" ? "2.4s" : "1.6s";
-  const hero = emphasis === "hero";
+function formatMindstreamSectionToken(sectionRef?: string | null, chapterRef?: string | null) {
+  const normalizedSection = String(sectionRef ?? "").trim();
+  if (!normalizedSection) {
+    return null;
+  }
+  if (normalizedSection.startsWith("§")) {
+    return normalizedSection;
+  }
 
-  return (
-    <div className={hero ? "" : "border-l border-[var(--amber-accent)]/30 pl-4"}>
-      <div className={`text-[var(--warm-700)] ${hero ? "flex items-start gap-3" : "flex items-center gap-3"}`}>
-        <span className={`relative flex shrink-0 items-center justify-center ${hero ? "mt-1 h-4 w-4" : "h-3.5 w-3.5"}`}>
-          <span
-            className={`absolute inset-0 rounded-full border ${indicatorTone.ring} ${
-              prefersReducedMotion
-                ? ""
-                : isWaiting
-                  ? "motion-safe:animate-pulse"
-                  : ""
-            }`}
-            style={isWaiting && !prefersReducedMotion ? { animationDuration: indicatorDuration } : undefined}
-          />
-          <span
-            className={`absolute inset-0 ${prefersReducedMotion || !isOrbiting ? "" : "motion-safe:animate-spin"}`}
-            style={!prefersReducedMotion && isOrbiting ? { animationDuration: indicatorDuration, animationTimingFunction: "linear" } : undefined}
-          >
-            <span className={`absolute left-1/2 top-0 -translate-x-1/2 rounded-full shadow-[0_0_0_2px_rgba(255,255,255,0.92)] ${indicatorTone.ember} ${hero ? "h-2 w-2" : "h-1.5 w-1.5"}`} />
-          </span>
-          <span className={`relative rounded-full ${indicatorTone.ember} ${prefersReducedMotion ? "" : "opacity-75"} ${hero ? "h-2 w-2" : "h-1.5 w-1.5"}`} />
-        </span>
-        <span
-          className="text-[var(--warm-900)]"
-          style={{
-            fontFamily: hero ? "Lora, Georgia, serif" : undefined,
-            fontSize: hero ? "1.25rem" : "0.875rem",
-            fontWeight: 600,
-            lineHeight: hero ? 1.35 : undefined,
-            letterSpacing: "0.01em",
-          }}
-        >
-          {activity.message}
-        </span>
-      </div>
+  const normalizedChapter = String(chapterRef ?? "").trim();
+  if (normalizedChapter && normalizedSection.startsWith(`${normalizedChapter}.`)) {
+    const suffix = normalizedSection.slice(normalizedChapter.length + 1).trim();
+    return suffix ? `§${suffix}` : normalizedSection;
+  }
 
-      {activity.context ? (
-        <p
-          className={`max-w-[40rem] ${hero ? "text-[var(--warm-600)]" : (activity.contextKind === "excerpt" ? "italic text-[var(--warm-500)]" : "text-[var(--warm-600)]")} ${hero ? "mt-3" : "mt-2"}`}
-          style={{
-            fontSize: hero
-              ? "0.9375rem"
-              : (activity.contextKind === "excerpt" ? "0.75rem" : "0.8125rem"),
-            fontWeight: hero ? 400 : (activity.contextKind === "excerpt" ? 400 : 500),
-            lineHeight: hero ? 1.7 : (activity.contextKind === "excerpt" ? 1.55 : 1.6),
-            ...clampStyle(hero ? 2 : 1),
-          }}
-        >
-          {activity.contextKind === "excerpt" ? `“${activity.context}”` : activity.context}
-        </p>
-      ) : null}
-    </div>
-  );
+  const prefixedMatch = normalizedSection.match(/^[A-Za-z][A-Za-z0-9_\-\s]*\.(.+)$/);
+  if (prefixedMatch?.[1]?.trim()) {
+    return `§${prefixedMatch[1].trim()}`;
+  }
+
+  return normalizedSection;
 }
 
-function MindstreamStatusChip({
-  runtimeState,
-  className = "",
-}: {
-  runtimeState: RuntimeStateSummary;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <span
-        className="inline-flex max-w-full items-center gap-2 rounded-full border border-[var(--warm-300)]/45 bg-[var(--warm-50)] px-3 py-1.5 text-[var(--warm-800)]"
-        style={{ fontSize: "0.75rem", lineHeight: 1.4 }}
-      >
-        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--amber-accent)]" />
-        <span style={{ fontWeight: 600 }}>{runtimeState.label}</span>
-        <span className="text-[var(--warm-400)]">·</span>
-        <span className="min-w-0 text-[var(--warm-600)]" style={{ fontSize: "0.75rem", lineHeight: 1.35, ...clampStyle(1) }}>
-          {runtimeState.detail}
-        </span>
-      </span>
-    </div>
-  );
+function buildMindstreamBreadcrumbTail(activity: CurrentMindstreamActivity | null) {
+  if (!activity?.context) {
+    return null;
+  }
+  return excerptText(activity.context, 56) || null;
 }
 
-function ReadingLocusSidecar({
+function formatMindstreamQuote(activity: CurrentMindstreamActivity) {
+  if (!activity.context) {
+    return null;
+  }
+  return activity.contextKind === "excerpt" ? `“${activity.context}”` : activity.context;
+}
+
+function MindstreamHeroBreadcrumb({
   analysis,
-  runtimeState,
+  currentActivity,
 }: {
   analysis: AnalysisStateResponse | null;
-  runtimeState: RuntimeStateSummary;
+  currentActivity: CurrentMindstreamActivity | null;
 }) {
   const locus = buildReadingLocus(analysis);
-  const hasLocus = Boolean(locus.chapterRef || locus.sectionRef);
+  const sectionToken = formatMindstreamSectionToken(locus.sectionRef, locus.chapterRef);
+  const tail = buildMindstreamBreadcrumbTail(currentActivity);
+
+  if (!locus.chapterRef && !sectionToken && !tail) {
+    return null;
+  }
 
   return (
-    <aside className="hidden lg:block lg:w-[18rem] lg:flex-none">
-      <div className="rounded-[1.5rem] border border-[var(--warm-300)]/30 bg-[linear-gradient(180deg,rgba(251,248,242,0.96)_0%,rgba(248,244,236,0.86)_100%)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]">
-        <MindstreamStatusChip runtimeState={runtimeState} />
-
-        <div className="mt-3 border-t border-[var(--warm-300)]/22 pt-3">
-          <p className="text-[var(--warm-500)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
-            {copy("overview.mindstream.locus.title")}
-          </p>
-
-          {hasLocus ? (
-            <div className="mt-2 flex flex-wrap items-start gap-x-4 gap-y-2">
-              {locus.chapterRef ? (
-                <div className="min-w-[7rem]">
-                  <p className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.02em" }}>
-                    {copy("overview.mindstream.locus.chapter")}
-                  </p>
-                  <p className="mt-0.5 text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600, lineHeight: 1.35 }}>
-                    {locus.chapterRef}
-                  </p>
-                </div>
-              ) : null}
-
-              {locus.sectionRef ? (
-                <div className="min-w-[6rem]">
-                  <p className="text-[var(--warm-400)]" style={{ fontSize: "0.6875rem", fontWeight: 600, letterSpacing: "0.02em" }}>
-                    {copy("overview.mindstream.locus.section")}
-                  </p>
-                  <p className="mt-0.5 text-[var(--warm-700)]" style={{ fontSize: "0.875rem", fontWeight: 600, lineHeight: 1.35 }}>
-                    {locus.sectionRef}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <p className="mt-2 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem", lineHeight: 1.5 }}>
-              {copy("overview.mindstream.locus.empty")}
-            </p>
-          )}
-        </div>
+    <div className="min-w-0 md:ml-auto">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 md:justify-end">
+        <MapPin className="h-[1rem] w-[1rem] shrink-0 text-[var(--warm-300)]" strokeWidth={2.1} />
+        {locus.chapterRef ? (
+          <span className="text-[var(--warm-700)]" style={{ fontSize: "clamp(0.95rem, 1.05vw, 1rem)", fontWeight: 600 }}>
+            {locus.chapterRef}
+          </span>
+        ) : null}
+        {sectionToken ? (
+          <>
+            <span className="text-[var(--warm-300)]" style={{ fontSize: "clamp(0.875rem, 0.95vw, 0.9375rem)", fontWeight: 500 }}>
+              ›
+            </span>
+            <span className="text-[var(--warm-400)]" style={{ fontSize: "clamp(0.875rem, 0.95vw, 0.9375rem)", fontWeight: 500 }}>
+              {sectionToken}
+            </span>
+          </>
+        ) : null}
+        {tail ? (
+          <>
+            <span className="text-[var(--warm-300)]" style={{ fontSize: "clamp(0.875rem, 0.95vw, 0.9375rem)", fontWeight: 500 }}>
+              ·
+            </span>
+            <span
+              className="min-w-0 max-w-full text-[var(--warm-400)] md:max-w-[20rem] lg:max-w-[24rem]"
+              style={{
+                fontSize: "clamp(0.8125rem, 0.9vw, 0.9375rem)",
+                fontWeight: 500,
+                lineHeight: 1.35,
+                ...clampStyle(1),
+              }}
+            >
+              {tail}
+            </span>
+          </>
+        ) : null}
       </div>
-    </aside>
+    </div>
+  );
+}
+
+function MindstreamHeroStatusRow({
+  runtimeState,
+}: {
+  runtimeState: RuntimeStateSummary;
+}) {
+  return (
+    <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+      <span
+        className="inline-flex w-fit items-center gap-3 rounded-full border border-[var(--warm-300)]/65 px-5 py-3 text-[var(--warm-800)]"
+        style={{
+          backgroundColor: "rgba(255, 251, 244, 0.9)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.55)",
+        }}
+      >
+        <span className="h-3 w-3 shrink-0 rounded-full bg-[var(--amber-accent)]" />
+        <span style={{ fontSize: "clamp(0.9375rem, 1vw, 1rem)", fontWeight: 600, lineHeight: 1.2 }}>
+          {runtimeState.label}
+        </span>
+      </span>
+      <p
+        className="text-[var(--warm-400)]"
+        style={{
+          fontSize: "clamp(0.9375rem, 1vw, 1rem)",
+          fontWeight: 500,
+          lineHeight: 1.35,
+        }}
+      >
+        {runtimeState.detail}
+      </p>
+    </div>
   );
 }
 
@@ -1786,25 +1757,25 @@ function MindstreamHistoryDisclosure({
   }
 
   return (
-    <section className="mt-6 border-t border-[var(--warm-300)]/18 pt-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
+    <section className="mt-5 border-t border-[var(--warm-300)]/14 pt-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-start md:gap-5">
+        <div className="min-w-0 max-w-[54rem] flex-1">
           <p className="text-[var(--warm-500)] uppercase tracking-[0.18em]" style={{ fontSize: "0.625rem", fontWeight: 600 }}>
             {copy("overview.mindstream.recentTrail")}
           </p>
           {trailPreview ? (
             <div className="mt-1 min-w-0">
-              <p className="text-[var(--warm-600)]" style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+              <p className="text-[var(--warm-600)]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
                 {trailPreview.label}
               </p>
               {trailPreview.teaser ? (
-                <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem", lineHeight: 1.55, ...clampStyle(1) }}>
+                <p className="mt-0.5 text-[var(--warm-500)]" style={{ fontSize: "0.6875rem", lineHeight: 1.5, ...clampStyle(1) }}>
                   {trailPreview.teaser}
                 </p>
               ) : null}
             </div>
           ) : (
-            <p className="mt-1 text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+            <p className="mt-0.5 text-[var(--warm-500)]" style={{ fontSize: "0.6875rem" }}>
               {copy("overview.mindstream.trailEmpty")}
             </p>
           )}
@@ -1812,8 +1783,8 @@ function MindstreamHistoryDisclosure({
         <button
           type="button"
           onClick={() => setExpanded((value) => !value)}
-          className="inline-flex shrink-0 items-center gap-2 text-[var(--warm-600)] transition-colors hover:text-[var(--warm-800)] cursor-pointer"
-          style={{ fontSize: "0.8125rem", fontWeight: 600 }}
+          className="inline-flex shrink-0 items-center gap-2 self-start text-[var(--warm-500)] transition-colors hover:text-[var(--warm-700)] cursor-pointer md:mt-5"
+          style={{ fontSize: "0.75rem", fontWeight: 600 }}
         >
           {expanded ? copy("overview.mindstream.hideRecentTrail") : copy("overview.mindstream.showRecentTrail")}
         </button>
@@ -1861,7 +1832,6 @@ function MindstreamHeroCard({
   error: unknown | null;
   onRetry: () => void;
 }) {
-  const prefersReducedMotion = usePrefersReducedMotion();
   const [liveNowMs, setLiveNowMs] = useState(() => Date.now());
 
   useEffect(() => {
@@ -1905,25 +1875,71 @@ function MindstreamHeroCard({
 
   const currentActivity = buildCurrentMindstreamActivity(analysis, contentLanguage, liveNowMs);
   const runtimeState = describeRuntimeState(detail, analysis, { isParsing: isAnalysisParsing(analysis) });
+  const quoteText = currentActivity ? formatMindstreamQuote(currentActivity) : null;
 
   return (
-    <section className="mb-8 rounded-3xl border border-[var(--warm-300)]/30 bg-white p-6 shadow-sm">
-      <p className="mb-3 text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-        {copy("overview.mindstream.title")}
-      </p>
+    <section className="mb-8 rounded-3xl border border-[var(--warm-300)]/30 bg-white px-6 py-6 shadow-sm md:px-10 md:py-9">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
+        <p className="text-[var(--amber-accent)] uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
+          {copy("overview.mindstream.title")}
+        </p>
+        <MindstreamHeroBreadcrumb analysis={analysis} currentActivity={currentActivity} />
+      </div>
 
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:gap-8">
-        <div className="min-w-0 max-w-3xl flex-1">
+      <div className="mt-7 flex items-start gap-4 md:mt-9 md:gap-6">
+        {currentActivity ? (
+          <span
+            className="mt-3.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--amber-accent)] md:mt-4 md:h-3 md:w-3"
+            aria-hidden="true"
+          />
+        ) : null}
+
+        <div className="min-w-0 flex-1">
           {currentActivity ? (
-            <CurrentMindstreamActivityLine activity={currentActivity} prefersReducedMotion={prefersReducedMotion} emphasis="hero" />
+            <h2
+              className="text-[var(--warm-900)]"
+              style={{
+                fontFamily: "Lora, Georgia, serif",
+                fontSize: "clamp(1.75rem, 2.2vw, 2.25rem)",
+                fontWeight: 600,
+                lineHeight: 1.08,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {currentActivity.message}
+            </h2>
           ) : (
-            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.9375rem", lineHeight: 1.7 }}>
+            <p
+              className="max-w-[44rem] text-[var(--warm-500)]"
+              style={{
+                fontFamily: "Lora, Georgia, serif",
+                fontSize: "clamp(1.25rem, 1.8vw, 1.625rem)",
+                lineHeight: 1.4,
+              }}
+            >
               {copy("overview.mindstream.empty")}
             </p>
           )}
-          <MindstreamStatusChip runtimeState={runtimeState} className="mt-4 lg:hidden" />
+
+          {quoteText ? (
+            <blockquote
+              className="mt-8 border-l-[4px] border-[var(--warm-200)]/95 pl-5 text-[var(--warm-700)] md:pl-10"
+              style={{
+                fontSize: "clamp(1.125rem, 1.4vw, 1.375rem)",
+                fontWeight: 400,
+                lineHeight: 1.55,
+              }}
+            >
+              <p className="line-clamp-4 md:line-clamp-3">
+                {quoteText}
+              </p>
+            </blockquote>
+          ) : null}
+
+          <MindstreamHeroStatusRow runtimeState={runtimeState} />
+
           {loading || error ? (
-            <div className="mt-3 flex items-center gap-3 flex-wrap text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
+            <div className="mt-4 flex items-center gap-3 flex-wrap text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
               {loading ? (
                 <span className="inline-flex items-center gap-1.5">
                   <LoaderCircle className="w-3.5 h-3.5 animate-spin text-[var(--amber-accent)]" />
@@ -1936,8 +1952,6 @@ function MindstreamHeroCard({
             </div>
           ) : null}
         </div>
-
-        <ReadingLocusSidecar analysis={analysis} runtimeState={runtimeState} />
       </div>
 
       <MindstreamHistoryDisclosure
