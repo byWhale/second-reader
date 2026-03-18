@@ -6,6 +6,7 @@ Not for: function-level implementation details, public schema authority, or the 
 Update when: upload flow, job kinds, status progression, runtime recovery rules, or frontend lifecycle dependencies change.
 
 Use `docs/api-contract.md` for route and field authority. Use this file to understand how the current long-running workflow behaves across uploads, jobs, checkpoints, and recovery.
+Use `docs/backend-reading-mechanism.md` when the question is how a selected section is processed inside the inner reader loop.
 
 ## Terminology Guard
 - In this document, `analysis` means the current sequential deep-reading workflow exposed through `POST /api/uploads/epub`, `POST /api/books/{book_id}/analysis/start`, `POST /api/books/{book_id}/analysis/resume`, and `GET /api/books/{book_id}/analysis-state`.

@@ -1507,7 +1507,7 @@
                 "type": "null"
               }
             ],
-            "description": "Short excerpt of the text currently under attention.",
+            "description": "Excerpt of the text currently under attention.",
             "title": "Current Excerpt"
           },
           "phase": {

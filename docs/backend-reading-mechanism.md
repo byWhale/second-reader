@@ -1,0 +1,225 @@
+# Backend Reading Mechanism
+
+Purpose: explain how the sequential reader selects its working unit, assembles prompt context, and projects live attention state.
+Use when: changing reader-unit selection, prompt assembly, memory packing, search expansion, or live `current_reading_activity` semantics.
+Not for: upload/start/resume lifecycle rules, public schema authority, or endpoint-level aggregation responsibilities.
+Update when: section/subsegment boundaries, reader-loop stages, prompt inputs, memory-packet composition, or attention projection rules change.
+
+Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time. Use `docs/backend-state-aggregation.md` for how runtime artifacts become public payloads. Use this file when the question is how one selected semantic section is actually processed inside the reader.
+
+## Terminology Guard
+- `chapter`
+  - One source-ordered chapter or major part from the parsed book structure.
+- `section`
+  - The persisted semantic unit created before deep reading begins.
+  - Backend runtime code still often calls this unit a `segment`.
+  - Public/UI language should treat this concept as `section`.
+- `subsegment`
+  - The runtime-only work unit created inside one selected section when the section is too long or too dense for a single pass.
+  - This is the smallest orchestration-level unit the reader actively feeds into the inner loop.
+- `excerpt` / `current_excerpt`
+  - A live attention projection derived from the currently active text span.
+  - It is not a scheduling unit and it is not guaranteed to equal the full current `subsegment.text`.
+- `anchor_quote`
+  - A reaction-level quote recovered from the current text span.
+  - It is a reaction anchor, not a reading unit.
+
+## Selection Pipeline
+- The parser first preserves the source book order as chapters.
+- Semantic segmentation then groups chapter paragraphs into persisted sections before the main read run starts.
+- The outer iterator reads in source order:
+  - book
+  - chapter
+  - section
+- `continue` / resume behavior does not pick a new attention target globally. It skips chapters or sections already marked done and resumes at the next unfinished persisted section.
+- Once one section is selected, `run_reader_segment()` decides whether that section can be handled in one pass or should be split into runtime `subsegments`.
+- Dynamic subsegment slicing is local to the current section:
+  - short or low-density sections stay as one work unit
+  - long or dense sections are split by sentence boundaries into up to a few smaller work units
+- The public locus remains section-level even while the inner loop advances through runtime `subsegments`.
+
+## Reader Loop
+- The main inner loop is:
+  - `read`
+  - `think`
+  - `express`
+  - optional `search`
+  - optional `fuse`
+  - `reflect`
+- `read`
+  - Prepares the current text span plus reading memory for the next reasoning step.
+- `think`
+  - Decides whether the current subsegment is worth expressing, chooses a source excerpt, and estimates curiosity potential.
+- `express`
+  - Produces mixed reactions for the current subsegment, including `highlight`, `association`, `curious`, `discern`, `retrospect`, or `silent`.
+- `search`
+  - Runs only when the current thought has enough curiosity potential and the segment/chapter budget still allows search queries.
+- `fuse`
+  - Rewrites a `curious` reaction after search so the reaction absorbs the search results instead of appending them as a log.
+- `reflect`
+  - Self-reviews the produced reactions and decides whether the reactions should pass or be skipped.
+- Current runtime behavior is a single through-pass per subsegment.
+  - The codebase still retains a graph-shaped reader structure with revise-era helpers.
+  - The active `run_reader_segment()` path currently does not perform multi-round revise loops for live section execution.
+- After the inner loop finishes, reactions from multiple subsegments are merged back into one section-level result before the iterator advances and writes checkpoints/memory updates.
+
+## Prompt Assembly
+- The reader does not send only raw subsegment text to the model.
+- Each prompt is assembled around the current `subsegment.text` plus stable context:
+  - `book_context`
+    - book title
+    - author
+    - current chapter index
+    - nearby outline entries
+  - `current_part_context`
+    - chapter ref
+    - chapter title
+    - chapter primary role
+    - role tags
+    - role confidence
+    - current section heading when available
+    - one role-aware note about the likely function of the current chapter
+  - `memory_text`
+    - a budget-aware packet assembled from reader memory
+  - `user_intent`
+    - explicit user intent when provided, otherwise a fallback label
+  - output language contract
+    - the shared language instructions that keep reactions and summaries in the configured output language
+- Stage-specific additions:
+  - `think`
+    - current section summary and current subsegment text
+  - `express`
+    - the normalized `thought_json` plus any revision instruction placeholder
+  - `fuse`
+    - the current `curious` reaction, `anchor_quote`, `search_query`, and normalized search results
+  - `reflect`
+    - `reactions_json` for the current subsegment plus the same contextual packet
+- Prompt wording is owned by `reading-companion-backend/src/prompts/templates.py`.
+  - This document describes prompt responsibilities and inputs, not the full prompt text.
+
+## Memory Packet
+- `_assemble_memory_packet()` builds `memory_text` per prompt node, not once for the whole run.
+- The packet is budget-aware:
+  - larger current text spans reduce the available memory budget
+  - different prompt nodes use different memory caps
+- The packet is also relevance-aware:
+  - memory candidates are ranked against lexical terms from the current subsegment text, section summary, section heading, and chapter title
+  - the packet prefers open or still-relevant items and trims to fit the node budget
+- Logical packet components are:
+  - book arc summary
+    - the current whole-book through-line
+  - open threads
+    - unresolved questions or tensions still marked open
+  - findings
+    - provisional or durable findings worth carrying forward
+  - salience ledger
+    - active concepts, characters, institutions, places, or motifs and their working notes
+  - recent segment flow
+    - the newest section-to-section reading trail
+  - chapter memory summaries
+    - recent chapter-level memory summaries
+
+## State Projection
+- The runtime reader loop emits structured progress events while the outer iterator owns the persistent live snapshot.
+- The public-facing live snapshot is `current_reading_activity`.
+- `segment_ref` in that snapshot remains section-level, even when the inner loop is already working through smaller `subsegments`.
+- `current_excerpt` is a short projection of the current attention target:
+  - usually derived from the active `subsegment.text`
+  - sometimes derived from an `anchor_quote`
+  - normalized and shortened for live-state transport
+- `search_query` is also part of the live snapshot when the reader is actively expanding curiosity.
+- External surfaces should interpret attention context in this priority order:
+  - `search_query`
+  - `current_excerpt`
+- This is why the live overview can appear more fine-grained than the persisted section locus:
+  - the locus still points at the current section
+  - the projected attention text can point at a smaller runtime span inside that section
+- Catalog aggregation may widen that projection again.
+  - When older runtime snapshots only retain a shortened `current_excerpt`, catalog can backfill the normalized full section text by resolving `segment_ref` against `structure.json`.
+  - Public state therefore reflects the runtime attention target as best effort, not as a strict copy of the current subsegment payload.
+
+## Stability And Drift Notes
+- The active reader path is `run_reader_segment()`.
+  - Graph-shaped helpers remain in the codebase, but they are not the authoritative description of the current live section execution path.
+- `section`, `subsegment`, and `excerpt` should not be treated as interchangeable:
+  - `section` is the persisted semantic unit
+  - `subsegment` is the runtime work unit
+  - `excerpt` is the projected live attention text
+- API and runtime payloads may still expose compatibility names such as `segment_ref`.
+  - That does not change the product-language expectation that user-facing terminology should say `section`.
+- Prompt wording is allowed to evolve more frequently than this document.
+  - If prompt responsibilities, inputs, or outputs change, update this document.
+  - If only prompt phrasing changes, the code remains the authority.
+
+## Machine-Readable Appendix
+The JSON block below is the machine-readable appendix used by the reading-mechanism drift check.
+
+```json
+{
+  "selection_pipeline": [
+    "book",
+    "chapter",
+    "section",
+    "subsegment"
+  ],
+  "persisted_unit_labels": {
+    "chapter": "chapter",
+    "semantic_unit": "section",
+    "backend_internal_alias": "segment"
+  },
+  "runtime_attention_unit": "subsegment",
+  "segment_execution_mode": "single_pass",
+  "reader_loop_nodes": [
+    "read",
+    "think",
+    "express",
+    "search",
+    "fuse",
+    "reflect"
+  ],
+  "reader_prompt_nodes": [
+    "think",
+    "express",
+    "reflect"
+  ],
+  "live_activity_phases": [
+    "reading",
+    "thinking",
+    "searching",
+    "fusing",
+    "reflecting",
+    "waiting",
+    "preparing"
+  ],
+  "internal_reaction_types": [
+    "highlight",
+    "association",
+    "curious",
+    "discern",
+    "retrospect",
+    "silent"
+  ],
+  "memory_packet_sections": [
+    "book_arc_summary",
+    "open_threads",
+    "findings",
+    "salience_ledger",
+    "recent_segment_flow",
+    "chapter_memory_summaries"
+  ],
+  "attention_context_priority": [
+    "search_query",
+    "current_excerpt"
+  ],
+  "subsegment_slicing_defaults": {
+    "slice_target_tokens": 420,
+    "slice_max_tokens": 700,
+    "slice_max_subsegments": 4,
+    "density_trigger_gte": 3.2
+  },
+  "search_budget_defaults": {
+    "max_search_queries_per_segment": 2,
+    "max_search_queries_per_chapter": 12
+  }
+}
+```

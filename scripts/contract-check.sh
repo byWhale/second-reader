@@ -17,6 +17,9 @@ echo "Checking docs/backend/frontend contract constants..."
 echo "Checking frontend integration doc appendix..."
 "$BACKEND_PYTHON" "$ROOT_DIR/scripts/check-integration-doc.py"
 
+echo "Checking backend reading mechanism doc appendix..."
+"$BACKEND_PYTHON" "$ROOT_DIR/scripts/check-reading-mechanism-doc.py"
+
 echo "Checking backend OpenAPI snapshot..."
 (cd "$BACKEND_DIR" && .venv/bin/python scripts/export_openapi.py --check)
 

@@ -8,6 +8,7 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 ## Scope
 - This directory contains the FastAPI API, sequential deep-reading engine, and runtime artifacts.
 - Use `../docs/product-interaction-model.md` for product flow and `../docs/api-contract.md` for the public contract.
+- Use `../docs/backend-reading-mechanism.md` for inner reader-unit selection, prompt assembly, and live attention-projection semantics.
 
 ## Stable Defaults
 - Default to improving `sequential` deep-reading quality.

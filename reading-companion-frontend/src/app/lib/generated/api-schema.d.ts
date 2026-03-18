@@ -1250,7 +1250,7 @@ export interface components {
         CurrentReadingActivity: {
             /**
              * Current Excerpt
-             * @description Short excerpt of the text currently under attention.
+             * @description Excerpt of the text currently under attention.
              */
             current_excerpt?: string | null;
             /**
