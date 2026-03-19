@@ -21,6 +21,8 @@ from src.prompts.templates import (
     READER_EXPRESS_SYSTEM,
     READER_REFLECT_PROMPT,
     READER_REFLECT_SYSTEM,
+    READER_SUBSEGMENT_PLAN_PROMPT,
+    READER_SUBSEGMENT_PLAN_SYSTEM,
     READER_THINK_PROMPT,
     READER_THINK_SYSTEM,
 )
@@ -45,12 +47,15 @@ from .models import (
     QualityStatus,
     ReflectionPayload,
     RenderedSegment,
+    RuntimeSubsegment,
     SalienceLedgerItem,
     SalienceStatus,
     SearchHit,
     CurrentReadingProblemCode,
     SearchResultPayload,
     SkillPolicy,
+    SubsegmentPlanPayload,
+    SubsegmentReadingMove,
     ThoughtPayload,
 )
 
@@ -87,6 +92,16 @@ _MODEL_CONTEXT_WINDOW_ESTIMATE = 16_000
 _PROMPT_RESERVED_OUTPUT_TOKENS = 4_096
 _PROMPT_RESERVED_SYSTEM_TOKENS = 1_400
 _TOKEN_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9'_-]*")
+_SUBSEGMENT_READING_MOVES: set[str] = {
+    "definition",
+    "claim",
+    "turn",
+    "causal_step",
+    "example",
+    "callback",
+    "bridge",
+    "conclusion",
+}
 _CURRENT_READING_PROBLEM_CODES: set[str] = {
     "llm_timeout",
     "llm_quota",
@@ -662,7 +677,7 @@ def _default_budget() -> ReaderBudget:
         "token_budget_ratio": 1.5,
         "slice_target_tokens": 420,
         "slice_max_tokens": 700,
-        "slice_max_subsegments": 4,
+        "slice_max_subsegments": 8,
         "work_units_remaining": 0,
     }
 
@@ -1313,14 +1328,155 @@ def _chunk_sentences(
     return merged
 
 
-def _build_subsegments(state: ReaderState) -> list[dict[str, str]]:
-    """Build optional dynamic sub-segments for one semantic unit."""
+def _numbered_sentences_block(sentences: list[str]) -> str:
+    """Render sentence-like units as a numbered block for planner prompts."""
+    return "\n".join(f"{index}. {sentence}" for index, sentence in enumerate(sentences, start=1))
+
+
+def _coerce_subsegment_reading_move(value: object) -> SubsegmentReadingMove | None:
+    """Normalize planner reading-move labels to the supported enum."""
+    normalized = _clean_text(value).lower().replace("-", "_")
+    aliases = {
+        "definition": "definition",
+        "define": "definition",
+        "claim": "claim",
+        "assertion": "claim",
+        "turn": "turn",
+        "contrast": "turn",
+        "shift": "turn",
+        "causal_step": "causal_step",
+        "causal": "causal_step",
+        "cause_effect": "causal_step",
+        "example": "example",
+        "illustration": "example",
+        "callback": "callback",
+        "retrospect": "callback",
+        "bridge": "bridge",
+        "transition": "bridge",
+        "conclusion": "conclusion",
+        "summary": "conclusion",
+    }
+    candidate = aliases.get(normalized)
+    if candidate in _SUBSEGMENT_READING_MOVES:
+        return candidate  # type: ignore[return-value]
+    return None
+
+
+def _normalize_unit_summary(value: object, fallback_text: str) -> str:
+    """Keep planner-provided unit summaries short but readable."""
+    summary = _clean_text(value)
+    if not summary:
+        summary = _default_anchor(fallback_text)
+    summary = re.sub(r"\s+", " ", summary).strip()
+    if len(summary) > 80:
+        return summary[:77].rstrip() + "..."
+    return summary
+
+
+def _plan_subsegments_with_llm(
+    state: ReaderState,
+    sentences: list[str],
+) -> SubsegmentPlanPayload | None:
+    """Ask the reader LLM for a minimal self-contained subsegment plan."""
+    if len(sentences) <= 1:
+        return None
+
+    budget = state.get("budget") or _default_budget()
+    max_tokens = max(180, int(budget.get("slice_max_tokens", 700)))
+    max_subsegments = max(1, int(budget.get("slice_max_subsegments", 8)))
+    if _estimate_tokens(state.get("segment_text", "")) > max_tokens * max_subsegments:
+        return None
+
+    try:
+        payload = invoke_json(
+            READER_SUBSEGMENT_PLAN_SYSTEM,
+            READER_SUBSEGMENT_PLAN_PROMPT.format(
+                book_context=_format_book_context(state),
+                current_part_context=_format_current_part_context(state),
+                chapter_title=state.get("chapter_title", ""),
+                segment_ref=_segment_ref(state),
+                segment_summary=state.get("segment_summary", ""),
+                numbered_sentences=_numbered_sentences_block(sentences),
+                user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
+                output_language_name=language_name(state.get("output_language", "en")),
+            ),
+            default={},
+        )
+    except ReaderLLMError:
+        return None
+    except Exception:
+        return None
+
+    return payload if isinstance(payload, dict) else None
+
+
+def _materialize_planned_subsegments(
+    state: ReaderState,
+    sentences: list[str],
+    payload: SubsegmentPlanPayload | dict[str, object] | None,
+) -> list[RuntimeSubsegment] | None:
+    """Validate planner output and materialize runtime subsegments."""
+    if not isinstance(payload, dict):
+        return None
+    raw_units = payload.get("units")
+    if not isinstance(raw_units, list) or not raw_units:
+        return None
+
+    budget = state.get("budget") or _default_budget()
+    max_tokens = max(180, int(budget.get("slice_max_tokens", 700)))
+    max_subsegments = max(1, int(budget.get("slice_max_subsegments", 8)))
+    if len(raw_units) > max_subsegments:
+        return None
+
+    materialized: list[RuntimeSubsegment] = []
+    expected_start = 1
+    total_sentences = len(sentences)
+
+    for raw_unit in raw_units:
+        if not isinstance(raw_unit, dict):
+            return None
+        try:
+            sentence_start = int(raw_unit.get("sentence_start", 0))
+            sentence_end = int(raw_unit.get("sentence_end", 0))
+        except (TypeError, ValueError):
+            return None
+        if sentence_start != expected_start or sentence_end < sentence_start or sentence_end > total_sentences:
+            return None
+
+        reading_move = _coerce_subsegment_reading_move(raw_unit.get("reading_move", ""))
+        if reading_move is None:
+            return None
+
+        unit_sentences = sentences[sentence_start - 1 : sentence_end]
+        unit_text = " ".join(sentence for sentence in unit_sentences if _clean_text(sentence)).strip()
+        if not unit_text or _estimate_tokens(unit_text) > max_tokens:
+            return None
+
+        materialized.append(
+            {
+                "summary": _normalize_unit_summary(raw_unit.get("unit_summary", ""), unit_text),
+                "text": unit_text,
+                "reading_move": reading_move,
+                "reason": _clean_text(raw_unit.get("reason", "")),
+                "sentence_start": sentence_start,
+                "sentence_end": sentence_end,
+            }
+        )
+        expected_start = sentence_end + 1
+
+    if expected_start != total_sentences + 1:
+        return None
+    return materialized
+
+
+def _build_subsegments_fallback(state: ReaderState) -> list[RuntimeSubsegment]:
+    """Fallback sentence-boundary slicer used when the planner is unavailable or invalid."""
     text = state.get("segment_text", "")
     summary = state.get("segment_summary", "")
     budget = state.get("budget") or _default_budget()
     max_tokens = max(180, int(budget.get("slice_max_tokens", 700)))
     target_tokens = max(120, int(budget.get("slice_target_tokens", 420)))
-    max_subsegments = max(1, int(budget.get("slice_max_subsegments", 4)))
+    max_subsegments = max(1, int(budget.get("slice_max_subsegments", 8)))
 
     estimated_tokens = _estimate_tokens(text)
     density = _segment_density_signal(text)
@@ -1344,6 +1500,32 @@ def _build_subsegments(state: ReaderState) -> list[dict[str, str]]:
             }
         )
     return subsegments
+
+
+def _build_subsegments(state: ReaderState) -> tuple[list[RuntimeSubsegment], str]:
+    """Build runtime work units with an LLM-first planner and heuristic fallback."""
+    text = state.get("segment_text", "")
+    summary = state.get("segment_summary", "")
+    sentences = [sentence for sentence in _split_sentences(text) if _clean_text(sentence)]
+    if len(sentences) <= 1:
+        return (
+            [
+                {
+                    "summary": summary or _default_anchor(text),
+                    "text": text,
+                    "sentence_start": 1,
+                    "sentence_end": max(1, len(sentences)),
+                }
+            ],
+            "single_sentence",
+        )
+
+    payload = _plan_subsegments_with_llm(state, sentences)
+    planned = _materialize_planned_subsegments(state, sentences, payload)
+    if planned is not None:
+        return planned, "llm"
+
+    return _build_subsegments_fallback(state), "fallback"
 
 
 def _initial_work_units(state: ReaderState) -> int:
@@ -1932,6 +2114,8 @@ def create_reader_state(
         "budget": budget or _default_budget(),
         "chapter_reflection": None,
         "segment_quality_flags": [],
+        "subsegment_plan": [],
+        "subsegment_planner_source": "",
     }
 
 
@@ -2900,7 +3084,9 @@ def run_reader_segment(
     merged_reactions: list[ReactionPayload] = []
     merged_reason_codes: list[ReasonCode] = []
     merged_summaries: list[str] = []
-    subsegments = _build_subsegments(current)
+    subsegments, planner_source = _build_subsegments(current)
+    current["subsegment_plan"] = list(subsegments)
+    current["subsegment_planner_source"] = planner_source
 
     def elapsed_seconds() -> float:
         return time.monotonic() - started_at
@@ -2922,6 +3108,8 @@ def run_reader_segment(
         substate["max_revisions"] = 0
         substate["revision_instruction"] = ""
         substate["budget"] = dict(budget)
+        substate["subsegment_plan"] = list(subsegments)
+        substate["subsegment_planner_source"] = planner_source
 
         if progress:
             progress(

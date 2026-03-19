@@ -39,3 +39,6 @@ This directory is for historical context, not current authority. Facts about the
 - Default engineering tasks do not need to load this directory.
 - Update it only when a major decision, reversal, or design inflection point would otherwise be forgotten.
 - Routine bugfixes, refactors, and contract-only updates do not belong here unless they mark a real change in direction.
+- The workspace may run a warning-only reminder when high-signal design docs change without a matching `decision-log.md` update.
+- That reminder is advisory, not authoritative.
+- Its job is to catch likely misses, not to force a decision-log entry for every stable-doc edit.

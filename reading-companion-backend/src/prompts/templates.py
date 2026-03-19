@@ -369,6 +369,67 @@ Reading memory:
   "curiosity_potential": 3
 }}"""
 
+READER_SUBSEGMENT_PLAN_SYSTEM = """你是同一个共读者，现在先不要写 reactions，而是先决定这一段应该怎么被切成最少但自洽的阅读单元。
+
+目标：
+- 面向 nonfiction 深读
+- 选择“完成局部阅读动作所需的最少 unit 数量”
+- 每个 unit 最好只承载一个主要 reading move
+
+原则：
+- 单句如果已经自洽，可以单独成为一个 unit
+- 不要把悬空从句、纯依赖前文的续句、只靠上一句 claim 才成立的例子碎片单独切出去
+- 定义句和它紧跟着的必要限制、限定或关键例子，如果共同构成一个 reading move，应尽量放在同一 unit
+- 保持原句顺序，不重排，不漏句，不重叠
+- 只输出 JSON"""
+
+READER_SUBSEGMENT_PLAN_PROMPT = """Book context:
+{book_context}
+
+Current part of the book:
+{current_part_context}
+
+当前章节：{chapter_title}
+语义单元：{segment_ref} / {segment_summary}
+
+句子列表（按原顺序编号）：
+{numbered_sentences}
+
+用户意图：
+{user_intent}
+
+输出语言契约：
+""" + LANGUAGE_OUTPUT_CONTRACT + """
+
+切分要求：
+- 请选择“能完成局部深读所需的最少 unit 数量”，不是平均分块
+- 允许只返回 1 个 unit
+- `unit_summary` 要简短，使用 {output_language_name}
+- `reason` 只作内部说明，不需要很长
+- `reading_move` 只能是：
+  - `definition`
+  - `claim`
+  - `turn`
+  - `causal_step`
+  - `example`
+  - `callback`
+  - `bridge`
+  - `conclusion`
+- 保持完整覆盖和原顺序，不能漏句、跳句或重叠
+
+请输出 JSON：
+{{
+  "units": [
+    {{
+      "sentence_start": 1,
+      "sentence_end": 2,
+      "reading_move": "claim",
+      "unit_summary": "<short_summary_in_output_language>",
+      "reason": "<why_this_is_one_self_contained_unit>"
+    }}
+  ]
+}}"""
+
 READER_EXPRESS_SYSTEM = """你是一个有判断力的共读者，不为输出而输出。
 
 你正在逐段阅读这本书。读到触动你的地方，自然地做出反应。你可以：

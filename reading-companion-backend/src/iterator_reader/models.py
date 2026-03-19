@@ -63,6 +63,16 @@ CurrentReadingPhase = Literal[
     "preparing",
 ]
 ThoughtFamily = Literal["highlight", "association", "curious", "discern", "retrospect"]
+SubsegmentReadingMove = Literal[
+    "definition",
+    "claim",
+    "turn",
+    "causal_step",
+    "example",
+    "callback",
+    "bridge",
+    "conclusion",
+]
 CurrentReadingProblemCode = Literal[
     "llm_timeout",
     "llm_quota",
@@ -389,6 +399,33 @@ class PromptBudget(TypedDict, total=False):
     budget_tier: PromptBudgetTier
 
 
+class SubsegmentPlanUnit(TypedDict):
+    """One planner-proposed runtime reading unit."""
+
+    sentence_start: int
+    sentence_end: int
+    reading_move: SubsegmentReadingMove
+    unit_summary: str
+    reason: str
+
+
+class SubsegmentPlanPayload(TypedDict):
+    """Structured planner output for section-to-subsegment decomposition."""
+
+    units: list[SubsegmentPlanUnit]
+
+
+class RuntimeSubsegment(TypedDict, total=False):
+    """Materialized runtime work unit derived from one section."""
+
+    summary: str
+    text: str
+    reading_move: SubsegmentReadingMove
+    reason: str
+    sentence_start: int
+    sentence_end: int
+
+
 class ReaderMemory(TypedDict, total=False):
     """Running memory carried across semantic units in one read session."""
 
@@ -677,6 +714,8 @@ class ReaderState(TypedDict):
     budget: ReaderBudget
     chapter_reflection: dict[str, object] | None
     segment_quality_flags: list[dict[str, str]]
+    subsegment_plan: list[RuntimeSubsegment]
+    subsegment_planner_source: str
 
 
 class UserMark(TypedDict):

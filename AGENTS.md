@@ -198,6 +198,7 @@ Update when: document layering, reading order, task routing, or cross-project co
 - If a backend change materially alters inner reader unit selection, prompt assembly, memory-packet composition, or live attention projection, update `docs/backend-reading-mechanism.md` in the same task.
 - If a backend change materially alters which artifacts feed public state surfaces, or where normalization between internal and public shapes happens, update `docs/backend-state-aggregation.md` in the same task.
 - If a major project change creates a decision, reversal, or design inflection point that would be hard to reconstruct later, update `docs/history/decision-log.md` in the same task.
+- Treat a change as decision-bearing when it introduces a new primary mechanism, changes the default product/runtime direction, establishes a new canonical control surface or route model, or promotes a stable doc to subsystem authority.
 - If a temporary handoff note repeats across tasks, promote it into the relevant `AGENTS.md` or stable doc.
 - If a new key document becomes part of the standard reading path, add it to the load matrix here before linking it elsewhere.
 
@@ -205,6 +206,8 @@ Update when: document layering, reading order, task routing, or cross-project co
 - Default engineering tasks do not need to load `docs/history/`.
 - Load `docs/history/README.md` when the task is about design evolution, decision history, or rejected alternatives.
 - Update `docs/history/decision-log.md` only when a major decision, reversal, or design inflection point would otherwise be forgotten.
+- If a decision-bearing change does not update `docs/history/decision-log.md`, the task close-out should name the concrete reason.
+- The repo may emit a warning-only reminder when high-signal design docs change without a matching `decision-log.md` update.
 - If `docs/history/` is not updated after a major design change, you should have a concrete reason, such as:
   - the change is fully recoverable later from stable docs and code
   - it is a narrow bugfix or implementation detail

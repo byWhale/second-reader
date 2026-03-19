@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import get_args
 
-from .models import CurrentReadingPhase, ReaderPromptNode, ReactionType
+from .models import CurrentReadingPhase, ReactionType
 from .policy import default_budget_policy
 
 
@@ -17,6 +17,7 @@ _PERSISTED_UNIT_LABELS = {
 _RUNTIME_ATTENTION_UNIT = "subsegment"
 _SEGMENT_EXECUTION_MODE = "single_pass"
 _READER_LOOP_NODES = ("read", "think", "express", "search", "fuse", "reflect")
+_READER_PROMPT_NODES = ("subsegment_plan", "think", "express", "reflect")
 _MEMORY_PACKET_SECTIONS = (
     "book_arc_summary",
     "open_threads",
@@ -38,6 +39,9 @@ def _subsegment_slicing_defaults() -> dict[str, float | int]:
     """Return the stable default knobs for runtime subsegment slicing."""
     budget = default_budget_policy()
     return {
+        "planner_mode": "llm_primary",
+        "fallback_mode": "heuristic_sentence_boundary",
+        "safety_cap_role": "absolute_cap",
         "slice_target_tokens": int(budget["slice_target_tokens"]),
         "slice_max_tokens": int(budget["slice_max_tokens"]),
         "slice_max_subsegments": int(budget["slice_max_subsegments"]),
@@ -60,7 +64,7 @@ READER_MECHANISM_SPEC = {
     "runtime_attention_unit": _RUNTIME_ATTENTION_UNIT,
     "segment_execution_mode": _SEGMENT_EXECUTION_MODE,
     "reader_loop_nodes": list(_READER_LOOP_NODES),
-    "reader_prompt_nodes": _literal_values(ReaderPromptNode),
+    "reader_prompt_nodes": list(_READER_PROMPT_NODES),
     "live_activity_phases": _literal_values(CurrentReadingPhase),
     "internal_reaction_types": _literal_values(ReactionType),
     "memory_packet_sections": list(_MEMORY_PACKET_SECTIONS),

@@ -20,6 +20,9 @@ echo "Checking frontend integration doc appendix..."
 echo "Checking backend reading mechanism doc appendix..."
 "$BACKEND_PYTHON" "$ROOT_DIR/scripts/check-reading-mechanism-doc.py"
 
+echo "Checking decision-history reminder..."
+"$BACKEND_PYTHON" "$ROOT_DIR/scripts/check-history-update.py"
+
 echo "Checking backend OpenAPI snapshot..."
 (cd "$BACKEND_DIR" && .venv/bin/python scripts/export_openapi.py --check)
 

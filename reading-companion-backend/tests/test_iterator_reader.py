@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from src.iterator_reader.reader import (
+    _build_subsegments,
     _compact_segments_for_chapter_reflection,
     _normalize_source_clause,
     _apply_skill_policy,
@@ -677,6 +678,228 @@ def test_search_if_curious_respects_budget_quota(monkeypatch):
     assert updated["budget"]["search_queries_remaining_in_segment"] == 1
 
 
+def test_build_subsegments_single_sentence_short_circuits_planner(monkeypatch):
+    """Single-sentence sections should skip the planner and stay as one runtime unit."""
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._plan_subsegments_with_llm",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(RuntimeError("planner should not run")),
+    )
+    state = create_reader_state(
+        chapter_title="Chapter 1",
+        segment_id="1.0",
+        segment_summary="core claim",
+        segment_text="Antifragility benefits from volatility.",
+        memory={
+            "prior_segment_summaries": [],
+            "notable_findings": [],
+            "open_threads": [],
+            "highlighted_quotes": [],
+        },
+        output_language="en",
+    )
+
+    subsegments, source = _build_subsegments(state)
+
+    assert source == "single_sentence"
+    assert subsegments == [
+        {
+            "summary": "core claim",
+            "text": "Antifragility benefits from volatility.",
+            "sentence_start": 1,
+            "sentence_end": 1,
+        }
+    ]
+
+
+def test_build_subsegments_accepts_valid_llm_plan_with_single_sentence_units(monkeypatch):
+    """Self-contained single-sentence units should survive planner validation."""
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._plan_subsegments_with_llm",
+        lambda *_args, **_kwargs: {
+            "units": [
+                {
+                    "sentence_start": 1,
+                    "sentence_end": 1,
+                    "reading_move": "claim",
+                    "unit_summary": "Core claim",
+                    "reason": "A complete assertion.",
+                },
+                {
+                    "sentence_start": 2,
+                    "sentence_end": 2,
+                    "reading_move": "turn",
+                    "unit_summary": "Argument turns",
+                    "reason": "A self-contained pivot.",
+                },
+                {
+                    "sentence_start": 3,
+                    "sentence_end": 3,
+                    "reading_move": "conclusion",
+                    "unit_summary": "Local wrap-up",
+                    "reason": "A complete closing move.",
+                },
+            ]
+        },
+    )
+    state = create_reader_state(
+        chapter_title="Chapter 1",
+        segment_id="1.1",
+        segment_summary="section summary",
+        segment_text=(
+            "Antifragility benefits from shocks. "
+            "However, fragility breaks under the same pressure. "
+            "That contrast becomes the local takeaway."
+        ),
+        memory={
+            "prior_segment_summaries": [],
+            "notable_findings": [],
+            "open_threads": [],
+            "highlighted_quotes": [],
+        },
+        output_language="en",
+    )
+
+    subsegments, source = _build_subsegments(state)
+
+    assert source == "llm"
+    assert [item["reading_move"] for item in subsegments] == ["claim", "turn", "conclusion"]
+    assert [item["summary"] for item in subsegments] == ["Core claim", "Argument turns", "Local wrap-up"]
+    assert [(item["sentence_start"], item["sentence_end"]) for item in subsegments] == [
+        (1, 1),
+        (2, 2),
+        (3, 3),
+    ]
+
+
+def test_build_subsegments_falls_back_on_malformed_planner_payload(monkeypatch):
+    """Malformed planner payloads should fall back without partial repair."""
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._plan_subsegments_with_llm",
+        lambda *_args, **_kwargs: {"units": "not-a-list"},
+    )
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._build_subsegments_fallback",
+        lambda _state: [{"summary": "Fallback summary", "text": "Fallback text"}],
+    )
+    state = create_reader_state(
+        chapter_title="Chapter 1",
+        segment_id="1.2",
+        segment_summary="section summary",
+        segment_text="First point. Second point.",
+        memory={
+            "prior_segment_summaries": [],
+            "notable_findings": [],
+            "open_threads": [],
+            "highlighted_quotes": [],
+        },
+        output_language="en",
+    )
+
+    subsegments, source = _build_subsegments(state)
+
+    assert source == "fallback"
+    assert subsegments == [{"summary": "Fallback summary", "text": "Fallback text"}]
+
+
+def test_build_subsegments_falls_back_on_invalid_sentence_coverage(monkeypatch):
+    """Non-contiguous planner coverage should be rejected outright."""
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._plan_subsegments_with_llm",
+        lambda *_args, **_kwargs: {
+            "units": [
+                {
+                    "sentence_start": 1,
+                    "sentence_end": 1,
+                    "reading_move": "claim",
+                    "unit_summary": "One",
+                    "reason": "ok",
+                },
+                {
+                    "sentence_start": 3,
+                    "sentence_end": 3,
+                    "reading_move": "conclusion",
+                    "unit_summary": "Three",
+                    "reason": "skips the middle sentence",
+                },
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._build_subsegments_fallback",
+        lambda _state: [{"summary": "Fallback coverage", "text": "Fallback text"}],
+    )
+    state = create_reader_state(
+        chapter_title="Chapter 1",
+        segment_id="1.3",
+        segment_summary="section summary",
+        segment_text="First point. Second point. Third point.",
+        memory={
+            "prior_segment_summaries": [],
+            "notable_findings": [],
+            "open_threads": [],
+            "highlighted_quotes": [],
+        },
+        output_language="en",
+    )
+
+    subsegments, source = _build_subsegments(state)
+
+    assert source == "fallback"
+    assert subsegments == [{"summary": "Fallback coverage", "text": "Fallback text"}]
+
+
+def test_build_subsegments_falls_back_when_planned_unit_exceeds_hard_token_cap(monkeypatch):
+    """Planner units above the hard token cap should trigger heuristic fallback."""
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._plan_subsegments_with_llm",
+        lambda *_args, **_kwargs: {
+            "units": [
+                {
+                    "sentence_start": 1,
+                    "sentence_end": 2,
+                    "reading_move": "claim",
+                    "unit_summary": "Too large",
+                    "reason": "over budget",
+                }
+            ]
+        },
+    )
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._build_subsegments_fallback",
+        lambda _state: [{"summary": "Fallback oversized", "text": "Fallback text"}],
+    )
+    state = create_reader_state(
+        chapter_title="Chapter 1",
+        segment_id="1.4",
+        segment_summary="section summary",
+        segment_text=f'{" ".join(["alpha"] * 120)}. {" ".join(["beta"] * 120)}.',
+        memory={
+            "prior_segment_summaries": [],
+            "notable_findings": [],
+            "open_threads": [],
+            "highlighted_quotes": [],
+        },
+        output_language="en",
+        budget={
+            "search_queries_remaining_in_chapter": 0,
+            "search_queries_remaining_in_segment": 0,
+            "segment_timeout_seconds": 120,
+            "segment_timed_out": False,
+            "early_stop": False,
+            "token_budget_ratio": 1.5,
+            "slice_target_tokens": 420,
+            "slice_max_tokens": 40,
+            "slice_max_subsegments": 8,
+            "work_units_remaining": 0,
+        },
+    )
+
+    subsegments, source = _build_subsegments(state)
+
+    assert source == "fallback"
+    assert subsegments == [{"summary": "Fallback oversized", "text": "Fallback text"}]
+
+
 def test_run_reader_segment_early_stop_avoids_express(monkeypatch):
     """When Think says not to express, the segment should stop early."""
     state = create_reader_state(
@@ -816,7 +1039,7 @@ def test_run_reader_segment_timeout_keeps_best_effort_reactions(monkeypatch):
             "token_budget_ratio": 1.5,
             "slice_target_tokens": 420,
             "slice_max_tokens": 700,
-            "slice_max_subsegments": 4,
+            "slice_max_subsegments": 8,
             "work_units_remaining": 0,
         },
     )
@@ -860,14 +1083,18 @@ def test_run_reader_segment_timeout_keeps_best_effort_reactions(monkeypatch):
     assert final_state["budget"]["segment_timed_out"] is True
 
 
-def test_run_reader_segment_dynamic_slicing_merges_into_single_segment(monkeypatch):
-    """Long dense text should be processed via sub-segments but merged into one final section."""
-    long_text = "However, this is a dense argument with numbers 1 2 3. " * 120
+def test_run_reader_segment_llm_planned_subsegments_merge_into_single_segment(monkeypatch):
+    """Planner-produced runtime units should still merge back into one section-level result."""
+    section_text = (
+        "Antifragility gains from disorder. "
+        "However, fragility shatters under the same pressure. "
+        "That contrast becomes the local hinge."
+    )
     state = create_reader_state(
         chapter_title="Chapter 1",
         segment_id="1.4",
         segment_summary="dense-summary",
-        segment_text=long_text,
+        segment_text=section_text,
         memory={
             "prior_segment_summaries": [],
             "notable_findings": [],
@@ -881,11 +1108,32 @@ def test_run_reader_segment_dynamic_slicing_merges_into_single_segment(monkeypat
             "segment_timeout_seconds": 120,
             "segment_timed_out": False,
             "early_stop": False,
-            "token_budget_ratio": 1.5,
+            "token_budget_ratio": 20.0,
             "slice_target_tokens": 180,
             "slice_max_tokens": 260,
-            "slice_max_subsegments": 4,
+            "slice_max_subsegments": 8,
             "work_units_remaining": 0,
+        },
+    )
+    monkeypatch.setattr(
+        "src.iterator_reader.reader._plan_subsegments_with_llm",
+        lambda *_args, **_kwargs: {
+            "units": [
+                {
+                    "sentence_start": 1,
+                    "sentence_end": 1,
+                    "reading_move": "claim",
+                    "unit_summary": "Claim move",
+                    "reason": "A complete claim.",
+                },
+                {
+                    "sentence_start": 2,
+                    "sentence_end": 3,
+                    "reading_move": "turn",
+                    "unit_summary": "Turn move",
+                    "reason": "The turn and its local wrap-up belong together.",
+                },
+            ]
         },
     )
 
@@ -894,7 +1142,7 @@ def test_run_reader_segment_dynamic_slicing_merges_into_single_segment(monkeypat
         lambda _state: {
             "thought": {
                 "should_express": True,
-                "selected_excerpt": "However, this is a dense argument.",
+                "selected_excerpt": _state.get("segment_text", ""),
                 "reason": "Worth keeping.",
                 "connections": [],
                 "curiosities": [],
@@ -937,11 +1185,19 @@ def test_run_reader_segment_dynamic_slicing_merges_into_single_segment(monkeypat
         },
     )
 
-    rendered, _final_state = run_reader_segment(state)
+    rendered, final_state = run_reader_segment(state)
 
     assert rendered["segment_id"] == "1.4"
     assert rendered["verdict"] == "pass"
-    assert len(rendered["reactions"]) >= 2
+    assert {reaction["content"] for reaction in rendered["reactions"]} == {
+        "obs::Claim move",
+        "obs::Turn move",
+    }
+    assert final_state["subsegment_planner_source"] == "llm"
+    assert [item["summary"] for item in final_state["subsegment_plan"]] == [
+        "Claim move",
+        "Turn move",
+    ]
 
 
 def test_compact_segments_for_chapter_reflection_keeps_full_clause_quotes():

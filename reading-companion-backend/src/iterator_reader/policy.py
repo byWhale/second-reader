@@ -54,7 +54,7 @@ def default_budget_policy() -> BudgetPolicy:
         "token_budget_ratio": 1.5,
         "slice_target_tokens": 420,
         "slice_max_tokens": 700,
-        "slice_max_subsegments": 4,
+        "slice_max_subsegments": 8,
     }
 
 
@@ -81,7 +81,7 @@ def chapter_budget(policy: BudgetPolicy) -> ReaderBudget:
         "token_budget_ratio": float(policy.get("token_budget_ratio", 1.5)),
         "slice_target_tokens": max(120, int(policy.get("slice_target_tokens", 420))),
         "slice_max_tokens": max(180, int(policy.get("slice_max_tokens", 700))),
-        "slice_max_subsegments": max(1, int(policy.get("slice_max_subsegments", 4))),
+        "slice_max_subsegments": max(1, int(policy.get("slice_max_subsegments", 8))),
         "work_units_remaining": 0,
     }
 
@@ -111,7 +111,7 @@ def segment_budget(chapter_budget_state: ReaderBudget, policy: BudgetPolicy) -> 
         ),
         "slice_max_subsegments": max(
             1,
-            int(policy.get("slice_max_subsegments", chapter_budget_state.get("slice_max_subsegments", 4))),
+            int(policy.get("slice_max_subsegments", chapter_budget_state.get("slice_max_subsegments", 8))),
         ),
         "work_units_remaining": 0,
     }

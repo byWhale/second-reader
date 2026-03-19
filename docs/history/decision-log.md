@@ -191,3 +191,24 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `AGENTS.md`
 - `reading-companion-frontend/AGENTS.md`
 - `reading-companion-frontend/src/styles/theme.css`
+
+## Entry 10
+**Decision / Inflection**: Move runtime subsegment selection from heuristic-first slicing to LLM-primary planning with deterministic validation and heuristic fallback.
+
+**Period**: Mid-March 2026.
+
+**Problem**: The reader's smallest runtime work unit directly shapes what the model can notice, question, and say. The earlier slicing path was useful as an engineering guardrail, but it still optimized mainly for length and density control instead of for the smallest self-contained local reading move.
+
+**Alternatives considered**: Keep the previous length/density-driven heuristic as the main selector, hard-code a richer rule engine for discourse boundaries, or add a more elaborate multi-model arbitration layer for only a few difficult sections.
+
+**Why this path won**: An LLM-primary planner better matches the product goal of a thoughtful co-reader because subsegment choice is fundamentally a semantic judgment, not only a sizing problem. Keeping deterministic validation plus the existing sentence-boundary heuristic as fallback preserved runtime safety without letting safety logic define the semantic target.
+
+**What changed in the system**: Multi-sentence sections now go through a planner prompt that proposes the fewest self-contained runtime units needed for one local nonfiction reading move at a time. The runtime validates full sentence coverage, ordering, reading-move labels, per-unit hard token caps, and the safety cap before materializing the plan. If any of those checks fail, the reader falls back to the older heuristic slicer. The default `slice_max_subsegments` cap was also widened and reframed as a safety guard rather than a semantic objective.
+
+**Why it matters later**: This is a reader-core design shift, not a routine tuning pass. Future contributors will otherwise see both the planner and the fallback code paths but miss why the project stopped treating heuristic chunking as the primary definition of the attention unit.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanism.md`
+- `reading-companion-backend/src/iterator_reader/reader.py`
+- `reading-companion-backend/src/prompts/templates.py`
+- `reading-companion-backend/src/iterator_reader/policy.py`

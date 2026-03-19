@@ -15,7 +15,8 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
   - Backend runtime code still often calls this unit a `segment`.
   - Public/UI language should treat this concept as `section`.
 - `subsegment`
-  - The runtime-only work unit created inside one selected section when the section is too long or too dense for a single pass.
+  - The runtime-only work unit created inside one selected section by the subsegment planner.
+  - The active planner is LLM-primary for normal multi-sentence sections, with a heuristic sentence-boundary slicer as fallback.
   - This is the smallest orchestration-level unit the reader actively feeds into the inner loop.
 - `excerpt` / `current_excerpt`
   - A live attention projection derived from the currently active text span.
@@ -32,10 +33,13 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
   - chapter
   - section
 - `continue` / resume behavior does not pick a new attention target globally. It skips chapters or sections already marked done and resumes at the next unfinished persisted section.
-- Once one section is selected, `run_reader_segment()` decides whether that section can be handled in one pass or should be split into runtime `subsegments`.
-- Dynamic subsegment slicing is local to the current section:
-  - short or low-density sections stay as one work unit
-  - long or dense sections are split by sentence boundaries into up to a few smaller work units
+- Once one section is selected, `run_reader_segment()` calls the subsegment planner.
+- Planner behavior is local to the current section:
+  - effectively single-sentence sections short-circuit and stay as one runtime unit
+  - normal multi-sentence sections go through an LLM planner that proposes the fewest self-contained reading units needed for one local nonfiction reading move at a time
+  - malformed, structurally invalid, over-budget, or planner-unavailable cases fall back to the heuristic sentence-boundary slicer
+- The planner preserves source order and full sentence coverage.
+- The heuristic fallback still uses sentence boundaries plus token/density heuristics, but those heuristics are now safety behavior, not the semantic target.
 - The public locus remains section-level even while the inner loop advances through runtime `subsegments`.
 
 ## Reader Loop
@@ -65,7 +69,11 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
 
 ## Prompt Assembly
 - The reader does not send only raw subsegment text to the model.
-- Each prompt is assembled around the current `subsegment.text` plus stable context:
+- The first model step inside one multi-sentence section is the subsegment planner prompt.
+  - It receives numbered sentence-like units in source order.
+  - It also receives `book_context`, `current_part_context`, the current section ref/summary, `user_intent`, and the output-language contract.
+  - It does not receive the full `memory_text` packet.
+- After planning, each reader-stage prompt is assembled around the current `subsegment.text` plus stable context:
   - `book_context`
     - book title
     - author
@@ -86,6 +94,10 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
   - output language contract
     - the shared language instructions that keep reactions and summaries in the configured output language
 - Stage-specific additions:
+  - `subsegment_plan`
+    - numbered sentence list
+    - section ref and summary
+    - planner-only JSON schema for sentence coverage and reading moves
   - `think`
     - current section summary and current subsegment text
   - `express`
@@ -145,6 +157,9 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
   - `section` is the persisted semantic unit
   - `subsegment` is the runtime work unit
   - `excerpt` is the projected live attention text
+- `slice_max_subsegments` is now a safety cap, not the primary semantic target for segmentation.
+  - The reader first asks the planner for the fewest self-contained units.
+  - The hard cap only rejects pathological plans and bounds the fallback slicer.
 - API and runtime payloads may still expose compatibility names such as `segment_ref`.
   - That does not change the product-language expectation that user-facing terminology should say `section`.
 - Prompt wording is allowed to evolve more frequently than this document.
@@ -178,6 +193,7 @@ The JSON block below is the machine-readable appendix used by the reading-mechan
     "reflect"
   ],
   "reader_prompt_nodes": [
+    "subsegment_plan",
     "think",
     "express",
     "reflect"
@@ -212,9 +228,12 @@ The JSON block below is the machine-readable appendix used by the reading-mechan
     "current_excerpt"
   ],
   "subsegment_slicing_defaults": {
+    "planner_mode": "llm_primary",
+    "fallback_mode": "heuristic_sentence_boundary",
+    "safety_cap_role": "absolute_cap",
     "slice_target_tokens": 420,
     "slice_max_tokens": 700,
-    "slice_max_subsegments": 4,
+    "slice_max_subsegments": 8,
     "density_trigger_gte": 3.2
   },
   "search_budget_defaults": {

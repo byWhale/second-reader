@@ -44,7 +44,7 @@ def test_default_budget_policy_exposes_token_and_slicing_controls():
     assert policy["token_budget_ratio"] == 1.5
     assert policy["slice_target_tokens"] == 420
     assert policy["slice_max_tokens"] == 700
-    assert policy["slice_max_subsegments"] == 4
+    assert policy["slice_max_subsegments"] == 8
 
 
 def test_default_book_analysis_policy_exposes_plan_execute_knobs():

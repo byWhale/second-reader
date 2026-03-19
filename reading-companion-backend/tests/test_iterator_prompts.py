@@ -15,6 +15,8 @@ from src.prompts.templates import (
     READER_REFLECT_PROMPT,
     READER_THINK_PROMPT,
     READER_REFLECT_SYSTEM,
+    READER_SUBSEGMENT_PLAN_PROMPT,
+    READER_SUBSEGMENT_PLAN_SYSTEM,
     SEMANTIC_SEGMENTATION_SYSTEM,
 )
 
@@ -95,10 +97,23 @@ def test_reader_prompts_require_self_contained_clause_quotes():
     assert "不要重新创造更短的残句引用" in READER_CHAPTER_REFLECT_PROMPT
 
 
+def test_reader_subsegment_planner_prompt_prefers_minimal_self_contained_units():
+    """Subsegment planner should ask for the fewest self-contained nonfiction units."""
+    assert "最少但自洽的阅读单元" in READER_SUBSEGMENT_PLAN_SYSTEM
+    assert "面向 nonfiction 深读" in READER_SUBSEGMENT_PLAN_SYSTEM
+    assert "单句如果已经自洽，可以单独成为一个 unit" in READER_SUBSEGMENT_PLAN_SYSTEM
+    assert "不要把悬空从句" in READER_SUBSEGMENT_PLAN_SYSTEM
+    assert "请选择“能完成局部深读所需的最少 unit 数量”" in READER_SUBSEGMENT_PLAN_PROMPT
+    assert "保持完整覆盖和原顺序" in READER_SUBSEGMENT_PLAN_PROMPT
+    assert '"sentence_start": 1' in READER_SUBSEGMENT_PLAN_PROMPT
+    assert '"reading_move": "claim"' in READER_SUBSEGMENT_PLAN_PROMPT
+
+
 def test_language_contract_preserves_quotes_and_search_hits():
     """Core generation prompts should include the language contract for quote/search handling."""
     prompts = [
         READER_THINK_PROMPT,
+        READER_SUBSEGMENT_PLAN_PROMPT,
         READER_EXPRESS_PROMPT,
         READER_CURIOSITY_FUSE_PROMPT,
         READER_REFLECT_PROMPT,
