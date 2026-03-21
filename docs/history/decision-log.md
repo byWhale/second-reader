@@ -317,3 +317,24 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/AGENTS.md`
 - `reading-companion-backend/main.py`
 - `reading-companion-backend/src/iterator_reader/`
+
+## Entry 16
+**Decision / Inflection**: Make `book_document.json` the canonical parsed-book substrate and treat `structure.json` as a current-mechanism derived artifact.
+
+**Period**: Late March 2026, immediately after the first shared runtime/mechanism scaffold landed.
+
+**Problem**: The first runtime scaffold still depended on `iterator_reader.models`, which meant the backend's supposed shared layer was still inheriting the current mechanism's ontology. That would have made future mechanisms compare against `section` / `subsegment` assumptions even when their real reading logic wanted different internal units.
+
+**Alternatives considered**: Keep `BookStructure` as the de facto shared parsed-book model, move every future mechanism onto the same `structure.json` assumptions, or delay the shared substrate split until a second mechanism was already live.
+
+**Why this path won**: Separating the canonical book substrate from current-mechanism traversal state creates a real narrow waist. The backend can now share chapter/paragraph/locator truth, mechanism-neutral runtime contracts, and normalized comparison outputs without pretending that all reader mechanisms share one internal planning shape.
+
+**What changed in the system**: The backend now has `src/reading_core/` for canonical book substrate, runtime contracts, and normalized cross-mechanism output types. Parse flow writes `public/book_document.json` first, then `iterator_v1` derives `public/structure.json` from that substrate. Shared runtime, library, and search modules now import neutral types from `reading_core` instead of from `iterator_reader.models`.
+
+**Why it matters later**: This is the design boundary that should let future readers differ radically in internal ontology while still sharing the same runtime shell and evaluation seam. Later contributors need to know that `structure.json` is not the universal parsed-book truth anymore, even if the current public surfaces still consult it for iterator-shaped section views.
+
+**Primary evidence**:
+- `reading-companion-backend/src/reading_core/`
+- `reading-companion-backend/src/reading_runtime/`
+- `reading-companion-backend/src/iterator_reader/parse.py`
+- `docs/backend-state-aggregation.md`

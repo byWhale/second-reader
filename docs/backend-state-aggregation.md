@@ -12,6 +12,14 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - They do not refer to the older `book_analysis` capability, even though legacy files and helper names still exist in the repository.
 
 ## Source Artifacts
+- `public/book_document.json`
+  - Canonical parsed-book substrate shared across backend reading mechanisms.
+  - Contains chapter order, paragraph records, and locators.
+  - Current public API surfaces do not expose it directly, but runtime and future eval tooling can rely on it as the mechanism-neutral text source.
+- `public/structure.json`
+  - Current `iterator_v1`-owned derived traversal artifact.
+  - Carries chapter section trees, `segment_ref`, and iterator-specific traversal metadata.
+  - Public aggregation still uses it where section-level backfill or iterator-era chapter structure is required.
 - `public/book_manifest.json`
   - Book identity, language metadata, chapter tree, source asset pointers, and chapter result file hints.
   - Legacy flat manifests are still readable through fallback resolution, but public aggregation prefers the canonical `public/` location.
@@ -43,7 +51,7 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `GET /api/books/{book_id}/analysis-state`
   - Uses `book_manifest`, `run_state`, `parse_state`, `activity.jsonl`, and chapter result files together.
   - Builds progress metrics, chapter tree statuses, the live `current_reading_activity` snapshot, `resume_available`, `last_checkpoint_at`, recent completed chapters, recent reactions, and the `current_state_panel`.
-  - When older runtime snapshots contain a shortened `current_reading_activity.current_excerpt`, catalog backfills the full normalized segment text from `structure.json` by matching `segment_ref`.
+  - When older runtime snapshots contain a shortened `current_reading_activity.current_excerpt`, catalog backfills the full normalized section text from the current default mechanism's `structure.json` by matching `segment_ref`.
 - `GET /api/books/{book_id}/activity`
   - Reads `activity.jsonl` and normalizes each event into the public event shape.
   - The routed frontend overview now consumes the `stream=mindstream` view; `stream=system` remains available for diagnostics.
@@ -65,6 +73,7 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `reading-companion-backend/src/library/catalog.py`
   - Owns artifact discovery, legacy-path fallback, view aggregation, and most product-facing payload shaping.
   - Converts raw manifests, runtime files, activity streams, and chapter artifacts into bookshelf, book detail, chapter detail, chapter outline, and analysis-state views.
+  - May consume `structure.json` for iterator-era section backfill, but should not treat that artifact as the universal parsed-book substrate.
 - `reading-companion-backend/src/api/app.py`
   - Owns endpoint-level response shaping and public-ID resolution.
   - Resolves public integer ids back to internal runtime ids, calls catalog/jobs/marks helpers, and normalizes returned marks into the public API field names.
@@ -93,6 +102,9 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - Legacy file layout support
   - Storage helpers still resolve legacy flat files when older output directories have not been migrated.
   - That fallback is an artifact-compatibility concern only; it must not leak legacy paths or legacy naming back into the public contract.
+- Shared substrate vs mechanism artifacts
+  - `book_document.json` is the canonical parsed-book substrate for runtime and future mechanism work.
+  - `structure.json` remains a current-mechanism artifact that aggregation may still consult for `iterator_v1`-shaped section views and compatibility backfill.
 
 ## Practical Reading Order
 - Read `docs/backend-sequential-lifecycle.md` first when the question is "how does the job behave over time?"

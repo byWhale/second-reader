@@ -15,6 +15,7 @@ from pathlib import Path
 
 from src.iterator_reader.language import language_name
 from src.iterator_reader.storage import chapter_reference, structure_file, structure_markdown_file
+from src.reading_core.runtime_contracts import ParseRequest, ReadRequest
 from src.reading_runtime import (
     available_mechanism_keys,
     default_mechanism_key,
@@ -77,16 +78,19 @@ def cmd_parse(args: argparse.Namespace) -> int:
     book_path = _require_book_path(args.book_file)
     print(f"正在解析书籍结构: {book_path}")
     try:
-        structure, output_dir = parse_book(
-            book_path,
-            language_mode=args.language,
-            continue_mode=args.continue_mode,
-            mechanism=args.mechanism,
+        result = parse_book(
+            ParseRequest(
+                book_path=book_path,
+                language_mode=args.language,
+                continue_mode=args.continue_mode,
+                mechanism_key=args.mechanism,
+            )
         )
     except ValueError as exc:
         print(f"Error: {exc}")
         return 1
-    _print_structure_overview(book_path, structure, output_dir)
+    structure = dict(result.mechanism_artifact or {})
+    _print_structure_overview(book_path, structure, result.output_dir)
     return 0
 
 
@@ -112,22 +116,28 @@ def cmd_read(args: argparse.Namespace) -> int:
             "max_queries_per_claim": args.analysis_max_queries_per_claim,
             "reuse_existing_notes": bool(args.analysis_reuse_existing_notes),
         }
-        structure, output_dir, created = read_book(
-            book_path,
-            chapter_number=args.chapter,
-            continue_mode=args.continue_mode,
-            user_intent=args.intent,
-            language_mode=args.language,
-            read_mode=args.mode,
-            skill_profile=args.skill_profile,
-            budget_policy=budget_policy,
-            analysis_policy=analysis_policy,
-            mechanism=args.mechanism,
+        result = read_book(
+            ReadRequest(
+                book_path=book_path,
+                chapter_number=args.chapter,
+                continue_mode=args.continue_mode,
+                user_intent=args.intent,
+                language_mode=args.language,
+                task_mode=args.mode,
+                mechanism_key=args.mechanism,
+                mechanism_config={
+                    "skill_profile": args.skill_profile,
+                    "budget_policy": budget_policy,
+                    "analysis_policy": analysis_policy,
+                },
+            )
         )
     except ValueError as exc:
         print(f"Error: {exc}")
         return 1
-    if created:
+    structure = dict(result.mechanism_artifact or {})
+    output_dir = result.output_dir
+    if result.created:
         print("")
         print(f"未发现已有结构，已自动生成: {structure_file(output_dir)}")
     print("")

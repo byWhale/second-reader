@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict
 
+from src.reading_core.normalized_outputs import CurrentReadingPhase, ReactionType, SearchHit, ThoughtFamily
+from src.reading_core.runtime_contracts import CurrentReadingProblemCode, JobKind, JobRecord, JobStatus, MarkType, UserMark, UserMarksState
+
 
 ChapterStatus = Literal["pending", "in_progress", "done"]
 ReadMode = Literal["sequential", "book_analysis"]
 ReaderDecision = Literal["pass", "revise", "skip"]
-ReactionType = Literal["highlight", "association", "curious", "discern", "retrospect", "silent"]
 SkillProfileName = Literal["balanced", "analytical", "curious", "quiet"]
 ClaimType = Literal["main", "support", "assumption", "counter"]
 EvidenceStatus = Literal["covered", "gap", "disputed"]
@@ -28,9 +30,6 @@ SegmentStatus = Literal["pending", "done", "skipped"]
 QualityStatus = Literal["strong", "acceptable", "weak", "skipped"]
 RunStage = Literal["ready", "parsing_structure", "deep_reading", "completed", "paused", "error"]
 MatchMode = Literal["exact", "normalized", "segment_fallback"]
-MarkType = Literal["resonance", "blindspot", "bookmark"]
-JobStatus = Literal["queued", "parsing_structure", "ready", "deep_reading", "chapter_note_generation", "paused", "completed", "error"]
-JobKind = Literal["parse", "read"]
 TextRole = Literal["chapter_heading", "section_heading", "body", "auxiliary"]
 ChapterPrimaryRole = Literal["front_matter", "body", "back_matter"]
 ChapterRoleTag = Literal[
@@ -53,16 +52,6 @@ SalienceKind = Literal["concept", "character", "institution", "place", "motif"]
 SalienceStatus = Literal["emerging", "active", "stable", "contested", "resolved"]
 PromptBudgetTier = Literal["tight", "normal", "ample"]
 ReaderPromptNode = Literal["think", "express", "reflect"]
-CurrentReadingPhase = Literal[
-    "reading",
-    "thinking",
-    "searching",
-    "fusing",
-    "reflecting",
-    "waiting",
-    "preparing",
-]
-ThoughtFamily = Literal["highlight", "association", "curious", "discern", "retrospect"]
 SubsegmentStrategy = Literal["llm_primary", "heuristic_only"]
 SubsegmentReadingMove = Literal[
     "definition",
@@ -73,15 +62,6 @@ SubsegmentReadingMove = Literal[
     "callback",
     "bridge",
     "conclusion",
-]
-CurrentReadingProblemCode = Literal[
-    "llm_timeout",
-    "llm_quota",
-    "llm_auth",
-    "search_timeout",
-    "search_quota",
-    "search_auth",
-    "network_blocked",
 ]
 
 
@@ -466,15 +446,6 @@ class ThoughtPayload(TypedDict):
     curiosity_potential: int
 
 
-class SearchHit(TypedDict):
-    """Normalized Tavily hit used by the reader."""
-
-    title: str
-    url: str
-    snippet: str
-    score: float | None
-
-
 class ReactionPayload(TypedDict, total=False):
     """One reading reaction produced by Express."""
 
@@ -732,43 +703,3 @@ class ReaderState(TypedDict):
     subsegment_strategy_override: SubsegmentStrategy | None
     subsegment_plan_diagnostics: SubsegmentPlanDiagnostics
 
-
-class UserMark(TypedDict):
-    """Persisted user mark attached to one frontend reaction."""
-
-    reaction_id: str
-    book_id: str
-    book_title: str
-    chapter_id: int
-    chapter_ref: str
-    segment_ref: str
-    reaction_type: ReactionType
-    mark_type: MarkType
-    reaction_excerpt: str
-    anchor_quote: str
-    created_at: str
-    updated_at: str
-
-
-class UserMarksState(TypedDict):
-    """Top-level user mark store."""
-
-    updated_at: str
-    marks: dict[str, UserMark]
-
-
-class JobRecord(TypedDict):
-    """Background sequential-read job state."""
-
-    job_id: str
-    status: JobStatus
-    job_kind: JobKind
-    upload_path: str
-    book_id: str | None
-    language: str
-    intent: str | None
-    resume_count: int
-    pid: int | None
-    created_at: str
-    updated_at: str
-    error: str | None

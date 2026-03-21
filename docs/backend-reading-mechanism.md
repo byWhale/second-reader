@@ -1,19 +1,27 @@
 # Backend Reading Mechanism
 
-Purpose: explain how the sequential reader selects its working unit, assembles prompt context, and projects live attention state.
+Purpose: explain how the current default sequential reader selects its working unit, assembles prompt context, and projects live attention state.
 Use when: changing reader-unit selection, prompt assembly, memory packing, search expansion, or live `current_reading_activity` semantics.
 Not for: upload/start/resume lifecycle rules, public schema authority, or endpoint-level aggregation responsibilities.
 Update when: section/subsegment boundaries, reader-loop stages, prompt inputs, memory-packet composition, or attention projection rules change.
 
-Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time. Use `docs/backend-state-aggregation.md` for how runtime artifacts become public payloads. Use this file when the question is how one selected semantic section is actually processed inside the reader.
+Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time. Use `docs/backend-state-aggregation.md` for how runtime artifacts become public payloads. Use this file when the question is how one selected semantic section is actually processed inside the current `iterator_v1` reader.
 
 ## Terminology Guard
 - `chapter`
   - One source-ordered chapter or major part from the parsed book structure.
+- `book document`
+  - The canonical parsed-book substrate persisted at `public/book_document.json`.
+  - It contains chapter order, paragraph records, and locators only.
+  - It is shared across mechanisms and does not define `section` or `subsegment`.
 - `section`
   - The persisted semantic unit created before deep reading begins.
   - Backend runtime code still often calls this unit a `segment`.
   - Public/UI language should treat this concept as `section`.
+- `structure`
+  - The current `iterator_v1`-owned derived artifact persisted at `public/structure.json`.
+  - It contains `section` records and other iterator-shaped traversal state.
+  - It is not the backend's mechanism-neutral parsed-book substrate.
 - `body group`
   - One parse-only contiguous body-text block formed before semantic section segmentation.
   - It is separated by detected `section_heading` or `auxiliary` boundaries.
@@ -30,8 +38,8 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
   - It is a reaction anchor, not a reading unit.
 
 ## Selection Pipeline
-- The parser first preserves the source book order as chapters.
-- Semantic segmentation then groups chapter paragraphs into persisted sections before the main read run starts.
+- Canonical parse first preserves the source book order as `book_document` chapters plus paragraph records and locators.
+- `iterator_v1` then derives semantic sections from that canonical substrate before the main read run starts.
 - The outer iterator reads in source order:
   - book
   - chapter
@@ -48,9 +56,11 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
 
 ## Parse-Side Section Formation
 - Raw source chapters are extracted first from the input book format.
-- Each chapter is then normalized into paragraph-sized text blocks called `paragraph records`.
+- The canonical parse writes `public/book_document.json` before any iterator-specific section derivation happens.
+- Each canonical chapter is normalized into paragraph-sized text blocks called `paragraph records`.
   - EPUB prefers XHTML block extraction so the records can retain href, CFI, block-tag, and paragraph-index metadata.
   - When structured extraction is unavailable, the parser falls back to plain-text paragraph splitting.
+- `iterator_v1` derives its parse-time `section` contexts from that canonical chapter/paragraph substrate rather than treating `structure.json` as the shared truth.
 - Parse-time classification labels each paragraph record as one of:
   - `chapter_heading`
   - `section_heading`
@@ -73,6 +83,7 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
   - Undersized adjacent sections may be merged back together.
 - Persisted `section` records are the output of this parse-side path.
   - They carry stable text spans, paragraph ranges, locators, and `segment_ref`.
+  - They live in the iterator-owned `structure.json` artifact, not in `book_document.json`.
   - Runtime `subsegment` planning only begins after the outer iterator selects one persisted section for live reading.
 
 ### Why This Layer Exists

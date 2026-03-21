@@ -20,10 +20,11 @@ from src.iterator_reader.storage import (
     save_structure,
     structure_file,
 )
+from src.reading_core.storage import book_document_file
 
 
 def test_build_structure_persists_semantic_segments(tmp_path, monkeypatch):
-    """build_structure should write structure.json with semantic segments."""
+    """build_structure should write structure.json plus the canonical book_document.json."""
     book_path = tmp_path / "demo.epub"
     book_path.write_text("placeholder", encoding="utf-8")
 
@@ -79,6 +80,12 @@ def test_build_structure_persists_semantic_segments(tmp_path, monkeypatch):
     assert saved["chapters"][0]["segments"][0]["paragraph_locators"][0]["start_cfi"] is None
     assert "Alpha opens the chapter." == saved["chapters"][0]["segments"][0]["paragraph_locators"][0]["text"]
     assert (output_dir / "_assets" / "source.epub").exists()
+    book_document = json.loads(book_document_file(output_dir).read_text(encoding="utf-8"))
+    assert book_document["metadata"]["book"] == "Demo Book"
+    assert book_document["metadata"]["author"] == "Tester"
+    assert book_document["chapters"][0]["title"] == "Chapter One"
+    assert book_document["chapters"][0]["paragraphs"][0]["text"] == "Alpha opens the chapter."
+    assert "segments" not in book_document["chapters"][0]
 
     structure_md = (output_dir / "public" / "structure.md").read_text(encoding="utf-8")
     assert "# Structure Overview: Demo Book" in structure_md
@@ -482,6 +489,63 @@ def test_ensure_structure_for_book_rehydrates_segments_after_outline_only_parse(
     assert resolved_output_dir == output_dir
     assert captured_calls == [{"language_mode": "auto", "continue_mode": True, "include_segments": True}]
     assert structure["chapters"][0]["segments"][0]["id"] == "1.1"
+
+
+def test_ensure_structure_for_book_backfills_missing_book_document_for_legacy_structure(tmp_path, monkeypatch):
+    """Legacy output dirs with only structure.json should gain book_document.json on load."""
+
+    book_path = tmp_path / "demo.epub"
+    book_path.write_text("placeholder", encoding="utf-8")
+    output_dir = tmp_path / "output" / "demo-book"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    legacy_structure = {
+        "book": "Demo Book",
+        "author": "Tester",
+        "book_language": "en",
+        "output_language": "en",
+        "source_file": str(book_path),
+        "output_dir": str(output_dir),
+        "chapters": [
+            {
+                "id": 1,
+                "title": "Chapter 1",
+                "chapter_number": 1,
+                "status": "pending",
+                "level": 1,
+                "segments": [],
+            }
+        ],
+    }
+    save_structure(structure_file(output_dir), legacy_structure)
+
+    monkeypatch.setattr(parse_module, "extract_book_metadata", lambda _: ("Demo Book", "Tester"))
+    monkeypatch.setattr(
+        parse_module,
+        "parse_ebook",
+        lambda _: [
+            {
+                "title": "Chapter 1",
+                "content": "<p>Alpha opens the chapter.</p><p>Beta extends the chapter argument.</p>",
+                "level": 1,
+            }
+        ],
+    )
+    monkeypatch.setattr(parse_module, "detect_book_language", lambda *_args, **_kwargs: "en")
+    monkeypatch.setattr(parse_module, "resolve_output_dir", lambda *_args, **_kwargs: output_dir)
+    monkeypatch.setattr(parse_module, "ensure_source_asset", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(parse_module, "_extract_epub_cover", lambda *_args, **_kwargs: None)
+
+    structure, resolved_output_dir, created = parse_module.ensure_structure_for_book(
+        book_path,
+        continue_mode=False,
+        require_segments=False,
+    )
+
+    assert created is False
+    assert resolved_output_dir == output_dir
+    assert structure["chapters"][0]["title"] == "Chapter 1"
+    persisted_book_document = json.loads(book_document_file(output_dir).read_text(encoding="utf-8"))
+    assert persisted_book_document["chapters"][0]["paragraphs"][0]["text"] == "Alpha opens the chapter."
 
 
 def test_write_parse_progress_can_skip_run_state_updates(tmp_path):

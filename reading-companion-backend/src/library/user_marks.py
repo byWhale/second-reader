@@ -7,7 +7,7 @@ from pathlib import Path
 from .pagination import paginate_items
 from .storage import load_json, save_json, timestamp, user_marks_file
 from src.api.contract import MARK_TYPES, to_internal_mark_type
-from src.iterator_reader.models import UserMark, UserMarksState
+from src.reading_core.runtime_contracts import UserMark, UserMarksState
 from src.iterator_reader.storage import existing_book_manifest_file, existing_chapter_result_file, resolve_output_relative_file
 
 

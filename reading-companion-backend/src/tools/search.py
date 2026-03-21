@@ -6,7 +6,7 @@ from langchain_core.tools import tool
 from tavily import TavilyClient
 
 from src.config import get_tavily_api_key
-from src.iterator_reader.models import CurrentReadingProblemCode
+from src.reading_core.runtime_contracts import CurrentReadingProblemCode
 
 
 class TavilySearchResult(TypedDict):

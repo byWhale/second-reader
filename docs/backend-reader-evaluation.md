@@ -127,6 +127,9 @@ Use `docs/backend-reading-mechanism.md` for how the current reader works. Use th
   - `method`
   - dataset version
   - comparison target
+  - mechanism key
+  - config fingerprint
+  - normalized attention trail, reactions, chapter outputs, and memory summaries when the runtime exposes them
 
 ## Evaluation Layers
 - Evaluation layers are mechanism-agnostic lenses for designing rubrics and benchmark plans.
@@ -233,6 +236,7 @@ Use `docs/backend-reading-mechanism.md` for how the current reader works. Use th
 - Temporary experiment logs belong in `reading-companion-backend/docs/research/` only when they are not yet stable reports.
 - Stable docs should explain the constitution, the comparison frame, and the report boundary.
 - Benchmarks and reports should carry the living case sets, rubrics, thresholds, run settings, sample sizes, and per-run conclusions.
+- Cross-mechanism comparison should prefer the shared normalized eval bundle emitted from the runtime boundary over direct dependence on mechanism-private runtime files.
 
 ### Expectations For Evaluation Reports
 - Per-run or per-change reports should state:

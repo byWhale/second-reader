@@ -37,22 +37,25 @@ Use `docs/backend-reading-mechanism.md` when the question is how a selected sect
 1. Upload accepts an EPUB and writes a provisional manifest plus an initial run-state shell so the book exists immediately.
 2. A background job record is created in `state/jobs/` with `job_kind=parse` or `job_kind=read`.
 3. The job enters `queued`, then begins structure preparation under `parsing_structure`.
-4. Deferred uploads stop at `ready`, which means chapter structure exists but deep reading has not started.
-5. Immediate uploads or `analysis/start` move from preparation into semantic segmentation and then chapter-by-chapter deep reading on the same long-task surface.
-6. While the reader is active, runtime artifacts update chapter pointers, segment pointers, activity events, and checkpoint metadata.
-7. If the worker stops cleanly, deferred parse work finishes at `ready` and full read work finishes at `completed`. If runtime guards intervene, the run becomes `paused`. If recovery is no longer safe, the run becomes `error` or is restarted from scratch.
-8. Terminal runs are mirrored into `_history/runs/<job_id>/` so the latest live artifacts and run history stay separate.
+4. Parse preparation now has two layers:
+  - canonical parse writes `public/book_document.json` as the mechanism-neutral book substrate
+  - the current default mechanism (`iterator_v1`) derives `public/structure.json` from that substrate for chapter/section traversal
+5. Deferred uploads stop at `ready`, which means the canonical book substrate and the current default outline structure exist but deep reading has not started.
+6. Immediate uploads or `analysis/start` move from preparation into semantic segmentation and then chapter-by-chapter deep reading on the same long-task surface.
+7. While the reader is active, runtime artifacts update chapter pointers, segment pointers, activity events, and checkpoint metadata.
+8. If the worker stops cleanly, deferred parse work finishes at `ready` and full read work finishes at `completed`. If runtime guards intervene, the run becomes `paused`. If recovery is no longer safe, the run becomes `error` or is restarted from scratch.
+9. Terminal runs are mirrored into `_history/runs/<job_id>/` so the latest live artifacts and run history stay separate.
 
 ## Job Kinds And Status Progression
 ### `parse` jobs
 - Used by deferred upload.
 - Primary path: `queued -> parsing_structure -> ready`.
-- Goal: produce chapter structure, a resumable parse checkpoint, and a book overview that can later be started explicitly.
+- Goal: produce `public/book_document.json`, derive the current default mechanism's `public/structure.json`, persist a resumable parse checkpoint, and leave the book ready to start explicitly later.
 
 ### `read` jobs
 - Used by immediate upload, `analysis/start`, and `analysis/resume`.
 - Primary path: `queued -> parsing_structure -> deep_reading -> completed`.
-- The `parsing_structure` phase still appears here because structure preparation and semantic segmentation happen before the reader settles into steady-state deep reading.
+- The `parsing_structure` phase still appears here because canonical parse plus current-mechanism derivation happen before the reader settles into steady-state deep reading.
 
 ### Status semantics
 - `queued`

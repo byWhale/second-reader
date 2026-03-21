@@ -18,7 +18,9 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - FastAPI app in `src/api/app.py`
 - public contract helpers in `src/api/contract.py`
 - book/catalog shaping in `src/library/catalog.py`
-- shared reading runtime and mechanism-hosting code under `src/`
+- canonical shared book substrate and cross-mechanism contracts under `src/reading_core/`
+- shared reading runtime and mechanism-hosting code under `src/reading_runtime/`
+- built-in mechanism adapters under `src/reading_mechanisms/`
 - current default reader implementation under `src/iterator_reader/`
 - runtime artifacts stored under:
   - `output/`
@@ -53,6 +55,9 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - Backend application entrypoint: `reading-companion-backend/src/api/app.py`
 - Backend read CLI/runtime entrypoint: `reading-companion-backend/main.py`
 - Backend contract and payload shaping: `reading-companion-backend/src/api/contract.py`, `reading-companion-backend/src/api/schemas.py`, `reading-companion-backend/src/library/catalog.py`
+- Backend canonical book substrate and shared contracts: `reading-companion-backend/src/reading_core/`
+- Backend runtime shell and mechanism registry: `reading-companion-backend/src/reading_runtime/`
+- Backend built-in mechanism adapters: `reading-companion-backend/src/reading_mechanisms/`
 - Backend current default reader implementation: `reading-companion-backend/src/iterator_reader/`
 - Frontend route entrypoint: `reading-companion-frontend/src/app/routes.tsx`
 - Frontend API adapter entrypoint: `reading-companion-frontend/src/app/lib/api.ts`

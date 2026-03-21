@@ -2,47 +2,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Protocol, runtime_checkable
 
-from src.iterator_reader.models import (
-    BookAnalysisPolicy,
-    BookStructure,
-    BudgetPolicy,
-    ReadMode,
-    SkillProfileName,
-)
+from src.reading_core.runtime_contracts import MechanismInfo, ParseRequest, ParseResult, ReadRequest, ReadResult
 
 
 @runtime_checkable
 class ReadingMechanism(Protocol):
     """Coarse mechanism interface for pluggable backend reading engines."""
 
-    key: str
-    label: str
+    info: MechanismInfo
 
-    def parse_book(
-        self,
-        book_path: Path,
-        *,
-        language_mode: str = "auto",
-        continue_mode: bool = False,
-    ) -> tuple[BookStructure, Path]:
-        """Build or resume the mechanism's parse-side book structure."""
+    def parse_book(self, request: ParseRequest) -> ParseResult:
+        """Build or resume the mechanism's parse-side state for one book."""
 
-    def read_book(
-        self,
-        book_path: Path,
-        *,
-        chapter_number: int | None = None,
-        continue_mode: bool = False,
-        user_intent: str | None = None,
-        language_mode: str = "auto",
-        read_mode: ReadMode = "sequential",
-        skill_profile: SkillProfileName = "balanced",
-        budget_policy: BudgetPolicy | None = None,
-        analysis_policy: BookAnalysisPolicy | None = None,
-    ) -> tuple[BookStructure, Path, bool]:
+    def read_book(self, request: ReadRequest) -> ReadResult:
         """Run one mechanism's reading path over a book."""
 
 
@@ -55,7 +29,7 @@ def register_mechanism(mechanism: ReadingMechanism, *, default: bool = False) ->
 
     global _DEFAULT_MECHANISM_KEY
 
-    key = str(getattr(mechanism, "key", "") or "").strip()
+    key = str(mechanism.info.key or "").strip()
     if not key:
         raise ValueError("Reading mechanisms must define a non-empty key.")
 

@@ -19,6 +19,8 @@ from src.prompts.templates import (
     SEMANTIC_SEGMENTATION_PROMPT,
     SEMANTIC_SEGMENTATION_SYSTEM,
 )
+from src.reading_core.book_document import BookDocument, BookMetadata
+from src.reading_core.storage import book_document_file, existing_book_document_file, load_book_document, save_book_document
 
 from .language import detect_book_language, language_name, resolve_output_language
 from .llm_utils import invoke_json
@@ -558,6 +560,135 @@ def _chapter_contexts(raw_chapters: list[dict[str, object]], *, output_language:
     return contexts
 
 
+def _build_book_document(
+    raw_chapters: list[dict[str, object]],
+    *,
+    title: str,
+    author: str,
+    book_language: str,
+    output_language: str,
+    book_path: Path,
+) -> BookDocument:
+    """Build the canonical parsed-book substrate before any mechanism derivation."""
+
+    metadata: BookMetadata = {
+        "book": title,
+        "author": author,
+        "book_language": book_language,
+        "output_language": output_language,
+        "source_file": str(book_path),
+    }
+    chapters: list[dict[str, object]] = []
+    for chapter_index, raw_chapter in enumerate(raw_chapters, start=1):
+        paragraph_records = _classify_paragraph_records(_paragraph_records(raw_chapter))
+        chapter_text = "\n\n".join(
+            str(record.get("text", ""))
+            for record in paragraph_records
+            if str(record.get("text_role", "body")) != "auxiliary"
+        )
+        if not chapter_text.strip():
+            continue
+
+        chapter_title = str(raw_chapter.get("title", f"Chapter {chapter_index}") or f"Chapter {chapter_index}")
+        if _should_skip_chapter(chapter_title, chapter_text):
+            print(f"[skip] {chapter_title}", flush=True)
+            continue
+
+        chapter_payload: dict[str, object] = {
+            "id": chapter_index,
+            "title": chapter_title,
+            "chapter_number": infer_chapter_number(chapter_title),
+            "level": int(raw_chapter.get("level", 1) or 1),
+            "paragraphs": paragraph_records,
+        }
+        chapter_heading = _chapter_heading_block(paragraph_records)
+        if chapter_heading:
+            chapter_payload["chapter_heading"] = chapter_heading
+        item_id = str(raw_chapter.get("item_id", "") or "")
+        href = str(raw_chapter.get("href", "") or "")
+        spine_index = raw_chapter.get("spine_index")
+        if item_id:
+            chapter_payload["item_id"] = item_id
+        if href:
+            chapter_payload["href"] = href
+        if spine_index is not None:
+            chapter_payload["spine_index"] = int(spine_index)
+        chapters.append(chapter_payload)
+
+    return {
+        "metadata": metadata,
+        "chapters": chapters,
+    }
+
+
+def _chapter_contexts_from_book_document(
+    document: BookDocument,
+    *,
+    output_language: str,
+) -> list[dict[str, object]]:
+    """Derive iterator segmentation contexts from the canonical book substrate."""
+
+    contexts: list[dict[str, object]] = []
+    for chapter in document.get("chapters", []):
+        if not isinstance(chapter, dict):
+            continue
+        paragraph_records = [
+            dict(record)
+            for record in chapter.get("paragraphs", [])
+            if isinstance(record, dict) and str(record.get("text", "")).strip()
+        ]
+        if not paragraph_records:
+            continue
+
+        context = {
+            "id": int(chapter.get("id", 0) or 0),
+            "title": str(chapter.get("title", "")),
+            "chapter_number": chapter.get("chapter_number"),
+            "level": int(chapter.get("level", 1) or 1),
+            "paragraph_records": paragraph_records,
+            "chapter_heading": dict(chapter.get("chapter_heading", {})) if isinstance(chapter.get("chapter_heading"), dict) else _chapter_heading_block(paragraph_records),
+            "body_groups": _body_record_groups(paragraph_records),
+            "item_id": str(chapter.get("item_id", "") or ""),
+            "href": str(chapter.get("href", "") or ""),
+            "spine_index": int(chapter.get("spine_index", 0) or 0) if chapter.get("spine_index") is not None else None,
+            "output_language": output_language,
+        }
+        primary_role, role_tags, role_confidence = _infer_chapter_role(context)
+        context["primary_role"] = primary_role
+        context["role_tags"] = role_tags
+        context["role_confidence"] = role_confidence
+        contexts.append(context)
+    return contexts
+
+
+def _load_or_build_book_document(
+    book_path: Path,
+    *,
+    output_dir: Path,
+    title: str,
+    author: str,
+    book_language: str,
+    output_language: str,
+    raw_chapters: list[dict[str, object]] | None = None,
+) -> BookDocument:
+    """Load the canonical parsed-book substrate or rebuild it from source."""
+
+    document_path = existing_book_document_file(output_dir)
+    if document_path.exists():
+        return load_book_document(document_path)
+
+    canonical = _build_book_document(
+        raw_chapters if raw_chapters is not None else parse_ebook(str(book_path)),
+        title=title,
+        author=author,
+        book_language=book_language,
+        output_language=output_language,
+        book_path=book_path,
+    )
+    save_book_document(book_document_file(output_dir), canonical)
+    return canonical
+
+
 def _infer_chapter_role(
     context: dict[str, object],
 ) -> tuple[ChapterPrimaryRole, list[ChapterRoleTag], RoleConfidence]:
@@ -666,9 +797,27 @@ def _chapter_stub_from_context(output_dir: Path, context: dict[str, object], *, 
 
 
 def chapter_contexts_for_book(book_path: Path, *, output_language: str) -> list[dict[str, object]]:
-    """Rebuild semantic-segmentation contexts for one source book."""
+    """Rebuild iterator segmentation contexts from the canonical book substrate."""
+
+    title, author = extract_book_metadata(book_path)
     raw_chapters = parse_ebook(str(book_path))
-    return _chapter_contexts(raw_chapters, output_language=output_language)
+    sample_text = "\n".join(extract_plain_text(ch.get("content", ""))[:300] for ch in raw_chapters[:3])
+    book_language = detect_book_language(book_path, sample_text=sample_text)
+    output_dir = resolve_output_dir(book_path, title, book_language, output_language)
+    ensure_output_dir(output_dir)
+    book_document = _load_or_build_book_document(
+        book_path,
+        output_dir=output_dir,
+        title=title,
+        author=author,
+        book_language=book_language,
+        output_language=output_language,
+        raw_chapters=raw_chapters,
+    )
+    return _chapter_contexts_from_book_document(
+        book_document,
+        output_language=str(book_document.get("metadata", {}).get("output_language", output_language) or output_language),
+    )
 
 
 def segment_context_into_chapter(
@@ -1413,7 +1562,16 @@ def build_structure(
         f"共检测到 {len(raw_chapters)} 个原始章节单元，开始{'语义切分' if include_segments else '提取原书目录'}...",
         flush=True,
     )
-    contexts = _chapter_contexts(raw_chapters, output_language=output_language)
+    book_document = _load_or_build_book_document(
+        book_path,
+        output_dir=output_dir,
+        title=title,
+        author=author,
+        book_language=book_language,
+        output_language=output_language,
+        raw_chapters=raw_chapters,
+    )
+    contexts = _chapter_contexts_from_book_document(book_document, output_language=output_language)
     total_chapters = len(contexts)
 
     existing_structure: BookStructure | None = None
@@ -1449,6 +1607,7 @@ def build_structure(
         "output_dir": str(output_dir),
         "chapters": chapters,
     }
+    save_book_document(book_document_file(output_dir), book_document)
     _persist_structure_artifacts(output_dir, structure)
 
     resume_detected = continue_mode and bool(parsed_chapter_ids)
@@ -1682,6 +1841,16 @@ def ensure_structure_for_book(
     book_language = detect_book_language(book_path, sample_text=sample_text)
     output_language = resolve_output_language(language_mode, book_language)
     output_dir = resolve_output_dir(book_path, title, book_language, output_language)
+    ensure_output_dir(output_dir)
+    book_document = _load_or_build_book_document(
+        book_path,
+        output_dir=output_dir,
+        title=title,
+        author=_author,
+        book_language=book_language,
+        output_language=output_language,
+        raw_chapters=raw_chapters,
+    )
     path = existing_structure_file(output_dir)
     had_existing_structure = path.exists()
     if path.exists():
@@ -1699,8 +1868,10 @@ def ensure_structure_for_book(
             if changed or path != canonical_path:
                 _persist_structure_artifacts(output_dir, structure)
             if parse_complete or not require_segments:
+                save_book_document(book_document_file(output_dir), book_document)
                 return structure, output_dir, False
             if not continue_mode:
+                save_book_document(book_document_file(output_dir), book_document)
                 return structure, output_dir, False
     structure, output_dir = build_structure(
         book_path,
