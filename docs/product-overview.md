@@ -35,18 +35,11 @@ Use `docs/product-interaction-model.md` for the canonical journey, routes, and p
 ## Product Guardrails
 - Do not optimize toward a generic summary product.
 - Do not optimize toward moment-by-moment user-catering at the expense of authentic reading curiosity.
-- Do not treat surprise alone as the product.
-  - `unknown unknowns` matter, but they are not the whole purpose.
-- Do not treat resonance alone as the product.
-  - resonance is a valuable expression of the experience, not its only goal.
-- Do not let the reader's curiosity drift into arbitrary or self-indulgent thinking.
-  - The reading mind should remain tethered to the book and communicable to the user.
 
 ## Canonical Now Vs Emerging
 ### Canonical Now
 - A living co-reader mind is the core product identity.
 - Live visible thought while reading is part of the core experience.
-- Marks, traces, and re-entry surfaces are part of the product's durable value.
 - Blind-spot discovery, resonance, delight, recall, and companionship are all legitimate current value channels.
 
 ### Emerging
