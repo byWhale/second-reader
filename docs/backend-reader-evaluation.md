@@ -51,7 +51,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 
 ### Family B: `reader_value`
 - `insight_and_clarification`
-  - the reader surfaces meaningful turns, definitions, tensions, unknown unknowns, or clarifying distinctions
+  - the reader surfaces meaningful turns, definitions, tensions, unknown unknowns, clarifying distinctions, or cross-text connections that are genuinely enabled by strong reading plus broad prior knowledge
 - `resonance_and_delight_when_earned`
   - the reading trail can produce resonance, surprise, or intellectual echo when those effects genuinely arise from good reading
 - `companionship`
@@ -78,7 +78,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 
 ## What Good Means
 - Product-good is the primary question.
-  - Does the system preserve a genuinely curious, text-grounded co-reading mind that produces real value and remains worth trusting?
+  - Does the system preserve a genuinely curious, text-grounded co-reading mind that produces real value, makes good use of broad prior knowledge without drifting away from the text, and remains worth trusting?
 - Mechanism-good is subordinate but still important.
   - Did one internal mechanism improve the product without violating realistic constraints?
 - Good evaluation should therefore avoid collapsing everything into one vague judgment such as "smarter," "more human," or "more useful."

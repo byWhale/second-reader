@@ -9,6 +9,8 @@ Use `docs/product-interaction-model.md` for the canonical journey, routes, and p
 
 ## Product Essence
 - Reading Companion gives readers access to a genuinely curious, self-propelled co-reading mind.
+- One reason this access matters is that what a reader notices in a book depends partly on what the reader already knows.
+- The co-reader can bring unusually broad prior knowledge and associative range to the act of reading, which can help surface patterns, references, tensions, and possibilities that an individual reader might not independently notice.
 - The product is not a summary engine and not a service-style assistant optimized to cater to the user moment by moment.
 - The reader's curiosity should feel alive and self-propelled, but it must still remain:
   - text-grounded
@@ -25,6 +27,7 @@ Use `docs/product-interaction-model.md` for the canonical journey, routes, and p
 - The product can create value through multiple channels at once.
 - Current important channels include:
   - revealing viewpoints, tensions, and blind spots the user might not have noticed
+  - surfacing references, connections, and latent patterns that depend on broad prior knowledge
   - creating resonance, delight, or intellectual echo
   - clarifying what feels important, unstable, or worth revisiting
   - preserving marks and traces that support recall and re-entry
@@ -35,6 +38,7 @@ Use `docs/product-interaction-model.md` for the canonical journey, routes, and p
 ## Product Guardrails
 - Do not optimize toward a generic summary product.
 - Do not optimize toward moment-by-moment user-catering at the expense of authentic reading curiosity.
+- Broad prior knowledge is part of the product's value, but it does not justify text-detached certainty or generic cleverness.
 
 ## Canonical Now Vs Emerging
 ### Canonical Now
