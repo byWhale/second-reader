@@ -122,6 +122,7 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 
 ## Practical Reading Order
 - Read `docs/backend-sequential-lifecycle.md` first when the question is "how does the job behave over time?"
-- Read `docs/backend-reading-mechanism.md` when the question is "how does one selected section turn into subsegment-level reader work and live attention state?"
+- Read `docs/backend-reading-mechanism.md` when the question is "what is shared across mechanisms and which doc owns this concept?"
+- Read `docs/backend-reading-mechanisms/iterator_v1.md` when the question is "how does the current default mechanism turn one selected section into local reader work and live attention state?"
 - Read this file when the question is "which artifacts feed this payload?" or "where does normalization happen?"
 - Only drop into `catalog.py`, `jobs.py`, or `user_marks.py` after the system-level source mapping in this document is no longer enough.

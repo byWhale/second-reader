@@ -44,7 +44,9 @@ Update when: document layering, reading order, task routing, or cross-project co
 - `docs/language-governance.md`: visible-text governance, terminology ownership, and locale policy
 - `docs/frontend-visual-system.md`: frontend typography system, reader-scale boundaries, and core visual tokens
 - `docs/backend-sequential-lifecycle.md`: sequential deep-reading job lifecycle, entrypoints, and runtime-state semantics
-- `docs/backend-reading-mechanism.md`: inner reader unit selection, prompt assembly, and attention-projection semantics
+- `docs/backend-reading-mechanism.md`: shared backend mechanism-platform boundaries, statuses, and doc routing
+- `docs/backend-reading-mechanisms/README.md`: backend mechanism catalog, statuses, and authoring rules
+- `docs/backend-reading-mechanisms/<mechanism>.md`: mechanism-specific ontology, loop, prompt/context packaging, memory, and private artifacts
 - `docs/backend-reader-evaluation.md`: reader quality goals, evaluation layers, and offline evaluation methodology
 - `docs/backend-state-aggregation.md`: backend artifact aggregation, public state surfaces, and normalization boundary
 
@@ -77,7 +79,9 @@ Update when: document layering, reading order, task routing, or cross-project co
 - UI copy, locale policy, governed terminology: `docs/language-governance.md`
 - frontend typography, reader-scale boundaries, and visual token usage: `docs/frontend-visual-system.md`
 - backend sequential workflow, job lifecycle, resume behavior: `docs/backend-sequential-lifecycle.md`
-- backend reader unit selection, prompt assembly, and section/subsegment/excerpt boundaries: `docs/backend-reading-mechanism.md`
+- backend mechanism-platform boundaries, statuses, and doc routing: `docs/backend-reading-mechanism.md`
+- backend mechanism catalog and authoring rules: `docs/backend-reading-mechanisms/README.md`
+- backend mechanism-specific internals such as the current default reader: `docs/backend-reading-mechanisms/<mechanism>.md`
 - backend reader quality goals, evaluation layers, and offline eval methodology: `docs/backend-reader-evaluation.md`
 - backend artifact aggregation, state surfaces, normalization boundary: `docs/backend-state-aggregation.md`
 
@@ -103,7 +107,9 @@ Update when: document layering, reading order, task routing, or cross-project co
 - visible text, locale boundaries, governed terminology -> `docs/language-governance.md`
 - frontend typography, visual tokens, reader-scale boundaries, and landing exceptions -> `docs/frontend-visual-system.md`
 - backend sequential workflow, job lifecycle, start/resume semantics -> `docs/backend-sequential-lifecycle.md`
-- backend reader core, attention unit, prompt assembly, section/subsegment/excerpt boundaries -> `docs/backend-reading-mechanism.md`
+- backend shared mechanism platform, statuses, and routing -> `docs/backend-reading-mechanism.md`
+- backend mechanism catalog or authoring rules -> `docs/backend-reading-mechanisms/README.md`
+- backend one-mechanism internals such as ontology, reading loop, prompt assembly, or memory -> `docs/backend-reading-mechanisms/<mechanism>.md`
 - backend reader quality goals, evaluation methodology, LLM-as-judge usage, and local-vs-broad eval planning -> `docs/backend-reader-evaluation.md`
 - backend artifact aggregation, analysis-state sourcing, normalization boundary -> `docs/backend-state-aggregation.md`
 - current focus, temporary risks, active migration notes -> `docs/agent-handoff.md`
@@ -163,10 +169,18 @@ Update when: document layering, reading order, task routing, or cross-project co
   - frontend-facing lifecycle dependencies
   - runtime-mode-specific recovery semantics
 - `docs/backend-reading-mechanism.md`
-  - inner reader unit selection
-  - section/subsegment/excerpt boundaries
-  - prompt assembly and memory-packet composition
-  - live attention projection semantics
+  - shared mechanism-platform boundaries
+  - mechanism status model
+  - shared-vs-mechanism doc routing
+- `docs/backend-reading-mechanisms/README.md`
+  - mechanism catalog
+  - defaultness / status changes
+  - mechanism-doc authoring rules
+- `docs/backend-reading-mechanisms/<mechanism>.md`
+  - one mechanism's ontology
+  - one mechanism's reading loop
+  - one mechanism's prompt/context packaging
+  - one mechanism's memory and private artifacts
 - `docs/backend-reader-evaluation.md`
   - reader quality dimensions
   - local mechanism eval vs broader regression eval
@@ -213,7 +227,10 @@ Update when: document layering, reading order, task routing, or cross-project co
 - If the product interaction flow changes and that also changes routes or public payloads, update `docs/product-interaction-model.md`, `docs/api-contract.md`, and `docs/api-integration.md` in the same task.
 - If the same change also shifts workspace ownership boundaries or the recommended reading order for agents, update `docs/workspace-overview.md` and root `AGENTS.md`.
 - If a backend change materially alters the sequential deep-reading job lifecycle, upload/start/resume semantics, or runtime recovery behavior, update `docs/backend-sequential-lifecycle.md` in the same task.
-- If a backend change materially alters inner reader unit selection, prompt assembly, memory-packet composition, or live attention projection, update `docs/backend-reading-mechanism.md` in the same task.
+- If a backend change materially alters shared mechanism boundaries, mechanism status routing, or which docs own mechanism internals, update `docs/backend-reading-mechanism.md` in the same task.
+- If a backend change materially alters one mechanism's ontology, reading loop, prompt assembly, memory model, or private artifacts, update `docs/backend-reading-mechanisms/<mechanism>.md` in the same task.
+- If a backend change adds a mechanism, archives one, or changes which mechanism is default, update `docs/backend-reading-mechanisms/README.md` in the same task.
+- If a backend change changes which mechanism is default, update `docs/backend-reading-mechanism.md`, `docs/workspace-overview.md`, `docs/backend-sequential-lifecycle.md`, `docs/backend-state-aggregation.md`, `reading-companion-backend/AGENTS.md`, and `docs/history/decision-log.md` in the same task.
 - If a backend change materially alters reader-quality dimensions, evaluation workflow, offline judge usage, or evaluation artifact routing, update `docs/backend-reader-evaluation.md` in the same task.
 - If a backend change materially alters which artifacts feed public state surfaces, or where normalization between internal and public shapes happens, update `docs/backend-state-aggregation.md` in the same task.
 - If a major project change creates a decision, reversal, or design inflection point that would be hard to reconstruct later, update `docs/history/decision-log.md` in the same task.
@@ -238,4 +255,6 @@ Update when: document layering, reading order, task routing, or cross-project co
 - `docs/product-overview.md` when the task touches product purpose, experience framing, or current-vs-emerging product territory
 - `reading-companion-backend/AGENTS.md` when the task touches backend code, prompts, runtime, or API shaping
 - `reading-companion-frontend/AGENTS.md` when the task touches frontend routes, API adapters, UI copy, or generated structure
+- `docs/backend-reading-mechanism.md` when the task touches shared backend mechanism boundaries or mechanism doc routing
+- `docs/backend-reading-mechanisms/iterator_v1.md` when the task touches the current live/default reader internals
 - Then load only the task-gated stable doc that matches the work at hand

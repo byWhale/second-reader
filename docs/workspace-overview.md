@@ -53,6 +53,8 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 ## Shared Entry Points
 - Product-purpose authority: `docs/product-overview.md`
 - Product journey and surface authority: `docs/product-interaction-model.md`
+- Shared backend mechanism-platform authority: `docs/backend-reading-mechanism.md`
+- Backend mechanism catalog and per-mechanism docs: `docs/backend-reading-mechanisms/`
 - Backend application entrypoint: `reading-companion-backend/src/api/app.py`
 - Backend read CLI/runtime entrypoint: `reading-companion-backend/main.py`
 - Backend contract and payload shaping: `reading-companion-backend/src/api/contract.py`, `reading-companion-backend/src/api/schemas.py`, `reading-companion-backend/src/library/catalog.py`
@@ -68,6 +70,7 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - Use child directories when a task is clearly isolated.
 - Keep runtime data in `reading-companion-backend/`.
 - Keep shared runtime/mechanism boundaries in backend-owned infrastructure, and keep reader-internal ontology inside the specific mechanism that owns it.
+- Use `docs/backend-reading-mechanism.md` for shared mechanism boundaries and `docs/backend-reading-mechanisms/<mechanism>.md` for mechanism-private reading logic.
 - Treat `reading-companion-backend/output/<book_id>/public/` and `reading-companion-backend/output/<book_id>/_runtime/` as shared cross-mechanism territory.
 - Treat `reading-companion-backend/output/<book_id>/_mechanisms/<mechanism_key>/` as mechanism-owned territory for derived structures, runtime memory, checkpoints, and diagnostics.
 - The workspace root is the shared Git root for both sub-applications.

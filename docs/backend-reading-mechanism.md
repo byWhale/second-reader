@@ -1,305 +1,127 @@
 # Backend Reading Mechanism
 
-Purpose: explain how the current default sequential reader selects its working unit, assembles prompt context, and projects live attention state.
-Use when: changing reader-unit selection, prompt assembly, memory packing, search expansion, or live `current_reading_activity` semantics.
-Not for: upload/start/resume lifecycle rules, public schema authority, or endpoint-level aggregation responsibilities.
-Update when: section/subsegment boundaries, reader-loop stages, prompt inputs, memory-packet composition, or attention projection rules change.
+Purpose: define the shared backend mechanism platform, ownership boundaries, and routing between shared mechanism docs and per-mechanism docs.
+Use when: deciding what is universal across reader mechanisms, where mechanism internals should be documented, or which doc owns a given backend reading concept.
+Not for: one mechanism's private reading loop, upload/start/resume lifecycle rules, public schema authority, or endpoint-level aggregation responsibilities.
+Update when: shared mechanism boundaries, status model, mechanism catalog routing, or documentation ownership rules materially change.
 
-Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time. Use `docs/backend-state-aggregation.md` for how runtime artifacts become public payloads. Use this file when the question is how one selected semantic section is actually processed inside the current `iterator_v1` reader.
+Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time. Use `docs/backend-state-aggregation.md` for how runtime artifacts become public payloads. Use `docs/backend-reading-mechanisms/README.md` for the mechanism catalog and authoring rules. Use this file when the question is "what is shared across reading mechanisms?" or "which mechanism doc owns this topic?"
 
-## Terminology Guard
-- `chapter`
-  - One source-ordered chapter or major part from the parsed book structure.
-- `book document`
-  - The canonical parsed-book substrate persisted at `public/book_document.json`.
-  - It contains chapter order, paragraph records, and locators only.
-  - It is shared across mechanisms and does not define `section` or `subsegment`.
-- `section`
-  - The persisted semantic unit created before deep reading begins.
-  - Backend runtime code still often calls this unit a `segment`.
-  - Public/UI language should treat this concept as `section`.
-- `structure`
-  - The current `iterator_v1`-owned derived artifact persisted at `_mechanisms/iterator_v1/derived/structure.json`.
-  - It contains `section` records and other iterator-shaped traversal state.
-  - It is not the backend's mechanism-neutral parsed-book substrate.
-- `body group`
-  - One parse-only contiguous body-text block formed before semantic section segmentation.
-  - It is separated by detected `section_heading` or `auxiliary` boundaries.
-  - It is an internal hygiene layer, not a product-facing reading unit.
-- `subsegment`
-  - The runtime-only work unit created inside one selected section by the subsegment planner.
-  - The active planner is LLM-primary for normal multi-sentence sections, with a heuristic sentence-boundary slicer as fallback.
-  - This is the smallest orchestration-level unit the reader actively feeds into the inner loop.
-- `excerpt` / `current_excerpt`
-  - A live attention projection derived from the currently active text span.
-  - It is not a scheduling unit and it is not guaranteed to equal the full current `subsegment.text`.
-- `anchor_quote`
-  - A reaction-level quote recovered from the current text span.
-  - It is a reaction anchor, not a reading unit.
+## Why This Doc Exists
+- The backend no longer assumes one permanent reader mechanism.
+- Shared runtime infrastructure, shared parsed-book substrate, and shared public-state boundaries now exist separately from any one mechanism's internal ontology.
+- This file is the shared mechanism-platform authority.
+- Mechanism-specific reading logic belongs in `docs/backend-reading-mechanisms/<mechanism_key>.md`.
 
-## Selection Pipeline
-- Canonical parse first preserves the source book order as `book_document` chapters plus paragraph records and locators.
-- `iterator_v1` then derives semantic sections from that canonical substrate before the main read run starts.
-- The outer iterator reads in source order:
-  - book
-  - chapter
-  - section
-- `continue` / resume behavior does not pick a new attention target globally. It skips chapters or sections already marked done and resumes at the next unfinished persisted section.
-- Once one section is selected, `run_reader_segment()` calls the subsegment planner.
-- Planner behavior is local to the current section:
-  - effectively single-sentence sections short-circuit and stay as one runtime unit
-  - normal multi-sentence sections go through an LLM planner that proposes the fewest self-contained reading units needed for one local nonfiction reading move at a time
-  - malformed, structurally invalid, over-budget, or planner-unavailable cases fall back to the heuristic sentence-boundary slicer
-- The planner preserves source order and full sentence coverage.
-- The heuristic fallback still uses sentence boundaries plus token/density heuristics, but those heuristics are now safety behavior, not the semantic target.
-- The public locus remains section-level even while the inner loop advances through runtime `subsegments`.
+## Shared Mechanism Boundary
+- Shared substrate
+  - `public/book_document.json` is the only shared parsed-book truth.
+  - It contains canonical chapter order, paragraph records, and locators.
+  - It must not embed one mechanism's traversal ontology.
+- Shared runtime shell
+  - `src/reading_runtime/` owns mechanism registration, runtime routing, and shared artifact layout authority.
+  - Top-level `public/` and `_runtime/` are shared cross-mechanism territory.
+  - `_mechanisms/<mechanism_key>/` is mechanism-owned territory.
+- Shared public-state surface
+  - Public API and websocket surfaces are allowed to expose stable compatibility fields such as `segment_ref`.
+  - Internal mechanism structure must be adapted into shared public-state surfaces instead of leaking through directly.
+- Shared evaluation seam
+  - Mechanisms are compared through the shared evaluation frame and normalized runtime outputs, not by forcing one internal ontology.
 
-## Parse-Side Section Formation
-- Raw source chapters are extracted first from the input book format.
-- The canonical parse writes `public/book_document.json` before any iterator-specific section derivation happens.
-- Each canonical chapter is normalized into paragraph-sized text blocks called `paragraph records`.
-  - EPUB prefers XHTML block extraction so the records can retain href, CFI, block-tag, and paragraph-index metadata.
-  - When structured extraction is unavailable, the parser falls back to plain-text paragraph splitting.
-- `iterator_v1` derives its parse-time `section` contexts from that canonical chapter/paragraph substrate rather than treating `_mechanisms/iterator_v1/derived/structure.json` as the shared truth.
-- Parse-time classification labels each paragraph record as one of:
-  - `chapter_heading`
-  - `section_heading`
-  - `body`
-  - `auxiliary`
-- `body groups` are formed before semantic section segmentation.
-  - A body group collects contiguous `body` records.
-  - A detected `section_heading` starts the next body group and is carried forward as boundary context, not as body prose.
-  - A detected `auxiliary` block acts as a hygiene boundary and can end the current body group without becoming section body text.
-- Semantic section segmentation runs per `body group`, not over the whole chapter at once.
-  - The prompt receives group-local numbered body paragraphs such as `[P1]`, `[P2]`, and so on.
-  - The prompt also receives chapter-heading and section-heading context as framing or boundary hints only.
-  - The prompt must return contiguous paragraph ranges plus short summaries in source order.
-- Prompt-local paragraph numbering is temporary.
-  - After the prompt returns group-local paragraph ranges, the parser remaps those ranges back onto the chapter's persisted paragraph indexes before writing the final section records.
-- Post-processing then rebalances obviously poor section outputs.
-  - Empty or invalid segmentation falls back to coarse coverage of the current body group.
-  - Very long under-segmented groups may be re-chunked into coarse sections.
-  - Obviously low-value section summaries may be dropped.
-  - Undersized adjacent sections may be merged back together.
-- Persisted `section` records are the output of this parse-side path.
-  - They carry stable text spans, paragraph ranges, locators, and `segment_ref`.
-  - They live in the iterator-owned `_mechanisms/iterator_v1/derived/structure.json` artifact, not in `book_document.json`.
-  - Runtime `subsegment` planning only begins after the outer iterator selects one persisted section for live reading.
+## Content Ownership Rules
+- Shared docs may define:
+  - shared substrate and runtime boundaries
+  - shared artifact ownership rules
+  - shared public-state projection rules
+  - shared evaluation frame
+  - mechanism status and documentation-routing rules
+- Shared docs must not define one mechanism's ontology as universal backend truth.
+- Per-mechanism docs must own:
+  - ontology and core primitives
+  - reading loop and progression logic
+  - prompt/context packaging
+  - memory model
+  - mechanism-private artifacts
+  - fallback and drift notes
+- Design-only mechanisms belong in the same stable mechanism-doc system as implemented mechanisms, but must be clearly labeled `design-only`.
 
-### Why This Layer Exists
-- `body group` is a deterministic hygiene layer that keeps obvious structure text and auxiliary noise from defining the semantic target by accident.
-- `section` is the persisted semantic anchor that the outer iterator, checkpoints, and public state can rely on across runs.
-- `subsegment` remains the runtime execution unit used to take smaller reading steps inside one already-selected section.
-- Ownership is intentionally split:
-  - `book -> chapter -> paragraph/locator` belongs to the shared `book_document`
-  - `chapter -> sections` belongs to the iterator-derived `structure`
-  - `section -> subsegments` plus planner state and memory belong to iterator runtime artifacts under `_mechanisms/iterator_v1/runtime/`
+## Terminology Discipline
+- Shared docs should prefer neutral terms such as:
+  - `book document`
+  - `mechanism`
+  - `current default mechanism`
+  - `current attention target`
+  - `mechanism-private artifact`
+- Terms such as `section`, `subsegment`, `attention frontier`, or other mechanism-shaped primitives belong to the specific mechanism doc that owns them.
+- Shared docs may mention mechanism-specific terms only when:
+  - referring to a current compatibility surface
+  - describing a specific mechanism by name
+  - contrasting shared vs mechanism-private ownership
 
-### Coverage And Limits
-- The parser aims not to lose `body` prose coverage.
-  - If semantic section segmentation returns nothing useful, the system falls back to coarse section coverage instead of leaving the body group unread.
-- Not all raw chapter text is intended to become section body text.
-  - `chapter_heading`, `section_heading`, and `auxiliary` content may remain context-only or be excluded from deep-reading body coverage altogether.
-- Heading and auxiliary detection are heuristic.
-  - Books with unusual formatting, title-like prose, dense metadata, or design-heavy layouts can still be misclassified at this parse-side stage.
+## Mechanism Status Model
+- `default`
+  - the current live/default mechanism for normal product runs
+- `experimental`
+  - implemented but not the default mechanism
+- `design-only`
+  - stable design documentation exists, but no live implementation is claimed
+- `archived`
+  - no longer the active direction, preserved for historical or migration reasons
 
-## Reader Loop
-- The main inner loop is:
-  - `read`
-  - `think`
-  - `express`
-  - optional `search`
-  - optional `fuse`
-  - `reflect`
-- `read`
-  - Prepares the current text span plus reading memory for the next reasoning step.
-- `think`
-  - Decides whether the current subsegment is worth expressing, chooses a source excerpt, and estimates curiosity potential.
-- `express`
-  - Produces mixed reactions for the current subsegment, including `highlight`, `association`, `curious`, `discern`, `retrospect`, or `silent`.
-- `search`
-  - Runs only when the current thought has enough curiosity potential and the segment/chapter budget still allows search queries.
-- `fuse`
-  - Rewrites a `curious` reaction after search so the reaction absorbs the search results instead of appending them as a log.
-- `reflect`
-  - Self-reviews the produced reactions and decides whether the reactions should pass or be skipped.
-- Current runtime behavior is a single through-pass per subsegment.
-  - The codebase still retains a graph-shaped reader structure with revise-era helpers.
-  - The active `run_reader_segment()` path currently does not perform multi-round revise loops for live section execution.
-- After the inner loop finishes, reactions from multiple subsegments are merged back into one section-level result before the iterator advances and writes checkpoints/memory updates.
+## Current Catalog Snapshot
+- Current catalog authority lives in `docs/backend-reading-mechanisms/README.md`.
+- Current entries are:
+  - `iterator_v1`
+    - status: `default`
+    - doc: `docs/backend-reading-mechanisms/iterator_v1.md`
+    - artifact root: `_mechanisms/iterator_v1/`
+  - `attentional_v2`
+    - status: `design-only`
+    - doc: `docs/backend-reading-mechanisms/attentional_v2.md`
+    - artifact root: `_mechanisms/attentional_v2/` (planned)
 
-## Prompt Assembly
-- The reader does not send only raw subsegment text to the model.
-- The first model step inside one multi-sentence section is the subsegment planner prompt.
-  - It receives numbered sentence-like units in source order.
-  - It also receives `book_context`, `current_part_context`, the current section ref/summary, `user_intent`, and the output-language contract.
-  - It does not receive the full `memory_text` packet.
-- After planning, each reader-stage prompt is assembled around the current `subsegment.text` plus stable context:
-  - `book_context`
-    - book title
-    - author
-    - current chapter index
-    - nearby outline entries
-  - `current_part_context`
-    - chapter ref
-    - chapter title
-    - chapter primary role
-    - role tags
-    - role confidence
-    - current section heading when available
-    - one role-aware note about the likely function of the current chapter
-  - `memory_text`
-    - a budget-aware packet assembled from reader memory
-  - `user_intent`
-    - explicit user intent when provided, otherwise a fallback label
-  - output language contract
-    - the shared language instructions that keep reactions and summaries in the configured output language
-- Stage-specific additions:
-  - `subsegment_plan`
-    - numbered sentence list
-    - section ref and summary
-    - planner-only JSON schema for sentence coverage and reading moves
-  - `think`
-    - current section summary and current subsegment text
-  - `express`
-    - the normalized `thought_json` plus any revision instruction placeholder
-  - `fuse`
-    - the current `curious` reaction, `anchor_quote`, `search_query`, and normalized search results
-  - `reflect`
-    - `reactions_json` for the current subsegment plus the same contextual packet
-- Prompt wording is owned by `reading-companion-backend/src/prompts/templates.py`.
-  - This document describes prompt responsibilities and inputs, not the full prompt text.
+## Routing Guide
+- Read this file when the question is:
+  - what is shared across reader mechanisms?
+  - where should a mechanism concept be documented?
+  - which artifact boundaries are universal vs mechanism-private?
+  - how do statuses and defaults work across mechanisms?
+- Read `docs/backend-reading-mechanisms/README.md` when the question is:
+  - which mechanisms exist?
+  - which one is default, experimental, design-only, or archived?
+  - what structure must a new mechanism doc follow?
+- Read `docs/backend-reading-mechanisms/iterator_v1.md` when the question is:
+  - how does the current default mechanism actually read?
+  - what does `section` or `subsegment` mean in the live system?
+  - how does `iterator_v1` package prompts, memory, and progress?
+- Read `docs/backend-reading-mechanisms/attentional_v2.md` when the question is:
+  - what is the future attention-frontier mechanism design?
+  - what ontology or control loop is planned for that mechanism?
 
-## Memory Packet
-- `_assemble_memory_packet()` builds `memory_text` per prompt node, not once for the whole run.
-- The packet is budget-aware:
-  - larger current text spans reduce the available memory budget
-  - different prompt nodes use different memory caps
-- The packet is also relevance-aware:
-  - memory candidates are ranked against lexical terms from the current subsegment text, section summary, section heading, and chapter title
-  - the packet prefers open or still-relevant items and trims to fit the node budget
-- Logical packet components are:
-  - book arc summary
-    - the current whole-book through-line
-  - open threads
-    - unresolved questions or tensions still marked open
-  - findings
-    - provisional or durable findings worth carrying forward
-  - salience ledger
-    - active concepts, characters, institutions, places, or motifs and their working notes
-  - recent segment flow
-    - the newest section-to-section reading trail
-  - chapter memory summaries
-    - recent chapter-level memory summaries
+## Maintenance Rules
+- Shared mechanism-boundary changes update this file.
+- Mechanism catalog, status, or authoring-rule changes update `docs/backend-reading-mechanisms/README.md`.
+- One mechanism's internal changes update only that mechanism doc plus any affected shared docs.
+- Adding a new mechanism requires:
+  - one new `docs/backend-reading-mechanisms/<mechanism_key>.md` file
+  - one new catalog entry in `docs/backend-reading-mechanisms/README.md`
+- Changing the default mechanism requires updating:
+  - this file
+  - `docs/backend-reading-mechanisms/README.md`
+  - `docs/workspace-overview.md`
+  - `docs/backend-sequential-lifecycle.md`
+  - `docs/backend-state-aggregation.md`
+  - `reading-companion-backend/AGENTS.md`
+  - `docs/history/decision-log.md`
 
-## State Projection
-- The runtime reader loop emits structured progress events while the outer iterator owns the persistent live snapshot.
-- The public-facing live snapshot is `current_reading_activity`.
-- `segment_ref` in that snapshot remains section-level, even when the inner loop is already working through smaller `subsegments`.
-- `current_excerpt` is a short projection of the current attention target:
-  - usually derived from the active `subsegment.text`
-  - sometimes derived from an `anchor_quote`
-  - normalized and shortened for live-state transport
-- `search_query` is also part of the live snapshot when the reader is actively expanding curiosity.
-- External surfaces should interpret attention context in this priority order:
-  - `search_query`
-  - `current_excerpt`
-- This is why the live overview can appear more fine-grained than the persisted section locus:
-  - the locus still points at the current section
-  - the projected attention text can point at a smaller runtime span inside that section
-- Catalog aggregation may widen that projection again.
-  - When older runtime snapshots only retain a shortened `current_excerpt`, catalog can backfill the normalized full section text by resolving `segment_ref` against `_mechanisms/iterator_v1/derived/structure.json`.
-  - Public state therefore reflects the runtime attention target as best effort, not as a strict copy of the current subsegment payload.
-
-## Stability And Drift Notes
-- The active reader path is `run_reader_segment()`.
-  - Graph-shaped helpers remain in the codebase, but they are not the authoritative description of the current live section execution path.
-- `section`, `subsegment`, and `excerpt` should not be treated as interchangeable:
-  - `section` is the persisted semantic unit
-  - `subsegment` is the runtime work unit
-  - `excerpt` is the projected live attention text
-- `slice_max_subsegments` is now a safety cap, not the primary semantic target for segmentation.
-  - The reader first asks the planner for the fewest self-contained units.
-  - The hard cap only rejects pathological plans and bounds the fallback slicer.
-- API and runtime payloads may still expose compatibility names such as `segment_ref`.
-  - That does not change the product-language expectation that user-facing terminology should say `section`.
-- Prompt wording is allowed to evolve more frequently than this document.
-  - If prompt responsibilities, inputs, or outputs change, update this document.
-  - If only prompt phrasing changes, the code remains the authority.
-
-## Machine-Readable Appendix
-The JSON block below is the machine-readable appendix used by the reading-mechanism drift check.
-
-```json
-{
-  "selection_pipeline": [
-    "book",
-    "chapter",
-    "section",
-    "subsegment"
-  ],
-  "persisted_unit_labels": {
-    "chapter": "chapter",
-    "semantic_unit": "section",
-    "backend_internal_alias": "segment"
-  },
-  "runtime_attention_unit": "subsegment",
-  "segment_execution_mode": "single_pass",
-  "reader_loop_nodes": [
-    "read",
-    "think",
-    "express",
-    "search",
-    "fuse",
-    "reflect"
-  ],
-  "reader_prompt_nodes": [
-    "subsegment_plan",
-    "think",
-    "express",
-    "reflect"
-  ],
-  "live_activity_phases": [
-    "reading",
-    "thinking",
-    "searching",
-    "fusing",
-    "reflecting",
-    "waiting",
-    "preparing"
-  ],
-  "internal_reaction_types": [
-    "highlight",
-    "association",
-    "curious",
-    "discern",
-    "retrospect",
-    "silent"
-  ],
-  "memory_packet_sections": [
-    "book_arc_summary",
-    "open_threads",
-    "findings",
-    "salience_ledger",
-    "recent_segment_flow",
-    "chapter_memory_summaries"
-  ],
-  "attention_context_priority": [
-    "search_query",
-    "current_excerpt"
-  ],
-  "subsegment_slicing_defaults": {
-    "planner_mode": "llm_primary",
-    "fallback_mode": "heuristic_sentence_boundary",
-    "safety_cap_role": "absolute_cap",
-    "slice_target_tokens": 420,
-    "slice_max_tokens": 700,
-    "slice_max_subsegments": 8,
-    "density_trigger_gte": 3.2
-  },
-  "search_budget_defaults": {
-    "max_search_queries_per_segment": 2,
-    "max_search_queries_per_chapter": 12
-  }
-}
-```
+## Relationship To Other Docs
+- `docs/backend-sequential-lifecycle.md`
+  - owns the job lifecycle, start/resume behavior, and stage semantics
+- `docs/backend-state-aggregation.md`
+  - owns which persisted artifacts feed public backend surfaces
+- `docs/backend-reader-evaluation.md`
+  - owns the stable evaluation constitution across mechanisms
+- `docs/backend-reading-mechanisms/README.md`
+  - owns mechanism catalog details and authoring rules
+- `docs/backend-reading-mechanisms/<mechanism_key>.md`
+  - owns one mechanism's internal reading design

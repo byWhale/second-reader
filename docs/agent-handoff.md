@@ -35,6 +35,7 @@ Last updated: `2026-03-21`
 - `iterator_reader` now derives `_mechanisms/iterator_v1/derived/structure.json` from that substrate instead of acting as the shared parsed-book truth.
 - Top-level `public/` and `_runtime/` are now reserved for cross-mechanism artifacts only.
 - Iterator-private derived structures, runtime memory/checkpoints, diagnostics, and `book_analysis` artifacts now belong under `_mechanisms/iterator_v1/`.
+- Stable mechanism docs are now split between the shared platform doc (`docs/backend-reading-mechanism.md`) and per-mechanism docs under `docs/backend-reading-mechanisms/`.
 - Storage helpers still read older shared-path and flat legacy artifacts for compatibility, but new writes should target the namespaced mechanism paths.
 - Normal reading runs do not persist normalized eval bundles; those exports are reserved for explicit eval-mode runs.
 - Backend mechanism work is still shifting toward a shared runtime shell plus multiple mechanism-specific implementations. During this migration, `iterator_reader` remains the only default/live reader path unless stable docs say otherwise.
@@ -42,3 +43,4 @@ Last updated: `2026-03-21`
 ## Temporary Warnings
 - If a note here becomes repeated guidance across tasks, promote it into `AGENTS.md` or the relevant stable doc.
 - Do not use this file as the first stop for setup, runtime, contract, or product-flow questions; route those back to the control layer and stable docs.
+- If a task still treats `docs/backend-reading-mechanism.md` as the sole authority for `iterator_v1` internals, update the task's doc routing assumptions before changing reader internals.

@@ -5,7 +5,7 @@ Use when: aligning eval work to product purpose, choosing between reader mechani
 Not for: public API contract authority, runtime lifecycle semantics, prompt-text authority, or one-off benchmark conclusions.
 Update when: north-star dimensions, anti-goals, taxonomy, method policy, or evaluation artifact routing materially change.
 
-Use `docs/backend-reading-mechanism.md` for how the current reader works. Use this file for the stable comparison frame that any current or future reader mechanism should be judged against. Product-purpose authority lives in `docs/product-overview.md`; this file operationalizes that purpose for evaluation rather than redefining it.
+Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries and `docs/backend-reading-mechanisms/<mechanism>.md` for one mechanism's actual design. Use this file for the stable comparison frame that any current or future reader mechanism should be judged against. Product-purpose authority lives in `docs/product-overview.md`; this file operationalizes that purpose for evaluation rather than redefining it.
 
 ## Evaluation Constitution
 - The evaluation system is product-first.

@@ -361,3 +361,26 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/reading_mechanisms/iterator_v1.py`
 - `docs/backend-sequential-lifecycle.md`
 - `docs/backend-state-aggregation.md`
+
+## Entry 18
+**Decision / Inflection**: Split backend reading documentation into a shared mechanism-platform doc plus per-mechanism docs.
+
+**Period**: Late March 2026, after the shared runtime, substrate, and artifact boundaries were already established.
+
+**Problem**: The repo already needed to support multiple reader mechanisms, but the documentation still treated `docs/backend-reading-mechanism.md` as if one file could be both the shared platform authority and the full internal authority for the current default mechanism. That shape would have made future mechanism docs either second-class notes or would have silently universalized `iterator_v1` concepts such as `section` and `subsegment`.
+
+**Alternatives considered**: Keep one shared mechanism doc and let it grow appendices for every mechanism, hard-rename the existing doc into `iterator_v1` immediately and replace it everywhere, or keep future mechanism designs only in research notes until implementation.
+
+**Why this path won**: Keeping `docs/backend-reading-mechanism.md` as the shared platform/router doc preserves one stable shared entrypoint, while a dedicated `docs/backend-reading-mechanisms/` folder gives each mechanism equal documentary standing. That makes design-only mechanisms visible early, keeps shared boundaries clean, and prevents one mechanism's ontology from becoming implicit backend law.
+
+**What changed in the system**: `docs/backend-reading-mechanism.md` now owns only shared mechanism-platform rules, status model, and doc routing. `docs/backend-reading-mechanisms/README.md` now owns the mechanism catalog and authoring rules. `docs/backend-reading-mechanisms/iterator_v1.md` now owns the live mechanism internals that previously lived in the shared doc, and `docs/backend-reading-mechanisms/attentional_v2.md` records the future design as a stable `design-only` mechanism doc.
+
+**Why it matters later**: This is the documentation boundary that should keep future multi-mechanism work legible. Later contributors need to know which facts are shared platform rules, which facts belong to one mechanism, and how to add a new mechanism doc without re-centering the whole repo on the current default reader.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanism.md`
+- `docs/backend-reading-mechanisms/README.md`
+- `docs/backend-reading-mechanisms/iterator_v1.md`
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `AGENTS.md`
+- `reading-companion-backend/AGENTS.md`

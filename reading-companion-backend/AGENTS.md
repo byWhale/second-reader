@@ -9,7 +9,8 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 - This directory contains the FastAPI API, the shared reading runtime shell, the current default `iterator_reader` implementation, and runtime artifacts.
 - Use `../docs/product-overview.md` for product purpose and reader-quality target.
 - Use `../docs/product-interaction-model.md` for product flow and `../docs/api-contract.md` for the public contract.
-- Use `../docs/backend-reading-mechanism.md` for inner reader-unit selection, prompt assembly, and live attention-projection semantics.
+- Use `../docs/backend-reading-mechanism.md` for shared backend mechanism-platform boundaries and documentation routing.
+- Use `../docs/backend-reading-mechanisms/iterator_v1.md` for the current default mechanism's inner reader-unit selection, prompt assembly, and live attention-projection semantics.
 - Use `../docs/backend-reader-evaluation.md` for reader-quality goals, evaluation layers, and offline eval methodology.
 
 ## Stable Defaults
@@ -32,7 +33,8 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 ## Platform Direction
 - The backend is evolving toward one shared runtime shell plus multiple mechanism-specific reader implementations.
 - `iterator_reader` remains the current default mechanism until another mechanism is explicitly wired through the same shared boundary.
-- `docs/backend-reading-mechanism.md` remains authoritative for the current `iterator_reader` internals, not for every possible future reader mechanism.
+- `docs/backend-reading-mechanism.md` is authoritative for shared mechanism-platform rules.
+- `docs/backend-reading-mechanisms/iterator_v1.md` is authoritative for current `iterator_reader` internals.
 
 ## Current Default Mechanism Path
 - `main.py`
@@ -55,6 +57,8 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 - Compatibility fallback for older output directories is required until an explicit cleanup or migration step removes it.
 - Keep public API naming and normalization concerns at the API layer when internal runtime artifacts still use older names or identifiers.
 - Be conservative about changes that mainly benefit `book_analysis` but add complexity to the main sequential path.
+- Keep one stable doc per mechanism under `../docs/backend-reading-mechanisms/`, named by mechanism key.
+- When one mechanism's internals change, update that mechanism doc in the same task.
 
 ## Language Governance
 - Follow `../docs/language-governance.md`.
