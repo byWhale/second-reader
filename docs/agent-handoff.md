@@ -7,9 +7,11 @@ Update when: current focus, active risks, temporary warnings, or migration statu
 
 This file is a temporary working note. It is not a source-of-truth document.
 
-Last updated: `2026-03-21`
+Last updated: `2026-03-23`
 
 ## Current Focus
+- implementation prep for the new reading mechanism design
+- use `docs/implementation/new-reading-mechanism/` as the temporary working set for design capture, planning, progress tracking, and open questions
 - better segment-level reading reactions
 - better prompt quality and context packing
 - stronger chapter-level coherence
@@ -18,6 +20,10 @@ Last updated: `2026-03-21`
 - finish the shared substrate/runtime extraction while preserving `iterator_reader` as the current default reader
 
 ## Active Risks
+- unclear mapping between the new Notion design and the existing `attentional_v2` design-only mechanism key
+- sentence-level substrate gaps could force parser or shared-substrate work earlier than expected
+- current public analysis and chapter surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly
+- the new mechanism design includes state, observability, evaluation, and resume requirements; if those are deferred, the implementation can look finished while still violating the design
 - route mismatches between frontend routes and backend-returned targets
 - reaction taxonomy drift between runtime artifacts, API normalization, and frontend filters
 - upload flow and live progress integration regressions
@@ -27,6 +33,8 @@ Last updated: `2026-03-21`
 - leaving mechanism-private artifacts in shared top-level directories and confusing future multi-mechanism work
 
 ## Migration Status
+- Temporary implementation docs for the new mechanism now live under `docs/implementation/new-reading-mechanism/`.
+- The working design source is the Notion page `new reading mechanism design`; the repo-local design capture is temporary until stable mechanism docs are intentionally updated.
 - Landing remains frontend-owned. Do not reintroduce backend-owned landing or sample endpoints unless the stable docs change first.
 - Landing live preview can pin real reactions by public ID. Configure `reading-companion-frontend/src/app/content/landing-content.ts` with `LANDING_PREVIEW_CONFIG.api.bookId`, `chapterId`, and optional `selectedReactionIds`.
 - Backend still accepts legacy `connect_back` artifacts on read, but new runtime outputs should write `retrospect`.
