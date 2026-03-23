@@ -14,7 +14,7 @@ Update when: the upstream Notion design materially changes or when the mirror is
 - Notion page:
   - `https://www.notion.so/new-reading-mechanism-design-32ad8f1822a5805e9864cf1c3cd0551b`
 - Mirror status:
-  - `source_outline_captured`
+  - `split_mirror_completed`
 - Last checked:
   - `2026-03-23`
 
@@ -25,9 +25,18 @@ Update when: the upstream Notion design materially changes or when the mirror is
 - Avoid rewriting detailed design points into shorter interpretations here.
 - If a source block is too long for one clean section, split it into subsections but keep the original order and labeling clear.
 
+## Mirror Files
+- `source-mirror.md`
+  - index and capture standard
+- `source-mirror-top-level.md`
+  - source-faithful mirror of the top-level design blocks in original order
+- `source-mirror-contracts.md`
+  - source-faithful mirror of the behavior-defining contract blocks
+
 ## Current Limitation
 - The repo currently has a normalized working digest in `design-capture.md`.
-- A full-fidelity mirror still needs to be completed before we can honestly claim strong omission control.
+- The mirror is now split across dedicated files because the source is too large for one clean mirror file.
+- Remaining work should extend or correct the split mirror files when upstream design changes or when implementation uncovers a fidelity gap, not collapse them back into summary form.
 
 ## Current Source Outline
 The following source blocks were confirmed from the Notion page and must all be accounted for during implementation prep:
@@ -88,7 +97,7 @@ The following source blocks were confirmed from the Notion page and must all be 
 
 ## Mirror Completion Standard
 - We should not call this file a completed full-fidelity mirror until:
-  - each top-level source block is copied or mirrored in repo-local form
-  - each prompt contract block is mirrored with its detailed clauses
+  - each top-level source block is mirrored in `source-mirror-top-level.md`
+  - each prompt contract block is mirrored in `source-mirror-contracts.md`
   - ordering remains recoverable against the Notion page
   - the requirement ledger can point back to concrete mirror sections instead of only the upstream page

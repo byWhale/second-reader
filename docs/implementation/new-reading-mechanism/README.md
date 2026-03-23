@@ -24,6 +24,10 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 - `source-mirror.md`
   - full-fidelity repo-local mirror of the Notion design, organized by source section
   - should preserve detail before normalization
+- `source-mirror-top-level.md`
+  - source-faithful mirror of the top-level design blocks
+- `source-mirror-contracts.md`
+  - source-faithful mirror of the contract blocks and prompt-versioning rules
 - `coverage-policy.md`
   - omission-control rules for this implementation project
 - `design-capture.md`

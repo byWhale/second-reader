@@ -17,8 +17,6 @@ Update when: status changes, blockers appear, or phases complete.
 - Current phase:
   - `Phase 0: Planning And Scope Lock`
 - Current blockers:
-  - full-fidelity source mirror not yet completed
-  - source-block ledger has been seeded but not atomically expanded
   - mechanism-key mapping decision
   - sentence-substrate audit not yet completed
   - public-surface adapter strategy not yet decided
@@ -42,9 +40,9 @@ Update when: status changes, blockers appear, or phases complete.
 ### Phase 0 - Planning And Scope Lock
 - [x] Create repo-local temporary implementation workspace
 - [x] Seed the source-block inventory from the Notion page
-- [ ] Create full-fidelity source mirror of the Notion design
+- [x] Create full-fidelity source mirror of the Notion design
 - [x] Capture the Notion design into a repo-local implementation document
-- [ ] Create atomic requirement ledger
+- [x] Create atomic requirement ledger
 - [x] Create phased implementation plan
 - [x] Create progress tracker
 - [x] Create open-questions register
@@ -140,3 +138,4 @@ Update when: status changes, blockers appear, or phases complete.
 - `2026-03-23`
   - Created the temporary implementation workspace and seeded the plan, tracker, and question log from the current Notion design plus the stable repo rules.
   - Added omission-control docs, a source-block inventory, and seed coverage rows so untracked design areas stay visible.
+  - Completed the split source mirror and moved the ledger from source-block seed coverage into an initial atomic expansion layer.

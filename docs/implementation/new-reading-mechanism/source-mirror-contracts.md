@@ -1,0 +1,334 @@
+# New Reading Mechanism Source Mirror: Contract Blocks
+
+Purpose: preserve the behavior-defining contract blocks from the Notion design in repo-local form with high fidelity.
+Use when: implementing or reviewing node behavior, invariants, or IO contracts.
+Not for: prompt wording ownership or simplified execution planning.
+Update when: the upstream Notion contracts change or the mirror is found incomplete.
+
+## 1. `zoom_read` Contract v0
+- Role:
+  - sentence-level interpretive zoom for locally hot lines
+- When it runs:
+  - when trigger output and local pressure justify sentence-level scrutiny
+- Purpose:
+  - clarify what the line is doing
+  - identify weight-bearing language
+  - update local hypotheses, tensions, and activations
+  - justify anchor retention when warranted
+- Required inputs:
+  - current focal sentence
+  - nearby already-read local context
+  - current `working_pressure`
+  - relevant anchors and live activations when available
+  - policy snapshot
+- Forbidden inputs:
+  - future unseen text
+  - full memory dumps
+  - hidden permission to mutate durable state silently
+- Output shape:
+  - local interpretation
+  - anchor-worthy line or phrase
+  - pressure updates
+  - activation updates
+  - bridge candidate if any
+  - whether sentence-level reaction emission should even be considered
+- Invariants:
+  - stays text-grounded
+  - does not fake certainty
+  - does not over-promote local observations into durable summaries
+
+## 2. `meaning_unit_closure` Contract v0
+- Role:
+  - close or continue a local meaning unit after enough text has accumulated
+- When it runs:
+  - after candidate-boundary pressure or cadence demands closure judgment
+- Purpose:
+  - decide whether the current local span now supports one real interpretive move
+  - identify the dominant move and resulting state updates
+  - recommend anchor retention, cooling, promotion candidates, bridge candidates, or reaction candidates when justified
+- Required inputs:
+  - current local span
+  - current `working_pressure`
+  - relevant anchors and activations
+  - boundary/gate context
+  - policy snapshot
+- Forbidden inputs:
+  - future text
+  - free permission to alter reflective history silently
+- Output shape:
+  - closure decision
+  - meaning-unit summary
+  - dominant move or pressure outcome
+  - proposed state operations
+  - optional bridge or reaction candidates
+- Invariants:
+  - closure is earned, not forced
+  - does not manufacture neatness where unresolved pressure remains
+
+## 3. `controller_decision` Contract v0
+- Role:
+  - choose the next move after local state has been updated
+- Decision set:
+  - `advance`
+  - `dwell`
+  - `bridge`
+  - `reframe`
+- Purpose:
+  - route the reading process according to unresolved interpretive pressure under coverage discipline
+- Required inputs:
+  - updated `working_pressure`
+  - local closure output
+  - bridge candidates
+  - gate state
+  - policy snapshot
+- Forbidden inputs:
+  - future unseen text
+  - arbitrary desire for variety or novelty
+- Output shape:
+  - chosen move
+  - brief reason
+  - target span or bridge target when applicable
+  - no hidden side effects
+- Invariants:
+  - no bridge without a source-anchor target
+  - no false closure because of pacing alone
+  - reframe pressure must be genuine, not decorative
+
+## 4. `bridge_resolution` Contract v0
+- Role:
+  - judge the best bridge target from deterministic candidate retrieval
+- Purpose:
+  - answer what earlier anchor should be brought back now, why this one, and through what relation
+- Required inputs:
+  - ranked candidate list
+  - current pressure context
+  - current focal anchor or span
+  - policy snapshot
+- Forbidden inputs:
+  - reaction objects as primary bridge targets
+  - future text
+  - free-form global memory search
+- Output shape:
+  - primary target anchor
+  - optional supporting anchors
+  - relation type
+  - why-now explanation
+  - fallback decision if no honest bridge exists
+- Invariants:
+  - prefers source anchors
+  - does not fake a bridge from weak fuzzy similarity
+  - may fall back to `advance` or `dwell` if no honest bridge exists
+
+## 5. `candidate_generation` Contract v0
+- Role:
+  - generate bridge candidates from deterministic channels before any bridge-resolution judgment
+- Purpose:
+  - retrieve plausible earlier source anchors from relation, motif, unresolved-pressure, structural-echo, and semantic-fallback channels
+- Required inputs:
+  - current anchor or focal span
+  - current pressure state
+  - anchor memory indexes
+  - bounded look-back access if memory is insufficient
+- Forbidden inputs:
+  - future text
+  - external search
+- Output shape:
+  - normalized candidate records with target anchor, target space, retrieval channel, relation type, score, pressure link, and why-now
+- Invariants:
+  - deterministic or cheaply ranked by design
+  - candidate generation is not itself the interpretive bridge decision
+
+## 6. `reaction_emission` Contract v0
+- Role:
+  - decide whether a user-visible anchored reaction should be persisted for the current reading moment
+- Purpose:
+  - emit durable visible thoughts only when a thought is both real and worth surfacing
+- Required inputs:
+  - current local interpretation or chapter-level conclusion
+  - primary anchor
+  - optional related anchors
+  - current state snapshot
+- Forbidden inputs:
+  - pressure to emit on every meaning unit
+  - unanchored commentary
+- Output shape:
+  - emit vs do-not-emit
+  - anchored reaction payload when emitted
+  - reason when withheld
+- Invariants:
+  - output is anchored
+  - output is legible
+  - output is not a generic summary wrapper
+
+## 7. `reflective_promotion` Contract v0
+- Role:
+  - judge whether local or chapter-level understanding has earned promotion into `reflective_summaries`
+- Purpose:
+  - prevent both premature promotion and needless loss of durable understanding
+- Required inputs:
+  - candidate statement
+  - support anchors
+  - current reflective state
+  - policy snapshot
+- Forbidden inputs:
+  - pressure to promote for neatness
+  - silent overwrite of older reflective meaning
+- Output shape:
+  - promote vs do-not-promote
+  - reflective item payload
+  - confidence band
+  - supersede target if the new item replaces an older one
+- Invariants:
+  - moderate evidence alone is not enough
+  - supersede, do not silently edit in place
+
+## 8. `reconsolidation` Contract v0
+- Role:
+  - link a later reading moment back to an earlier persisted reaction when the later reading materially changes its meaning
+- When it runs:
+  - only when a reflective summary that drew on an earlier reaction is materially changed by later reading
+- Purpose:
+  - create a durable `reconsolidation_record`
+  - classify the change kind
+  - update current understanding state
+  - keep the earlier reaction immutable
+  - produce the later anchored reaction
+- Required inputs:
+  - earlier reaction
+  - earlier anchor context
+  - later trigger
+  - current understanding snapshot
+  - policy snapshot
+  - output language
+- Forbidden inputs:
+  - future unseen text
+  - external search results
+  - full anchor-memory dumps
+  - permission to edit the earlier reaction's `thought`
+- Output schema fields:
+  - `reconsolidation_decision`
+  - `reconsolidation_record`
+  - `later_reaction`
+  - `state_updates`
+- Allowed operations:
+  - create a reconsolidation record
+  - create a later anchored reaction
+  - propose `supersede` for reflective summaries
+  - propose activation and `working_pressure` updates
+- Not allowed:
+  - rewrite or delete earlier reaction text
+  - search
+  - choose the next controller move
+  - perform bridge retrieval
+  - promote reflective summaries directly
+- Invariants:
+  - earlier thought is immutable once saved
+  - later thought must be independently anchored
+  - `what_changed` must describe the real interpretive shift
+  - change kind must be honest
+  - state updates must be explicit
+  - reconsolidation is reserved for material change, not every minor refinement
+
+## 9. `book_survey` Contract v0
+- Role:
+  - orientation call before deep reading begins
+- When it runs:
+  - once before the main reading loop begins for a book
+- Purpose:
+  - build a lightweight orientation frame from title, TOC, chapter boundaries, openings, closings, and structural pivots
+  - identify tentative motif seeds
+  - avoid paragraph-level pre-reading
+- Required inputs:
+  - `book_metadata`
+  - `table_of_contents`
+  - `chapter_boundaries`
+  - `chapter_openings_and_closings`
+  - `policy_snapshot`
+- Forbidden inputs:
+  - full paragraph-level text of unread chapters
+  - interpretive context from earlier runs
+  - external reviews or summaries
+- Output schema fields:
+  - `book_frame`
+  - `chapter_map`
+  - `initial_motif_seeds`
+  - `survey_caveats`
+- Allowed operations:
+  - build structural metadata
+  - create tentative motif seeds from titles and openings only
+  - note structural pivots visible from the TOC
+- Not allowed:
+  - pre-interpret paragraph-level content
+  - create knowledge activations
+  - create anchors in `anchor_memory`
+  - produce user-visible reactions
+- Invariants:
+  - survey must not violate the non-cheating constraint
+  - motif seeds remain tentative
+  - structural role guesses are weak priors, not commitments
+
+## 10. `chapter_consolidation` Contract v0
+- Role:
+  - chapter-end synthesis call
+- When it runs:
+  - at the end of a chapter, after the final meaning unit in that chapter is closed
+- Purpose:
+  - perform backward sweep
+  - trigger reflective-promotion candidates
+  - cool working pressure
+  - update anchor status
+  - update activation status
+  - produce chapter checkpoint summary
+  - optionally emit a chapter-level anchored reaction
+- Required inputs:
+  - `chapter_ref`
+  - `meaning_units_in_chapter`
+  - `working_pressure_snapshot`
+  - `anchor_memory_chapter_slice`
+  - `reflective_summaries_snapshot`
+  - `knowledge_activations_snapshot`
+  - `persisted_reactions_in_chapter`
+  - `policy_snapshot`
+  - `output_language_name`
+- Forbidden inputs:
+  - future chapter text
+  - external search results
+  - raw chain-of-thought
+  - full event logs
+- Output schema fields:
+  - `chapter_ref`
+  - `backward_sweep`
+  - `cooling_operations`
+  - `promotion_candidates`
+  - `anchor_status_updates`
+  - `knowledge_activation_updates`
+  - `cross_chapter_carry_forward`
+  - `chapter_summary_note`
+  - `optional_chapter_reaction`
+- Allowed operations:
+  - propose cooling/dropping/retain-hot decisions
+  - propose retained anchors for backward-sweep discoveries
+  - propose promotion candidates
+  - propose activation lifecycle updates
+  - emit chapter-end checkpoint summary
+- Not allowed:
+  - directly promote reflective summaries
+  - choose the next chapter's first move
+  - perform search
+  - read future text
+  - silently drop unresolved pressure because the chapter ended
+- Invariants:
+  - chapter end is an opportunity for cooling and promotion, not a justification for weak promotion
+  - unresolved questions persist across chapters by default if still live
+  - backward sweep must not retroactively change earlier persisted reactions
+  - cooling is not rejection
+
+## Prompt-Versioning And Evaluation-Traceability Rules
+- Prompt iteration should be traceable enough that evaluation can distinguish prompt changes from mechanism, policy, retrieval, or model changes.
+- Required version layers:
+  - `mechanism_version`
+  - `policy_version`
+  - `prompt_set_version`
+  - `model_config_fingerprint`
+- Node-level prompt versions should exist for prompt-bearing nodes.
+- Prompt-sensitive evaluation must preserve the prompt surface, dataset slice, run metadata, and comparison target.

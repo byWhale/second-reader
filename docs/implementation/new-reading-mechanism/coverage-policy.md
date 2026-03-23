@@ -55,5 +55,8 @@ Update when: the omission-control process changes.
 - When a design point is intentionally deferred or rejected, record that decision explicitly instead of letting it disappear.
 
 ## Current Assessment
-- `design-capture.md` is useful, but by itself it is not enough to guarantee omission control.
-- Full omission control requires both a full-fidelity source mirror and an atomic requirement ledger.
+- `design-capture.md` is useful, but by itself is not enough to guarantee omission control.
+- The omission-control foundation now exists:
+  - split source mirror files preserve source ordering and contract detail
+  - the requirement ledger has moved past seed coverage into atomic expansion
+- Remaining refinement should add detail or split rows further where implementation needs it; it should not rebuild the omission-control foundation from scratch.
