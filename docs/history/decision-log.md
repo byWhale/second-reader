@@ -519,3 +519,27 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/api-contract.md`
 - `docs/backend-state-aggregation.md`
 - `docs/backend-reading-mechanisms/attentional_v2.md`
+
+## Entry 25
+**Decision / Inflection**: Split `attentional_v2` observability into thin standard runtime history and optional debug-only diagnostics.
+
+**Period**: March 2026, during the later Phase 8 observability pass.
+
+**Problem**: The mechanism now had enough runtime state, resume behavior, and shared-surface projection that observability could no longer stay implicit. The project needed enough default traceability for trustworthy resume, public/runtime history, and evaluation, but persisting all controller/candidate/prompt internals on every run would have inflated storage and blurred the product-facing trace.
+
+**Alternatives considered**: Keep all observability thin and shared even if evaluation and diagnosis became weak, persist all controller forensics by default in the shared runtime path, or postpone the split until a live end-to-end runner existed.
+
+**Why this path won**: A two-tier observability model preserves both runtime honesty and implementation discipline. Shared `_runtime/` artifacts and public-facing activity now remain thin enough to represent real product/runtime history, while mechanism-private full checkpoints keep resume-correctness state, and deeper controller forensics stay in optional debug-only diagnostics. This matches the broader `mechanism-authored core, shell-authored envelope` direction instead of letting debug needs redefine the runtime shell.
+
+**What changed in the system**: `reader_policy.logging` now explicitly records `observability_mode` plus standard/debug logging toggles. Shared `runtime_shell.json` and checkpoint summaries now carry `observability_mode`. Checkpoint writes and resume restores now emit standard shared activity events, while debug-mode diagnostics continue under `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`. Stable docs now also distinguish standard evaluation evidence from optional debug forensics.
+
+**Why it matters later**: This is the project’s first explicit observability boundary for a future non-default mechanism. Future contributors will need this context to understand why standard traces should be sufficient for baseline evaluation and trustworthy resume, why full checkpoints remain standard-private instead of public, and why deep controller forensics should remain optional rather than silently becoming the default runtime posture.
+
+**Primary evidence**:
+- `reading-companion-backend/src/attentional_v2/observability.py`
+- `reading-companion-backend/src/attentional_v2/resume.py`
+- `reading-companion-backend/src/attentional_v2/storage.py`
+- `reading-companion-backend/src/reading_runtime/shell_state.py`
+- `docs/backend-state-aggregation.md`
+- `docs/backend-reader-evaluation.md`
+- `docs/backend-reading-mechanisms/attentional_v2.md`

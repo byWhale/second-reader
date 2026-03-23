@@ -131,6 +131,16 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - config fingerprint
   - normalized attention trail, reactions, chapter outputs, and memory summaries when the runtime exposes them
 
+## Observability Posture For Evaluation
+- Default evaluation should rely on `standard` observability first.
+  - Standard mode should preserve enough runtime history for trustworthy resume, durable trace audits, and baseline cross-mechanism comparison.
+- `debug` observability is for diagnosis, not for defining the baseline benchmark requirement.
+  - Candidate traces, controller forensics, prompt diagnostics, and other deep internal records are useful when explaining regressions or tuning a mechanism, but they should remain optional.
+- A mechanism should not need debug mode just to be legible in normal evaluation.
+  - If baseline evaluation only works when deep diagnostics are on, the standard trace is too thin.
+- Conversely, stable evaluation should not require every normal product run to persist full controller forensics.
+  - The benchmark/report layer may opt into debug runs when needed for attribution or failure analysis.
+
 ## Evaluation Layers
 - Evaluation layers are mechanism-agnostic lenses for designing rubrics and benchmark plans.
 - They are not permanent claims about today's pipeline.

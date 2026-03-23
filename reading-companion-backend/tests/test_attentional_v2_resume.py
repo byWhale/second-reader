@@ -2,21 +2,24 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from src.attentional_v2.resume import persist_reading_position, resume_from_checkpoint, write_full_checkpoint
 from src.attentional_v2.schemas import build_empty_local_buffer
 from src.attentional_v2.state_ops import close_local_meaning_unit, push_local_buffer_sentence
 from src.attentional_v2.storage import (
+    event_stream_file,
     full_checkpoint_file,
     load_json,
     local_buffer_file,
     reaction_records_file,
+    reader_policy_file,
     resume_metadata_file,
     save_json,
 )
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
-from src.reading_runtime.artifacts import checkpoint_summary_file, runtime_shell_file
+from src.reading_runtime.artifacts import activity_file, checkpoint_summary_file, runtime_shell_file
 from src.reading_runtime.shell_state import load_runtime_shell
 
 
@@ -146,6 +149,15 @@ def test_checkpoint_and_warm_resume_restore_exact_hot_state(tmp_path: Path):
     assert resumed["local_buffer"]["is_reconstructed"] is False
     assert load_json(resume_metadata_file(output_dir))["last_resume_status"] == "warm_restored"
     assert load_json(checkpoint_summary_file(output_dir, "cp-1"))["visible_reaction_ids"] == ["rx-1"]
+    activity_events = [
+        json.loads(line)
+        for line in activity_file(output_dir).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert [event["type"] for event in activity_events] == ["checkpoint.saved", "resume.restored"]
+    assert activity_events[0]["reading_locus"]["sentence_end_id"] == "c1-s6"
+    assert activity_events[1]["last_resume_kind"] == "warm_resume"
+    assert event_stream_file(output_dir).read_text(encoding="utf-8") == ""
 
 
 def test_cold_resume_expands_to_open_meaning_unit_start(tmp_path: Path):
@@ -205,3 +217,34 @@ def test_incompatible_checkpoint_falls_back_to_live_warm_resume(tmp_path: Path):
     assert "mechanism_version_mismatch" in resumed["compatibility_issues"]
     assert resumed["effective_resume_kind"] == "warm_resume"
     assert resumed["local_buffer"]["is_reconstructed"] is False
+
+
+def test_debug_observability_writes_internal_diagnostics_events(tmp_path: Path):
+    """Debug mode should keep shared activity thin while also writing internal diagnostics events."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    policy = load_json(reader_policy_file(output_dir))
+    policy["logging"]["observability_mode"] = "debug"
+    save_json(reader_policy_file(output_dir), policy)
+
+    book_document = _make_book_document(8)
+    local_buffer = _build_buffer(total_sentences=8, closed_breaks=[4])
+    persist_reading_position(output_dir, chapter_id=1, chapter_ref="Chapter 1", local_buffer=local_buffer)
+    write_full_checkpoint(output_dir, checkpoint_id="cp-debug", checkpoint_reason="debug_fixture")
+    resume_from_checkpoint(output_dir, book_document=book_document, requested_resume_kind="cold_resume")
+
+    debug_events = [
+        json.loads(line)
+        for line in event_stream_file(output_dir).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert [event["event_type"] for event in debug_events] == ["checkpoint.saved", "resume.restored"]
+    assert debug_events[0]["observability_mode"] == "debug"
+    assert debug_events[0]["payload"]["state_counts"]["reaction_count"] == 0
+    assert debug_events[1]["payload"]["effective_resume_kind"] == "cold_resume"
+
+    shell = load_runtime_shell(runtime_shell_file(output_dir))
+    checkpoint_summary = load_json(checkpoint_summary_file(output_dir, "cp-debug"))
+    assert shell["observability_mode"] == "debug"
+    assert checkpoint_summary["observability_mode"] == "debug"

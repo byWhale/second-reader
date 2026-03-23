@@ -204,12 +204,13 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/runtime/checkpoints/*`
 - Current scaffolded shared runtime resume artifacts
   - `_runtime/runtime_shell.json`
-    - shared cursor and last-checkpoint pointer
+    - shared cursor, last-checkpoint pointer, and observability mode
   - `_runtime/checkpoint_summaries/*.json`
-    - thin resume-kind and visible-reaction checkpoint summaries
+    - thin resume-kind, observability mode, and visible-reaction checkpoint summaries
 - Later mechanism-private runtime artifacts may still add further controller-facing state if implementation proves they are needed.
 - Current scaffolded mechanism-private internal artifacts
   - `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`
+    - debug-only diagnostics stream once Phase 8 debug mode is enabled
   - `_mechanisms/attentional_v2/internal/prompt_manifests/*.json`
 - Current scaffolded prompt manifests now include:
   - `zoom_read`
@@ -242,6 +243,15 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - reaction/mark `primary_anchor`
   - `related_anchors`
   - reconsolidation lineage via `supersedes_reaction_id`
+- Phase 8 now also resolves the first observability split:
+  - shared `standard` mode keeps:
+    - thin runtime shell
+    - thin checkpoint summaries
+    - shared checkpoint/resume activity events
+    - mechanism-private full checkpoints for resume correctness
+  - mechanism-private `debug` mode adds:
+    - deep diagnostics events under `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`
+    - controller/candidate/prompt forensics that should not become the default runtime trace
 - The mechanism's internal locus will not necessarily be a fixed `section`.
   - Adapters must project the current focal span and reading phase into shared public fields without claiming that the private ontology is section-based.
 - The Phase 8 rule is:
@@ -259,6 +269,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - Future migration still needed:
   - redesign chapter/detail around chapter text plus anchored reactions instead of semantic sections as the primary container
   - retire section-first requirements from the stable API/frontend contract once the frontend has switched to locus/anchor-native rendering
+- Future observability work still needed:
+  - wire standard/debug node-level traces once the live parse/read path exists
+  - keep debug mode optional rather than making deep diagnostics the baseline requirement for normal evaluation runs
 - The survey stage must stay coarse enough that it does not become hidden full-book cheating.
 - Retrieval pressure, rare-search gating, and revisit behavior will likely need careful budget control during implementation.
-- Public adapter behavior still needs later observability/evaluation decisions before Phase 8 can fully close.
+- Public adapter behavior and evaluation thresholds still need later decisions before Phase 8 can fully close.

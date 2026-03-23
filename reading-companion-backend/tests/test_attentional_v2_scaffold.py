@@ -46,10 +46,12 @@ def test_attentional_v2_initialization_writes_phase7_artifacts(tmp_path):
     shell = load_runtime_shell(runtime_shell_file(output_dir))
     assert shell["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
     assert shell["mechanism_version"] == ATTENTIONAL_V2_MECHANISM_VERSION
+    assert shell["observability_mode"] == "standard"
     assert shell["cursor"]["position_kind"] == "chapter"
 
     checkpoint = json.loads(checkpoint_summary_file(output_dir, "bootstrap").read_text(encoding="utf-8"))
     assert checkpoint["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
+    assert checkpoint["observability_mode"] == "standard"
     assert checkpoint["resume_kind"] == "warm_resume"
 
     manifest = json.loads(mechanism_manifest_file(output_dir, ATTENTIONAL_V2_MECHANISM_KEY).read_text(encoding="utf-8"))
@@ -94,6 +96,8 @@ def test_attentional_v2_initialization_writes_phase7_artifacts(tmp_path):
     assert policy["search"]["default_mode"] == "no_search"
     assert policy["resume"]["cold_resume_target_sentences"] == 8
     assert policy["resume"]["reconstitution_resume_max_sentences"] == 30
+    assert policy["logging"]["observability_mode"] == "standard"
+    assert policy["logging"]["debug_event_stream"] is False
 
     resume_metadata = json.loads(resume_metadata_file(output_dir).read_text(encoding="utf-8"))
     assert resume_metadata["resume_available"] is False

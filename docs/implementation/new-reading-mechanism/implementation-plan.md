@@ -207,7 +207,12 @@ Purpose:
 
 Main work:
 - Implement required event-stream and checkpoint-summary contracts.
-- Emit required event types with reason summaries and version metadata.
+- Resolve the observability split as:
+  - shared/public `standard`
+  - mechanism-private `debug`
+- Emit required standard event types with reason summaries and version metadata.
+- Keep shared runtime shell and shared checkpoint summaries thin while preserving full resume-correctness checkpoints privately under the mechanism.
+- Reserve controller forensics, candidate traces, prompt/node diagnostics, and detailed rejection reasons for debug mode.
 - Produce normalized eval artifacts and run metadata compatible with shared evaluation docs.
 - Adapt mechanism-private locus into shared public surfaces:
   - `current_reading_activity`
@@ -223,6 +228,9 @@ Main work:
 - Record the later intentional migration that still remains:
   - redesign chapter/detail and marks surfaces around chapter text plus anchored reactions
   - remove section-first requirements from the stable API/frontend contract once the frontend has switched to locus/anchor-native rendering
+- Record the later observability work that still remains:
+  - wire node-level standard/debug observability across the live local loop, bridge cycle, and slow-cycle nodes once the live runner exists
+  - keep debug mode optional instead of making deep diagnostics the baseline requirement for normal evaluation runs
 - Verify compatibility with current analysis-state, activity, and marks surfaces.
 
 Depends on:
@@ -230,6 +238,8 @@ Depends on:
 
 Exit criteria:
 - Every major mechanism move has observable evidence.
+- Standard mode is sufficient for trustworthy resume, durable trace, and baseline evaluation.
+- Debug mode adds implementation forensics without becoming the default runtime storage posture.
 - The mechanism can be evaluated without raw private traces becoming the primary comparison surface.
 - The top layer can expose more of the mechanism's real value without forcing the mechanism back into section-first ontology.
 - Shared product views can consume the new mechanism through adapters instead of ontology leakage.

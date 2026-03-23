@@ -31,11 +31,16 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `_runtime/runtime_shell.json`
   - Shared thin runtime envelope for cross-mechanism cursor and active-artifact references.
   - May now contribute additive `reading_locus` and active reaction references for non-section mechanisms even when the current compatibility surfaces still expose `segment_ref`.
+  - Phase 8 now also carries `observability_mode` so the shared shell can distinguish thin standard-mode runtime state from debug-only diagnostics.
 - `_runtime/parse_state.json`
   - Parse-stage checkpoint metadata used before the main run state fully reflects deep-reading progress.
   - Important for deferred upload and for the `parsing_structure` view of resumability.
 - `_runtime/activity.jsonl`
-  - The historical activity stream used for both the visible mindstream and the internal system-diagnostics trail.
+  - The historical activity stream used for the visible mindstream and standard system/runtime events.
+  - For `attentional_v2`, checkpoint and resume events may now be written here in standard mode because they are part of trustworthy runtime history rather than debug-only forensics.
+- `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`
+  - Debug-only diagnostics stream for `attentional_v2`.
+  - Controller-facing forensics, candidate traces, and other deep debug events belong here instead of the shared runtime history.
 - `_mechanisms/iterator_v1/runtime/reader_memory.json`
   - Iterator-private live reader memory for resume and continuity.
   - Shared aggregation should only read it through storage helpers when compatibility or recovery behavior requires it.
@@ -134,6 +139,10 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
   - Public aggregation may now expose richer additive fields such as `reading_locus`, `primary_anchor`, `related_anchors`, and `supersedes_reaction_id`.
   - Existing `segment_ref` / `section_ref` fields remain temporary compatibility sidecars for current frontend surfaces.
   - The later planned migration is to redesign chapter/detail and marks around chapter text plus anchored reactions instead of section-first containers.
+- Standard observability vs debug diagnostics
+  - Shared `_runtime/runtime_shell.json`, `_runtime/activity.jsonl`, and `_runtime/checkpoint_summaries/*.json` are the standard-mode observability layer.
+  - Mechanism-private full checkpoints remain standard-private because they are required for honest resume and baseline evaluation, even though they are not public API surfaces.
+  - Deep controller, candidate, and prompt diagnostics belong under `_mechanisms/<mechanism_key>/internal/diagnostics/` and should stay debug-only rather than default shared runtime state.
 
 ## Practical Reading Order
 - Read `docs/backend-sequential-lifecycle.md` first when the question is "how does the job behave over time?"

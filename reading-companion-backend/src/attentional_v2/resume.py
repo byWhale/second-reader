@@ -17,6 +17,7 @@ from src.reading_runtime.shell_state import (
     write_checkpoint_summary,
 )
 
+from .observability import emit_checkpoint_observability, emit_resume_observability, observability_mode
 from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
     ATTENTIONAL_V2_POLICY_VERSION,
@@ -296,6 +297,7 @@ def write_full_checkpoint(
         mechanism_key=str(shell.get("mechanism_key", "") or "attentional_v2"),
         mechanism_version=str(shell.get("mechanism_version", "") or ATTENTIONAL_V2_MECHANISM_VERSION),
         policy_version=str(shell.get("policy_version", "") or ATTENTIONAL_V2_POLICY_VERSION),
+        observability_mode=observability_mode(bundle["reader_policy"]),
         resume_kind=resume_kind,
     )
     summary["cursor"] = cursor
@@ -330,6 +332,7 @@ def write_full_checkpoint(
     save_json(full_checkpoint_file(output_dir, checkpoint_id), checkpoint)
 
     shell["cursor"] = cursor
+    shell["observability_mode"] = observability_mode(bundle["reader_policy"])
     shell["resume_available"] = True
     shell["last_checkpoint_id"] = checkpoint_id
     shell["last_checkpoint_at"] = checkpoint["created_at"]
@@ -343,6 +346,11 @@ def write_full_checkpoint(
     resume_metadata["last_checkpoint_id"] = checkpoint_id
     resume_metadata["last_checkpoint_at"] = checkpoint["created_at"]
     save_json(resume_metadata_file(output_dir), resume_metadata)
+    emit_checkpoint_observability(
+        output_dir,
+        checkpoint,
+        reader_policy=bundle["reader_policy"],  # type: ignore[arg-type]
+    )
     return checkpoint
 
 
@@ -722,6 +730,7 @@ def resume_from_checkpoint(
         open_meaning_unit_sentence_ids=list(continuity.get("open_meaning_unit_sentence_ids", [])),
     )
     shell["cursor"] = cursor
+    shell["observability_mode"] = observability_mode(policy)
     shell["active_artifact_refs"] = dict(checkpoint_source.get("active_artifact_refs", shell.get("active_artifact_refs", {})))
     shell["resume_available"] = bool(shell.get("last_checkpoint_id"))
     shell["updated_at"] = _timestamp()
@@ -744,7 +753,7 @@ def resume_from_checkpoint(
     }
     save_json(resume_metadata_file(output_dir), resume_metadata)
 
-    return {
+    resume_result = {
         "requested_resume_kind": requested_resume_kind or resume_policy.get("default_mode", "warm_resume"),
         "effective_resume_kind": effective_resume_kind,
         "compatibility_status": compatibility_status,
@@ -757,3 +766,11 @@ def resume_from_checkpoint(
         "trigger_state": trigger_state,
         "resume_metadata": resume_metadata,
     }
+    emit_resume_observability(
+        output_dir,
+        resume_result,
+        reader_policy=policy,  # type: ignore[arg-type]
+        active_artifact_refs=shell.get("active_artifact_refs"),  # type: ignore[arg-type]
+    )
+
+    return resume_result

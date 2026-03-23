@@ -14,7 +14,6 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
 ## Open Questions
 | ID | Question | Why it matters | Target phase | Current status |
 | --- | --- | --- | --- | --- |
-| Q8 | Which observability fields are required in standard mode versus debug-only mode? | Needed to keep evaluation useful without exploding runtime storage. | Phase 8 | `open` |
 | Q9 | What dataset slices and acceptance thresholds will be used for mechanism-integrity and end-to-end evaluation? | Needed before comparing against `iterator_v1` or considering default promotion. | Phase 8 / 9 | `open` |
 | Q10 | When should the detailed design be promoted from temporary docs into stable `docs/backend-reading-mechanisms/<mechanism>.md`? | Prevents stable docs from becoming a working notebook while also avoiding long-term drift. | Phase 0 / 9 | `open` |
 
@@ -235,6 +234,98 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
     - later migration should redesign chapter/detail around chapter text plus anchored reactions rather than semantic sections as the primary container
     - later migration should remove section-first requirements from stable API/frontend contracts once the frontend has switched to locus/anchor-native rendering
     - later migration may further refine reaction lineage beyond the first additive `supersedes_reaction_id` sidecar if richer reconsolidation views are needed
+- `Q8` resolved on `2026-03-23`
+  - Decision:
+    - use a two-tier observability model:
+      - `standard`
+      - `debug`
+    - `standard` mode should keep only:
+      - product-visible live/activity signals
+      - durable trace and re-entry signals
+      - resume-correctness state
+      - shared checkpoint summaries
+      - cross-mechanism evaluation essentials
+    - `debug` mode should add controller-facing forensics such as:
+      - trigger/gate diagnostics
+      - candidate and rejection traces
+      - bridge-comparison traces
+      - prompt and node diagnostics
+      - fallback and reconstruction details
+    - not every `standard` field needs to be public:
+      - shared `_runtime/` and public activity stay thin
+      - mechanism-private full checkpoints remain standard-private
+      - deep diagnostics remain debug-private
+  - Why:
+    - the mechanism needs enough default observability to preserve trustworthy resume, durable reading trace, and evaluation usefulness
+    - making all controller internals standard would bloat runtime storage and distort the product-facing trace
+    - a thin shared shell plus richer mechanism-private diagnostics matches the agreed `mechanism-authored core, shell-authored envelope` boundary
+  - Phase 8 landing:
+    - `reader_policy.logging` now explicitly records:
+      - `observability_mode`
+      - shared event-stream enablement
+      - shared checkpoint-summary enablement
+      - debug event-stream enablement
+      - debug checkpoint-diagnostics enablement
+    - shared `_runtime/runtime_shell.json` and `_runtime/checkpoint_summaries/*.json` now carry `observability_mode`
+    - checkpoint writes and resume restores now emit:
+      - standard shared activity events in `_runtime/activity.jsonl`
+      - debug-only diagnostics events in `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl` when debug mode is enabled
+  - Standard-mode required fields are:
+    - shared runtime shell:
+      - mechanism/version/policy identity
+      - observability mode
+      - status/phase
+      - shared cursor
+      - active artifact refs
+      - resume availability
+      - last checkpoint pointer and timestamp
+    - shared checkpoint summaries:
+      - checkpoint identity
+      - mechanism/version/policy identity
+      - observability mode
+      - created time
+      - resume kind
+      - cursor
+      - active artifact refs
+      - visible reaction ids
+    - standard activity events:
+      - user-legible message
+      - stream/kind/type
+      - chapter context
+      - additive `reading_locus`
+      - additive `move_type` when meaningful
+      - active reaction reference when meaningful
+      - visible-reaction linkage only when it serves product traceability
+    - mechanism-private standard checkpoint body:
+      - full resume-correctness state such as:
+        - `local_buffer`
+        - `local_continuity`
+        - `trigger_state`
+        - `working_pressure`
+        - `anchor_memory`
+        - `reflective_summaries`
+        - `knowledge_activations`
+        - `move_history`
+        - `reaction_records`
+        - `reconsolidation_records`
+        - `reader_policy`
+        - `resume_metadata`
+  - Debug-only fields remain:
+    - candidate pools and rejection reasons
+    - controller alternatives
+    - detailed trigger/gate traces
+    - prompt/node diagnostics
+    - per-node fallback and reconstruction forensics
+    - other implementation-facing deep traces that are not needed for product traceability or honest resume
+  - Future work that must stay visible:
+    - once the live parse/read path exists, node-level standard and debug observability still need to be wired across:
+      - `zoom_read`
+      - `meaning_unit_closure`
+      - `controller_decision`
+      - `bridge_resolution`
+      - slow-cycle nodes
+    - Phase 8 still needs `Q9` before evaluation thresholds and promotion-readiness comparisons can be fixed
+    - debug mode should remain optional and should not become the baseline requirement for normal eval runs
 
 ## Promotion Rule
 - Resolve a question here first when the answer is still implementation-local or provisional.

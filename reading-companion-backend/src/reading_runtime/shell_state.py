@@ -6,7 +6,13 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from src.reading_core.runtime_contracts import CheckpointSummary, ResumeKind, RuntimeShellState, SharedRunCursor
+from src.reading_core.runtime_contracts import (
+    CheckpointSummary,
+    ObservabilityMode,
+    ResumeKind,
+    RuntimeShellState,
+    SharedRunCursor,
+)
 
 from .artifacts import checkpoint_summary_file, runtime_shell_file
 
@@ -32,6 +38,7 @@ def build_runtime_shell(
     mechanism_key: str,
     mechanism_version: str,
     policy_version: str,
+    observability_mode: ObservabilityMode = "standard",
     status: str = "initialized",
     phase: str = "preparing",
 ) -> RuntimeShellState:
@@ -41,6 +48,7 @@ def build_runtime_shell(
         "mechanism_key": mechanism_key,
         "mechanism_version": mechanism_version,
         "policy_version": policy_version,
+        "observability_mode": observability_mode,
         "status": status,
         "phase": phase,
         "cursor": empty_cursor(),
@@ -58,6 +66,7 @@ def ensure_runtime_shell(
     mechanism_key: str,
     mechanism_version: str,
     policy_version: str,
+    observability_mode: ObservabilityMode = "standard",
 ) -> RuntimeShellState:
     """Ensure the shared runtime shell exists for one output directory."""
 
@@ -68,6 +77,7 @@ def ensure_runtime_shell(
         mechanism_key=mechanism_key,
         mechanism_version=mechanism_version,
         policy_version=policy_version,
+        observability_mode=observability_mode,
     )
     save_runtime_shell(path, shell)
     return shell
@@ -79,6 +89,7 @@ def build_checkpoint_summary(
     mechanism_key: str,
     mechanism_version: str,
     policy_version: str,
+    observability_mode: ObservabilityMode = "standard",
     resume_kind: ResumeKind = "warm_resume",
 ) -> CheckpointSummary:
     """Build a thin shared checkpoint summary."""
@@ -88,6 +99,7 @@ def build_checkpoint_summary(
         "mechanism_key": mechanism_key,
         "mechanism_version": mechanism_version,
         "policy_version": policy_version,
+        "observability_mode": observability_mode,
         "created_at": _timestamp(),
         "resume_kind": resume_kind,
         "cursor": empty_cursor(),

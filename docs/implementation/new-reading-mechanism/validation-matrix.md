@@ -51,4 +51,10 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
   - `analysis-state.current_reading_activity.reading_locus`
   - runtime-shell-backed additive locus projection
   - additive `primary_anchor` preservation across chapter, activity, and marks payloads
+- The next Phase 8 landing now also requires runtime validation for:
+  - shared runtime shell carrying `observability_mode`
+  - shared checkpoint summaries carrying `observability_mode`
+  - standard checkpoint/resume events being written to `_runtime/activity.jsonl`
+  - debug diagnostics events appearing only when debug mode is enabled
 - Future Phase 8 / 9 work still needs explicit validation for the eventual removal of section-first chapter/detail and marks assumptions.
+- Future Phase 8 work still needs node-level observability validation once the live runner wires standard/debug traces across the real interpretive loop.

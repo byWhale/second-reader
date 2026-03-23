@@ -7,7 +7,7 @@ from typing import Literal, TypedDict
 
 from src.reading_core.book_document import TextLocator, TextRole
 from src.reading_core.normalized_outputs import ReactionType, SearchHit
-from src.reading_core.runtime_contracts import ResumeKind, RuntimeArtifactRefs, SharedRunCursor
+from src.reading_core.runtime_contracts import ObservabilityMode, ResumeKind, RuntimeArtifactRefs, SharedRunCursor
 
 
 GateState = Literal["quiet", "watch", "hot", "must_evaluate"]
@@ -468,6 +468,16 @@ class ChapterConsolidationResult(TypedDict, total=False):
     optional_chapter_reaction: ReactionCandidate | None
 
 
+class LoggingPolicy(TypedDict, total=False):
+    """Versioned observability policy for standard vs debug persistence."""
+
+    observability_mode: ObservabilityMode
+    event_stream: bool
+    checkpoint_summaries: bool
+    debug_event_stream: bool
+    debug_checkpoint_diagnostics: bool
+
+
 class ReaderPolicy(TypedDict, total=False):
     """Versioned mechanism policy kept separate from ontology-bearing state."""
 
@@ -481,7 +491,7 @@ class ReaderPolicy(TypedDict, total=False):
     search: dict[str, object]
     bridge: dict[str, object]
     resume: dict[str, object]
-    logging: dict[str, object]
+    logging: LoggingPolicy
 
 
 class ResumeMetadataState(TypedDict, total=False):
@@ -738,7 +748,13 @@ def build_default_reader_policy(
             "chapter_local_only": True,
             "checkpoint_summary_required": True,
         },
-        "logging": {"event_stream": True, "checkpoint_summaries": True},
+        "logging": {
+            "observability_mode": "standard",
+            "event_stream": True,
+            "checkpoint_summaries": True,
+            "debug_event_stream": False,
+            "debug_checkpoint_diagnostics": False,
+        },
     }
 
 

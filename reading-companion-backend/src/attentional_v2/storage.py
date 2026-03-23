@@ -199,6 +199,7 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "chapter_result_compatibility": str(chapter_result_compatibility_file(output_dir, 1).parent.relative_to(output_dir)),
         "full_checkpoints": str(checkpoints_dir(output_dir).relative_to(output_dir)),
         "event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
+        "debug_event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
         "prompt_manifests": str(prompt_manifests_dir(output_dir).relative_to(output_dir)),
     }
 
@@ -236,11 +237,17 @@ def initialize_artifact_tree(
     """Initialize the shared shell and mechanism-private Phase 1 artifacts."""
 
     runtime_artifacts.ensure_mechanism_manifest(output_dir, ATTENTIONAL_V2_MECHANISM_KEY)
+    reader_policy = build_default_reader_policy(
+        mechanism_version=mechanism_version,
+        policy_version=policy_version,
+    )
+    observability_mode = str(reader_policy.get("logging", {}).get("observability_mode", "standard") or "standard")
     ensure_runtime_shell(
         output_dir,
         mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
         mechanism_version=mechanism_version,
         policy_version=policy_version,
+        observability_mode="debug" if observability_mode == "debug" else "standard",
     )
     write_checkpoint_summary(
         output_dir,
@@ -249,6 +256,7 @@ def initialize_artifact_tree(
             mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
             mechanism_version=mechanism_version,
             policy_version=policy_version,
+            observability_mode="debug" if observability_mode == "debug" else "standard",
         ),
     )
     save_json(
@@ -290,10 +298,7 @@ def initialize_artifact_tree(
     )
     save_json(
         reader_policy_file(output_dir),
-        build_default_reader_policy(
-            mechanism_version=mechanism_version,
-            policy_version=policy_version,
-        ),
+        reader_policy,
     )
     save_json(
         resume_metadata_file(output_dir),

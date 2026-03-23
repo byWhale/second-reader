@@ -27,6 +27,7 @@ CurrentReadingProblemCode = Literal[
 ]
 RuntimeCursorKind = Literal["chapter", "sentence", "span"]
 ResumeKind = Literal["warm_resume", "cold_resume", "reconstitution_resume"]
+ObservabilityMode = Literal["standard", "debug"]
 
 
 class UserMark(TypedDict):
@@ -98,6 +99,7 @@ class RuntimeShellState(TypedDict, total=False):
     mechanism_key: str
     mechanism_version: str
     policy_version: str
+    observability_mode: ObservabilityMode
     status: str
     phase: str
     cursor: SharedRunCursor
@@ -115,6 +117,7 @@ class CheckpointSummary(TypedDict, total=False):
     mechanism_key: str
     mechanism_version: str
     policy_version: str
+    observability_mode: ObservabilityMode
     created_at: str
     resume_kind: ResumeKind
     cursor: SharedRunCursor

@@ -17,7 +17,6 @@ Update when: status changes, blockers appear, or phases complete.
 - Current phase:
   - `Phase 8: Observability, Evaluation, And Shared-Surface Integration`
 - Current blockers:
-  - observability split `Q8` is still open for standard-vs-debug event and checkpoint detail
   - evaluation-slice and threshold question `Q9` is still open before later comparison and promotion work
 
 ## Phase Tracker
@@ -124,8 +123,10 @@ Update when: status changes, blockers appear, or phases complete.
     - `reconstitution_resume`: target `24`, hard cap `30`, up to `3` meaning units, chapter-local
 
 ### Phase 8 - Observability, Evaluation, And Shared-Surface Integration
-- [ ] Emit required event types with version metadata
-- [ ] Emit checkpoint summaries with required fields
+- [x] Emit required event types with version metadata
+- [x] Emit checkpoint summaries with required fields
+- [x] Resolve the standard-vs-debug observability split for shared vs private runtime artifacts
+- [x] Wire standard checkpoint/resume events plus debug-only diagnostics scaffolding
 - [ ] Produce normalized eval artifacts
 - [ ] Add mechanism-integrity checks
 - [x] Adapt new mechanism state into shared public surfaces
@@ -170,3 +171,5 @@ Update when: status changes, blockers appear, or phases complete.
   - Completed Phase 7: `attentional_v2` now persists `local_continuity.json` and `resume_metadata.json`, writes full mechanism checkpoints plus shared checkpoint summaries, restores warm/cold/reconstitution resume state through the shared sentence substrate, and marks reconstructed hot state explicitly instead of pretending non-warm resume is warm.
   - Resolved Q4 and landed the first Phase 8 shared-surface slice: public schemas and backend aggregation now expose additive `reading_locus`, `primary_anchor`, `related_anchors`, `supersedes_reaction_id`, `move_type`, and runtime-shell-backed active reaction references while keeping `section_ref` / `segment_ref` as compatibility sidecars.
   - Recorded future migration work explicitly instead of leaving it implicit: the frontend and stable API still need a later intentional cut from section-first chapter/detail and marks surfaces toward chapter text plus anchored reactions as the primary model.
+  - Resolved Q8 and landed the first observability split: shared runtime shell and checkpoint summaries now carry `observability_mode`, standard checkpoint/resume events now write to `_runtime/activity.jsonl`, and debug-only diagnostics now remain under `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`.
+  - Recorded future Phase 8 work explicitly instead of leaving it implicit: once the live parse/read path exists, node-level observability still needs to be wired across the local loop, bridge cycle, and slow-cycle nodes, and Q9 still remains open before evaluation thresholds and promotion-readiness comparison can close the phase.

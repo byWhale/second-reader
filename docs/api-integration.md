@@ -52,6 +52,7 @@ Frontend defaults can be overridden with:
   - reaction/mark `primary_anchor` and related lineage sidecars
 - Current routed frontend surfaces still mostly consume the section-era compatibility layer, so these additive fields are present for migration and future mechanism compatibility rather than for immediate UI dependence.
 - The historical mindstream list still comes from `GET /api/books/{book_id}/activity` with `stream=mindstream` and remains separate from the live activity snapshot.
+- For `attentional_v2`, standard-mode checkpoint and resume events may now also appear in the shared `stream=system` activity feed; deep controller diagnostics remain debug-only and do not belong to the routed frontend contract.
 - Runtime guard events such as stalled heartbeats, timeout detection, unsupported runtime launches, and forced pauses are still written into the same activity feed with `stream=system`, but they are now reserved for internal diagnostics rather than the main user-facing overview.
 - Additional system-side recovery events now include `resume_incompatible`, `fresh_rerun_started`, and `dev_run_abandoned`.
 - `GET /api/books/{book_id}/analysis-log` remains available as an internal diagnostic endpoint, but it is no longer part of the routed frontend integration surface.

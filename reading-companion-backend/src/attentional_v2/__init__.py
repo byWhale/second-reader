@@ -18,6 +18,14 @@ from .knowledge import (
     set_search_policy_mode,
 )
 from .nodes import controller_decision, meaning_unit_closure, reaction_emission, run_phase4_local_cycle, zoom_read
+from .observability import (
+    append_debug_event,
+    append_standard_activity_event,
+    emit_checkpoint_observability,
+    emit_resume_observability,
+    observability_mode,
+    reading_locus_from_cursor,
+)
 from .prompts import (
     ATTENTIONAL_V2_PROMPTS,
     ATTENTIONAL_V2_PROMPTSET_VERSION,
@@ -148,6 +156,10 @@ __all__ = [
     "derive_anchor_id",
     "derive_reaction_id",
     "derive_reconsolidation_record_id",
+    "append_debug_event",
+    "append_standard_activity_event",
+    "emit_checkpoint_observability",
+    "emit_resume_observability",
     "flatten_sentence_inventory",
     "generate_candidate_set",
     "initialize_artifact_tree",
@@ -161,6 +173,7 @@ __all__ = [
     "push_local_buffer_sentence",
     "reaction_records_for_chapter",
     "reaction_emission",
+    "reading_locus_from_cursor",
     "reconsolidation",
     "resume_from_checkpoint",
     "refresh_knowledge_modes",
@@ -183,5 +196,6 @@ __all__ = [
     "validate_resume_compatibility",
     "write_full_checkpoint",
     "write_book_survey_artifacts",
+    "observability_mode",
     "zoom_read",
 ]
