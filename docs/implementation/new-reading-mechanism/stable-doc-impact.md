@@ -48,3 +48,7 @@ Update when: the project scope expands, a workstream changes, or a new stable-do
   - `docs/backend-reading-mechanisms/attentional_v2.md`
   - `docs/history/decision-log.md`
   - because standard-vs-debug observability is now a real runtime/evaluation rule rather than a temporary chat-only preference.
+- Current Q9/Phase 8 evaluation-export landing touches:
+  - `docs/backend-reader-evaluation.md`
+  - `docs/backend-reading-mechanisms/attentional_v2.md`
+  - because normalized eval exports and structural integrity checks are now real mechanism behavior, while the future dataset/corpus curation work still remains intentionally deferred to Phase 9.

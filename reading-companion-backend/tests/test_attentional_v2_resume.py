@@ -127,7 +127,7 @@ def test_checkpoint_and_warm_resume_restore_exact_hot_state(tmp_path: Path):
         reaction_records_file(output_dir),
         {
             "schema_version": 1,
-            "mechanism_version": "attentional_v2-phase7",
+            "mechanism_version": "attentional_v2-phase8",
             "updated_at": "2026-03-23T00:00:00Z",
             "records": [{"reaction_id": "rx-1"}],
         },

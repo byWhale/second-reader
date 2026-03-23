@@ -176,6 +176,12 @@ def chapter_result_compatibility_file(output_dir: Path, chapter_id: int) -> Path
     return derived_dir(output_dir) / "chapter_result_compatibility" / f"chapter-{int(chapter_id):03d}.json"
 
 
+def normalized_eval_bundle_file(output_dir: Path) -> Path:
+    """Return the explicit normalized eval export path for eval runs."""
+
+    return runtime_artifacts.mechanism_export_file(output_dir, ATTENTIONAL_V2_MECHANISM_KEY, "normalized_eval_bundle.json")
+
+
 def artifact_map(output_dir: Path) -> dict[str, str]:
     """Return the Phase 1 artifact map relative to one output directory."""
 
@@ -197,6 +203,7 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "reader_policy": str(reader_policy_file(output_dir).relative_to(output_dir)),
         "resume_metadata": str(resume_metadata_file(output_dir).relative_to(output_dir)),
         "chapter_result_compatibility": str(chapter_result_compatibility_file(output_dir, 1).parent.relative_to(output_dir)),
+        "normalized_eval_bundle": str(normalized_eval_bundle_file(output_dir).relative_to(output_dir)),
         "full_checkpoints": str(checkpoints_dir(output_dir).relative_to(output_dir)),
         "event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
         "debug_event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),

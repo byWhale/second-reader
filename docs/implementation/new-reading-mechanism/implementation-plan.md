@@ -214,6 +214,7 @@ Main work:
 - Keep shared runtime shell and shared checkpoint summaries thin while preserving full resume-correctness checkpoints privately under the mechanism.
 - Reserve controller forensics, candidate traces, prompt/node diagnostics, and detailed rejection reasons for debug mode.
 - Produce normalized eval artifacts and run metadata compatible with shared evaluation docs.
+- Add structural mechanism-integrity checks over persisted artifacts so Phase 8 can validate cursor, anchor, reconsolidation, resume-policy, and compatibility-projection integrity before the live runner exists.
 - Adapt mechanism-private locus into shared public surfaces:
   - `current_reading_activity`
   - `current_excerpt`
@@ -249,6 +250,9 @@ Purpose:
 - Move from "implemented mechanism" to "mechanism ready for real product use."
 
 Main work:
+- Curate the tracked `attentional_v2` benchmark datasets under `reading-companion-backend/eval/datasets/` before any real end-to-end comparison.
+  - Local mechanism-integrity datasets may embed the excerpt text they need directly.
+  - Chapter-level / end-to-end comparison must use an intentional evaluation corpus rather than transient runtime files from `output/` or `state/uploads/`.
 - Run mechanism-integrity and end-to-end evaluation passes.
 - Compare against `iterator_v1` on shared evaluation frame.
 - Decide compatibility strategy for:

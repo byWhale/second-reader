@@ -66,6 +66,11 @@ Update when: the artifact layout, ownership boundary, or shell-envelope rule cha
 - `_mechanisms/attentional_v2/internal/prompt_manifests/*.json`
   - node-level prompt manifests and versions
 
+### Exports
+- `_mechanisms/attentional_v2/exports/normalized_eval_bundle.json`
+  - explicit eval-run export only
+  - shared comparison surface built from persisted runtime, reaction, compatibility, and reflective artifacts
+
 ## Ownership Rule
 - Shared `_runtime/` may own a field only if it can be described in mechanism-neutral terms.
 - If a field needs `attentional_v2` ontology such as trigger, gate, pressure, bridge, reframe, promotion, or anchor-memory semantics, it belongs under `_mechanisms/attentional_v2/`.

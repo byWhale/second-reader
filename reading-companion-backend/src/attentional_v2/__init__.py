@@ -9,6 +9,11 @@ from .bridge import (
     index_anchor_memory,
     run_phase5_bridge_cycle,
 )
+from .evaluation import (
+    build_normalized_eval_bundle,
+    persist_normalized_eval_bundle,
+    run_mechanism_integrity_checks,
+)
 from .knowledge import (
     apply_activation_operations,
     live_activations,
@@ -133,6 +138,7 @@ __all__ = [
     "build_default_reader_policy",
     "build_anchor_record",
     "build_book_survey",
+    "build_normalized_eval_bundle",
     "build_shared_cursor",
     "build_reaction_anchor",
     "build_reaction_record",
@@ -169,6 +175,7 @@ __all__ = [
     "load_full_checkpoint",
     "capture_local_continuity",
     "persist_reading_position",
+    "persist_normalized_eval_bundle",
     "project_chapter_result_compatibility",
     "push_local_buffer_sentence",
     "reaction_records_for_chapter",
@@ -184,6 +191,7 @@ __all__ = [
     "run_phase4_local_cycle",
     "run_phase5_bridge_cycle",
     "run_phase6_chapter_cycle",
+    "run_mechanism_integrity_checks",
     "set_gate_state",
     "set_knowledge_use_mode",
     "set_pressure_snapshot",

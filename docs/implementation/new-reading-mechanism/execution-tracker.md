@@ -17,7 +17,10 @@ Update when: status changes, blockers appear, or phases complete.
 - Current phase:
   - `Phase 8: Observability, Evaluation, And Shared-Surface Integration`
 - Current blockers:
-  - evaluation-slice and threshold question `Q9` is still open before later comparison and promotion work
+  - final end-to-end comparison still waits on:
+    - a live parse/read runner
+    - curated `attentional_v2` benchmark datasets and chapter corpus
+    - later stable-doc promotion timing under `Q10`
 
 ## Phase Tracker
 | Phase | Status | Exit gate |
@@ -127,8 +130,8 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Emit checkpoint summaries with required fields
 - [x] Resolve the standard-vs-debug observability split for shared vs private runtime artifacts
 - [x] Wire standard checkpoint/resume events plus debug-only diagnostics scaffolding
-- [ ] Produce normalized eval artifacts
-- [ ] Add mechanism-integrity checks
+- [x] Produce normalized eval artifacts
+- [x] Add mechanism-integrity checks
 - [x] Adapt new mechanism state into shared public surfaces
 - [x] Verify compatibility with analysis-state and activity surfaces
 - [x] Verify marks and reaction persistence compatibility
@@ -145,6 +148,7 @@ Update when: status changes, blockers appear, or phases complete.
 - [ ] Run local-reading and span-trajectory evaluation
 - [ ] Run durable-trace and re-entry evaluation
 - [ ] Run runtime-viability evaluation
+- [ ] Curate the tracked `attentional_v2` benchmark datasets and the later chapter-level evaluation corpus before any real end-to-end comparison
 - [ ] Compare against `iterator_v1`
 - [ ] Promote landed behavior into stable docs
 - [ ] Record decision-bearing changes in history doc when needed
@@ -172,4 +176,6 @@ Update when: status changes, blockers appear, or phases complete.
   - Resolved Q4 and landed the first Phase 8 shared-surface slice: public schemas and backend aggregation now expose additive `reading_locus`, `primary_anchor`, `related_anchors`, `supersedes_reaction_id`, `move_type`, and runtime-shell-backed active reaction references while keeping `section_ref` / `segment_ref` as compatibility sidecars.
   - Recorded future migration work explicitly instead of leaving it implicit: the frontend and stable API still need a later intentional cut from section-first chapter/detail and marks surfaces toward chapter text plus anchored reactions as the primary model.
   - Resolved Q8 and landed the first observability split: shared runtime shell and checkpoint summaries now carry `observability_mode`, standard checkpoint/resume events now write to `_runtime/activity.jsonl`, and debug-only diagnostics now remain under `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`.
-  - Recorded future Phase 8 work explicitly instead of leaving it implicit: once the live parse/read path exists, node-level observability still needs to be wired across the local loop, bridge cycle, and slow-cycle nodes, and Q9 still remains open before evaluation thresholds and promotion-readiness comparison can close the phase.
+  - Recorded future Phase 8 work explicitly instead of leaving it implicit: once the live parse/read path exists, node-level observability still needs to be wired across the local loop, bridge cycle, and slow-cycle nodes before the phase can claim full live-run coverage.
+  - Resolved Q9: the project now has a staged evaluation pack, explicit acceptance thresholds, and an explicit future task to curate the real `attentional_v2` benchmark datasets and chapter corpus before any meaningful end-to-end comparison or default-promotion discussion.
+  - Landed the remaining current-scope Phase 8 evaluation slice in code: `attentional_v2` can now build and explicitly persist a normalized eval bundle from persisted artifacts, and it now has structural integrity checks over shared cursor resolution, anchored reaction ids/locators, reconsolidation links, Q7 resume-policy bounds, and compatibility projection fidelity.

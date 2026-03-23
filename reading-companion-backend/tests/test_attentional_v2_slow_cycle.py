@@ -195,7 +195,7 @@ def test_reconsolidation_appends_later_reaction_without_mutating_earlier_one(mon
 
     next_reactions, next_reconsolidations = apply_reconsolidation(
         build_empty_reaction_records(),
-        {"schema_version": 1, "mechanism_version": "attentional_v2-phase7", "updated_at": "now", "records": []},
+        {"schema_version": 1, "mechanism_version": "attentional_v2-phase8", "updated_at": "now", "records": []},
         result,
     )
 

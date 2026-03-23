@@ -15,7 +15,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 
 ## Purpose And Status
 - `attentional_v2` is the planned future mechanism for a more self-propelled reading mind.
-- It now has a Phase 1-7 scaffold under the shared runtime boundary:
+- It now has a Phase 1-8 scaffold under the shared runtime boundary:
   - shared sentence substrate
   - orientation-only survey artifacts
   - deterministic intake/gate/retrieval helpers
@@ -23,6 +23,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - Phase 5 knowledge, bridge, and anchor-memory state helpers
   - Phase 6 slow-cycle helpers for durable anchored reaction truth, reflective promotion, reconsolidation, chapter consolidation, and mechanism-private compatibility projection
   - Phase 7 checkpointing and resume helpers for compact local continuity, full checkpoints, shared checkpoint summaries, and bounded warm/cold/reconstitution resume reconstruction
+  - Phase 8 normalized eval export and structural integrity checks over persisted artifacts
 - It still does not describe live product parse/read behavior today.
 - Its goal is to preserve sentence-level fidelity while shifting the main reasoning unit from fixed sections toward dynamic meaning units and an explicit attention frontier.
 
@@ -252,6 +253,14 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - mechanism-private `debug` mode adds:
     - deep diagnostics events under `_mechanisms/attentional_v2/internal/diagnostics/events.jsonl`
     - controller/candidate/prompt forensics that should not become the default runtime trace
+- Phase 8 now also lands the first evaluation-export slice:
+  - `_mechanisms/attentional_v2/exports/normalized_eval_bundle.json` can now be built from persisted runtime, reaction, compatibility, and reflective artifacts for explicit eval-mode runs
+  - structural integrity checks now validate:
+    - shared cursor sentence resolution
+    - anchor locator fidelity
+    - reconsolidation append-and-link integrity
+    - Q7 resume-policy bounds
+    - compatibility projection fidelity
 - The mechanism's internal locus will not necessarily be a fixed `section`.
   - Adapters must project the current focal span and reading phase into shared public fields without claiming that the private ontology is section-based.
 - The Phase 8 rule is:
@@ -272,6 +281,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - Future observability work still needed:
   - wire standard/debug node-level traces once the live parse/read path exists
   - keep debug mode optional rather than making deep diagnostics the baseline requirement for normal evaluation runs
+- Future evaluation work still needed:
+  - curate the tracked `attentional_v2` benchmark datasets and later chapter-level evaluation corpus before any real end-to-end comparison
+  - run the true `iterator_v1` comparison only after the live parse/read path exists and that dataset work is complete
 - The survey stage must stay coarse enough that it does not become hidden full-book cheating.
 - Retrieval pressure, rare-search gating, and revisit behavior will likely need careful budget control during implementation.
-- Public adapter behavior and evaluation thresholds still need later decisions before Phase 8 can fully close.
+- Stable doc-promotion timing under `Q10` still remains open.

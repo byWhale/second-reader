@@ -56,5 +56,9 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
   - shared checkpoint summaries carrying `observability_mode`
   - standard checkpoint/resume events being written to `_runtime/activity.jsonl`
   - debug diagnostics events appearing only when debug mode is enabled
+- The current Q9 landing now also requires evaluation/runtime validation for:
+  - normalized eval bundle export from persisted `attentional_v2` artifacts
+  - structural integrity checks over cursor sentence ids, anchor locators, reconsolidation links, Q7 resume-policy bounds, and compatibility projections
+- Before any true Phase 9 end-to-end comparison, curate the tracked `attentional_v2` benchmark datasets and chapter-level evaluation corpus instead of using ad hoc runtime outputs as the benchmark source of truth.
 - Future Phase 8 / 9 work still needs explicit validation for the eventual removal of section-first chapter/detail and marks assumptions.
 - Future Phase 8 work still needs node-level observability validation once the live runner wires standard/debug traces across the real interpretive loop.

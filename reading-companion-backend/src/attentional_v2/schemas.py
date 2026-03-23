@@ -37,8 +37,8 @@ TriggerSignalKind = Literal[
 ]
 
 ATTENTIONAL_V2_SCHEMA_VERSION = 1
-ATTENTIONAL_V2_MECHANISM_VERSION = "attentional_v2-phase7"
-ATTENTIONAL_V2_POLICY_VERSION = "attentional_v2-policy-phase7"
+ATTENTIONAL_V2_MECHANISM_VERSION = "attentional_v2-phase8"
+ATTENTIONAL_V2_POLICY_VERSION = "attentional_v2-policy-phase8"
 
 
 def _timestamp() -> str:

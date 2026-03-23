@@ -32,8 +32,8 @@ from src.reading_runtime.artifacts import checkpoint_summary_file, mechanism_man
 from src.reading_runtime.shell_state import load_runtime_shell
 
 
-def test_attentional_v2_initialization_writes_phase7_artifacts(tmp_path):
-    """The Phase 1-7 scaffold should write the shared shell and private state files."""
+def test_attentional_v2_initialization_writes_phase8_artifacts(tmp_path):
+    """The Phase 1-8 scaffold should write the shared shell and private state files."""
 
     output_dir = tmp_path / "output" / "demo-book"
 

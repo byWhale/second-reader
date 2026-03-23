@@ -247,8 +247,12 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - Stable docs should explain the constitution, the comparison frame, and the report boundary.
 - Benchmarks and reports should carry the living case sets, rubrics, thresholds, run settings, sample sizes, and per-run conclusions.
 - Cross-mechanism comparison should prefer the shared normalized eval bundle emitted from the runtime boundary over direct dependence on mechanism-private runtime files.
+- When a mechanism can expose richer comparison truth without breaking the shared bundle shape, additive fields such as locus, anchor, or lineage context are preferred over flattening everything back into older section-era semantics.
 - Normal product runs should not persist normalized comparison bundles into book output directories.
 - If a runtime-backed eval explicitly asks for export persistence, the mechanism may write `_mechanisms/<mechanism_key>/exports/normalized_eval_bundle.json` for that run.
+- Tracked benchmark datasets remain the source of truth for benchmark inputs.
+  - Excerpt-case datasets may carry the excerpt text they need directly.
+  - End-to-end chapter/book comparisons should use an intentional evaluation corpus rather than ad hoc runtime `output/` or `state/uploads/` files.
 
 ### Expectations For Evaluation Reports
 - Per-run or per-change reports should state:

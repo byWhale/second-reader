@@ -46,6 +46,9 @@ class NormalizedAttentionEvent(TypedDict, total=False):
     search_query: str
     thought_family: ThoughtFamily
     problem_code: str
+    reading_locus: dict[str, object] | None
+    move_type: str
+    active_reaction_id: str
 
 
 class NormalizedReaction(TypedDict, total=False):
@@ -59,6 +62,9 @@ class NormalizedReaction(TypedDict, total=False):
     content: str
     search_query: str
     search_results: list[SearchHit]
+    primary_anchor: dict[str, object] | None
+    related_anchors: list[dict[str, object]]
+    supersedes_reaction_id: str
 
 
 class NormalizedRunSnapshot(TypedDict, total=False):
@@ -68,6 +74,11 @@ class NormalizedRunSnapshot(TypedDict, total=False):
     current_chapter_ref: str
     current_section_ref: str
     current_reading_activity: dict[str, object] | None
+    current_reading_locus: dict[str, object] | None
+    current_move_type: str
+    reconstructed_hot_state: bool | None
+    last_resume_kind: str | None
+    active_reaction_id: str | None
     resume_available: bool | None
     last_checkpoint_at: str | None
     completed_chapters: int | None

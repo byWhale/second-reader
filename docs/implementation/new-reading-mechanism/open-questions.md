@@ -14,7 +14,6 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
 ## Open Questions
 | ID | Question | Why it matters | Target phase | Current status |
 | --- | --- | --- | --- | --- |
-| Q9 | What dataset slices and acceptance thresholds will be used for mechanism-integrity and end-to-end evaluation? | Needed before comparing against `iterator_v1` or considering default promotion. | Phase 8 / 9 | `open` |
 | Q10 | When should the detailed design be promoted from temporary docs into stable `docs/backend-reading-mechanisms/<mechanism>.md`? | Prevents stable docs from becoming a working notebook while also avoiding long-term drift. | Phase 0 / 9 | `open` |
 
 ## Resolved Questions
@@ -258,6 +257,59 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
   - Why:
     - the mechanism needs enough default observability to preserve trustworthy resume, durable reading trace, and evaluation usefulness
     - making all controller internals standard would bloat runtime storage and distort the product-facing trace
+- `Q9` resolved on `2026-03-23`
+  - Decision:
+    - use a staged evaluation pack rather than one giant benchmark:
+      - `mechanism_integrity_local`
+      - `span_trajectory_chapter`
+      - `resume_reentry_runtime`
+      - `durable_trace_audit`
+      - `public_surface_compatibility`
+    - keep hard structural gates at `100%` pass for:
+      - valid sentence-order cursor and anchor locators
+      - no future-text leakage
+      - no reaction-id mutation during reconsolidation
+      - mark-lookup compatibility
+      - chapter-local resume bounds
+      - schema-valid compatibility payloads
+    - use a quality acceptance ladder rather than one single score:
+      - `mechanism_integrity_local`
+        - `text_groundedness >= 4.0 / 5`
+        - `self_propelled_curiosity >= 3.8 / 5`
+        - `selective_legibility >= 3.8 / 5`
+        - `coherent_accumulation >= 3.8 / 5`
+        - no more than `10%` of cases below `3.0 / 5` on any one core dimension
+      - `span_trajectory_chapter` against `iterator_v1`
+        - pairwise `win_or_tie_rate >= 60%`
+        - pairwise `loss_rate <= 25%`
+        - `text_groundedness` must not trail `iterator_v1` by more than `0.2`
+        - `coherent_accumulation` should be at least equal to `iterator_v1`
+      - `durable_trace_audit`
+        - re-entry usefulness pass rate `>= 80%`
+        - supersession linkage present in `100%` of applicable reconsolidation cases
+      - `runtime_viability`
+        - chapter-run completion `>= 95%`
+        - resume fixtures `100%`
+        - baseline eval works in `standard` observability mode
+        - until default-promotion time, latency/cost may be worse than `iterator_v1` but should stay within about `1.5x` on the chapter slice
+    - reaching those thresholds is enough for `v1_acceptable`; failing the hard gates blocks promotion immediately
+  - Why:
+    - the stable evaluation constitution already lives in `docs/backend-reader-evaluation.md`; this project only needs the concrete slices and thresholds for `attentional_v2`
+    - different evaluation questions need different evidence:
+      - local mechanism integrity
+      - span trajectory across chapters
+      - durable return value
+      - runtime safety
+      - compatibility safety
+    - the mechanism is still not a live end-to-end reader, so Phase 8 should implement the export and integrity scaffolding now without pretending the final benchmark comparison is already runnable
+  - Dataset and corpus follow-up that must stay visible:
+    - before any real end-to-end comparison or default-promotion discussion, curate a dedicated `attentional_v2` benchmark dataset set under `reading-companion-backend/eval/datasets/`
+    - local mechanism-integrity datasets may store the excerpt text they need directly, following the current tracked benchmark pattern
+    - chapter-level / end-to-end comparison still needs an intentional evaluation corpus rather than ad hoc files from runtime `output/` or `state/uploads/`
+    - creating that dataset/corpus is a required future task, not optional cleanup
+  - Implementation effect:
+    - Phase 8 should now produce normalized eval artifacts and structural mechanism-integrity checks over persisted `attentional_v2` artifacts
+    - Phase 9 should curate the real benchmark datasets and only then run the meaningful end-to-end comparison against `iterator_v1`
     - a thin shared shell plus richer mechanism-private diagnostics matches the agreed `mechanism-authored core, shell-authored envelope` boundary
   - Phase 8 landing:
     - `reader_policy.logging` now explicitly records:
