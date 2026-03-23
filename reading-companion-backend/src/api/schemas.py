@@ -25,6 +25,8 @@ ReactionFilter = Literal[
     REACTION_FILTERS[5],
 ]
 MarkType = Literal[MARK_TYPES[0], MARK_TYPES[1], MARK_TYPES[2]]
+MoveType = Literal["advance", "dwell", "bridge", "reframe"]
+ResumeMode = Literal["warm_resume", "cold_resume", "reconstitution_resume"]
 JobLifecycleStatus = Literal[
     "queued",
     "parsing_structure",
@@ -113,6 +115,40 @@ class SegmentLocator(ApiModel):
     )
 
 
+class TextSpanLocator(ApiModel):
+    """Text-span locator that can point to one sentence or a short span."""
+
+    href: str = Field(description="EPUB spine document href for the anchored text span.")
+    start_cfi: Optional[str] = Field(default=None, description="Preferred start EPUB CFI for the anchored text span.")
+    end_cfi: Optional[str] = Field(default=None, description="Preferred end EPUB CFI for the anchored text span.")
+    paragraph_index: Optional[int] = Field(default=None, description="Primary paragraph index for the anchored text span when known.")
+    paragraph_start: Optional[int] = Field(default=None, description="First paragraph index covered by the anchored text span when known.")
+    paragraph_end: Optional[int] = Field(default=None, description="Last paragraph index covered by the anchored text span when known.")
+    char_start: Optional[int] = Field(default=None, description="Character offset where the anchored text span begins when known.")
+    char_end: Optional[int] = Field(default=None, description="Character offset where the anchored text span ends when known.")
+
+
+class ReactionAnchor(ApiModel):
+    """Anchor payload that preserves the mechanism-authored focal source span."""
+
+    quote: str = Field(description="Quoted source text used as the anchor for this thought.")
+    sentence_start_id: Optional[str] = Field(default=None, description="Shared sentence id where the anchor span begins when known.")
+    sentence_end_id: Optional[str] = Field(default=None, description="Shared sentence id where the anchor span ends when known.")
+    locator: Optional[TextSpanLocator] = Field(default=None, description="Shared text-span locator for the anchor when known.")
+
+
+class ReadingLocus(ApiModel):
+    """Current reading locus projected from mechanism truth into a shared public shape."""
+
+    kind: Literal["chapter", "sentence", "span"] = Field(description="Granularity of the current reading locus.")
+    chapter_id: Optional[int] = Field(default=None, description="Current chapter identifier when known.")
+    chapter_ref: Optional[str] = Field(default=None, description="Human-readable chapter reference when known.")
+    sentence_start_id: Optional[str] = Field(default=None, description="Shared sentence id where the current focus begins when known.")
+    sentence_end_id: Optional[str] = Field(default=None, description="Shared sentence id where the current focus ends when known.")
+    locator: Optional[TextSpanLocator] = Field(default=None, description="Source-span locator for the current focus when known.")
+    excerpt: Optional[str] = Field(default=None, description="Current focal excerpt when the mechanism can expose it directly.")
+
+
 class ChapterHeadingBlock(ApiModel):
     """Structured chapter-heading metadata kept outside body sections."""
 
@@ -153,6 +189,18 @@ class FeaturedReactionPreview(ApiModel):
         default=None,
         description="Reader locator used to jump to the source passage for this reaction.",
     )
+    primary_anchor: Optional[ReactionAnchor] = Field(
+        default=None,
+        description="Mechanism-authored primary anchor projected upward without rewriting the original thought object.",
+    )
+    related_anchors: list[ReactionAnchor] = Field(
+        default_factory=list,
+        description="Optional secondary anchors linked to the same reaction.",
+    )
+    supersedes_reaction_id: Optional[int] = Field(
+        default=None,
+        description="Public reaction id of the earlier thought this reaction supersedes when reconsolidation has occurred.",
+    )
 
 
 class ActivityReactionPreview(ApiModel):
@@ -164,6 +212,14 @@ class ActivityReactionPreview(ApiModel):
     content: str = Field(description="AI-authored reaction text shown to the user.")
     section_ref: str = Field(description="Human-readable section reference, such as 3.2.")
     search_query: Optional[str] = Field(default=None, description="Search query attached to the reaction when applicable.")
+    primary_anchor: Optional[ReactionAnchor] = Field(
+        default=None,
+        description="Mechanism-authored primary anchor for this visible reaction when available.",
+    )
+    supersedes_reaction_id: Optional[int] = Field(
+        default=None,
+        description="Public reaction id of the earlier thought this visible reaction supersedes when applicable.",
+    )
 
 
 class BookShelfCard(ApiModel):
@@ -273,10 +329,30 @@ class CurrentReadingActivity(ApiModel):
     )
     segment_ref: Optional[str] = Field(default=None, description="Current semantic segment reference when known.")
     current_excerpt: Optional[str] = Field(default=None, description="Excerpt of the text currently under attention.")
+    reading_locus: Optional[ReadingLocus] = Field(
+        default=None,
+        description="Additive span- or sentence-based reading locus projected from mechanism truth when available.",
+    )
+    move_type: Optional[MoveType] = Field(
+        default=None,
+        description="Current attentional move when the mechanism exposes it directly.",
+    )
     search_query: Optional[str] = Field(default=None, description="Search query being investigated when the reader is searching.")
     thought_family: Optional[ReactionType] = Field(
         default=None,
         description="Optional thought family hint attached to the current live activity when already known.",
+    )
+    reconstructed_hot_state: Optional[bool] = Field(
+        default=None,
+        description="Whether the mechanism rebuilt hot local state from persistence instead of continuing warm in-memory continuity.",
+    )
+    last_resume_kind: Optional[ResumeMode] = Field(
+        default=None,
+        description="Resume mode that produced the current live state when the mechanism exposes it.",
+    )
+    active_reaction_id: Optional[int] = Field(
+        default=None,
+        description="Public reaction id of the currently active durable thought when the mechanism exposes one.",
     )
     started_at: str = Field(description="Timestamp marking when the current live phase began.")
     updated_at: str = Field(description="Timestamp of the latest live-activity update.")
@@ -384,6 +460,18 @@ class ActivityEvent(ApiModel):
     chapter_id: Optional[int] = Field(default=None, description="Related chapter identifier when applicable.")
     chapter_ref: Optional[str] = Field(default=None, description="Related chapter reference when applicable.")
     section_ref: Optional[str] = Field(default=None, description="Related section reference when applicable.")
+    reading_locus: Optional[ReadingLocus] = Field(
+        default=None,
+        description="Additive span- or sentence-based locus carried by the event when available.",
+    )
+    move_type: Optional[MoveType] = Field(
+        default=None,
+        description="Current move type when the event represents a mechanism-authored attentional move.",
+    )
+    active_reaction_id: Optional[int] = Field(
+        default=None,
+        description="Public reaction id of the active durable thought referenced by the event when available.",
+    )
     anchor_quote: Optional[str] = Field(default=None, description="Sentence-level anchor quote used to group visible reactions when available.")
     highlight_quote: Optional[str] = Field(default=None, description="High-signal anchor quote attached to the event when available.")
     reaction_types: list[ReactionType] = Field(description="Reaction types represented in this event.")
@@ -454,6 +542,18 @@ class ReactionCard(ApiModel):
     target_locator: Optional[ReactionTargetLocator] = Field(default=None, description="Reader locator for jumping to the source passage.")
     section_ref: str = Field(description="Human-readable parent section reference.")
     section_summary: str = Field(description="One-line summary of the parent section.")
+    primary_anchor: Optional[ReactionAnchor] = Field(
+        default=None,
+        description="Mechanism-authored primary anchor projected into the current chapter card shape.",
+    )
+    related_anchors: list[ReactionAnchor] = Field(
+        default_factory=list,
+        description="Optional secondary anchors linked to the same reaction.",
+    )
+    supersedes_reaction_id: Optional[int] = Field(
+        default=None,
+        description="Public reaction id of the earlier thought this reaction supersedes when reconsolidation has occurred.",
+    )
     mark_type: Optional[MarkType] = Field(default=None, description="Current user mark attached to the reaction, if any.")
 
 
@@ -543,6 +643,14 @@ class MarkRecord(ApiModel):
     mark_type: MarkType = Field(description="User-selected mark value.")
     reaction_excerpt: str = Field(description="Short excerpt of the reaction content used in marks views.")
     anchor_quote: str = Field(description="Anchor quote used to recall the marked passage.")
+    primary_anchor: Optional[ReactionAnchor] = Field(
+        default=None,
+        description="Mechanism-authored primary anchor preserved on the mark when available.",
+    )
+    supersedes_reaction_id: Optional[int] = Field(
+        default=None,
+        description="Public reaction id of the earlier thought this marked reaction supersedes when reconsolidation has occurred.",
+    )
     created_at: str = Field(description="Mark creation time.")
     updated_at: str = Field(description="Mark last update time.")
 

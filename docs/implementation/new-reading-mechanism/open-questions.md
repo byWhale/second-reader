@@ -14,7 +14,6 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
 ## Open Questions
 | ID | Question | Why it matters | Target phase | Current status |
 | --- | --- | --- | --- | --- |
-| Q4 | How should a non-section runtime locus map to the current public surfaces that still expose compatibility fields such as `segment_ref`? | Needed for analysis-state, activity, and chapter/detail compatibility. | Phase 8 | `open` |
 | Q8 | Which observability fields are required in standard mode versus debug-only mode? | Needed to keep evaluation useful without exploding runtime storage. | Phase 8 | `open` |
 | Q9 | What dataset slices and acceptance thresholds will be used for mechanism-integrity and end-to-end evaluation? | Needed before comparing against `iterator_v1` or considering default promotion. | Phase 8 / 9 | `open` |
 | Q10 | When should the detailed design be promoted from temporary docs into stable `docs/backend-reading-mechanisms/<mechanism>.md`? | Prevents stable docs from becoming a working notebook while also avoiding long-term drift. | Phase 0 / 9 | `open` |
@@ -204,6 +203,38 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
       - `resume_chapter_local_only = true`
     - non-warm resume helpers should explicitly mark reconstructed hot state as reconstructed and record the resume mode used
     - resume reconstruction should respect sentence-order source truth in shared `book_document.json` rather than inventing mechanism-private reread slices
+- `Q4` resolved on `2026-03-23`
+  - Decision:
+    - shared public surfaces should promote span- and anchor-native mechanism truth upward additively instead of forcing `attentional_v2` back into section-first ontology
+    - `section_ref` / `segment_ref` remain temporary compatibility sidecars during migration rather than long-term public truth
+    - the long-term public model should center on:
+      - `reading_locus`
+      - `primary_anchor`
+      - `related_anchors`
+      - reconsolidation lineage such as `supersedes_reaction_id`
+      - current `move_type`
+  - Why:
+    - the user-facing product value is the original mechanism-authored thought direction, not a shell-invented section wrapper
+    - some current app surfaces still need section-era fields for compatibility, but those fields should not continue to define the future public ontology
+    - additive public fields let the backend express the new mechanism honestly now without breaking the current frontend
+  - Phase 8 landing:
+    - `analysis-state.current_reading_activity` and activity events now have an additive `reading_locus`
+    - `current_reading_activity` can now also expose:
+      - `move_type`
+      - `reconstructed_hot_state`
+      - `last_resume_kind`
+      - `active_reaction_id`
+    - reaction and mark surfaces now carry additive anchor-native fields:
+      - `primary_anchor`
+      - `related_anchors`
+      - `supersedes_reaction_id`
+    - shared runtime-shell cursor can now feed the additive locus projection for future non-section mechanisms
+  - Future work that must stay visible:
+    - the chapter detail API and frontend are still section-centered today
+    - the current marks UI still renders `section_ref` as part of its recall surface
+    - later migration should redesign chapter/detail around chapter text plus anchored reactions rather than semantic sections as the primary container
+    - later migration should remove section-first requirements from stable API/frontend contracts once the frontend has switched to locus/anchor-native rendering
+    - later migration may further refine reaction lineage beyond the first additive `supersedes_reaction_id` sidecar if richer reconsolidation views are needed
 
 ## Promotion Rule
 - Resolve a question here first when the answer is still implementation-local or provisional.

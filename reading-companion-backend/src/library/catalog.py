@@ -35,6 +35,7 @@ from src.iterator_reader.storage import (
 )
 from src.iterator_reader.frontend_artifacts import normalize_activity_event
 from src.iterator_reader.language import runtime_label
+from src.reading_runtime.artifacts import existing_runtime_shell_file
 
 
 def output_root(root: Path | None = None) -> Path:
@@ -53,6 +54,98 @@ def _excerpt_text(value: str, *, max_length: int = 132) -> str:
     if len(normalized) <= max_length:
         return normalized
     return f"{normalized[: max_length - 3].rstrip()}..."
+
+
+def _clean_text(value: object) -> str:
+    """Return one normalized string."""
+
+    return str(value or "").strip()
+
+
+def _optional_int(value: object) -> int | None:
+    """Convert one value into an integer when possible."""
+
+    if value in {None, ""}:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_text_span_locator(payload: object) -> dict[str, object] | None:
+    """Normalize one shared text-span locator payload."""
+
+    if not isinstance(payload, dict):
+        return None
+    href = _clean_text(payload.get("href"))
+    if not href:
+        return None
+    locator: dict[str, object] = {
+        "href": href,
+        "start_cfi": payload.get("start_cfi"),
+        "end_cfi": payload.get("end_cfi"),
+    }
+    for key in ("paragraph_index", "paragraph_start", "paragraph_end"):
+        value = _optional_int(payload.get(key))
+        if value is not None and value > 0:
+            locator[key] = value
+    for key in ("char_start", "char_end"):
+        if payload.get(key) is None:
+            continue
+        value = _optional_int(payload.get(key))
+        if value is not None and value >= 0:
+            locator[key] = value
+    return locator
+
+
+def _normalize_reaction_anchor(
+    payload: object,
+    *,
+    fallback_quote: str = "",
+    fallback_locator: object = None,
+) -> dict[str, object] | None:
+    """Normalize one public-facing reaction anchor."""
+
+    anchor = payload if isinstance(payload, dict) else {}
+    quote = _clean_text(anchor.get("quote")) or _clean_text(fallback_quote)
+    if not quote:
+        return None
+    normalized: dict[str, object] = {"quote": quote}
+    sentence_start_id = _clean_text(anchor.get("sentence_start_id"))
+    sentence_end_id = _clean_text(anchor.get("sentence_end_id")) or sentence_start_id
+    if sentence_start_id:
+        normalized["sentence_start_id"] = sentence_start_id
+    if sentence_end_id:
+        normalized["sentence_end_id"] = sentence_end_id
+    locator = _normalize_text_span_locator(anchor.get("locator")) or _normalize_text_span_locator(fallback_locator)
+    if locator is not None:
+        normalized["locator"] = locator
+    return normalized
+
+
+def _normalize_related_anchors(
+    payload: object,
+    *,
+    fallback_quotes: list[str] | None = None,
+) -> list[dict[str, object]]:
+    """Normalize one related-anchor list without inventing locator detail."""
+
+    items: list[dict[str, object]] = []
+    raw_items = payload if isinstance(payload, list) else []
+    for item in raw_items:
+        if isinstance(item, dict):
+            normalized = _normalize_reaction_anchor(item)
+        else:
+            normalized = _normalize_reaction_anchor({}, fallback_quote=str(item or ""))
+        if normalized is not None:
+            items.append(normalized)
+    if not items:
+        for quote in fallback_quotes or []:
+            normalized = _normalize_reaction_anchor({}, fallback_quote=quote)
+            if normalized is not None:
+                items.append(normalized)
+    return items
 
 
 def _chapter_heading_payload(payload: object) -> dict | None:
@@ -237,6 +330,7 @@ def _normalize_target_locator(payload: object) -> dict | None:
     match_mode = str(payload.get("match_mode", "") or "").strip()
     if not href or not match_text or not match_mode:
         return None
+
     return {
         "href": href,
         "start_cfi": payload.get("start_cfi"),
@@ -244,6 +338,45 @@ def _normalize_target_locator(payload: object) -> dict | None:
         "match_text": match_text,
         "match_mode": match_mode,
     }
+
+
+def _reaction_primary_anchor(item: dict[str, object]) -> dict[str, object] | None:
+    """Return one normalized primary anchor for a reaction-like payload."""
+
+    return _normalize_reaction_anchor(
+        item.get("primary_anchor"),
+        fallback_quote=_clean_text(item.get("anchor_quote")),
+        fallback_locator=item.get("target_locator"),
+    )
+
+
+def _reaction_related_anchors(item: dict[str, object]) -> list[dict[str, object]]:
+    """Return normalized related anchors for a reaction-like payload."""
+
+    fallback_quotes = [
+        _clean_text(value)
+        for value in item.get("related_anchor_quotes", [])
+        if _clean_text(value)
+    ] if isinstance(item.get("related_anchor_quotes"), list) else []
+    return _normalize_related_anchors(item.get("related_anchors"), fallback_quotes=fallback_quotes)
+
+
+def _public_optional_reaction_id(book_id: str, reaction_id: object) -> int | None:
+    """Convert one internal reaction id into the public integer namespace when present."""
+
+    internal_reaction_id = _clean_text(reaction_id)
+    if not internal_reaction_id:
+        return None
+    return to_api_reaction_id(book_id=book_id, reaction_id=internal_reaction_id)
+
+
+def _runtime_shell(book_id: str, root: Path | None = None) -> dict[str, object] | None:
+    """Load one shared runtime-shell payload when available."""
+
+    path = existing_runtime_shell_file(_book_dir(book_id, root))
+    if not path.exists():
+        return None
+    return _load_json(path)
 
 
 def _book_card(book_id: str, manifest: dict, run_state: dict | None, root: Path | None = None) -> dict:
@@ -410,6 +543,7 @@ def _event_id(event: dict) -> str:
 def _featured_reaction_preview(book_id: str, chapter_id: int, chapter_ref: str, item: dict) -> dict:
     """Normalize one compact featured reaction payload."""
     internal_reaction_id = str(item.get("reaction_id", ""))
+    primary_anchor = _reaction_primary_anchor(item)
     return {
         "reaction_id": to_api_reaction_id(book_id=book_id, reaction_id=internal_reaction_id),
         "type": to_api_reaction_type(str(item.get("type", ""))),
@@ -420,6 +554,9 @@ def _featured_reaction_preview(book_id: str, chapter_id: int, chapter_ref: str, 
         "chapter_ref": chapter_ref,
         "section_ref": str(item.get("segment_ref", item.get("section_ref", ""))),
         "target_locator": _normalize_target_locator(item.get("target_locator")),
+        "primary_anchor": primary_anchor,
+        "related_anchors": _reaction_related_anchors(item),
+        "supersedes_reaction_id": _public_optional_reaction_id(book_id, item.get("supersedes_reaction_id")),
     }
 
 
@@ -439,6 +576,8 @@ def _activity_reaction_preview(
         "content": str(item.get("content", "")),
         "section_ref": section_ref,
         "search_query": str(item.get("search_query", "") or "") or None,
+        "primary_anchor": _reaction_primary_anchor(item),
+        "supersedes_reaction_id": _public_optional_reaction_id(book_id, item.get("supersedes_reaction_id")),
     }
 
 
@@ -447,6 +586,7 @@ def _decorate_activity_event(
     event: dict,
     *,
     chapter_result_urls: dict[int, str] | None = None,
+    root: Path | None = None,
 ) -> dict:
     """Decorate one persisted activity event into the public API shape."""
     event = normalize_activity_event(event)
@@ -479,6 +619,32 @@ def _decorate_activity_event(
             )
         )
 
+    explicit_locus = _normalize_reading_locus(
+        event.get("reading_locus"),
+        fallback_chapter_id=chapter_id,
+        fallback_chapter_ref=chapter_ref,
+        fallback_excerpt=_clean_text(event.get("highlight_quote") or event.get("anchor_quote")),
+        fallback_locator=(
+            _segment_locator_for_ref(
+                book_id,
+                section_ref,
+                current_chapter_id=chapter_id,
+                root=root,
+            )
+            if section_ref
+            else None
+        ),
+    )
+    reading_locus = explicit_locus or _reading_locus_from_segment_ref(
+        book_id,
+        segment_ref=section_ref,
+        chapter_id=chapter_id,
+        chapter_ref=chapter_ref,
+        excerpt=_clean_text(event.get("highlight_quote") or event.get("anchor_quote")),
+        root=root,
+    )
+    move_type = _clean_text(event.get("move_type"))
+
     return {
         "event_id": str(event.get("event_id", "") or _event_id(event)),
         "timestamp": str(event.get("timestamp", "")),
@@ -490,6 +656,9 @@ def _decorate_activity_event(
         "chapter_id": chapter_id,
         "chapter_ref": chapter_ref,
         "section_ref": section_ref,
+        "reading_locus": reading_locus,
+        "move_type": move_type if move_type in {"advance", "dwell", "bridge", "reframe"} else None,
+        "active_reaction_id": _public_optional_reaction_id(book_id, event.get("active_reaction_id")),
         "anchor_quote": str(event.get("anchor_quote", "") or "") or None,
         "highlight_quote": str(event.get("highlight_quote", "") or "") or None,
         "reaction_types": [to_api_reaction_type(str(item)) for item in event.get("reaction_types", []) if str(item).strip()],
@@ -508,7 +677,7 @@ def get_activity(book_id: str, root: Path | None = None) -> list[dict]:
     manifest = _manifest(book_id, root)
     chapter_result_urls = _chapter_result_urls(book_id, manifest, root=root)
     return [
-        _decorate_activity_event(book_id, item, chapter_result_urls=chapter_result_urls)
+        _decorate_activity_event(book_id, item, chapter_result_urls=chapter_result_urls, root=root)
         for item in _load_jsonl(existing_activity_file(_book_dir(book_id, root)))
     ]
 
@@ -575,6 +744,9 @@ def _reaction_card(section: dict, reaction: dict, mark_index: dict[str, str]) ->
         "target_locator": _normalize_target_locator(reaction.get("target_locator")),
         "section_ref": str(section.get("segment_ref", "")),
         "section_summary": str(section.get("summary", "")),
+        "primary_anchor": _reaction_primary_anchor(reaction),
+        "related_anchors": _reaction_related_anchors(reaction),
+        "supersedes_reaction_id": _public_optional_reaction_id(book_id, reaction.get("supersedes_reaction_id")),
         "mark_type": mark_index.get(reaction_id),
     }
 
@@ -922,22 +1094,30 @@ def _analysis_current_reading_activity(
     current_phase_step_key: str | None,
     current_chapter_id: int | None = None,
     root: Path | None = None,
+    runtime_shell: dict[str, object] | None = None,
 ) -> dict[str, Any] | None:
     """Return the live reading activity snapshot for the current analysis state."""
+    payload: dict[str, Any] | None = None
     current = run_state.get("current_reading_activity")
-    if isinstance(current, dict):
-        phase = str(current.get("phase", "") or "").strip()
+    current_payload = current if isinstance(current, dict) else {}
+    if current_payload:
+        phase = str(current_payload.get("phase", "") or "").strip()
         if phase in {"reading", "thinking", "searching", "fusing", "reflecting", "waiting", "preparing"}:
             payload = {
                 "phase": phase,
-                "started_at": str(current.get("started_at", "") or current.get("updated_at", "") or run_state.get("updated_at", "") or _timestamp()),
-                "updated_at": str(current.get("updated_at", "") or run_state.get("updated_at", "") or _timestamp()),
+                "started_at": str(
+                    current_payload.get("started_at", "")
+                    or current_payload.get("updated_at", "")
+                    or run_state.get("updated_at", "")
+                    or _timestamp()
+                ),
+                "updated_at": str(current_payload.get("updated_at", "") or run_state.get("updated_at", "") or _timestamp()),
             }
-            segment_ref = str(current.get("segment_ref", "") or "").strip()
-            current_excerpt = re.sub(r"\s+", " ", str(current.get("current_excerpt", "") or "")).strip()
-            search_query = str(current.get("search_query", "") or "").strip()
-            thought_family = str(current.get("thought_family", "") or "").strip().lower()
-            problem_code = str(current.get("problem_code", "") or "").strip().lower()
+            segment_ref = str(current_payload.get("segment_ref", "") or "").strip()
+            current_excerpt = re.sub(r"\s+", " ", str(current_payload.get("current_excerpt", "") or "")).strip()
+            search_query = str(current_payload.get("search_query", "") or "").strip()
+            thought_family = str(current_payload.get("thought_family", "") or "").strip().lower()
+            problem_code = str(current_payload.get("problem_code", "") or "").strip().lower()
             if segment_ref and (not current_excerpt or current_excerpt.endswith("…") or current_excerpt.endswith("...")):
                 full_segment_text = _segment_text_for_ref(
                     book_id,
@@ -957,25 +1137,98 @@ def _analysis_current_reading_activity(
                 payload["thought_family"] = thought_family
             if problem_code in {"llm_timeout", "llm_quota", "llm_auth", "search_timeout", "search_quota", "search_auth", "network_blocked"}:
                 payload["problem_code"] = problem_code
-            return payload
 
-    return _synthesized_current_reading_activity(
-        status=status,
-        current_phase_step_key=current_phase_step_key,
-        current_segment_ref=str(run_state.get("current_segment_ref", "") or "") or None,
-        current_chapter_ref=str(run_state.get("current_chapter_ref", "") or "") or None,
-        updated_at=str(run_state.get("updated_at", "") or "") or None,
+    if payload is None:
+        payload = _synthesized_current_reading_activity(
+            status=status,
+            current_phase_step_key=current_phase_step_key,
+            current_segment_ref=str(run_state.get("current_segment_ref", "") or "") or None,
+            current_chapter_ref=str(run_state.get("current_chapter_ref", "") or "") or None,
+            updated_at=str(run_state.get("updated_at", "") or "") or None,
+        )
+    if payload is None:
+        return None
+
+    chapter_ref = _clean_text(run_state.get("current_chapter_ref"))
+    segment_ref = _clean_text(payload.get("segment_ref"))
+    current_excerpt = re.sub(r"\s+", " ", str(payload.get("current_excerpt", "") or "")).strip()
+    if current_excerpt:
+        payload["current_excerpt"] = current_excerpt
+
+    reading_locus = (
+        _normalize_reading_locus(
+            current_payload.get("reading_locus"),
+            fallback_chapter_id=current_chapter_id,
+            fallback_chapter_ref=chapter_ref,
+            fallback_excerpt=current_excerpt,
+            fallback_locator=(
+                _segment_locator_for_ref(
+                    book_id,
+                    segment_ref,
+                    current_chapter_id=current_chapter_id,
+                    root=root,
+                )
+                if segment_ref
+                else None
+            ),
+        )
+        if isinstance(current_payload.get("reading_locus"), dict)
+        else None
     )
+    if reading_locus is None and isinstance(runtime_shell, dict):
+        reading_locus = _normalize_reading_locus(
+            runtime_shell.get("cursor"),
+            fallback_chapter_id=current_chapter_id,
+            fallback_chapter_ref=chapter_ref,
+            fallback_excerpt=current_excerpt,
+        )
+    if reading_locus is None:
+        reading_locus = _reading_locus_from_segment_ref(
+            book_id,
+            segment_ref=segment_ref,
+            chapter_id=current_chapter_id,
+            chapter_ref=chapter_ref,
+            excerpt=current_excerpt,
+            root=root,
+        )
+    if reading_locus is not None:
+        payload["reading_locus"] = reading_locus
+
+    move_type = _clean_text(current_payload.get("move_type"))
+    if move_type in {"advance", "dwell", "bridge", "reframe"}:
+        payload["move_type"] = move_type
+
+    reconstructed = current_payload.get("reconstructed_hot_state")
+    if reconstructed is None and "is_reconstructed" in current_payload:
+        reconstructed = current_payload.get("is_reconstructed")
+    if reconstructed is not None:
+        payload["reconstructed_hot_state"] = bool(reconstructed)
+
+    last_resume_kind = _clean_text(current_payload.get("last_resume_kind"))
+    if last_resume_kind in {"warm_resume", "cold_resume", "reconstitution_resume"}:
+        payload["last_resume_kind"] = last_resume_kind
+
+    active_reaction_id = _clean_text(current_payload.get("active_reaction_id"))
+    if not active_reaction_id and isinstance(runtime_shell, dict):
+        active_refs = runtime_shell.get("active_artifact_refs")
+        if isinstance(active_refs, dict):
+            active_reaction_id = _clean_text(active_refs.get("reaction_id"))
+    public_active_reaction_id = _public_optional_reaction_id(book_id, active_reaction_id)
+    if public_active_reaction_id is not None:
+        payload["active_reaction_id"] = public_active_reaction_id
+
+    return payload
 
 
-def _segment_text_for_ref(
+def _structure_segment_for_ref(
     book_id: str,
     segment_ref: str,
     *,
     current_chapter_id: int | None = None,
     root: Path | None = None,
-) -> str | None:
-    """Resolve one full segment text from structure.json for live excerpt backfills."""
+) -> dict[str, object] | None:
+    """Resolve one structure segment payload by semantic segment reference."""
+
     normalized_segment_ref = str(segment_ref or "").strip()
     if not normalized_segment_ref:
         return None
@@ -994,9 +1247,142 @@ def _segment_text_for_ref(
                 continue
             if str(segment.get("segment_ref", "") or "").strip() != normalized_segment_ref:
                 continue
-            normalized_text = re.sub(r"\s+", " ", str(segment.get("text", "") or "")).strip()
-            return normalized_text or None
+            return segment
     return None
+
+
+def _segment_text_for_ref(
+    book_id: str,
+    segment_ref: str,
+    *,
+    current_chapter_id: int | None = None,
+    root: Path | None = None,
+) -> str | None:
+    """Resolve one full segment text from structure.json for live excerpt backfills."""
+
+    segment = _structure_segment_for_ref(
+        book_id,
+        segment_ref,
+        current_chapter_id=current_chapter_id,
+        root=root,
+    )
+    if not isinstance(segment, dict):
+        return None
+    normalized_text = re.sub(r"\s+", " ", str(segment.get("text", "") or "")).strip()
+    return normalized_text or None
+
+
+def _segment_locator_for_ref(
+    book_id: str,
+    segment_ref: str,
+    *,
+    current_chapter_id: int | None = None,
+    root: Path | None = None,
+) -> dict[str, object] | None:
+    """Resolve one structure-backed span locator for a semantic segment reference."""
+
+    segment = _structure_segment_for_ref(
+        book_id,
+        segment_ref,
+        current_chapter_id=current_chapter_id,
+        root=root,
+    )
+    if not isinstance(segment, dict):
+        return None
+    return _normalize_text_span_locator(segment.get("locator"))
+
+
+def _normalize_reading_locus(
+    payload: object,
+    *,
+    fallback_chapter_id: int | None = None,
+    fallback_chapter_ref: str | None = None,
+    fallback_excerpt: str | None = None,
+    fallback_locator: object = None,
+) -> dict[str, object] | None:
+    """Normalize one additive reading-locus payload."""
+
+    locus = payload if isinstance(payload, dict) else {}
+    sentence_start_id = (
+        _clean_text(locus.get("sentence_start_id"))
+        or _clean_text(locus.get("span_start_sentence_id"))
+        or _clean_text(locus.get("sentence_id"))
+    )
+    sentence_end_id = (
+        _clean_text(locus.get("sentence_end_id"))
+        or _clean_text(locus.get("span_end_sentence_id"))
+        or _clean_text(locus.get("sentence_id"))
+        or sentence_start_id
+    )
+    kind = _clean_text(locus.get("kind") or locus.get("position_kind"))
+    if kind not in {"chapter", "sentence", "span"}:
+        if sentence_start_id and sentence_end_id and sentence_start_id != sentence_end_id:
+            kind = "span"
+        elif sentence_start_id:
+            kind = "sentence"
+        else:
+            kind = "chapter"
+
+    normalized: dict[str, object] = {"kind": kind}
+    chapter_id = _optional_int(locus.get("chapter_id"))
+    chapter_ref = _clean_text(locus.get("chapter_ref"))
+    if chapter_id is None:
+        chapter_id = fallback_chapter_id
+    if not chapter_ref:
+        chapter_ref = _clean_text(fallback_chapter_ref)
+    if chapter_id is not None:
+        normalized["chapter_id"] = chapter_id
+    if chapter_ref:
+        normalized["chapter_ref"] = chapter_ref
+    if sentence_start_id:
+        normalized["sentence_start_id"] = sentence_start_id
+    if sentence_end_id:
+        normalized["sentence_end_id"] = sentence_end_id
+    locator = _normalize_text_span_locator(locus.get("locator")) or _normalize_text_span_locator(fallback_locator)
+    if locator is not None:
+        normalized["locator"] = locator
+    excerpt = _clean_text(locus.get("excerpt") or locus.get("current_excerpt")) or _clean_text(fallback_excerpt)
+    if excerpt:
+        normalized["excerpt"] = excerpt
+    if kind == "chapter" and not any(key in normalized for key in ("chapter_id", "chapter_ref", "excerpt")):
+        return None
+    if kind in {"sentence", "span"} and not any(
+        key in normalized for key in ("sentence_start_id", "sentence_end_id", "locator", "chapter_id", "chapter_ref", "excerpt")
+    ):
+        return None
+    return normalized
+
+
+def _reading_locus_from_segment_ref(
+    book_id: str,
+    *,
+    segment_ref: str | None,
+    chapter_id: int | None,
+    chapter_ref: str | None,
+    excerpt: str | None,
+    root: Path | None = None,
+) -> dict[str, object] | None:
+    """Build a compatibility reading locus from a legacy segment reference."""
+
+    cleaned_segment_ref = _clean_text(segment_ref)
+    if not cleaned_segment_ref and not chapter_id and not _clean_text(chapter_ref):
+        return None
+    return _normalize_reading_locus(
+        {"kind": "span" if cleaned_segment_ref else "chapter"},
+        fallback_chapter_id=chapter_id,
+        fallback_chapter_ref=chapter_ref,
+        fallback_excerpt=excerpt,
+        fallback_locator=(
+            _segment_locator_for_ref(
+                book_id,
+                cleaned_segment_ref,
+                current_chapter_id=chapter_id,
+                root=root,
+            )
+            if cleaned_segment_ref
+            else None
+        ),
+    )
 
 
 def _analysis_pulse_message(
@@ -1051,6 +1437,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
     if not run_state:
         raise FileNotFoundError(book_id)
     parse_state = _parse_state(book_id, root)
+    runtime_shell = _runtime_shell(book_id, root)
 
     current_chapter_id = int(run_state.get("current_chapter_id", 0) or 0) or None
     chapters = []
@@ -1142,6 +1529,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         current_phase_step_key=current_phase_step_key,
         current_chapter_id=current_chapter_id,
         root=root,
+        runtime_shell=runtime_shell,
     )
     pulse_message = _analysis_pulse_message(
         status=status,

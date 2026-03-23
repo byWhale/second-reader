@@ -21,6 +21,7 @@ from src.iterator_reader.storage import (
 from src.library.jobs import refresh_job, save_job
 from src.library.storage import upload_file
 from src.library.user_marks import delete_mark, list_book_marks, load_marks_state, put_mark
+from src.reading_runtime.artifacts import runtime_shell_file
 
 
 api_module = importlib.import_module("src.api.app")
@@ -760,6 +761,8 @@ def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     assert chapter_response.json()["book_id"] == public_book_id
     assert chapter_response.json()["featured_reactions"][0]["reaction_id"] == public_reaction_id
     assert chapter_response.json()["chapter_heading"]["title"] == "Opening frame"
+    assert chapter_response.json()["featured_reactions"][0]["primary_anchor"]["quote"] == "Alpha beta"
+    assert chapter_response.json()["sections"][0]["reactions"][0]["primary_anchor"]["quote"] == "Alpha beta"
 
     reactions_response = client.get(f"/api/books/{public_book_id}/chapters/1/reactions")
     assert reactions_response.status_code == 200
@@ -782,11 +785,13 @@ def test_api_reads_books_chapters_marks_and_docs(tmp_path):
     assert marks_response.json()["book_id"] == public_book_id
     assert marks_response.json()["groups"][0]["items"][0]["reaction_id"] == public_reaction_id
     assert isinstance(marks_response.json()["groups"][0]["items"][0]["mark_id"], int)
+    assert marks_response.json()["groups"][0]["items"][0]["primary_anchor"]["quote"] == "Alpha beta"
 
     global_marks_response = client.get("/api/marks")
     assert global_marks_response.status_code == 200
     assert global_marks_response.json()["items"][0]["reaction_id"] == public_reaction_id
     assert isinstance(global_marks_response.json()["items"][0]["mark_id"], int)
+    assert global_marks_response.json()["items"][0]["primary_anchor"]["quote"] == "Alpha beta"
 
     delete_response = client.delete(f"/api/marks/{public_reaction_id}")
     assert delete_response.status_code == 200
@@ -948,17 +953,81 @@ def test_analysis_state_exposes_current_reading_activity_snapshot(tmp_path):
     response = client.get(f"/api/books/{public_book_id}/analysis-state")
 
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["current_reading_activity"] == {
-        "phase": "searching",
+    activity = response.json()["current_reading_activity"]
+    assert activity["phase"] == "searching"
+    assert activity["started_at"] == "2026-03-15T07:04:50Z"
+    assert activity["updated_at"] == "2026-03-15T07:04:56Z"
+    assert activity["segment_ref"] == "1.2"
+    assert activity["current_excerpt"] == "Hormesis lost some scientific respect."
+    assert activity["search_query"] == "homeopathy decline toxicology threshold model"
+    assert activity["thought_family"] == "curious"
+    assert activity["problem_code"] == "search_timeout"
+    assert activity["reading_locus"] == {
+        "kind": "span",
+        "chapter_id": 1,
+        "chapter_ref": "Chapter 1",
+        "excerpt": "Hormesis lost some scientific respect.",
+        "locator": None,
+        "sentence_start_id": None,
+        "sentence_end_id": None,
+    }
+
+
+def test_analysis_state_uses_runtime_shell_cursor_for_additive_locus_fields(tmp_path):
+    """analysis-state should project the shared runtime-shell cursor into the additive reading-locus fields."""
+
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    public_book_id = to_api_book_id(book_id)
+    output_dir = tmp_path / "output" / book_id
+    _write_json(
+        runtime_shell_file(output_dir),
+        {
+            "mechanism_key": "attentional_v2",
+            "mechanism_version": "attentional_v2-phase8",
+            "policy_version": "attentional_v2-policy-v1",
+            "status": "running",
+            "phase": "bridge",
+            "cursor": {
+                "position_kind": "span",
+                "chapter_id": 1,
+                "chapter_ref": "Chapter 1",
+                "span_start_sentence_id": "c1-s8",
+                "span_end_sentence_id": "c1-s9",
+            },
+            "active_artifact_refs": {"reaction_id": "r1"},
+            "resume_available": True,
+            "last_checkpoint_id": "ckpt-1",
+            "last_checkpoint_at": "2026-03-15T07:04:56Z",
+            "updated_at": "2026-03-15T07:04:56Z",
+        },
+    )
+    run_state_path = _run_state_path(output_dir)
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["current_reading_activity"] = {
+        "phase": "thinking",
         "started_at": "2026-03-15T07:04:50Z",
         "updated_at": "2026-03-15T07:04:56Z",
-        "segment_ref": "1.2",
-        "current_excerpt": "Hormesis lost some scientific respect.",
-        "search_query": "homeopathy decline toxicology threshold model",
-        "thought_family": "curious",
-        "problem_code": "search_timeout",
+        "current_excerpt": "Alpha beta",
     }
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    api_module.app.state.root = tmp_path
+    client = TestClient(api_module.app)
+
+    response = client.get(f"/api/books/{public_book_id}/analysis-state")
+
+    assert response.status_code == 200
+    payload = response.json()["current_reading_activity"]
+    assert payload["reading_locus"] == {
+        "kind": "span",
+        "chapter_id": 1,
+        "chapter_ref": "Chapter 1",
+        "sentence_start_id": "c1-s8",
+        "sentence_end_id": "c1-s9",
+        "excerpt": "Alpha beta",
+        "locator": None,
+    }
+    assert payload["active_reaction_id"] == to_api_reaction_id(book_id=book_id, reaction_id="r1")
 
 
 def test_analysis_state_backfills_truncated_current_excerpt_from_structure(tmp_path):

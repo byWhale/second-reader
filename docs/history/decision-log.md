@@ -496,3 +496,26 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/attentional_v2/storage.py`
 - `docs/backend-reading-mechanisms/attentional_v2.md`
 - `docs/implementation/new-reading-mechanism/open-questions.md`
+
+## Entry 24
+**Decision / Inflection**: Treat section-era public fields as temporary compatibility sidecars and begin the public migration toward locus- and anchor-native `attentional_v2` surfaces.
+
+**Period**: March 2026, during the first Phase 8 shared-surface integration pass.
+
+**Problem**: The product had already decided that future frontend/API surfaces should not keep chapter `section` as the long-term primary container, because not every reading mechanism has that ontology. At the same time, the current routed frontend, chapter views, and marks pages still depended heavily on `section_ref` / `segment_ref`.
+
+**Alternatives considered**: Keep the public model section-first indefinitely, break the current frontend immediately in favor of a new non-section contract, or hide `attentional_v2`'s richer locus/anchor truth until a later all-at-once rewrite.
+
+**Why this path won**: An additive migration preserves product honesty without forcing a destabilizing rewrite. The backend can now expose the mechanism's real reading locus and anchored thought structure directly enough for future product work, while still serving the current section-era frontend through compatibility sidecars. This keeps the top layer closer to mechanism-authored truth without pretending the full frontend migration is already done.
+
+**What changed in the system**: Public schemas and payload shaping now additively expose `reading_locus`, `primary_anchor`, `related_anchors`, `supersedes_reaction_id`, `move_type`, and runtime-shell-backed active reaction references on analysis-state, activity, chapter, and mark payloads. `section_ref` / `segment_ref` remain in place for compatibility, but the stable docs now describe them as migration-era sidecars rather than the future public ontology.
+
+**Why it matters later**: This entry records the moment the project explicitly chose a de-sectionized long-term direction for new mechanisms without forcing an immediate frontend break. Future contributors will need this context to understand why both section-era fields and richer anchor/locus fields coexist for a while, and why later work still needs to redesign chapter/detail and marks around chapter text plus anchored reactions.
+
+**Primary evidence**:
+- `reading-companion-backend/src/api/schemas.py`
+- `reading-companion-backend/src/library/catalog.py`
+- `reading-companion-backend/src/library/user_marks.py`
+- `docs/api-contract.md`
+- `docs/backend-state-aggregation.md`
+- `docs/backend-reading-mechanisms/attentional_v2.md`

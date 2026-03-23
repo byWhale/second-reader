@@ -28,6 +28,9 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `_runtime/run_state.json`
   - The live runtime snapshot for the sequential workflow.
   - Carries top-level stage, chapter and segment pointers, `current_phase_step`, `current_reading_activity`, checkpoint metadata, errors, and ETA-like progress hints.
+- `_runtime/runtime_shell.json`
+  - Shared thin runtime envelope for cross-mechanism cursor and active-artifact references.
+  - May now contribute additive `reading_locus` and active reaction references for non-section mechanisms even when the current compatibility surfaces still expose `segment_ref`.
 - `_runtime/parse_state.json`
   - Parse-stage checkpoint metadata used before the main run state fully reflects deep-reading progress.
   - Important for deferred upload and for the `parsing_structure` view of resumability.
@@ -62,13 +65,15 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
   - Uses completed chapter result files to build aggregate reaction counts and result readiness.
   - Uses `user_marks` for `my_mark_count`.
 - `GET /api/books/{book_id}/analysis-state`
-  - Uses `book_manifest`, `run_state`, `parse_state`, `activity.jsonl`, and chapter result files together.
+  - Uses `book_manifest`, `run_state`, `runtime_shell`, `parse_state`, `activity.jsonl`, and chapter result files together.
   - Builds progress metrics, chapter tree statuses, the live `current_reading_activity` snapshot, `resume_available`, `last_checkpoint_at`, recent completed chapters, recent reactions, and the `current_state_panel`.
   - When older runtime snapshots contain a shortened `current_reading_activity.current_excerpt`, catalog backfills the full normalized section text from the current default mechanism's `_mechanisms/iterator_v1/derived/structure.json` by matching `segment_ref`.
+  - Current public payloads may now additively expose `reading_locus`, `move_type`, `reconstructed_hot_state`, `last_resume_kind`, and `active_reaction_id` while keeping `segment_ref` as a compatibility sidecar.
 - `GET /api/books/{book_id}/activity`
   - Reads `activity.jsonl` and normalizes each event into the public event shape.
   - The routed frontend overview now consumes the `stream=mindstream` view; `stream=system` remains available for diagnostics.
   - Adds canonical chapter result routes where the completed result is ready.
+  - Event payloads may now also carry additive `reading_locus`, `move_type`, and anchor-native reaction fields without changing the current compatibility route model.
 - `GET /api/books/{book_id}/analysis-log`
   - Is the main exception to the catalog-driven view model.
   - It remains an internal diagnostic endpoint and is no longer part of the user-facing overview.
@@ -76,17 +81,20 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `GET /api/books/{book_id}/chapters/{chapter_id}`
   - Uses the chapter result file for structured sections, featured reactions, and chapter-level summaries.
   - Uses `user_marks` to attach the current mark state to each returned reaction card.
+  - Reaction cards and featured reaction previews may now additively expose `primary_anchor`, `related_anchors`, and reconsolidation lineage sidecars while the page still remains section-shaped for compatibility.
 - `GET /api/books/{book_id}/chapters/{chapter_id}/outline`
   - Starts from the manifest chapter tree, then enriches the outline with section previews from the chapter result file when that result exists.
 - `GET /api/marks` and `GET /api/books/{book_id}/marks`
   - Read from `state/user_marks.json`.
   - Rely on previously persisted book/chapter metadata and reaction lookup against chapter results to keep marks anchored to real reading artifacts.
+  - Marks may now persist additive `primary_anchor` data even while they still expose `section_ref` for the current routed frontend.
 
 ## Aggregation Responsibilities
 - `reading-companion-backend/src/library/catalog.py`
   - Owns artifact discovery, legacy-path fallback, view aggregation, and most product-facing payload shaping.
   - Converts raw manifests, runtime files, activity streams, and chapter artifacts into bookshelf, book detail, chapter detail, chapter outline, and analysis-state views.
   - May consume `_mechanisms/iterator_v1/derived/structure.json` for iterator-era section backfill, but should not treat that artifact as the universal parsed-book substrate.
+  - Now also projects additive anchor- and locus-native fields upward without removing current compatibility fields prematurely.
 - `reading-companion-backend/src/api/app.py`
   - Owns endpoint-level response shaping and public-ID resolution.
   - Resolves public integer ids back to internal runtime ids, calls catalog/jobs/marks helpers, and normalizes returned marks into the public API field names.
@@ -122,6 +130,10 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
   - Top-level `_runtime/` contains only cross-mechanism live shell state.
   - `_mechanisms/<mechanism_key>/` contains mechanism-private derived structures, runtime memory/checkpoints, diagnostics, and optional eval exports.
   - `_mechanisms/iterator_v1/derived/structure.json` remains a current-mechanism artifact that aggregation may still consult for `iterator_v1`-shaped section views and compatibility backfill.
+- Additive locus/anchor fields vs section compatibility
+  - Public aggregation may now expose richer additive fields such as `reading_locus`, `primary_anchor`, `related_anchors`, and `supersedes_reaction_id`.
+  - Existing `segment_ref` / `section_ref` fields remain temporary compatibility sidecars for current frontend surfaces.
+  - The later planned migration is to redesign chapter/detail and marks around chapter text plus anchored reactions instead of section-first containers.
 
 ## Practical Reading Order
 - Read `docs/backend-sequential-lifecycle.md` first when the question is "how does the job behave over time?"

@@ -17,7 +17,6 @@ Update when: status changes, blockers appear, or phases complete.
 - Current phase:
   - `Phase 8: Observability, Evaluation, And Shared-Surface Integration`
 - Current blockers:
-  - shared public-surface adapter strategy `Q4` is still open for Phase 8 compatibility work
   - observability split `Q8` is still open for standard-vs-debug event and checkpoint detail
   - evaluation-slice and threshold question `Q9` is still open before later comparison and promotion work
 
@@ -32,7 +31,7 @@ Update when: status changes, blockers appear, or phases complete.
 | Phase 5 - Knowledge, memory, and bridge resolution | `done` | activation lifecycle, anchor relations, bridge resolution working |
 | Phase 6 - Slow-cycle reasoning and historical integrity | `done` | promotion, reconsolidation, chapter consolidation working |
 | Phase 7 - Persistence, checkpointing, and resume | `done` | warm/cold/reconstitution resume working |
-| Phase 8 - Observability, evaluation, and shared-surface integration | `planned` | event/checkpoint contracts and public adapters working |
+| Phase 8 - Observability, evaluation, and shared-surface integration | `in_progress` | event/checkpoint contracts and public adapters working |
 | Phase 9 - Migration, stabilization, and default-cutover readiness | `planned` | acceptance ladder reached and stable docs promoted |
 
 ## Detailed Checklist
@@ -129,15 +128,16 @@ Update when: status changes, blockers appear, or phases complete.
 - [ ] Emit checkpoint summaries with required fields
 - [ ] Produce normalized eval artifacts
 - [ ] Add mechanism-integrity checks
-- [ ] Adapt new mechanism state into shared public surfaces
-- [ ] Verify compatibility with analysis-state and activity surfaces
-- [ ] Verify marks and reaction persistence compatibility
-- [ ] Plan and land additive API/top-layer refinements for mechanism-valued fields such as:
+- [x] Adapt new mechanism state into shared public surfaces
+- [x] Verify compatibility with analysis-state and activity surfaces
+- [x] Verify marks and reaction persistence compatibility
+- [x] Land the first additive backend/public-contract refinements for mechanism-valued fields such as:
   - `primary_anchor`
   - `related_anchors`
-  - reconsolidation lineage
-  - span-based or sentence-based live locus
+  - reconsolidation lineage via `supersedes_reaction_id`
+  - span-based or sentence-based live locus via `reading_locus`
   - current move type such as `advance`, `dwell`, `bridge`, or `reframe`
+- [ ] Migrate the frontend and stable API away from section-first chapter/detail and marks surfaces once the section model is intentionally retired
 
 ### Phase 9 - Migration, Stabilization, And Default-Cutover Readiness
 - [ ] Run mechanism-integrity evaluation
@@ -168,3 +168,5 @@ Update when: status changes, blockers appear, or phases complete.
   - Completed Phase 6: `attentional_v2` now has slow-cycle node contracts for `reflective_promotion`, `reconsolidation`, and `chapter_consolidation`, a durable `reaction_records.json` source of truth, append-and-link reconsolidation behavior, chapter-end carry-forward helpers, and a mechanism-private chapter-result compatibility projection that preserves original reaction truth while feeding current envelope fields.
   - Resolved Q7: Phase 7 resume reconstruction will stay bounded and chapter-local, with `warm_resume` rereading `0` sentences, `cold_resume` targeting `8` recent sentences with a `12`-sentence cap and meaning-unit backfill, and `reconstitution_resume` targeting `24` recent sentences with a `30`-sentence cap and up to `3` meaning units.
   - Completed Phase 7: `attentional_v2` now persists `local_continuity.json` and `resume_metadata.json`, writes full mechanism checkpoints plus shared checkpoint summaries, restores warm/cold/reconstitution resume state through the shared sentence substrate, and marks reconstructed hot state explicitly instead of pretending non-warm resume is warm.
+  - Resolved Q4 and landed the first Phase 8 shared-surface slice: public schemas and backend aggregation now expose additive `reading_locus`, `primary_anchor`, `related_anchors`, `supersedes_reaction_id`, `move_type`, and runtime-shell-backed active reaction references while keeping `section_ref` / `segment_ref` as compatibility sidecars.
+  - Recorded future migration work explicitly instead of leaving it implicit: the frontend and stable API still need a later intentional cut from section-first chapter/detail and marks surfaces toward chapter text plus anchored reactions as the primary model.

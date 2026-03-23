@@ -30,7 +30,7 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
 | Phase 5 - Knowledge, memory, and bridge resolution | Verify recognition vs reading-warrant separation, source-anchor bridge targeting, relation writes, and knowledge/search policy transitions. | `unit` / `integration` / `evaluation` | `done` |
 | Phase 6 - Slow-cycle reasoning and historical integrity | Verify promotion/supersede rules, reconsolidation append-and-link behavior, reaction immutability, and chapter carry-forward discipline. | `integration` / `runtime` / `evaluation` | `done` |
 | Phase 7 - Persistence, checkpointing, and resume | Run warm/cold/reconstitution resume fixtures; verify no durable-anchor loss, no visible-reaction loss, and explicit reconstructed-state signaling. | `runtime` / `integration` | `done` |
-| Phase 8 - Observability, evaluation, and shared-surface integration | Verify event streams, checkpoint summaries, normalized eval artifacts, and compatibility with analysis-state, activity, chapter, and marks surfaces. | `compatibility` / `runtime` / `evaluation` | `planned` |
+| Phase 8 - Observability, evaluation, and shared-surface integration | Verify additive anchor/locus public fields, event streams, checkpoint summaries, normalized eval artifacts, and compatibility with analysis-state, activity, chapter, and marks surfaces. | `compatibility` / `runtime` / `evaluation` | `in_progress` |
 | Phase 9 - Migration, stabilization, and default-cutover readiness | Run end-to-end comparison against `iterator_v1`, confirm acceptance ladder, and verify long-term doc promotions for every landed behavior change. | `evaluation` / `compatibility` / `docs` | `planned` |
 
 ## Minimum Acceptance Ladder
@@ -47,3 +47,8 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
 - Runtime and evaluation work are not optional cleanup.
 - A phase is not done if it only works in logs or only works in isolated prompt demos.
 - If a phase changes stable behavior, update the relevant long-term docs in the same task and record it in `stable-doc-impact.md`.
+- The first Phase 8 landing now requires focused compatibility tests for:
+  - `analysis-state.current_reading_activity.reading_locus`
+  - runtime-shell-backed additive locus projection
+  - additive `primary_anchor` preservation across chapter, activity, and marks payloads
+- Future Phase 8 / 9 work still needs explicit validation for the eventual removal of section-first chapter/detail and marks assumptions.

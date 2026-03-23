@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import hashlib
 import json
 from pathlib import Path
-from typing import Literal, Mapping, TypedDict
+from typing import Literal, Mapping, NotRequired, TypedDict
 
 from .book_document import BookDocument
 from .normalized_outputs import NormalizedEvalBundle, ReactionType
@@ -44,6 +44,8 @@ class UserMark(TypedDict):
     anchor_quote: str
     created_at: str
     updated_at: str
+    primary_anchor: NotRequired[dict[str, object]]
+    supersedes_reaction_id: NotRequired[str]
 
 
 class UserMarksState(TypedDict):

@@ -339,6 +339,15 @@ def project_chapter_result_compatibility(
             ]
             if isinstance(record.get("search_results"), list)
             else [],
+            "primary_anchor": build_reaction_anchor(primary_anchor),
+            "related_anchors": [
+                build_reaction_anchor(anchor)
+                for anchor in record.get("related_anchors", [])
+                if isinstance(anchor, dict)
+            ]
+            if isinstance(record.get("related_anchors"), list)
+            else [],
+            "supersedes_reaction_id": _clean_text(record.get("supersedes_reaction_id")) or None,
         }
         if target_locator is not None:
             reaction_card["target_locator"] = target_locator
@@ -353,6 +362,15 @@ def project_chapter_result_compatibility(
                 "anchor_quote": _clean_text(primary_anchor.get("quote")),
                 "content": _clean_text(record.get("thought")),
                 "target_locator": target_locator or {},
+                "primary_anchor": build_reaction_anchor(primary_anchor),
+                "related_anchors": [
+                    build_reaction_anchor(anchor)
+                    for anchor in record.get("related_anchors", [])
+                    if isinstance(anchor, dict)
+                ]
+                if isinstance(record.get("related_anchors"), list)
+                else [],
+                "supersedes_reaction_id": _clean_text(record.get("supersedes_reaction_id")) or None,
             }
         )
 

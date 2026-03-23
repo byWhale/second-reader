@@ -5,6 +5,18 @@
         "additionalProperties": false,
         "description": "User-facing activity stream event.",
         "properties": {
+          "active_reaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public reaction id of the active durable thought referenced by the event when available.",
+            "title": "Active Reaction Id"
+          },
           "anchor_quote": {
             "anyOf": [
               {
@@ -88,6 +100,24 @@
             "title": "Message",
             "type": "string"
           },
+          "move_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "advance",
+                  "dwell",
+                  "bridge",
+                  "reframe"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current move type when the event represents a mechanism-authored attentional move.",
+            "title": "Move Type"
+          },
           "reaction_types": {
             "description": "Reaction types represented in this event.",
             "items": {
@@ -102,6 +132,17 @@
             },
             "title": "Reaction Types",
             "type": "array"
+          },
+          "reading_locus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReadingLocus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additive span- or sentence-based locus carried by the event when available."
           },
           "result_url": {
             "anyOf": [
@@ -242,6 +283,17 @@
             "title": "Content",
             "type": "string"
           },
+          "primary_anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReactionAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mechanism-authored primary anchor for this visible reaction when available."
+          },
           "reaction_id": {
             "description": "Stable public integer identifier for the reaction.",
             "title": "Reaction Id",
@@ -263,6 +315,18 @@
             "description": "Human-readable section reference, such as 3.2.",
             "title": "Section Ref",
             "type": "string"
+          },
+          "supersedes_reaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public reaction id of the earlier thought this visible reaction supersedes when applicable.",
+            "title": "Supersedes Reaction Id"
           },
           "type": {
             "description": "Reaction type key.",
@@ -1498,6 +1562,18 @@
         "additionalProperties": false,
         "description": "Ephemeral snapshot of the live reading step currently underway.",
         "properties": {
+          "active_reaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public reaction id of the currently active durable thought when the mechanism exposes one.",
+            "title": "Active Reaction Id"
+          },
           "current_excerpt": {
             "anyOf": [
               {
@@ -1509,6 +1585,41 @@
             ],
             "description": "Excerpt of the text currently under attention.",
             "title": "Current Excerpt"
+          },
+          "last_resume_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "warm_resume",
+                  "cold_resume",
+                  "reconstitution_resume"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Resume mode that produced the current live state when the mechanism exposes it.",
+            "title": "Last Resume Kind"
+          },
+          "move_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "advance",
+                  "dwell",
+                  "bridge",
+                  "reframe"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current attentional move when the mechanism exposes it directly.",
+            "title": "Move Type"
           },
           "phase": {
             "description": "Current live reading phase.",
@@ -1544,6 +1655,29 @@
             ],
             "description": "Optional machine-readable problem code when the live activity is degraded by an external failure.",
             "title": "Problem Code"
+          },
+          "reading_locus": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReadingLocus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additive span- or sentence-based reading locus projected from mechanism truth when available."
+          },
+          "reconstructed_hot_state": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether the mechanism rebuilt hot local state from persistence instead of continuing warm in-memory continuity.",
+            "title": "Reconstructed Hot State"
           },
           "search_query": {
             "anyOf": [
@@ -1838,15 +1972,46 @@
             "title": "Content",
             "type": "string"
           },
+          "primary_anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReactionAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mechanism-authored primary anchor projected upward without rewriting the original thought object."
+          },
           "reaction_id": {
             "description": "Stable public integer identifier for the reaction.",
             "title": "Reaction Id",
             "type": "integer"
           },
+          "related_anchors": {
+            "description": "Optional secondary anchors linked to the same reaction.",
+            "items": {
+              "$ref": "#/components/schemas/ReactionAnchor"
+            },
+            "title": "Related Anchors",
+            "type": "array"
+          },
           "section_ref": {
             "description": "Human-readable section reference, such as 3.2.",
             "title": "Section Ref",
             "type": "string"
+          },
+          "supersedes_reaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public reaction id of the earlier thought this reaction supersedes when reconsolidation has occurred.",
+            "title": "Supersedes Reaction Id"
           },
           "target_locator": {
             "anyOf": [
@@ -2254,6 +2419,17 @@
             "title": "Mark Type",
             "type": "string"
           },
+          "primary_anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReactionAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mechanism-authored primary anchor preserved on the mark when available."
+          },
           "reaction_excerpt": {
             "description": "Short excerpt of the reaction content used in marks views.",
             "title": "Reaction Excerpt",
@@ -2280,6 +2456,18 @@
             "description": "Human-readable section reference for the marked reaction.",
             "title": "Section Ref",
             "type": "string"
+          },
+          "supersedes_reaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public reaction id of the earlier thought this marked reaction supersedes when reconsolidation has occurred.",
+            "title": "Supersedes Reaction Id"
           },
           "updated_at": {
             "description": "Mark last update time.",
@@ -2363,6 +2551,57 @@
         "title": "PageInfo",
         "type": "object"
       },
+      "ReactionAnchor": {
+        "additionalProperties": false,
+        "description": "Anchor payload that preserves the mechanism-authored focal source span.",
+        "properties": {
+          "locator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TextSpanLocator"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared text-span locator for the anchor when known."
+          },
+          "quote": {
+            "description": "Quoted source text used as the anchor for this thought.",
+            "title": "Quote",
+            "type": "string"
+          },
+          "sentence_end_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared sentence id where the anchor span ends when known.",
+            "title": "Sentence End Id"
+          },
+          "sentence_start_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared sentence id where the anchor span begins when known.",
+            "title": "Sentence Start Id"
+          }
+        },
+        "required": [
+          "quote"
+        ],
+        "title": "ReactionAnchor",
+        "type": "object"
+      },
       "ReactionCard": {
         "additionalProperties": false,
         "description": "Visible reaction card rendered in result views.",
@@ -2394,10 +2633,29 @@
             "description": "Current user mark attached to the reaction, if any.",
             "title": "Mark Type"
           },
+          "primary_anchor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReactionAnchor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Mechanism-authored primary anchor projected into the current chapter card shape."
+          },
           "reaction_id": {
             "description": "Stable public integer reaction identifier.",
             "title": "Reaction Id",
             "type": "integer"
+          },
+          "related_anchors": {
+            "description": "Optional secondary anchors linked to the same reaction.",
+            "items": {
+              "$ref": "#/components/schemas/ReactionAnchor"
+            },
+            "title": "Related Anchors",
+            "type": "array"
           },
           "search_query": {
             "anyOf": [
@@ -2428,6 +2686,18 @@
             "description": "One-line summary of the parent section.",
             "title": "Section Summary",
             "type": "string"
+          },
+          "supersedes_reaction_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public reaction id of the earlier thought this reaction supersedes when reconsolidation has occurred.",
+            "title": "Supersedes Reaction Id"
           },
           "target_locator": {
             "anyOf": [
@@ -2551,6 +2821,98 @@
           "applied_filters"
         ],
         "title": "ReactionsPageResponse",
+        "type": "object"
+      },
+      "ReadingLocus": {
+        "additionalProperties": false,
+        "description": "Current reading locus projected from mechanism truth into a shared public shape.",
+        "properties": {
+          "chapter_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current chapter identifier when known.",
+            "title": "Chapter Id"
+          },
+          "chapter_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Human-readable chapter reference when known.",
+            "title": "Chapter Ref"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Current focal excerpt when the mechanism can expose it directly.",
+            "title": "Excerpt"
+          },
+          "kind": {
+            "description": "Granularity of the current reading locus.",
+            "enum": [
+              "chapter",
+              "sentence",
+              "span"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "locator": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TextSpanLocator"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Source-span locator for the current focus when known."
+          },
+          "sentence_end_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared sentence id where the current focus ends when known.",
+            "title": "Sentence End Id"
+          },
+          "sentence_start_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shared sentence id where the current focus begins when known.",
+            "title": "Sentence Start Id"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "ReadingLocus",
         "type": "object"
       },
       "SearchHit": {
@@ -2776,6 +3138,106 @@
           "media_type"
         ],
         "title": "SourceAsset",
+        "type": "object"
+      },
+      "TextSpanLocator": {
+        "additionalProperties": false,
+        "description": "Text-span locator that can point to one sentence or a short span.",
+        "properties": {
+          "char_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Character offset where the anchored text span ends when known.",
+            "title": "Char End"
+          },
+          "char_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Character offset where the anchored text span begins when known.",
+            "title": "Char Start"
+          },
+          "end_cfi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Preferred end EPUB CFI for the anchored text span.",
+            "title": "End Cfi"
+          },
+          "href": {
+            "description": "EPUB spine document href for the anchored text span.",
+            "title": "Href",
+            "type": "string"
+          },
+          "paragraph_end": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last paragraph index covered by the anchored text span when known.",
+            "title": "Paragraph End"
+          },
+          "paragraph_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Primary paragraph index for the anchored text span when known.",
+            "title": "Paragraph Index"
+          },
+          "paragraph_start": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "First paragraph index covered by the anchored text span when known.",
+            "title": "Paragraph Start"
+          },
+          "start_cfi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Preferred start EPUB CFI for the anchored text span.",
+            "title": "Start Cfi"
+          }
+        },
+        "required": [
+          "href"
+        ],
+        "title": "TextSpanLocator",
         "type": "object"
       },
       "UploadAcceptedResponse": {

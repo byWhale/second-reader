@@ -135,7 +135,9 @@ def test_project_chapter_result_compatibility_groups_reactions_by_paragraph(tmp_
     assert payload["sections"][0]["segment_ref"] == "1.1"
     assert payload["sections"][1]["segment_ref"] == "1.2"
     assert payload["sections"][0]["reactions"][0]["target_locator"]["match_mode"] == "exact"
+    assert payload["sections"][0]["reactions"][0]["primary_anchor"]["quote"] == "Markets begin as relations among people."
     assert payload["featured_reactions"][0]["reaction_id"]
+    assert payload["featured_reactions"][0]["primary_anchor"]["sentence_start_id"] == "c1-s1"
     assert compatibility_path.exists()
 
 

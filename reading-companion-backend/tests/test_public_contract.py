@@ -261,6 +261,8 @@ def test_openapi_public_snapshot_and_key_contracts(tmp_path):
 
     reaction_card = schemas["ReactionCard"]
     assert reaction_card["properties"]["type"]["enum"] == list(REACTION_TYPES)
+    assert reaction_card["properties"]["primary_anchor"]["anyOf"][0]["$ref"] == "#/components/schemas/ReactionAnchor"
+    assert reaction_card["properties"]["related_anchors"]["items"]["$ref"] == "#/components/schemas/ReactionAnchor"
 
     chapter_detail = schemas["ChapterDetailResponse"]
     assert chapter_detail["properties"]["available_filters"]["items"]["enum"] == REACTION_FILTERS
@@ -271,6 +273,13 @@ def test_openapi_public_snapshot_and_key_contracts(tmp_path):
     assert chapter_outline["properties"]["chapter_heading"]["anyOf"][0]["$ref"] == "#/components/schemas/ChapterHeadingBlock"
     outline_section = schemas["ChapterOutlineSectionItem"]
     assert outline_section["properties"]["visible_reaction_count"]["type"] == "integer"
+
+    current_activity = schemas["CurrentReadingActivity"]
+    assert current_activity["properties"]["reading_locus"]["anyOf"][0]["$ref"] == "#/components/schemas/ReadingLocus"
+    assert current_activity["properties"]["move_type"]["anyOf"][0]["enum"] == ["advance", "dwell", "bridge", "reframe"]
+
+    mark_record = schemas["MarkRecord"]
+    assert mark_record["properties"]["primary_anchor"]["anyOf"][0]["$ref"] == "#/components/schemas/ReactionAnchor"
 
     set_mark_request = schemas["SetMarkRequest"]
     assert set_mark_request["properties"]["mark_type"]["enum"] == list(MARK_TYPES)
@@ -320,6 +329,7 @@ def test_rest_payloads_scrub_legacy_names_and_routes(tmp_path):
             "created_at",
         }
     )
+    assert mark_item["primary_anchor"]["quote"] == "Legacy retrospect quote"
 
     error_payload = client.get("/api/books/999999999").json()
     assert set(error_payload) == {"error_id", "code", "message", "status", "retryable", "details"}
@@ -340,6 +350,7 @@ def test_legacy_connect_back_still_normalizes_to_retrospect(tmp_path):
     activity_payload = client.get(f"/api/books/{public_book_id}/activity").json()
 
     assert chapter_payload["featured_reactions"][0]["type"] == "retrospect"
+    assert chapter_payload["featured_reactions"][0]["primary_anchor"]["quote"] == "Legacy connect-back quote"
     assert chapter_payload["sections"][0]["reactions"][0]["type"] == "retrospect"
     assert activity_payload["items"][0]["reaction_types"] == ["retrospect"]
     assert activity_payload["items"][0]["featured_reactions"][0]["type"] == "retrospect"

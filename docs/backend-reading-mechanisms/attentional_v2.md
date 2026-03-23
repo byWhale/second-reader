@@ -233,8 +233,20 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `search_query` when applicable
 - Phase 6 now adds a mechanism-private compatibility projector that can shape durable anchored reactions into the current chapter-result envelope while keeping the anchored reaction record as the source of truth.
 - Phase 7 now adds bounded resume helpers that keep non-warm rereads chapter-local, preserve durable state, and explicitly mark reconstructed hot state instead of presenting it as warm continuity.
+- Phase 8 now lands the first additive public-surface projection layer:
+  - `current_reading_activity.reading_locus`
+  - `current_reading_activity.move_type`
+  - `current_reading_activity.reconstructed_hot_state`
+  - `current_reading_activity.last_resume_kind`
+  - `current_reading_activity.active_reaction_id`
+  - reaction/mark `primary_anchor`
+  - `related_anchors`
+  - reconsolidation lineage via `supersedes_reaction_id`
 - The mechanism's internal locus will not necessarily be a fixed `section`.
   - Adapters must project the current focal span and reading phase into shared public fields without claiming that the private ontology is section-based.
+- The Phase 8 rule is:
+  - keep `section_ref` / `segment_ref` only as compatibility sidecars
+  - treat locus- and anchor-native fields as the long-term public direction
 - When possible, the projected live attention text should reflect:
   - the current focal span
   - or the current interpretive question if that better explains what the mechanism is doing now
@@ -242,8 +254,11 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 ## Known Limits / Drift Notes
 - This is a stable design doc, not an implementation doc.
 - Phase 6 slow-cycle helpers and Phase 7 resume helpers exist, but the mechanism still does not run as a live parse/read path.
-- The current compatibility projector is intentionally temporary and paragraph-shaped; richer top-layer fields such as `primary_anchor`, `related_anchors`, reconsolidation lineage, and span-based live locus remain later work.
-- Shared public-surface adapters are still later-phase work.
+- The current compatibility projector is still intentionally temporary and paragraph-shaped, even though Phase 8 now exposes additive anchor/locus fields on shared public surfaces.
+- Shared public-surface adapter work is now partially landed, but the frontend and stable API are still section-first in chapter/detail and marks views.
+- Future migration still needed:
+  - redesign chapter/detail around chapter text plus anchored reactions instead of semantic sections as the primary container
+  - retire section-first requirements from the stable API/frontend contract once the frontend has switched to locus/anchor-native rendering
 - The survey stage must stay coarse enough that it does not become hidden full-book cheating.
 - Retrieval pressure, rare-search gating, and revisit behavior will likely need careful budget control during implementation.
-- Public adapter behavior may need compatibility compromises if existing transport fields remain section-shaped.
+- Public adapter behavior still needs later observability/evaluation decisions before Phase 8 can fully close.

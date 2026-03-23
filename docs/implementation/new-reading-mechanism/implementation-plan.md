@@ -219,6 +219,10 @@ Main work:
   - reconsolidation lineage
   - span-based or sentence-based live locus
   - current move type such as `advance`, `dwell`, `bridge`, or `reframe`
+- Keep `section_ref` / `segment_ref` only as migration sidecars during this phase.
+- Record the later intentional migration that still remains:
+  - redesign chapter/detail and marks surfaces around chapter text plus anchored reactions
+  - remove section-first requirements from the stable API/frontend contract once the frontend has switched to locus/anchor-native rendering
 - Verify compatibility with current analysis-state, activity, and marks surfaces.
 
 Depends on:

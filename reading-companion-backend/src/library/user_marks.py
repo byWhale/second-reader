@@ -50,6 +50,96 @@ def _sorted_marks(items: list[UserMark]) -> list[UserMark]:
     return ordered
 
 
+def _clean_text(value: object) -> str:
+    """Return one normalized string."""
+
+    return str(value or "").strip()
+
+
+def _optional_int(value: object) -> int | None:
+    """Convert one value into an integer when possible."""
+
+    if value in {None, ""}:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_text_span_locator(payload: object) -> dict[str, object] | None:
+    """Normalize one shared text-span locator payload for marks persistence."""
+
+    if not isinstance(payload, dict):
+        return None
+    href = _clean_text(payload.get("href"))
+    if not href:
+        return None
+    locator: dict[str, object] = {
+        "href": href,
+        "start_cfi": payload.get("start_cfi"),
+        "end_cfi": payload.get("end_cfi"),
+    }
+    for key in ("paragraph_index", "paragraph_start", "paragraph_end"):
+        value = _optional_int(payload.get(key))
+        if value is not None and value > 0:
+            locator[key] = value
+    for key in ("char_start", "char_end"):
+        if payload.get(key) is None:
+            continue
+        value = _optional_int(payload.get(key))
+        if value is not None and value >= 0:
+            locator[key] = value
+    return locator
+
+
+def _normalize_primary_anchor(reaction: dict[str, object]) -> dict[str, object] | None:
+    """Return one persisted primary-anchor payload from a reaction-like object."""
+
+    explicit_anchor = reaction.get("primary_anchor")
+    if isinstance(explicit_anchor, dict):
+        quote = _clean_text(explicit_anchor.get("quote"))
+        if quote:
+            payload: dict[str, object] = {"quote": quote}
+            sentence_start_id = _clean_text(explicit_anchor.get("sentence_start_id"))
+            sentence_end_id = _clean_text(explicit_anchor.get("sentence_end_id")) or sentence_start_id
+            if sentence_start_id:
+                payload["sentence_start_id"] = sentence_start_id
+            if sentence_end_id:
+                payload["sentence_end_id"] = sentence_end_id
+            locator = _normalize_text_span_locator(explicit_anchor.get("locator"))
+            if locator is not None:
+                payload["locator"] = locator
+            return payload
+
+    quote = _clean_text(reaction.get("anchor_quote"))
+    if not quote:
+        return None
+    payload = {"quote": quote}
+    locator = _normalize_text_span_locator(reaction.get("target_locator"))
+    if locator is not None:
+        payload["locator"] = locator
+    return payload
+
+
+def _iter_chapter_reactions(payload: dict[str, object]) -> list[tuple[dict[str, object], str]]:
+    """Return flattened reactions with their compatibility section references."""
+
+    flattened: list[tuple[dict[str, object], str]] = []
+    for section in payload.get("sections", []):
+        if not isinstance(section, dict):
+            continue
+        section_ref = _clean_text(section.get("segment_ref") or section.get("section_ref"))
+        for reaction in section.get("reactions", []):
+            if isinstance(reaction, dict):
+                flattened.append((reaction, section_ref))
+    for reaction in payload.get("reactions", []):
+        if not isinstance(reaction, dict):
+            continue
+        flattened.append((reaction, _clean_text(reaction.get("section_ref") or reaction.get("segment_ref"))))
+    return flattened
+
+
 def list_marks(root: Path | None = None) -> list[UserMark]:
     """Return all persisted marks."""
     state = load_marks_state(root)
@@ -118,22 +208,17 @@ def find_reaction(book_id: str, reaction_id: str, root: Path | None = None) -> d
             continue
         payload = load_json(path)
         chapter = payload.get("chapter", {})
-        for section in payload.get("sections", []):
-            if not isinstance(section, dict):
+        for reaction, section_ref in _iter_chapter_reactions(payload):
+            if str(reaction.get("reaction_id", "")) != reaction_id:
                 continue
-            for reaction in section.get("reactions", []):
-                if not isinstance(reaction, dict):
-                    continue
-                if str(reaction.get("reaction_id", "")) != reaction_id:
-                    continue
-                return {
-                    "book_id": book_id,
-                    "book_title": str(payload.get("book_title", "")) or "",
-                    "chapter_id": int(chapter.get("id", 0)),
-                    "chapter_ref": str(chapter.get("reference", "")),
-                    "segment_ref": str(section.get("segment_ref", "")),
-                    "reaction": reaction,
-                }
+            return {
+                "book_id": book_id,
+                "book_title": str(payload.get("book_title", "")) or "",
+                "chapter_id": int(chapter.get("id", 0)),
+                "chapter_ref": str(chapter.get("reference", "")),
+                "segment_ref": section_ref,
+                "reaction": reaction,
+            }
     return None
 
 
@@ -173,6 +258,12 @@ def put_mark(*, book_id: str, reaction_id: str, mark_type: str, root: Path | Non
         "created_at": created_at,
         "updated_at": now,
     }
+    primary_anchor = _normalize_primary_anchor(reaction)
+    if primary_anchor is not None:
+        payload["primary_anchor"] = primary_anchor
+    supersedes_reaction_id = _clean_text(reaction.get("supersedes_reaction_id"))
+    if supersedes_reaction_id:
+        payload["supersedes_reaction_id"] = supersedes_reaction_id
     state["marks"][reaction_id] = payload
     save_marks_state(state, root)
     return payload

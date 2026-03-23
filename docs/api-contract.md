@@ -98,6 +98,14 @@ This applies to:
 
 Internal runtime storage may still use string artifact identifiers. That is an implementation detail. Public handlers must translate internal identifiers into stable public integer IDs before returning them.
 
+Additive substrate and locator fields are allowed to carry shared sentence ids as strings when needed, for example:
+- `reading_locus.sentence_start_id`
+- `reading_locus.sentence_end_id`
+- `primary_anchor.sentence_start_id`
+- `primary_anchor.sentence_end_id`
+
+These are not public entity ids in the book/chapter/reaction/mark namespace. They are shared parsed-book substrate references.
+
 ## Landing Strategy
 Landing is a frontend-owned experience in the current implementation.
 
@@ -184,11 +192,18 @@ except as migration compatibility text where the underlying value remains in the
   - `updated_at`
   - optional `segment_ref`
   - optional `current_excerpt` carrying the normalized live excerpt text for the active segment
+  - optional additive `reading_locus` carrying span- or sentence-based mechanism truth when available
+  - optional additive `move_type`
   - optional `search_query`
   - optional `thought_family`
+  - optional `reconstructed_hot_state`
+  - optional `last_resume_kind`
+  - optional `active_reaction_id`
   - optional `problem_code`
 - `current_state_panel.reaction_counts` keyed only by the five canonical reaction types
 - `recent_completed_chapters[].result_url` pointing to canonical frontend routes
+
+`segment_ref` remains a temporary compatibility sidecar. New mechanisms may project a richer `reading_locus` without treating section-first ontology as the primary truth.
 
 ### Upload And Job Polling
 `POST /api/uploads/epub`, `POST /api/books/:id/analysis/start`, `POST /api/books/:id/analysis/resume`, `GET /api/books/:id/analysis-log`, and `GET /api/jobs/:job_id` are part of the active integration surface.
@@ -230,11 +245,28 @@ Activity and realtime payloads must continue to normalize into the public contra
 - WebSocket envelopes use integer `book_id` when present
 - WebSocket event payloads should not expose legacy route names or legacy reaction taxonomy values
 
+Activity events may now additively expose:
+- `reading_locus`
+- `move_type`
+- `active_reaction_id`
+
+These fields are additive and compatibility-preserving. Current routed frontend surfaces may ignore them until a later migration is ready.
+
+### Additive Reaction And Mark Fields
+Reaction previews, reaction cards, and mark payloads may now additively expose richer mechanism-authored fields:
+
+- `primary_anchor`
+- `related_anchors`
+- `supersedes_reaction_id`
+
+Current section-era fields such as `section_ref` remain valid compatibility fields for now. They are not the long-term primary model for newer non-section mechanisms.
+
 ## Compatibility Notes
 - Backend no longer exposes landing/sample compatibility endpoints. Landing remains frontend-only by contract.
 - Backend internal artifacts may still store `connect_back`; public API payloads must normalize that to `retrospect`, and new runtime outputs should emit `retrospect`.
 - Old mock data is not authoritative. If a mock file disagrees with this document, update or remove the mock rather than preserving conflicting terminology.
 - Legacy redirect routes are allowed, but new UI code, docs, and backend-returned frontend URLs should use canonical routes only.
+- Current chapter/detail and marks surfaces still expose `section_ref` because the routed frontend still uses the section-era model. A later intentional migration may retire that requirement once the frontend switches to locus/anchor-native rendering.
 
 ## How To Update This Contract
 When changing this contract:

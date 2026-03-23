@@ -34,3 +34,10 @@ Update when: the project scope expands, a workstream changes, or a new stable-do
 - During early implementation, most updates should stay in the temporary workspace.
 - Stable docs should be updated as soon as behavior becomes real, shared, or decision-bearing.
 - Do not wait until the entire mechanism is finished if a landed phase already changed a stable authority surface.
+- Current landed Phase 8 slice touches:
+  - `docs/api-contract.md`
+  - `docs/api-integration.md`
+  - `docs/backend-state-aggregation.md`
+  - `docs/backend-reading-mechanisms/attentional_v2.md`
+  - `docs/history/decision-log.md`
+  - because additive locus/anchor public fields are now real backend behavior and the long-term section-compatibility direction is now decision-bearing.
