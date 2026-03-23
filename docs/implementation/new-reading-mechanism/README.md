@@ -47,6 +47,9 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
   - required verification by phase, including runtime, evaluation, and compatibility checks
 - `stable-doc-impact.md`
   - map of which long-term docs must be updated when each workstream lands
+- `runtime-artifact-map.md`
+  - concrete Phase 1 ownership split between shared `_runtime/` and `_mechanisms/attentional_v2/`
+  - use this when adding new state files or checking whether one artifact belongs to the shell or the mechanism
 
 ## Working Rules
 - Do not treat this folder as a replacement for the stable docs.
@@ -69,4 +72,5 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 4. `implementation-plan.md`
 5. `execution-tracker.md`
 6. `open-questions.md`
-7. Stable docs listed above, as required by the task at hand
+7. `runtime-artifact-map.md`
+8. Stable docs listed above, as required by the task at hand

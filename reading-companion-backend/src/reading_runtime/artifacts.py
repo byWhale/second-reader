@@ -127,6 +127,25 @@ def parse_state_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "parse_state.json"
 
 
+def runtime_shell_file(output_dir: Path) -> Path:
+    """Path to the shared thin runtime envelope for any mechanism."""
+
+    return runtime_dir(output_dir) / "runtime_shell.json"
+
+
+def checkpoint_summaries_dir(output_dir: Path) -> Path:
+    """Directory storing shared checkpoint summaries."""
+
+    return runtime_dir(output_dir) / "checkpoint_summaries"
+
+
+def checkpoint_summary_file(output_dir: Path, checkpoint_id: str) -> Path:
+    """Path to one shared checkpoint summary."""
+
+    slug = str(checkpoint_id or "").strip() or "latest"
+    return checkpoint_summaries_dir(output_dir) / f"{slug}.json"
+
+
 def legacy_book_manifest_file(output_dir: Path) -> Path:
     """Legacy flat manifest path."""
 
@@ -191,6 +210,12 @@ def existing_parse_state_file(output_dir: Path) -> Path:
     """Return the existing parse-state path."""
 
     return parse_state_file(output_dir)
+
+
+def existing_runtime_shell_file(output_dir: Path) -> Path:
+    """Return the existing shared runtime-envelope path."""
+
+    return runtime_shell_file(output_dir)
 
 
 def mechanisms_dir(output_dir: Path) -> Path:
@@ -301,4 +326,3 @@ def ensure_mechanism_manifest_for_artifact_path(path: Path) -> None:
     mechanism_key = parts[index + 1]
     output_dir = Path(*parts[:index])
     ensure_mechanism_manifest(output_dir, mechanism_key)
-

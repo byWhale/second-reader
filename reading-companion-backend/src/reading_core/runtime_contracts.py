@@ -25,6 +25,8 @@ CurrentReadingProblemCode = Literal[
     "search_auth",
     "network_blocked",
 ]
+RuntimeCursorKind = Literal["chapter", "sentence", "span"]
+ResumeKind = Literal["warm_resume", "cold_resume", "reconstitution_resume"]
 
 
 class UserMark(TypedDict):
@@ -66,6 +68,56 @@ class JobRecord(TypedDict):
     created_at: str
     updated_at: str
     error: str | None
+
+
+class SharedRunCursor(TypedDict, total=False):
+    """Mechanism-neutral cursor over the shared parsed-book substrate."""
+
+    position_kind: RuntimeCursorKind
+    chapter_id: int | None
+    chapter_ref: str
+    sentence_id: str
+    span_start_sentence_id: str
+    span_end_sentence_id: str
+
+
+class RuntimeArtifactRefs(TypedDict, total=False):
+    """Stable references to mechanism-authored artifacts surfaced through the shell."""
+
+    reaction_id: str
+    thought_id: str
+    anchor_id: str
+    move_id: str
+
+
+class RuntimeShellState(TypedDict, total=False):
+    """Thin shared runtime envelope that points to mechanism-authored truth."""
+
+    mechanism_key: str
+    mechanism_version: str
+    policy_version: str
+    status: str
+    phase: str
+    cursor: SharedRunCursor
+    active_artifact_refs: RuntimeArtifactRefs
+    resume_available: bool
+    last_checkpoint_id: str | None
+    last_checkpoint_at: str | None
+    updated_at: str
+
+
+class CheckpointSummary(TypedDict, total=False):
+    """Mechanism-neutral checkpoint summary stored in shared runtime state."""
+
+    checkpoint_id: str
+    mechanism_key: str
+    mechanism_version: str
+    policy_version: str
+    created_at: str
+    resume_kind: ResumeKind
+    cursor: SharedRunCursor
+    active_artifact_refs: RuntimeArtifactRefs
+    visible_reaction_ids: list[str]
 
 
 @dataclass(frozen=True)

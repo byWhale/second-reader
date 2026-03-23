@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.reading_runtime.mechanisms import register_mechanism
 
+from .attentional_v2 import AttentionalV2Mechanism
 from .iterator_v1 import IteratorV1Mechanism
 
 
@@ -20,4 +21,4 @@ def register_builtin_mechanisms() -> None:
     _BUILTINS_REGISTERED = True
 
 
-__all__ = ["register_builtin_mechanisms", "IteratorV1Mechanism"]
+__all__ = ["register_builtin_mechanisms", "AttentionalV2Mechanism", "IteratorV1Mechanism"]

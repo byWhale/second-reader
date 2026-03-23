@@ -13,18 +13,18 @@ Update when: status changes, blockers appear, or phases complete.
 
 ## Current Summary
 - Overall status:
-  - `planned`
+  - `in_progress`
 - Current phase:
-  - `Phase 0: Planning And Scope Lock`
+  - `Phase 1: Runtime Foundation And Schemas`
 - Current blockers:
-  - public-surface adapter strategy not yet decided
   - shared sentence-substrate schema not yet designed or implemented
+  - public-surface adapter strategy not yet decided
 
 ## Phase Tracker
 | Phase | Status | Exit gate |
 | --- | --- | --- |
 | Phase 0 - Planning and scope lock | `in_progress` | temp docs live, design coverage mapped, open questions recorded |
-| Phase 1 - Runtime foundation and schemas | `planned` | mechanism shell, core schemas, policy/version surfaces defined |
+| Phase 1 - Runtime foundation and schemas | `in_progress` | mechanism shell, core schemas, policy/version surfaces defined |
 | Phase 2 - Sentence substrate and survey orientation | `planned` | sentence-order substrate verified, survey artifacts working |
 | Phase 3 - Deterministic intake, gates, and retrieval scaffolding | `planned` | trigger pipeline, boundary nomination, candidate generation working |
 | Phase 4 - Core interpretive loop | `planned` | `zoom_read`, `meaning_unit_closure`, `controller_decision`, emission gate working |
@@ -54,15 +54,15 @@ Update when: status changes, blockers appear, or phases complete.
 - [ ] Decide when stable `attentional_v2` doc should be updated from working design
 
 ### Phase 1 - Runtime Foundation And Schemas
-- [ ] Add new mechanism shell under shared runtime boundary
-- [ ] Define artifact layout under `_mechanisms/<mechanism_key>/`
-- [ ] Define `working_pressure` schema
-- [ ] Define `anchor_memory` schema
-- [ ] Define `reflective_summaries` schema
-- [ ] Define `knowledge_activations` schema
-- [ ] Define `move_history` and `reconsolidation_records` schemas
-- [ ] Define `reader_policy` schema and versioning
-- [ ] Define event envelope and checkpoint-summary schemas
+- [x] Add new mechanism shell under shared runtime boundary
+- [x] Define artifact layout under `_mechanisms/<mechanism_key>/`
+- [x] Define `working_pressure` schema
+- [x] Define `anchor_memory` schema
+- [x] Define `reflective_summaries` schema
+- [x] Define `knowledge_activations` schema
+- [x] Define `move_history` and `reconsolidation_records` schemas
+- [x] Define `reader_policy` schema and versioning
+- [x] Define event envelope and checkpoint-summary schemas
 - [ ] Implement explicit state-operation helpers
 
 ### Phase 2 - Sentence Substrate And Survey Orientation
@@ -142,3 +142,4 @@ Update when: status changes, blockers appear, or phases complete.
   - Completed the split source mirror and moved the ledger from source-block seed coverage into an initial atomic expansion layer.
   - Completed the Q2 substrate audit: the current shared `public/book_document.json` shape is paragraph-level, so Phase 2 must add a shared sentence layer before the new mechanism can rely on sentence-order traversal, bounded look-back, and precise source anchoring.
   - Resolved the Q3 runtime boundary: shared `_runtime/` is a thin compatibility shell, while `attentional_v2` keeps mechanism-authored core reading artifacts and private control machinery under `_mechanisms/attentional_v2/`.
+  - Started Phase 1 implementation in code: added shared runtime-shell contracts and helpers, created the `attentional_v2` schema and storage scaffold, and wrote the concrete runtime artifact map for later phases.

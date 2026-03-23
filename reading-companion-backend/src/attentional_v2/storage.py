@@ -1,0 +1,254 @@
+"""Artifact and state helpers for the attentional_v2 mechanism."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from src.reading_runtime import artifacts as runtime_artifacts
+from src.reading_runtime.shell_state import build_checkpoint_summary, ensure_runtime_shell, write_checkpoint_summary
+
+from .schemas import (
+    ATTENTIONAL_V2_MECHANISM_VERSION,
+    ATTENTIONAL_V2_POLICY_VERSION,
+    ATTENTIONAL_V2_SCHEMA_VERSION,
+    build_default_reader_policy,
+    build_empty_anchor_memory,
+    build_empty_knowledge_activations,
+    build_empty_move_history,
+    build_empty_reconsolidation_records,
+    build_empty_reflective_summaries,
+    build_empty_working_pressure,
+)
+
+
+ATTENTIONAL_V2_MECHANISM_KEY = "attentional_v2"
+
+
+def derived_dir(output_dir: Path) -> Path:
+    """Return the mechanism-owned derived-artifact directory."""
+
+    return runtime_artifacts.mechanism_derived_dir(output_dir, ATTENTIONAL_V2_MECHANISM_KEY)
+
+
+def runtime_dir(output_dir: Path) -> Path:
+    """Return the mechanism-owned runtime-state directory."""
+
+    return runtime_artifacts.mechanism_runtime_dir(output_dir, ATTENTIONAL_V2_MECHANISM_KEY)
+
+
+def internal_dir(output_dir: Path) -> Path:
+    """Return the mechanism-owned internal-artifact directory."""
+
+    return runtime_artifacts.mechanism_internal_dir(output_dir, ATTENTIONAL_V2_MECHANISM_KEY)
+
+
+def diagnostics_dir(output_dir: Path) -> Path:
+    """Return the mechanism-owned diagnostics directory."""
+
+    return runtime_artifacts.mechanism_internal_diagnostics_dir(output_dir, ATTENTIONAL_V2_MECHANISM_KEY)
+
+
+def prompt_manifests_dir(output_dir: Path) -> Path:
+    """Return the directory for node-level prompt manifests."""
+
+    return internal_dir(output_dir) / "prompt_manifests"
+
+
+def checkpoints_dir(output_dir: Path) -> Path:
+    """Return the mechanism-owned full-checkpoint directory."""
+
+    return runtime_dir(output_dir) / "checkpoints"
+
+
+def survey_map_file(output_dir: Path) -> Path:
+    """Return the future survey-map artifact path."""
+
+    return derived_dir(output_dir) / "survey_map.json"
+
+
+def revisit_index_file(output_dir: Path) -> Path:
+    """Return the future revisit-index artifact path."""
+
+    return derived_dir(output_dir) / "revisit_index.json"
+
+
+def working_pressure_file(output_dir: Path) -> Path:
+    """Return the current working-pressure path."""
+
+    return runtime_dir(output_dir) / "working_pressure.json"
+
+
+def anchor_memory_file(output_dir: Path) -> Path:
+    """Return the anchor-memory path."""
+
+    return runtime_dir(output_dir) / "anchor_memory.json"
+
+
+def reflective_summaries_file(output_dir: Path) -> Path:
+    """Return the reflective-summaries path."""
+
+    return runtime_dir(output_dir) / "reflective_summaries.json"
+
+
+def knowledge_activations_file(output_dir: Path) -> Path:
+    """Return the knowledge-activations path."""
+
+    return runtime_dir(output_dir) / "knowledge_activations.json"
+
+
+def move_history_file(output_dir: Path) -> Path:
+    """Return the move-history path."""
+
+    return runtime_dir(output_dir) / "move_history.json"
+
+
+def reconsolidation_records_file(output_dir: Path) -> Path:
+    """Return the reconsolidation-records path."""
+
+    return runtime_dir(output_dir) / "reconsolidation_records.json"
+
+
+def reader_policy_file(output_dir: Path) -> Path:
+    """Return the reader-policy path."""
+
+    return runtime_dir(output_dir) / "reader_policy.json"
+
+
+def full_checkpoint_file(output_dir: Path, checkpoint_id: str) -> Path:
+    """Return one mechanism-owned full-checkpoint path."""
+
+    slug = str(checkpoint_id or "").strip() or "latest"
+    return checkpoints_dir(output_dir) / f"{slug}.json"
+
+
+def event_stream_file(output_dir: Path) -> Path:
+    """Return the mechanism-private deep event-stream path."""
+
+    return diagnostics_dir(output_dir) / "events.jsonl"
+
+
+def prompt_manifest_file(output_dir: Path, node_name: str) -> Path:
+    """Return one node-level prompt-manifest path."""
+
+    slug = str(node_name or "").strip() or "unknown"
+    return prompt_manifests_dir(output_dir) / f"{slug}.json"
+
+
+def artifact_map(output_dir: Path) -> dict[str, str]:
+    """Return the Phase 1 artifact map relative to one output directory."""
+
+    return {
+        "runtime_shell": str(runtime_artifacts.runtime_shell_file(output_dir).relative_to(output_dir)),
+        "shared_checkpoint_summaries": str(runtime_artifacts.checkpoint_summaries_dir(output_dir).relative_to(output_dir)),
+        "survey_map": str(survey_map_file(output_dir).relative_to(output_dir)),
+        "revisit_index": str(revisit_index_file(output_dir).relative_to(output_dir)),
+        "working_pressure": str(working_pressure_file(output_dir).relative_to(output_dir)),
+        "anchor_memory": str(anchor_memory_file(output_dir).relative_to(output_dir)),
+        "reflective_summaries": str(reflective_summaries_file(output_dir).relative_to(output_dir)),
+        "knowledge_activations": str(knowledge_activations_file(output_dir).relative_to(output_dir)),
+        "move_history": str(move_history_file(output_dir).relative_to(output_dir)),
+        "reconsolidation_records": str(reconsolidation_records_file(output_dir).relative_to(output_dir)),
+        "reader_policy": str(reader_policy_file(output_dir).relative_to(output_dir)),
+        "full_checkpoints": str(checkpoints_dir(output_dir).relative_to(output_dir)),
+        "event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
+        "prompt_manifests": str(prompt_manifests_dir(output_dir).relative_to(output_dir)),
+    }
+
+
+def save_json(path: Path, payload: object) -> None:
+    """Write one UTF-8 JSON artifact."""
+
+    runtime_artifacts.ensure_mechanism_manifest_for_artifact_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def load_json(path: Path) -> dict[str, object]:
+    """Load one JSON dictionary artifact."""
+
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def append_jsonl(path: Path, payload: object) -> None:
+    """Append one UTF-8 JSONL line."""
+
+    runtime_artifacts.ensure_mechanism_manifest_for_artifact_path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as file:
+        file.write(json.dumps(payload, ensure_ascii=False))
+        file.write("\n")
+
+
+def initialize_artifact_tree(
+    output_dir: Path,
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+    policy_version: str = ATTENTIONAL_V2_POLICY_VERSION,
+) -> dict[str, object]:
+    """Initialize the shared shell and mechanism-private Phase 1 artifacts."""
+
+    runtime_artifacts.ensure_mechanism_manifest(output_dir, ATTENTIONAL_V2_MECHANISM_KEY)
+    ensure_runtime_shell(
+        output_dir,
+        mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
+        mechanism_version=mechanism_version,
+        policy_version=policy_version,
+    )
+    write_checkpoint_summary(
+        output_dir,
+        build_checkpoint_summary(
+            checkpoint_id="bootstrap",
+            mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
+            mechanism_version=mechanism_version,
+            policy_version=policy_version,
+        ),
+    )
+    save_json(
+        survey_map_file(output_dir),
+        {
+            "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+            "mechanism_version": mechanism_version,
+            "status": "not_started",
+            "chapters": [],
+        },
+    )
+    save_json(
+        revisit_index_file(output_dir),
+        {
+            "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+            "mechanism_version": mechanism_version,
+            "anchors": {},
+            "motifs": {},
+        },
+    )
+    save_json(working_pressure_file(output_dir), build_empty_working_pressure(mechanism_version=mechanism_version))
+    save_json(anchor_memory_file(output_dir), build_empty_anchor_memory(mechanism_version=mechanism_version))
+    save_json(
+        reflective_summaries_file(output_dir),
+        build_empty_reflective_summaries(mechanism_version=mechanism_version),
+    )
+    save_json(
+        knowledge_activations_file(output_dir),
+        build_empty_knowledge_activations(mechanism_version=mechanism_version),
+    )
+    save_json(move_history_file(output_dir), build_empty_move_history(mechanism_version=mechanism_version))
+    save_json(
+        reconsolidation_records_file(output_dir),
+        build_empty_reconsolidation_records(mechanism_version=mechanism_version),
+    )
+    save_json(
+        reader_policy_file(output_dir),
+        build_default_reader_policy(
+            mechanism_version=mechanism_version,
+            policy_version=policy_version,
+        ),
+    )
+    event_stream_file(output_dir).parent.mkdir(parents=True, exist_ok=True)
+    event_stream_file(output_dir).write_text("", encoding="utf-8")
+    return {
+        "mechanism_key": ATTENTIONAL_V2_MECHANISM_KEY,
+        "mechanism_version": mechanism_version,
+        "policy_version": policy_version,
+        "artifact_map": artifact_map(output_dir),
+    }
