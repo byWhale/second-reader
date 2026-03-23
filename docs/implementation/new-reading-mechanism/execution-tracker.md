@@ -17,9 +17,8 @@ Update when: status changes, blockers appear, or phases complete.
 - Current phase:
   - `Phase 0: Planning And Scope Lock`
 - Current blockers:
-  - mechanism-key mapping decision
-  - sentence-substrate audit not yet completed
   - public-surface adapter strategy not yet decided
+  - shared sentence-substrate schema not yet designed or implemented
 
 ## Phase Tracker
 | Phase | Status | Exit gate |
@@ -49,7 +48,8 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Create temporary decision log
 - [x] Create validation matrix
 - [x] Create stable-doc impact map
-- [ ] Decide target mechanism key and naming path
+- [x] Decide target mechanism key and naming path
+- [x] Audit current shared parsed-book substrate for sentence-level readiness
 - [ ] Decide when stable `attentional_v2` doc should be updated from working design
 
 ### Phase 1 - Runtime Foundation And Schemas
@@ -65,7 +65,7 @@ Update when: status changes, blockers appear, or phases complete.
 - [ ] Implement explicit state-operation helpers
 
 ### Phase 2 - Sentence Substrate And Survey Orientation
-- [ ] Audit sentence ids and locators in shared parsed-book substrate
+- [x] Audit sentence ids and locators in shared parsed-book substrate
 - [ ] Close parser or substrate gaps needed for sentence-order reading
 - [ ] Implement `book_survey`
 - [ ] Persist survey artifacts
@@ -139,3 +139,4 @@ Update when: status changes, blockers appear, or phases complete.
   - Created the temporary implementation workspace and seeded the plan, tracker, and question log from the current Notion design plus the stable repo rules.
   - Added omission-control docs, a source-block inventory, and seed coverage rows so untracked design areas stay visible.
   - Completed the split source mirror and moved the ledger from source-block seed coverage into an initial atomic expansion layer.
+  - Completed the Q2 substrate audit: the current shared `public/book_document.json` shape is paragraph-level, so Phase 2 must add a shared sentence layer before the new mechanism can rely on sentence-order traversal, bounded look-back, and precise source anchoring.
