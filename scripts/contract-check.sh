@@ -17,7 +17,7 @@ echo "Checking docs/backend/frontend contract constants..."
 echo "Checking frontend integration doc appendix..."
 "$BACKEND_PYTHON" "$ROOT_DIR/scripts/check-integration-doc.py"
 
-echo "Checking backend reading mechanism doc appendix..."
+echo "Checking current default reading mechanism doc appendix..."
 "$BACKEND_PYTHON" "$ROOT_DIR/scripts/check-reading-mechanism-doc.py"
 
 echo "Checking decision-history reminder..."

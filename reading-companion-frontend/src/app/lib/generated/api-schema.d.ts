@@ -378,6 +378,11 @@ export interface components {
          */
         ActivityEvent: {
             /**
+             * Active Reaction Id
+             * @description Public reaction id of the active durable thought referenced by the event when available.
+             */
+            active_reaction_id?: number | null;
+            /**
              * Anchor Quote
              * @description Sentence-level anchor quote used to group visible reactions when available.
              */
@@ -419,10 +424,17 @@ export interface components {
              */
             message: string;
             /**
+             * Move Type
+             * @description Current move type when the event represents a mechanism-authored attentional move.
+             */
+            move_type?: ("advance" | "dwell" | "bridge" | "reframe") | null;
+            /**
              * Reaction Types
              * @description Reaction types represented in this event.
              */
             reaction_types: ("highlight" | "association" | "discern" | "retrospect" | "curious")[];
+            /** @description Additive span- or sentence-based locus carried by the event when available. */
+            reading_locus?: components["schemas"]["ReadingLocus"] | null;
             /**
              * Result Url
              * @description Frontend result route associated with the event when available.
@@ -499,6 +511,8 @@ export interface components {
              * @description AI-authored reaction text shown to the user.
              */
             content: string;
+            /** @description Mechanism-authored primary anchor for this visible reaction when available. */
+            primary_anchor?: components["schemas"]["ReactionAnchor"] | null;
             /**
              * Reaction Id
              * @description Stable public integer identifier for the reaction.
@@ -514,6 +528,11 @@ export interface components {
              * @description Human-readable section reference, such as 3.2.
              */
             section_ref: string;
+            /**
+             * Supersedes Reaction Id
+             * @description Public reaction id of the earlier thought this visible reaction supersedes when applicable.
+             */
+            supersedes_reaction_id?: number | null;
             /**
              * Type
              * @description Reaction type key.
@@ -1249,10 +1268,25 @@ export interface components {
          */
         CurrentReadingActivity: {
             /**
+             * Active Reaction Id
+             * @description Public reaction id of the currently active durable thought when the mechanism exposes one.
+             */
+            active_reaction_id?: number | null;
+            /**
              * Current Excerpt
              * @description Excerpt of the text currently under attention.
              */
             current_excerpt?: string | null;
+            /**
+             * Last Resume Kind
+             * @description Resume mode that produced the current live state when the mechanism exposes it.
+             */
+            last_resume_kind?: ("warm_resume" | "cold_resume" | "reconstitution_resume") | null;
+            /**
+             * Move Type
+             * @description Current attentional move when the mechanism exposes it directly.
+             */
+            move_type?: ("advance" | "dwell" | "bridge" | "reframe") | null;
             /**
              * Phase
              * @description Current live reading phase.
@@ -1264,6 +1298,13 @@ export interface components {
              * @description Optional machine-readable problem code when the live activity is degraded by an external failure.
              */
             problem_code?: ("llm_timeout" | "llm_quota" | "llm_auth" | "search_timeout" | "search_quota" | "search_auth" | "network_blocked") | null;
+            /** @description Additive span- or sentence-based reading locus projected from mechanism truth when available. */
+            reading_locus?: components["schemas"]["ReadingLocus"] | null;
+            /**
+             * Reconstructed Hot State
+             * @description Whether the mechanism rebuilt hot local state from persistence instead of continuing warm in-memory continuity.
+             */
+            reconstructed_hot_state?: boolean | null;
             /**
              * Search Query
              * @description Search query being investigated when the reader is searching.
@@ -1431,16 +1472,28 @@ export interface components {
              * @description AI-authored reaction text shown to the user.
              */
             content: string;
+            /** @description Mechanism-authored primary anchor projected upward without rewriting the original thought object. */
+            primary_anchor?: components["schemas"]["ReactionAnchor"] | null;
             /**
              * Reaction Id
              * @description Stable public integer identifier for the reaction.
              */
             reaction_id: number;
             /**
+             * Related Anchors
+             * @description Optional secondary anchors linked to the same reaction.
+             */
+            related_anchors?: components["schemas"]["ReactionAnchor"][];
+            /**
              * Section Ref
              * @description Human-readable section reference, such as 3.2.
              */
             section_ref: string;
+            /**
+             * Supersedes Reaction Id
+             * @description Public reaction id of the earlier thought this reaction supersedes when reconsolidation has occurred.
+             */
+            supersedes_reaction_id?: number | null;
             /** @description Reader locator used to jump to the source passage for this reaction. */
             target_locator?: components["schemas"]["ReactionTargetLocator"] | null;
             /**
@@ -1660,6 +1713,8 @@ export interface components {
              * @enum {string}
              */
             mark_type: "resonance" | "blindspot" | "bookmark";
+            /** @description Mechanism-authored primary anchor preserved on the mark when available. */
+            primary_anchor?: components["schemas"]["ReactionAnchor"] | null;
             /**
              * Reaction Excerpt
              * @description Short excerpt of the reaction content used in marks views.
@@ -1681,6 +1736,11 @@ export interface components {
              * @description Human-readable section reference for the marked reaction.
              */
             section_ref: string;
+            /**
+             * Supersedes Reaction Id
+             * @description Public reaction id of the earlier thought this marked reaction supersedes when reconsolidation has occurred.
+             */
+            supersedes_reaction_id?: number | null;
             /**
              * Updated At
              * @description Mark last update time.
@@ -1722,6 +1782,29 @@ export interface components {
             next_cursor?: string | null;
         };
         /**
+         * ReactionAnchor
+         * @description Anchor payload that preserves the mechanism-authored focal source span.
+         */
+        ReactionAnchor: {
+            /** @description Shared text-span locator for the anchor when known. */
+            locator?: components["schemas"]["TextSpanLocator"] | null;
+            /**
+             * Quote
+             * @description Quoted source text used as the anchor for this thought.
+             */
+            quote: string;
+            /**
+             * Sentence End Id
+             * @description Shared sentence id where the anchor span ends when known.
+             */
+            sentence_end_id?: string | null;
+            /**
+             * Sentence Start Id
+             * @description Shared sentence id where the anchor span begins when known.
+             */
+            sentence_start_id?: string | null;
+        };
+        /**
          * ReactionCard
          * @description Visible reaction card rendered in result views.
          */
@@ -1741,11 +1824,18 @@ export interface components {
              * @description Current user mark attached to the reaction, if any.
              */
             mark_type?: ("resonance" | "blindspot" | "bookmark") | null;
+            /** @description Mechanism-authored primary anchor projected into the current chapter card shape. */
+            primary_anchor?: components["schemas"]["ReactionAnchor"] | null;
             /**
              * Reaction Id
              * @description Stable public integer reaction identifier.
              */
             reaction_id: number;
+            /**
+             * Related Anchors
+             * @description Optional secondary anchors linked to the same reaction.
+             */
+            related_anchors?: components["schemas"]["ReactionAnchor"][];
             /**
              * Search Query
              * @description Search query used to gather additional evidence when applicable.
@@ -1766,6 +1856,11 @@ export interface components {
              * @description One-line summary of the parent section.
              */
             section_summary: string;
+            /**
+             * Supersedes Reaction Id
+             * @description Public reaction id of the earlier thought this reaction supersedes when reconsolidation has occurred.
+             */
+            supersedes_reaction_id?: number | null;
             /** @description Reader locator for jumping to the source passage. */
             target_locator?: components["schemas"]["ReactionTargetLocator"] | null;
             /**
@@ -1826,6 +1921,45 @@ export interface components {
             items: components["schemas"]["ReactionCard"][];
             /** @description Pagination metadata for the reaction query. */
             page_info: components["schemas"]["PageInfo"];
+        };
+        /**
+         * ReadingLocus
+         * @description Current reading locus projected from mechanism truth into a shared public shape.
+         */
+        ReadingLocus: {
+            /**
+             * Chapter Id
+             * @description Current chapter identifier when known.
+             */
+            chapter_id?: number | null;
+            /**
+             * Chapter Ref
+             * @description Human-readable chapter reference when known.
+             */
+            chapter_ref?: string | null;
+            /**
+             * Excerpt
+             * @description Current focal excerpt when the mechanism can expose it directly.
+             */
+            excerpt?: string | null;
+            /**
+             * Kind
+             * @description Granularity of the current reading locus.
+             * @enum {string}
+             */
+            kind: "chapter" | "sentence" | "span";
+            /** @description Source-span locator for the current focus when known. */
+            locator?: components["schemas"]["TextSpanLocator"] | null;
+            /**
+             * Sentence End Id
+             * @description Shared sentence id where the current focus ends when known.
+             */
+            sentence_end_id?: string | null;
+            /**
+             * Sentence Start Id
+             * @description Shared sentence id where the current focus begins when known.
+             */
+            sentence_start_id?: string | null;
         };
         /**
          * SearchHit
@@ -1959,6 +2093,52 @@ export interface components {
              * @description API URL serving the source asset.
              */
             url: string;
+        };
+        /**
+         * TextSpanLocator
+         * @description Text-span locator that can point to one sentence or a short span.
+         */
+        TextSpanLocator: {
+            /**
+             * Char End
+             * @description Character offset where the anchored text span ends when known.
+             */
+            char_end?: number | null;
+            /**
+             * Char Start
+             * @description Character offset where the anchored text span begins when known.
+             */
+            char_start?: number | null;
+            /**
+             * End Cfi
+             * @description Preferred end EPUB CFI for the anchored text span.
+             */
+            end_cfi?: string | null;
+            /**
+             * Href
+             * @description EPUB spine document href for the anchored text span.
+             */
+            href: string;
+            /**
+             * Paragraph End
+             * @description Last paragraph index covered by the anchored text span when known.
+             */
+            paragraph_end?: number | null;
+            /**
+             * Paragraph Index
+             * @description Primary paragraph index for the anchored text span when known.
+             */
+            paragraph_index?: number | null;
+            /**
+             * Paragraph Start
+             * @description First paragraph index covered by the anchored text span when known.
+             */
+            paragraph_start?: number | null;
+            /**
+             * Start Cfi
+             * @description Preferred start EPUB CFI for the anchored text span.
+             */
+            start_cfi?: string | null;
         };
         /**
          * UploadAcceptedResponse

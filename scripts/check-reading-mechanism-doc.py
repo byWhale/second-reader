@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that the backend reading-mechanism doc appendix matches backend constants."""
+"""Validate that the current default mechanism doc appendix matches backend constants."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-DOC_PATH = ROOT_DIR / "docs" / "backend-reading-mechanism.md"
+DOC_PATH = ROOT_DIR / "docs" / "backend-reading-mechanisms" / "iterator_v1.md"
 BACKEND_DIR = ROOT_DIR / "reading-companion-backend"
 
 
