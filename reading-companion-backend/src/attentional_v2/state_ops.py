@@ -202,7 +202,17 @@ def close_local_meaning_unit(state: LocalBufferState) -> LocalBufferState:
     """Close the current open meaning-unit span without dropping seen history."""
 
     next_state = _touch_state(state)
+    recent_meaning_units = [
+        [str(sentence_id or "") for sentence_id in unit if str(sentence_id or "")]
+        for unit in state.get("recent_meaning_units", [])
+        if isinstance(unit, list)
+    ]
+    current_unit = [sentence_id for sentence_id in state.get("open_meaning_unit_sentence_ids", []) if str(sentence_id or "")]
+    if current_unit:
+        recent_meaning_units.append(current_unit)
+        recent_meaning_units = recent_meaning_units[-6:]
     next_state["last_meaning_unit_closed_at_sentence_id"] = str(state.get("current_sentence_id", "") or "")
+    next_state["recent_meaning_units"] = recent_meaning_units
     next_state["open_meaning_unit_sentence_ids"] = []
     return next_state  # type: ignore[return-value]
 

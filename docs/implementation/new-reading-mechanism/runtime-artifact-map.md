@@ -46,6 +46,7 @@ Update when: the artifact layout, ownership boundary, or shell-envelope rule cha
 
 ### Runtime State
 - `_mechanisms/attentional_v2/runtime/local_buffer.json`
+- `_mechanisms/attentional_v2/runtime/local_continuity.json`
 - `_mechanisms/attentional_v2/runtime/trigger_state.json`
 - `_mechanisms/attentional_v2/runtime/working_pressure.json`
 - `_mechanisms/attentional_v2/runtime/anchor_memory.json`
@@ -55,6 +56,7 @@ Update when: the artifact layout, ownership boundary, or shell-envelope rule cha
 - `_mechanisms/attentional_v2/runtime/reaction_records.json`
 - `_mechanisms/attentional_v2/runtime/reconsolidation_records.json`
 - `_mechanisms/attentional_v2/runtime/reader_policy.json`
+- `_mechanisms/attentional_v2/runtime/resume_metadata.json`
 - `_mechanisms/attentional_v2/runtime/checkpoints/*.json`
   - full mechanism-owned checkpoints
 
@@ -72,4 +74,4 @@ Update when: the artifact layout, ownership boundary, or shell-envelope rule cha
 ## Phase 1 Notes
 - Phase 1 creates the artifact map and default state files.
 - Phase 1 does not yet claim that `attentional_v2` parse or read execution is complete.
-- Later phases fill these artifacts with real runtime behavior; Phase 6 now adds durable reaction truth and mechanism-private chapter-result compatibility projections without yet making `attentional_v2` a live parse/read path.
+- Later phases fill these artifacts with real runtime behavior; Phase 6 adds durable reaction truth and mechanism-private chapter-result compatibility projections, and Phase 7 adds compact local continuity, resume metadata, full checkpoint payloads, and bounded warm/cold/reconstitution resume helpers without yet making `attentional_v2` a live parse/read path.

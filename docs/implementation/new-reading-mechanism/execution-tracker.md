@@ -15,11 +15,11 @@ Update when: status changes, blockers appear, or phases complete.
 - Overall status:
   - `in_progress`
 - Current phase:
-  - `Phase 7: Persistence, Checkpointing, And Resume`
+  - `Phase 8: Observability, Evaluation, And Shared-Surface Integration`
 - Current blockers:
-  - `Q7` is still open: the bounded reread window for `cold_resume` and `reconstitution_resume` is not fixed yet
-  - `warm_resume`, `cold_resume`, and `reconstitution_resume` are not implemented yet
-  - public-surface adapter strategy `Q4` is still open for later Phase 8 shared-surface work
+  - shared public-surface adapter strategy `Q4` is still open for Phase 8 compatibility work
+  - observability split `Q8` is still open for standard-vs-debug event and checkpoint detail
+  - evaluation-slice and threshold question `Q9` is still open before later comparison and promotion work
 
 ## Phase Tracker
 | Phase | Status | Exit gate |
@@ -31,7 +31,7 @@ Update when: status changes, blockers appear, or phases complete.
 | Phase 4 - Core interpretive loop | `done` | `zoom_read`, `meaning_unit_closure`, `controller_decision`, emission gate working |
 | Phase 5 - Knowledge, memory, and bridge resolution | `done` | activation lifecycle, anchor relations, bridge resolution working |
 | Phase 6 - Slow-cycle reasoning and historical integrity | `done` | promotion, reconsolidation, chapter consolidation working |
-| Phase 7 - Persistence, checkpointing, and resume | `planned` | warm/cold/reconstitution resume working |
+| Phase 7 - Persistence, checkpointing, and resume | `done` | warm/cold/reconstitution resume working |
 | Phase 8 - Observability, evaluation, and shared-surface integration | `planned` | event/checkpoint contracts and public adapters working |
 | Phase 9 - Migration, stabilization, and default-cutover readiness | `planned` | acceptance ladder reached and stable docs promoted |
 
@@ -112,13 +112,17 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Preserve immutable `reaction_id` identity across reconsolidation and marks reuse
 
 ### Phase 7 - Persistence, Checkpointing, And Resume
-- [ ] Persist reading cursor and local continuity state
-- [ ] Persist durable tiered state and resume metadata
-- [ ] Implement `warm_resume`
-- [ ] Implement `cold_resume`
-- [ ] Implement `reconstitution_resume`
-- [ ] Implement checkpoint summaries at all required boundaries
-- [ ] Validate resume compatibility checks and fallbacks
+- [x] Persist reading cursor and local continuity state
+- [x] Persist durable tiered state and resume metadata
+- [x] Implement `warm_resume`
+- [x] Implement `cold_resume`
+- [x] Implement `reconstitution_resume`
+- [x] Implement checkpoint summaries at all required boundaries
+- [x] Validate resume compatibility checks and fallbacks
+  - Q7 policy is fixed:
+    - `warm_resume`: reread `0` sentences
+    - `cold_resume`: target `8`, hard cap `12`, chapter-local, expand backward to the start of the active meaning unit when needed
+    - `reconstitution_resume`: target `24`, hard cap `30`, up to `3` meaning units, chapter-local
 
 ### Phase 8 - Observability, Evaluation, And Shared-Surface Integration
 - [ ] Emit required event types with version metadata
@@ -162,3 +166,5 @@ Update when: status changes, blockers appear, or phases complete.
   - Resolved Q6 and completed Phase 5: the mechanism now has a real knowledge-activation lifecycle, explicit rare-search policy handling, typed bridge judgment over deterministic candidates, and durable anchor-memory updates including relations, motif indexes, unresolved-reference indexes, and move-history writes.
   - Resolved Q5: durable visible thought will be persisted first as mechanism-authored anchored reaction truth, then projected into compatibility reaction cards for current chapter/API/marks surfaces; future top-layer/API refinements are now explicitly captured in the temp docs instead of only in chat.
   - Completed Phase 6: `attentional_v2` now has slow-cycle node contracts for `reflective_promotion`, `reconsolidation`, and `chapter_consolidation`, a durable `reaction_records.json` source of truth, append-and-link reconsolidation behavior, chapter-end carry-forward helpers, and a mechanism-private chapter-result compatibility projection that preserves original reaction truth while feeding current envelope fields.
+  - Resolved Q7: Phase 7 resume reconstruction will stay bounded and chapter-local, with `warm_resume` rereading `0` sentences, `cold_resume` targeting `8` recent sentences with a `12`-sentence cap and meaning-unit backfill, and `reconstitution_resume` targeting `24` recent sentences with a `30`-sentence cap and up to `3` meaning units.
+  - Completed Phase 7: `attentional_v2` now persists `local_continuity.json` and `resume_metadata.json`, writes full mechanism checkpoints plus shared checkpoint summaries, restores warm/cold/reconstitution resume state through the shared sentence substrate, and marks reconstructed hot state explicitly instead of pretending non-warm resume is warm.

@@ -184,6 +184,11 @@ Main work:
   - `warm_resume`
   - `cold_resume`
   - `reconstitution_resume`
+- Use the agreed bounded reread policy:
+  - `warm_resume`: reread `0` sentences
+  - `cold_resume`: target `8` current-chapter sentences, expand to the start of the active meaning unit when needed, hard cap `12`
+  - `reconstitution_resume`: target `24` current-chapter sentences, expand backward across up to `3` meaning units when needed, hard cap `30`
+  - stay chapter-local by default; if there is not enough earlier text in the chapter, reread from chapter start rather than crossing into the previous chapter
 - Rebuild hot state correctly for non-warm resumes.
 - Emit checkpoint summaries at required milestones.
 - Validate mechanism/source compatibility and fallback behavior.

@@ -7,6 +7,7 @@ from typing import Literal, TypedDict
 
 from src.reading_core.book_document import TextLocator, TextRole
 from src.reading_core.normalized_outputs import ReactionType, SearchHit
+from src.reading_core.runtime_contracts import ResumeKind, RuntimeArtifactRefs, SharedRunCursor
 
 
 GateState = Literal["quiet", "watch", "hot", "must_evaluate"]
@@ -36,8 +37,8 @@ TriggerSignalKind = Literal[
 ]
 
 ATTENTIONAL_V2_SCHEMA_VERSION = 1
-ATTENTIONAL_V2_MECHANISM_VERSION = "attentional_v2-phase6"
-ATTENTIONAL_V2_POLICY_VERSION = "attentional_v2-policy-phase6"
+ATTENTIONAL_V2_MECHANISM_VERSION = "attentional_v2-phase7"
+ATTENTIONAL_V2_POLICY_VERSION = "attentional_v2-policy-phase7"
 
 
 def _timestamp() -> str:
@@ -102,8 +103,31 @@ class LocalBufferState(TypedDict, total=False):
     current_sentence_index: int
     recent_sentences: list[LocalBufferSentence]
     open_meaning_unit_sentence_ids: list[str]
+    recent_meaning_units: list[list[str]]
     seen_sentence_ids: list[str]
     last_meaning_unit_closed_at_sentence_id: str
+    is_reconstructed: bool
+    reconstructed_from_checkpoint_id: str | None
+    last_resume_kind: ResumeKind | None
+
+
+class LocalContinuityState(TypedDict, total=False):
+    """Compact continuity envelope persisted separately from the heavier local buffer."""
+
+    schema_version: int
+    mechanism_version: str
+    updated_at: str
+    chapter_id: int | None
+    chapter_ref: str
+    current_sentence_id: str
+    current_sentence_index: int
+    recent_sentence_ids: list[str]
+    open_meaning_unit_sentence_ids: list[str]
+    recent_meaning_units: list[list[str]]
+    last_meaning_unit_closed_at_sentence_id: str
+    is_reconstructed: bool
+    reconstructed_from_checkpoint_id: str | None
+    last_resume_kind: ResumeKind | None
 
 
 class TriggerSignal(TypedDict, total=False):
@@ -460,6 +484,53 @@ class ReaderPolicy(TypedDict, total=False):
     logging: dict[str, object]
 
 
+class ResumeMetadataState(TypedDict, total=False):
+    """Mechanism-private metadata about checkpointing, reconstruction, and last resume behavior."""
+
+    schema_version: int
+    mechanism_version: str
+    policy_version: str
+    updated_at: str
+    resume_available: bool
+    default_resume_kind: ResumeKind
+    last_checkpoint_id: str | None
+    last_checkpoint_at: str | None
+    last_resume_kind: ResumeKind | None
+    last_resume_at: str | None
+    last_resume_checkpoint_id: str | None
+    last_resume_status: str
+    last_resume_reason: str
+    last_resume_window_sentence_ids: list[str]
+    reconstructed_hot_state: bool
+
+
+class FullCheckpointState(TypedDict, total=False):
+    """Mechanism-owned full checkpoint used for warm, cold, and reconstitution resume."""
+
+    schema_version: int
+    mechanism_version: str
+    policy_version: str
+    checkpoint_id: str
+    created_at: str
+    checkpoint_reason: str
+    resume_kind: ResumeKind
+    cursor: SharedRunCursor
+    active_artifact_refs: RuntimeArtifactRefs
+    visible_reaction_ids: list[str]
+    local_buffer: LocalBufferState
+    local_continuity: LocalContinuityState
+    trigger_state: TriggerState
+    working_pressure: WorkingPressureState
+    anchor_memory: AnchorMemoryState
+    reflective_summaries: ReflectiveSummariesState
+    knowledge_activations: KnowledgeActivationsState
+    move_history: MoveHistoryState
+    reaction_records: ReactionRecordsState
+    reconsolidation_records: ReconsolidationRecordsState
+    reader_policy: ReaderPolicy
+    resume_metadata: ResumeMetadataState
+
+
 def build_empty_working_pressure(*, mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION) -> WorkingPressureState:
     """Return the default hot local state."""
 
@@ -494,8 +565,36 @@ def build_empty_local_buffer(*, mechanism_version: str = ATTENTIONAL_V2_MECHANIS
         "current_sentence_index": 0,
         "recent_sentences": [],
         "open_meaning_unit_sentence_ids": [],
+        "recent_meaning_units": [],
         "seen_sentence_ids": [],
         "last_meaning_unit_closed_at_sentence_id": "",
+        "is_reconstructed": False,
+        "reconstructed_from_checkpoint_id": None,
+        "last_resume_kind": None,
+    }
+
+
+def build_empty_local_continuity(
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+) -> LocalContinuityState:
+    """Return the compact continuity envelope used by Phase 7 checkpointing and resume."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "updated_at": _timestamp(),
+        "chapter_id": None,
+        "chapter_ref": "",
+        "current_sentence_id": "",
+        "current_sentence_index": 0,
+        "recent_sentence_ids": [],
+        "open_meaning_unit_sentence_ids": [],
+        "recent_meaning_units": [],
+        "last_meaning_unit_closed_at_sentence_id": "",
+        "is_reconstructed": False,
+        "reconstructed_from_checkpoint_id": None,
+        "last_resume_kind": None,
     }
 
 
@@ -629,6 +728,41 @@ def build_default_reader_policy(
             "defer_curiosity_by_default": True,
         },
         "bridge": {"source_anchor_required": True, "max_supporting_candidates": 2},
-        "resume": {"default_mode": "warm_resume"},
+        "resume": {
+            "default_mode": "warm_resume",
+            "cold_resume_target_sentences": 8,
+            "cold_resume_max_sentences": 12,
+            "reconstitution_resume_target_sentences": 24,
+            "reconstitution_resume_max_sentences": 30,
+            "reconstitution_resume_target_meaning_units": 3,
+            "chapter_local_only": True,
+            "checkpoint_summary_required": True,
+        },
         "logging": {"event_stream": True, "checkpoint_summaries": True},
+    }
+
+
+def build_empty_resume_metadata(
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+    policy_version: str = ATTENTIONAL_V2_POLICY_VERSION,
+) -> ResumeMetadataState:
+    """Return the default resume metadata state."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "policy_version": policy_version,
+        "updated_at": _timestamp(),
+        "resume_available": False,
+        "default_resume_kind": "warm_resume",
+        "last_checkpoint_id": None,
+        "last_checkpoint_at": None,
+        "last_resume_kind": None,
+        "last_resume_at": None,
+        "last_resume_checkpoint_id": None,
+        "last_resume_status": "not_started",
+        "last_resume_reason": "",
+        "last_resume_window_sentence_ids": [],
+        "reconstructed_hot_state": False,
     }

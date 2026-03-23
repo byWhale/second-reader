@@ -6,6 +6,7 @@ from src.attentional_v2.schemas import (
     build_default_reader_policy,
     build_empty_anchor_memory,
     build_empty_knowledge_activations,
+    build_empty_local_buffer,
     build_empty_move_history,
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
@@ -18,6 +19,8 @@ from src.attentional_v2.state_ops import (
     append_reaction_record,
     append_reconsolidation_record,
     apply_working_pressure_operations,
+    close_local_meaning_unit,
+    push_local_buffer_sentence,
     replace_policy_section,
     replace_pressure_bucket,
     set_gate_state,
@@ -183,6 +186,38 @@ def test_anchor_and_activation_helpers_upsert_by_id():
     assert activation_state["activations"][0]["status"] == "strong"
 
 
+def test_close_local_meaning_unit_tracks_recent_units():
+    """Closing one meaning unit should retain a compact recent unit history for Phase 7 resume."""
+
+    buffer_state = build_empty_local_buffer()
+    buffer_state = push_local_buffer_sentence(
+        buffer_state,
+        {
+            "sentence_id": "c1-s1",
+            "sentence_index": 1,
+            "paragraph_index": 1,
+            "text": "Sentence one.",
+            "text_role": "body",
+        },
+    )
+    buffer_state = push_local_buffer_sentence(
+        buffer_state,
+        {
+            "sentence_id": "c1-s2",
+            "sentence_index": 2,
+            "paragraph_index": 1,
+            "text": "Sentence two.",
+            "text_role": "body",
+        },
+    )
+
+    closed = close_local_meaning_unit(buffer_state)
+
+    assert closed["open_meaning_unit_sentence_ids"] == []
+    assert closed["recent_meaning_units"] == [["c1-s1", "c1-s2"]]
+    assert closed["last_meaning_unit_closed_at_sentence_id"] == "c1-s2"
+
+
 def test_reflective_move_reaction_reconsolidation_and_policy_helpers_append_cleanly():
     """The helper layer should support the remaining Phase 1 state stores."""
 
@@ -251,11 +286,11 @@ def test_reflective_move_reaction_reconsolidation_and_policy_helpers_append_clea
     policy = replace_policy_section(
         build_default_reader_policy(),
         section="resume",
-        payload={"checkpoint_summary_required": True, "reentry_window_sentences": 3},
+        payload={"checkpoint_summary_required": True, "cold_resume_target_sentences": 3},
     )
 
     assert reflective_state["chapter_understandings"][0]["status"] == "superseded"
     assert move_state["moves"][0]["move_type"] == "bridge"
     assert reaction_state["records"][0]["reaction_id"] == "rx-1"
     assert reconsolidation_state["records"][0]["record_id"] == "rc-1"
-    assert policy["resume"]["reentry_window_sentences"] == 3
+    assert policy["resume"]["cold_resume_target_sentences"] == 3

@@ -14,12 +14,14 @@ from src.attentional_v2.storage import (
     event_stream_file,
     knowledge_activations_file,
     local_buffer_file,
+    local_continuity_file,
     move_history_file,
     reaction_records_file,
     reader_policy_file,
     reflective_summaries_file,
     reconsolidation_records_file,
     revisit_index_file,
+    resume_metadata_file,
     survey_map_file,
     trigger_state_file,
     working_pressure_file,
@@ -30,8 +32,8 @@ from src.reading_runtime.artifacts import checkpoint_summary_file, mechanism_man
 from src.reading_runtime.shell_state import load_runtime_shell
 
 
-def test_attentional_v2_initialization_writes_phase6_artifacts(tmp_path):
-    """The Phase 1-6 scaffold should write the shared shell and private state files."""
+def test_attentional_v2_initialization_writes_phase7_artifacts(tmp_path):
+    """The Phase 1-7 scaffold should write the shared shell and private state files."""
 
     output_dir = tmp_path / "output" / "demo-book"
 
@@ -59,9 +61,13 @@ def test_attentional_v2_initialization_writes_phase6_artifacts(tmp_path):
 
     local_buffer = json.loads(local_buffer_file(output_dir).read_text(encoding="utf-8"))
     assert local_buffer["recent_sentences"] == []
+    assert local_buffer["recent_meaning_units"] == []
 
     trigger_state = json.loads(trigger_state_file(output_dir).read_text(encoding="utf-8"))
     assert trigger_state["output"] == "no_zoom"
+
+    local_continuity = json.loads(local_continuity_file(output_dir).read_text(encoding="utf-8"))
+    assert local_continuity["recent_sentence_ids"] == []
 
     anchor_memory = json.loads(anchor_memory_file(output_dir).read_text(encoding="utf-8"))
     assert anchor_memory["anchor_records"] == []
@@ -86,6 +92,12 @@ def test_attentional_v2_initialization_writes_phase6_artifacts(tmp_path):
     assert policy["policy_version"] == ATTENTIONAL_V2_POLICY_VERSION
     assert policy["bridge"]["source_anchor_required"] is True
     assert policy["search"]["default_mode"] == "no_search"
+    assert policy["resume"]["cold_resume_target_sentences"] == 8
+    assert policy["resume"]["reconstitution_resume_max_sentences"] == 30
+
+    resume_metadata = json.loads(resume_metadata_file(output_dir).read_text(encoding="utf-8"))
+    assert resume_metadata["resume_available"] is False
+    assert resume_metadata["default_resume_kind"] == "warm_resume"
 
     survey = json.loads(survey_map_file(output_dir).read_text(encoding="utf-8"))
     assert survey["status"] == "not_started"
@@ -97,7 +109,7 @@ def test_attentional_v2_initialization_writes_phase6_artifacts(tmp_path):
     assert result["artifact_map"]["working_pressure"].endswith("working_pressure.json")
 
 
-def test_attentional_v2_adapter_is_honest_about_phase6_scope():
+def test_attentional_v2_adapter_is_honest_about_phase7_scope():
     """The adapter should not claim parse/read behavior before later phases land."""
 
     mechanism = AttentionalV2Mechanism()

@@ -15,11 +15,13 @@ from .schemas import (
     build_default_reader_policy,
     build_empty_anchor_memory,
     build_empty_local_buffer,
+    build_empty_local_continuity,
     build_empty_knowledge_activations,
     build_empty_move_history,
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
     build_empty_reflective_summaries,
+    build_empty_resume_metadata,
     build_empty_trigger_state,
     build_empty_working_pressure,
 )
@@ -94,6 +96,12 @@ def trigger_state_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "trigger_state.json"
 
 
+def local_continuity_file(output_dir: Path) -> Path:
+    """Return the compact continuity-state path used for checkpointing and resume."""
+
+    return runtime_dir(output_dir) / "local_continuity.json"
+
+
 def anchor_memory_file(output_dir: Path) -> Path:
     """Return the anchor-memory path."""
 
@@ -136,6 +144,12 @@ def reader_policy_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "reader_policy.json"
 
 
+def resume_metadata_file(output_dir: Path) -> Path:
+    """Return the resume-metadata path."""
+
+    return runtime_dir(output_dir) / "resume_metadata.json"
+
+
 def full_checkpoint_file(output_dir: Path, checkpoint_id: str) -> Path:
     """Return one mechanism-owned full-checkpoint path."""
 
@@ -172,6 +186,7 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "revisit_index": str(revisit_index_file(output_dir).relative_to(output_dir)),
         "local_buffer": str(local_buffer_file(output_dir).relative_to(output_dir)),
         "trigger_state": str(trigger_state_file(output_dir).relative_to(output_dir)),
+        "local_continuity": str(local_continuity_file(output_dir).relative_to(output_dir)),
         "working_pressure": str(working_pressure_file(output_dir).relative_to(output_dir)),
         "anchor_memory": str(anchor_memory_file(output_dir).relative_to(output_dir)),
         "reflective_summaries": str(reflective_summaries_file(output_dir).relative_to(output_dir)),
@@ -180,6 +195,7 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "reaction_records": str(reaction_records_file(output_dir).relative_to(output_dir)),
         "reconsolidation_records": str(reconsolidation_records_file(output_dir).relative_to(output_dir)),
         "reader_policy": str(reader_policy_file(output_dir).relative_to(output_dir)),
+        "resume_metadata": str(resume_metadata_file(output_dir).relative_to(output_dir)),
         "chapter_result_compatibility": str(chapter_result_compatibility_file(output_dir, 1).parent.relative_to(output_dir)),
         "full_checkpoints": str(checkpoints_dir(output_dir).relative_to(output_dir)),
         "event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
@@ -255,6 +271,7 @@ def initialize_artifact_tree(
     )
     save_json(local_buffer_file(output_dir), build_empty_local_buffer(mechanism_version=mechanism_version))
     save_json(trigger_state_file(output_dir), build_empty_trigger_state(mechanism_version=mechanism_version))
+    save_json(local_continuity_file(output_dir), build_empty_local_continuity(mechanism_version=mechanism_version))
     save_json(working_pressure_file(output_dir), build_empty_working_pressure(mechanism_version=mechanism_version))
     save_json(anchor_memory_file(output_dir), build_empty_anchor_memory(mechanism_version=mechanism_version))
     save_json(
@@ -274,6 +291,13 @@ def initialize_artifact_tree(
     save_json(
         reader_policy_file(output_dir),
         build_default_reader_policy(
+            mechanism_version=mechanism_version,
+            policy_version=policy_version,
+        ),
+    )
+    save_json(
+        resume_metadata_file(output_dir),
+        build_empty_resume_metadata(
             mechanism_version=mechanism_version,
             policy_version=policy_version,
         ),

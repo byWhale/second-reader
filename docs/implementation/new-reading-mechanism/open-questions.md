@@ -15,7 +15,6 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
 | ID | Question | Why it matters | Target phase | Current status |
 | --- | --- | --- | --- | --- |
 | Q4 | How should a non-section runtime locus map to the current public surfaces that still expose compatibility fields such as `segment_ref`? | Needed for analysis-state, activity, and chapter/detail compatibility. | Phase 8 | `open` |
-| Q7 | What exact bounded recent source window should `cold_resume` and `reconstitution_resume` reread? | Needed for honest state reconstruction and predictable runtime cost. | Phase 7 | `open` |
 | Q8 | Which observability fields are required in standard mode versus debug-only mode? | Needed to keep evaluation useful without exploding runtime storage. | Phase 8 | `open` |
 | Q9 | What dataset slices and acceptance thresholds will be used for mechanism-integrity and end-to-end evaluation? | Needed before comparing against `iterator_v1` or considering default promotion. | Phase 8 / 9 | `open` |
 | Q10 | When should the detailed design be promoted from temporary docs into stable `docs/backend-reading-mechanisms/<mechanism>.md`? | Prevents stable docs from becoming a working notebook while also avoiding long-term drift. | Phase 0 / 9 | `open` |
@@ -179,6 +178,32 @@ Update when: a question is added, resolved, deferred, or replaced by a stable do
       - a span-based or sentence-based live locus
       - current move type such as `advance`, `dwell`, `bridge`, or `reframe`
     - these additions should be additive and compatibility-preserving rather than destructive contract replacements
+- `Q7` resolved on `2026-03-23`
+  - Decision:
+    - `warm_resume` should reread `0` sentences
+    - `cold_resume` should reread the last `8` sentences in the current chapter
+    - if that `cold_resume` window cuts through the active open meaning unit, expand backward to the start of that meaning unit
+    - `cold_resume` should have a hard cap of `12` sentences
+    - `reconstitution_resume` should reread the last `24` sentences in the current chapter
+    - if needed, `reconstitution_resume` may expand backward to cover up to the last `3` meaning units
+    - `reconstitution_resume` should have a hard cap of `30` sentences
+    - reread windows should stay chapter-local by default
+    - if the current chapter does not contain enough prior text, reread from the chapter start rather than reaching into the previous chapter
+  - Why:
+    - the hot local buffer is already small-scale, so `cold_resume` only needs a modest recent-source reread to rebuild honest near-term continuity
+    - the mechanism reasons at meaning-unit scale rather than section scale, so a meaning-unit-aware cap is more faithful than a much larger blind window
+    - Phase 6 already landed durable carry-forward state, reflective summaries, anchors, and reaction history, so `reconstitution_resume` does not need to secretly reread large chapter tails to preserve continuity
+    - chapter transitions should rely on persisted slow-cycle state rather than implicit cross-chapter rereads
+  - Implementation effect:
+    - Phase 7 should encode policy fields equivalent to:
+      - `cold_resume_target_sentences = 8`
+      - `cold_resume_max_sentences = 12`
+      - `reconstitution_resume_target_sentences = 24`
+      - `reconstitution_resume_max_sentences = 30`
+      - `reconstitution_resume_target_meaning_units = 3`
+      - `resume_chapter_local_only = true`
+    - non-warm resume helpers should explicitly mark reconstructed hot state as reconstructed and record the resume mode used
+    - resume reconstruction should respect sentence-order source truth in shared `book_document.json` rather than inventing mechanism-private reread slices
 
 ## Promotion Rule
 - Resolve a question here first when the answer is still implementation-local or provisional.

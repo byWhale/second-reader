@@ -11,7 +11,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 | Mechanism key | Status | Defaultness | Doc | Artifact root | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `iterator_v1` | `default` | current default/live mechanism | `docs/backend-reading-mechanisms/iterator_v1.md` | `_mechanisms/iterator_v1/` | current shipped section/subsegment reader |
-| `attentional_v2` | `design-only` | not default | `docs/backend-reading-mechanisms/attentional_v2.md` | `_mechanisms/attentional_v2/` | future attention-frontier design with scaffolded runtime, survey, intake, Phase 4 interpretive nodes, Phase 5 bridge/knowledge state helpers, and Phase 6 slow-cycle reaction/history scaffolding |
+| `attentional_v2` | `design-only` | not default | `docs/backend-reading-mechanisms/attentional_v2.md` | `_mechanisms/attentional_v2/` | future attention-frontier design with scaffolded runtime, survey, intake, Phase 4 interpretive nodes, Phase 5 bridge/knowledge state helpers, Phase 6 slow-cycle reaction/history scaffolding, and Phase 7 checkpoint/resume helpers |
 
 ## Status Meanings
 - `default`

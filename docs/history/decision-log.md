@@ -474,3 +474,25 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/attentional_v2/prompts.py`
 - `docs/backend-reading-mechanisms/attentional_v2.md`
 - `docs/implementation/new-reading-mechanism/open-questions.md`
+
+## Entry 23
+**Decision / Inflection**: Make `attentional_v2` resume bounded, chapter-local, and explicitly reconstructive instead of silently restoring large hidden hot-state windows.
+
+**Period**: March 2026, during Phase 7 of the first `attentional_v2` implementation push.
+
+**Problem**: The mechanism design required warm, cold, and reconstitution resume, but the implementation still had to choose how much source text each mode should reread, where continuity should be persisted, and how to preserve the identity of the same reading mind without pretending a reconstructed state was the same thing as a truly warm in-memory continuation.
+
+**Alternatives considered**: Restore all hot state as if it were still warm, reread large unbounded source tails to fake continuity, or leave resume semantics implicit until a later live runner existed.
+
+**Why this path won**: A bounded chapter-local resume policy preserves honesty. `warm_resume` keeps reread at zero, `cold_resume` rebuilds near-term continuity from a small source window, and `reconstitution_resume` uses a larger but still capped current-chapter window tied to recent meaning units instead of hidden cross-chapter rereads. Persisting compact local continuity plus resume metadata also makes it explicit when hot state was reconstructed rather than warmed.
+
+**What changed in the system**: `attentional_v2` now persists `local_continuity.json` and `resume_metadata.json`, writes full mechanism checkpoints alongside shared thin checkpoint summaries, and exposes helper functions for warm, cold, and reconstitution resume. The default reader policy now encodes the concrete reread window contract, and non-warm resume marks reconstructed hot state explicitly instead of silently treating it as warm continuity.
+
+**Why it matters later**: This is the resume-honesty boundary for the new mechanism. Future contributors need to know that persisted slow-cycle state, not hidden large rereads, is the primary source of continuity, and that any non-warm rebuild must remain visible as a reconstruction rather than a perfect continuation.
+
+**Primary evidence**:
+- `reading-companion-backend/src/attentional_v2/resume.py`
+- `reading-companion-backend/src/attentional_v2/schemas.py`
+- `reading-companion-backend/src/attentional_v2/storage.py`
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/open-questions.md`
