@@ -173,7 +173,7 @@ Update when: status changes, blockers appear, or phases complete.
 - [ ] Run runtime-viability evaluation
 - [ ] Migrate the frontend and stable API away from section-first chapter/detail and marks surfaces once the section model is intentionally retired
 - [ ] Screen the candidate book pool against the documented source-book requirements
-- [ ] Curate the excerpt-case dataset for local/behind-the-mechanism questions
+- [x] Curate the first excerpt-case dataset packs for local/behind-the-mechanism questions
 - [ ] Curate the tracked `attentional_v2` benchmark datasets and the later chapter-level evaluation corpus before any real end-to-end comparison
 - [ ] Curate the chapter corpus for cross-mechanism span/end-to-end comparison
 - [ ] Curate runtime/resume and persisted compatibility fixture packs for gate and migration audits
@@ -217,3 +217,5 @@ Update when: status changes, blockers appear, or phases complete.
   - Important honesty note for later work: the seed chapter and runtime packages are directly grounded in parsed substrate, but the seed excerpt packages are still auto-extracted and require manual curation before benchmark promotion, while the compatibility package is still spec-level until live attentional runtime outputs are generated for those books.
   - Tightened the storage rule for private books: stable and temp docs now reserve `state/eval_local_datasets/` as the family-first local-only mirror for excerpt/chapter/runtime/compatibility packages derived from private books, while tracked manifests in `eval/manifests/` now point to both local source books and local package roots.
   - Screened the first private Downloads EPUB pool against the corpus rules, promoted `9` selected books into `state/library_sources/en/private/` and `state/library_sources/zh/private/`, recorded the full keep/reserve/reject screen in tracked source manifests, and built the first local-only private seed package mirror under `state/eval_local_datasets/`.
+  - Curated the first benchmark-quality excerpt layer on top of the seed pool: added tracked curated excerpt packs for repo-safe public-domain sources, added local-only curated excerpt packs for the manually added book supplement, and wrote explicit case-purpose metadata plus a curated split manifest instead of relying on raw auto-extracted seed windows.
+  - Important nuance for later evaluation work: the curated English packs are now strong enough for first-pass local evaluation, but the repo-safe Chinese curated pack is still intentionally thin because the public-domain Chinese seed quality was much weaker than the local supplement, so later corpus work should expand public-safe Chinese sources if we want a larger tracked Chinese excerpt benchmark.

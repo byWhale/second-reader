@@ -1,0 +1,18 @@
+{
+  "manifest_id": "attentional_v2_private_excerpt_curated_v1_local_refs",
+  "description": "Local package references for the curated private/local attentional_v2 excerpt packs.",
+  "local_dataset_packages": [
+    {
+      "dataset_id": "attentional_v2_private_excerpt_en_curated_v1",
+      "family": "excerpt_cases",
+      "language_track": "en",
+      "relative_local_path": "state/eval_local_datasets/excerpt_cases/attentional_v2_private_excerpt_en_curated_v1"
+    },
+    {
+      "dataset_id": "attentional_v2_private_excerpt_zh_curated_v1",
+      "family": "excerpt_cases",
+      "language_track": "zh",
+      "relative_local_path": "state/eval_local_datasets/excerpt_cases/attentional_v2_private_excerpt_zh_curated_v1"
+    }
+  ]
+}

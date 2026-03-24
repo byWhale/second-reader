@@ -182,6 +182,39 @@ Important status nuance:
 - excerpt cases are auto-extracted seed inputs and still require later manual curation before benchmark promotion
 - compatibility fixtures are spec-level audit inputs and still require live runtime outputs to become fully materialized audit fixtures
 
+## Curated Excerpt Status
+The first curated excerpt layer has now been frozen on top of the seed pool:
+
+- tracked curated packs:
+  - `reading-companion-backend/eval/datasets/excerpt_cases/attentional_v2_excerpt_en_curated_v1/`
+  - `reading-companion-backend/eval/datasets/excerpt_cases/attentional_v2_excerpt_zh_curated_v1/`
+- local-only curated packs:
+  - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_excerpt_en_curated_v1/`
+  - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_excerpt_zh_curated_v1/`
+- supporting manifests:
+  - `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_curated_v1.json`
+  - `reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_excerpt_curated_v1.json`
+
+Current curated counts:
+- tracked English curated cases: `5`
+- tracked Chinese curated cases: `2`
+- local English curated cases: `10`
+- local Chinese curated cases: `4`
+
+Curated-case rules in this pass:
+- every curated case has explicit:
+  - `question_ids`
+  - `phenomena`
+  - `selection_reason`
+  - `judge_focus`
+- curated cases use stable sentence anchors from canonical `book_document.json`
+- the curated layer intentionally does not inherit the duplicate/weak `case_id` patterns from the raw seed layer
+
+Important status nuance:
+- the curated English packs are strong enough for a first-pass local evaluation run
+- the repo-safe Chinese curated pack is intentionally thin, because the public-domain Chinese seed pool yielded much weaker parse-safe excerpt material than the local supplement
+- later corpus work should expand public-safe Chinese sources if we want a larger tracked Chinese excerpt benchmark instead of relying mostly on local supplements
+
 ## Private Downloads Supplement Status
 The first private-local supplement sourced from the user's Downloads EPUB pool has now landed outside the tracked dataset tree:
 

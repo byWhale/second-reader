@@ -1,0 +1,35 @@
+{
+  "manifest_id": "attentional_v2_excerpt_curated_v1_splits",
+  "description": "Curated excerpt-case package membership for the first attentional_v2 benchmark-quality curation pass.",
+  "packages": {
+    "attentional_v2_excerpt_en_curated_v1": [
+      "walden_pond_clarity_curated_v1",
+      "souls_black_belt_decay_curated_v1",
+      "pride_darcy_conversation_curated_v1",
+      "moby_spouter_inn_omen_curated_v1",
+      "middlemarch_presence_vs_attributes_curated_v1"
+    ],
+    "attentional_v2_excerpt_zh_curated_v1": [
+      "nahan_cannibal_paranoia_curated_v1",
+      "nahan_thick_barrier_curated_v1"
+    ],
+    "attentional_v2_private_excerpt_en_curated_v1": [
+      "antifragile_heuristics_vs_theorems_curated_v1",
+      "antifragile_drug_interactions_curated_v1",
+      "fooled_two_planets_curated_v1",
+      "fooled_monte_carlo_curated_v1",
+      "skin_fatal_cures_curated_v1",
+      "skin_decentralization_curated_v1",
+      "value_self_manipulation_curated_v1",
+      "value_rejection_clue_curated_v1",
+      "inspired_value_viability_curated_v1",
+      "chance_feelings_and_brother_curated_v1"
+    ],
+    "attentional_v2_private_excerpt_zh_curated_v1": [
+      "biji_counterintuitive_information_curated_v1",
+      "biji_tags_grow_with_work_curated_v1",
+      "suiji_nature_does_not_jump_curated_v1",
+      "suiji_popper_demarcation_curated_v1"
+    ]
+  }
+}
