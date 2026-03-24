@@ -159,12 +159,14 @@ Update when: status changes, blockers appear, or phases complete.
 
 ### Phase 9 - Migration, Stabilization, And Default-Cutover Readiness
 - [ ] Freeze the evaluation-question map before dataset/corpus design begins
+- [ ] Freeze the corpus-requirements doc before requesting or screening books
 - [ ] Separate cross-mechanism comparison questions from attentional-specific attribution questions and runtime/compatibility gate questions
 - [ ] Run mechanism-integrity evaluation
 - [ ] Run local-reading and span-trajectory evaluation
 - [ ] Run durable-trace and re-entry evaluation
 - [ ] Run runtime-viability evaluation
 - [ ] Migrate the frontend and stable API away from section-first chapter/detail and marks surfaces once the section model is intentionally retired
+- [ ] Screen the candidate book pool against the documented source-book requirements
 - [ ] Curate the excerpt-case dataset for local/behind-the-mechanism questions
 - [ ] Curate the tracked `attentional_v2` benchmark datasets and the later chapter-level evaluation corpus before any real end-to-end comparison
 - [ ] Curate the chapter corpus for cross-mechanism span/end-to-end comparison
@@ -202,3 +204,4 @@ Update when: status changes, blockers appear, or phases complete.
   - Added the explicit Phase 8.5 live-runner workstream to reflect the real dependency chain more honestly: minimal runner wiring was not enough, so the project now tracks shared provisioning extraction, mechanism-key job propagation, real `attentional_v2` parse/read entrypoints, non-default experimental registration, and non-iterator compatibility aggregation as their own completed slice.
   - Completed Phase 8.5: `attentional_v2` now runs end to end through the shared runtime, CLI, and existing async job lifecycle; resume and incompatible fresh reruns preserve `mechanism_key`; the backend rejects legacy `book_analysis` for `attentional_v2` explicitly; and stable/temp docs now treat `attentional_v2` as experimental instead of design-only.
   - Added the explicit evaluation-question layer before dataset design: stable cross-mechanism questions now live in `docs/backend-reader-evaluation.md`, stable attentional-specific proof questions now live in `docs/backend-reading-mechanisms/attentional_v2.md`, and the temporary `evaluation-question-map.md` now records exactly which questions this implementation project still has to answer, including the cross-mechanism comparison work that remains part of the current `attentional_v2` job.
+  - Added the corpus-requirements layer before book collection: `evaluation-corpus-requirements.md` now separates what the future data process can satisfy during curation from what the source books themselves must already satisfy, and it records the source-policy recommendation plus the concrete book-pool requirements for the first serious benchmark build.

@@ -276,6 +276,7 @@ Purpose:
 
 Main work:
 - Freeze the evaluation-question map before dataset design so question-first evaluation remains explicit.
+- Freeze the corpus-requirements doc before asking for the real source-book pool.
 - Separate:
   - cross-mechanism comparison questions
   - attentional-specific attribution questions
@@ -288,6 +289,7 @@ Main work:
   - chapter corpus for cross-mechanism span/end-to-end comparison
   - runtime/resume fixtures for resume and hard-gate questions
   - persisted compatibility fixtures for migration-surface audits
+- Apply the source-book standards from `evaluation-corpus-requirements.md` before accepting books into the benchmark pool.
 - Run mechanism-integrity and end-to-end evaluation passes.
 - Compare against `iterator_v1` on shared evaluation frame.
 - Decide compatibility strategy for:

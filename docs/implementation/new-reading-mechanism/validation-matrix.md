@@ -66,6 +66,7 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
   - explicit `attentional_v2 + book_analysis` failure behavior
   - `make contract-check` staying green after the runner integration
 - Before any Phase 9 dataset curation, freeze the evaluation-question map so dataset design stays question-driven instead of convenience-driven.
+- Before screening or collecting the real source-book pool, freeze the corpus-requirements doc so source-book selection is standards-driven instead of ad hoc.
 - Before any true Phase 9 end-to-end comparison, curate the tracked `attentional_v2` benchmark datasets and chapter-level evaluation corpus instead of using ad hoc runtime outputs as the benchmark source of truth.
 - Future Phase 8 / 9 work still needs explicit validation for the eventual removal of section-first chapter/detail and marks assumptions.
 - Future Phase 9 work still needs deeper node-level observability validation once standard/debug traces are expanded across the full live interpretive loop.
