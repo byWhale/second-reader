@@ -1,0 +1,26 @@
+{
+  "dataset_id": "attentional_v2_excerpt_en_curated_v2",
+  "family": "excerpt_cases",
+  "language_track": "en",
+  "version": "2",
+  "description": "EN curated excerpt benchmark layer for the expanded public-first v2 family.",
+  "primary_file": "cases.jsonl",
+  "question_ids": [
+    "EQ-CM-002",
+    "EQ-AV2-001",
+    "EQ-AV2-002",
+    "EQ-AV2-003",
+    "EQ-AV2-004",
+    "EQ-AV2-005",
+    "EQ-AV2-006"
+  ],
+  "source_manifest_refs": [
+    "eval/manifests/source_books/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/local_refs/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/corpora/attentional_v2_public_benchmark_pool_bilingual_v2.json"
+  ],
+  "split_refs": [
+    "eval/manifests/splits/attentional_v2_public_benchmark_pool_bilingual_v2_splits.json"
+  ],
+  "storage_mode": "tracked"
+}

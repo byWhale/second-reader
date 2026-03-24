@@ -18,7 +18,7 @@ Update when: status changes, blockers appear, or phases complete.
   - `Phase 9: Migration, Stabilization, And Default-Cutover Readiness`
 - Current blockers:
   - final end-to-end comparison still waits on:
-    - curated `attentional_v2` benchmark datasets and chapter corpus
+    - actual evaluation runs over the tracked `v2` benchmark family
     - later frontend/API retirement of section-first chapter/detail and marks surfaces
     - later stable-doc promotion timing under `Q10`
 
@@ -35,7 +35,7 @@ Update when: status changes, blockers appear, or phases complete.
 | Phase 7 - Persistence, checkpointing, and resume | `done` | warm/cold/reconstitution resume working |
 | Phase 8 - Observability, evaluation, and shared-surface integration | `done` | event/checkpoint contracts and public adapters working |
 | Phase 8.5 - Live runner integration | `done` | real parse/read path works through shared runtime, CLI, and async jobs |
-| Phase 9 - Migration, stabilization, and default-cutover readiness | `planned` | acceptance ladder reached and stable docs promoted |
+| Phase 9 - Migration, stabilization, and default-cutover readiness | `in_progress` | acceptance ladder reached and stable docs promoted |
 
 ## Detailed Checklist
 
@@ -167,16 +167,18 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Build the first seed dataset packages for chapter, runtime, excerpt, and compatibility work
 - [x] Add the local-only evaluation-package mirror for private/copyrighted source books
 - [x] Screen the first private Downloads EPUB pool, promote the selected books into `state/library_sources/`, and build the first local-only seed package mirror under `state/eval_local_datasets/`
+- [x] Screen the public-first large bilingual candidate pool against the documented source-book requirements
+- [x] Promote the selected public/open-access books into the tracked benchmark pool through the manifest-driven builder
+- [x] Freeze the tracked `v2` source-book, corpus, split, and local-ref manifests for the combined public benchmark family
 - [ ] Run mechanism-integrity evaluation
 - [ ] Run local-reading and span-trajectory evaluation
 - [ ] Run durable-trace and re-entry evaluation
 - [ ] Run runtime-viability evaluation
 - [ ] Migrate the frontend and stable API away from section-first chapter/detail and marks surfaces once the section model is intentionally retired
-- [ ] Screen the candidate book pool against the documented source-book requirements
 - [x] Curate the first excerpt-case dataset packs for local/behind-the-mechanism questions
-- [ ] Curate the tracked `attentional_v2` benchmark datasets and the later chapter-level evaluation corpus before any real end-to-end comparison
-- [ ] Curate the chapter corpus for cross-mechanism span/end-to-end comparison
-- [ ] Curate runtime/resume and persisted compatibility fixture packs for gate and migration audits
+- [x] Curate the tracked `attentional_v2` benchmark datasets and the later chapter-level evaluation corpus before any real end-to-end comparison
+- [x] Curate the chapter corpus for cross-mechanism span/end-to-end comparison
+- [x] Curate runtime/resume and persisted compatibility fixture packs for gate and migration audits
 - [ ] Compare against `iterator_v1`
 - [ ] Promote landed behavior into stable docs
 - [ ] Record decision-bearing changes in history doc when needed
@@ -219,3 +221,15 @@ Update when: status changes, blockers appear, or phases complete.
   - Screened the first private Downloads EPUB pool against the corpus rules, promoted `9` selected books into `state/library_sources/en/private/` and `state/library_sources/zh/private/`, recorded the full keep/reserve/reject screen in tracked source manifests, and built the first local-only private seed package mirror under `state/eval_local_datasets/`.
   - Curated the first benchmark-quality excerpt layer on top of the seed pool: the excerpt benchmark family now has both `storage_mode = tracked` and `storage_mode = local-only` packages, with explicit case-purpose metadata and a curated split manifest instead of relying on raw auto-extracted seed windows.
   - Important nuance for later evaluation work: the curated English excerpt family is now strong enough for first-pass local evaluation, but within the Chinese excerpt family the `tracked` slice is still intentionally thin because the current public-domain Chinese seed quality was much weaker than the manually added supplement, so later corpus work should expand public-safe Chinese sources if we want a larger tracked slice of that same benchmark family.
+- `2026-03-24`
+  - Completed the public-first large corpus expansion at the dataset-build layer: added a manifest-driven corpus builder plus validator, screened `24` new public/open-access candidates, promoted `12` of them, and froze the combined tracked public benchmark pool in `v2` manifests and dataset packages.
+  - Landed the tracked `v2` bilingual benchmark family with:
+    - `18` English chapter rows
+    - `18` Chinese chapter rows
+    - `36` English runtime fixtures
+    - `36` Chinese runtime fixtures
+    - `16` English curated excerpt cases
+    - `16` Chinese curated excerpt cases
+    - `36` shared compatibility fixtures
+  - Closed the earlier Chinese tracked-curation gap enough for real evaluation work by expanding the public-source pool and allowing controlled normalization of structurally weak but text-valuable public Chinese sources into synthetic segmented EPUBs before screening.
+  - Shifted the default next step for Phase 9 from corpus bootstrapping to actual evaluation execution; later book acquisition is now gap-filling only unless real evaluation evidence reveals a benchmark-coverage hole.

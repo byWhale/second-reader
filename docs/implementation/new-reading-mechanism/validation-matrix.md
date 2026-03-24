@@ -32,7 +32,7 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
 | Phase 7 - Persistence, checkpointing, and resume | Run warm/cold/reconstitution resume fixtures; verify no durable-anchor loss, no visible-reaction loss, and explicit reconstructed-state signaling. | `runtime` / `integration` | `done` |
 | Phase 8 - Observability, evaluation, and shared-surface integration | Verify additive anchor/locus public fields, event streams, checkpoint summaries, normalized eval artifacts, and compatibility with analysis-state, activity, chapter, and marks surfaces. | `compatibility` / `runtime` / `evaluation` | `done` |
 | Phase 8.5 - Live runner integration | Verify shared provisioning/job propagation, real `attentional_v2` parse/read runs, resume/recovery mechanism-key continuity, non-iterator compatibility aggregation, and unchanged public contract gates. | `integration` / `compatibility` / `runtime` / `docs` | `done` |
-| Phase 9 - Migration, stabilization, and default-cutover readiness | Run end-to-end comparison against `iterator_v1`, confirm acceptance ladder, and verify long-term doc promotions for every landed behavior change. | `evaluation` / `compatibility` / `docs` | `planned` |
+| Phase 9 - Migration, stabilization, and default-cutover readiness | Run end-to-end comparison against `iterator_v1`, confirm acceptance ladder, and verify long-term doc promotions for every landed behavior change. | `evaluation` / `compatibility` / `docs` | `in_progress` |
 
 ## Minimum Acceptance Ladder
 - `v0_internal`
@@ -67,6 +67,18 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
   - `make contract-check` staying green after the runner integration
 - Before any Phase 9 dataset curation, freeze the evaluation-question map so dataset design stays question-driven instead of convenience-driven.
 - Before screening or collecting the real source-book pool, freeze the corpus-requirements doc so source-book selection is standards-driven instead of ad hoc.
-- Before any true Phase 9 end-to-end comparison, curate the tracked `attentional_v2` benchmark datasets and chapter-level evaluation corpus instead of using ad hoc runtime outputs as the benchmark source of truth.
+- The public-first large `v2` build now satisfies the dataset-layer prerequisite for serious evaluation:
+  - tracked chapter corpora:
+    - `18` English
+    - `18` Chinese
+  - tracked runtime fixtures:
+    - `36` English
+    - `36` Chinese
+  - tracked curated excerpt cases:
+    - `16` English
+    - `16` Chinese
+  - tracked shared compatibility fixtures:
+    - `36`
+- Future Phase 9 validation should treat the tracked `v2` benchmark family as the default benchmark input set unless a later gap-filling pass explicitly supersedes it.
 - Future Phase 8 / 9 work still needs explicit validation for the eventual removal of section-first chapter/detail and marks assumptions.
 - Future Phase 9 work still needs deeper node-level observability validation once standard/debug traces are expanded across the full live interpretive loop.

@@ -290,6 +290,11 @@ Main work:
   - chapter corpus for cross-mechanism span/end-to-end comparison
   - runtime/resume fixtures for resume and hard-gate questions
   - persisted compatibility fixtures for migration-surface audits
+- Complete the public-first large bilingual corpus expansion through a manifest-driven builder and validator:
+  - screen `24` public/open-access candidates
+  - promote `12` of them into the tracked benchmark pool
+  - freeze the combined `v2` source-book, corpus, split, and local-ref manifests
+  - land the tracked `v2` benchmark packages for chapter, runtime, excerpt, and compatibility work
 - Screen and promote high-signal private local books into `state/library_sources/` when they improve corpus quality, then keep their text-bearing packages in the local-only package mirror instead of the tracked dataset tree.
 - Apply the source-book standards from `evaluation-corpus-requirements.md` before accepting books into the benchmark pool.
 - Run mechanism-integrity and end-to-end evaluation passes.
@@ -309,6 +314,7 @@ Depends on:
 
 Exit criteria:
 - Acceptance ladder reaches at least `v1_acceptable`.
+- The tracked `v2` benchmark family is frozen strongly enough that later acquisition becomes gap-filling rather than open-ended setup work.
 - Stable docs are updated for any landed runtime/mechanism/evaluation/public-surface changes.
 - Default-cutover decision is explicit rather than implied by code drift.
 

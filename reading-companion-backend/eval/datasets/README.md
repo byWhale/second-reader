@@ -32,9 +32,12 @@ Each concrete dataset package lives under exactly one family root:
 
 Examples:
 - `eval/datasets/excerpt_cases/attentional_v2_excerpt_en_v1/`
+- `eval/datasets/excerpt_cases/attentional_v2_excerpt_en_curated_v2/`
 - `eval/datasets/chapter_corpora/cross_mechanism_chapters_zh_v1/`
+- `eval/datasets/chapter_corpora/attentional_v2_chapters_zh_v2/`
 - `eval/datasets/runtime_fixtures/attentional_v2_runtime_en_v1/`
-- `eval/datasets/compatibility_fixtures/attentional_v2_shared_v1/`
+- `eval/datasets/runtime_fixtures/attentional_v2_runtime_zh_v2/`
+- `eval/datasets/compatibility_fixtures/attentional_v2_compat_shared_v2/`
 
 ## Required Files Per Dataset Package
 Every concrete dataset package must include:
@@ -96,3 +99,20 @@ Datasets and manifests are different:
 - Keep the same family roots and package contract there so tracked and local packages stay structurally comparable as one benchmark family across two storage modes.
 
 Do not duplicate source-book inventory metadata into every dataset package.
+
+## Current Benchmark Layer
+The current serious tracked bilingual benchmark layer for `attentional_v2` is `v2`, built by:
+- `reading-companion-backend/eval/attentional_v2/build_public_first_large_corpus.py`
+- validated by:
+  - `reading-companion-backend/eval/attentional_v2/validate_public_first_large_corpus.py`
+
+Current tracked `v2` package counts:
+- `18` English chapter rows
+- `18` Chinese chapter rows
+- `36` English runtime fixtures
+- `36` Chinese runtime fixtures
+- `16` English curated excerpt cases
+- `16` Chinese curated excerpt cases
+- `36` shared compatibility fixtures
+
+Use the tracked `v2` layer as the default benchmark input set unless a later manifest-driven gap-filling pass explicitly supersedes it.

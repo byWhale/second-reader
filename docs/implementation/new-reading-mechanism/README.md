@@ -53,7 +53,7 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
   - separates what curation can solve from what the source books must already satisfy
 - `evaluation-dataset-layout.md`
   - concrete family-first dataset-package design for the bilingual `attentional_v2` benchmark build
-  - defines package ids, folder roots, and the split between tracked datasets, tracked manifests, and local-only private dataset packages
+  - defines package ids, folder roots, the split between tracked datasets, tracked manifests, and local-only private dataset packages, and the current public-first large `v2` benchmark family
 - `stable-doc-impact.md`
   - map of which long-term docs must be updated when each workstream lands
 - `runtime-artifact-map.md`
@@ -73,6 +73,8 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 - Record implementation discoveries here first, then promote repeated stable facts into the long-term docs.
 - Keep the new mechanism non-default until its acceptance gates, migration work, and public-surface adapters are complete.
 - Do not let temporary tracker language silently redefine stable product or runtime behavior.
+- Treat the tracked `v2` public benchmark family as the current default evaluation input set unless a later gap-filling pass explicitly supersedes it.
+- Treat later acquisition as gap-filling by default rather than open-ended corpus growth.
 
 ## Recommended Reading Order For This Project
 1. `design-capture.md`

@@ -1,0 +1,479 @@
+{
+  "manifest_id": "attentional_v2_public_first_large_candidates_v2",
+  "description": "Manifest-driven candidate pool for the public-first large bilingual corpus expansion.",
+  "candidates": [
+    {
+      "source_id": "on_liberty_public_en",
+      "title": "On Liberty",
+      "author": "John Stuart Mill",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/on_liberty_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/john-stuart-mill/on-liberty"
+      },
+      "type_tags": ["argumentative", "essayistic", "social_thought", "modern_political_classic"],
+      "role_tags": ["argumentative", "reference_heavy"],
+      "selection_priority": 1,
+      "notes": [
+        "Foundational liberty text for argumentative and social-thought coverage.",
+        "Expected to support distinction, bridge, and durable-trace cases."
+      ]
+    },
+    {
+      "source_id": "subjection_of_women_public_en",
+      "title": "The Subjection of Women",
+      "author": "John Stuart Mill",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/the_subjection_of_women_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/john-stuart-mill/the-subjection-of-women"
+      },
+      "type_tags": ["argumentative", "essayistic", "social_thought", "gender_thought"],
+      "role_tags": ["argumentative"],
+      "selection_priority": 2,
+      "notes": [
+        "Useful counterweight to the older tracked English narrative pool.",
+        "High-value source for argumentative and social-pressure chapters."
+      ]
+    },
+    {
+      "source_id": "problems_of_philosophy_public_en",
+      "title": "The Problems of Philosophy",
+      "author": "Bertrand Russell",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/the_problems_of_philosophy_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/bertrand-russell/the-problems-of-philosophy"
+      },
+      "type_tags": ["expository", "philosophical", "conceptual_nonfiction"],
+      "role_tags": ["expository"],
+      "selection_priority": 1,
+      "notes": [
+        "Clean conceptual nonfiction for distinction and meaning-unit closure work."
+      ]
+    },
+    {
+      "source_id": "varieties_of_religious_experience_public_en",
+      "title": "The Varieties of Religious Experience",
+      "author": "William James",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/the_varieties_of_religious_experience_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/william-james/the-varieties-of-religious-experience"
+      },
+      "type_tags": ["expository", "philosophical", "reflective_nonfiction"],
+      "role_tags": ["expository", "narrative_reflective"],
+      "selection_priority": 2,
+      "notes": [
+        "Likely to support expository chapters with reflective and interpretive pressure."
+      ]
+    },
+    {
+      "source_id": "darkwater_public_en",
+      "title": "Darkwater",
+      "author": "W. E. B. Du Bois",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/darkwater_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/w-e-b-du-bois/darkwater"
+      },
+      "type_tags": ["argumentative", "essayistic", "social_thought", "reference_dense"],
+      "role_tags": ["argumentative", "reference_heavy"],
+      "selection_priority": 3,
+      "notes": [
+        "Strong social-thought prose with likely bridge-worthy and durable-trace passages."
+      ]
+    },
+    {
+      "source_id": "women_and_economics_public_en",
+      "title": "Women and Economics",
+      "author": "Charlotte Perkins Gilman",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/women_and_economics_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/charlotte-perkins-gilman/women-and-economics"
+      },
+      "type_tags": ["expository", "argumentative", "social_thought", "economic_thought"],
+      "role_tags": ["expository", "argumentative"],
+      "selection_priority": 3,
+      "notes": [
+        "Public/open social-thought text that should improve argumentative and expository English coverage."
+      ]
+    },
+    {
+      "source_id": "education_of_henry_adams_public_en",
+      "title": "The Education of Henry Adams",
+      "author": "Henry Adams",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/the_education_of_henry_adams_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/henry-adams/the-education-of-henry-adams"
+      },
+      "type_tags": ["narrative_reflective", "memoir", "historical_reflection"],
+      "role_tags": ["narrative_reflective"],
+      "selection_priority": 1,
+      "notes": [
+        "Reflective long-form prose that should strengthen chapter-scale accumulation and re-entry evaluation."
+      ]
+    },
+    {
+      "source_id": "portrait_of_a_lady_public_en",
+      "title": "The Portrait of a Lady",
+      "author": "Henry James",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/the_portrait_of_a_lady_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/henry-james/the-portrait-of-a-lady"
+      },
+      "type_tags": ["narrative_reflective", "novel", "social_detail", "allusion_dense"],
+      "role_tags": ["narrative_reflective", "reference_heavy"],
+      "selection_priority": 2,
+      "notes": [
+        "Long-form narrative candidate for subtle social inference and callback-rich spans."
+      ]
+    },
+    {
+      "source_id": "house_of_mirth_public_en",
+      "title": "The House of Mirth",
+      "author": "Edith Wharton",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/the_house_of_mirth_public_v2.epub",
+      "acquisition": {
+        "kind": "standard_ebooks_page",
+        "page_url": "https://standardebooks.org/ebooks/edith-wharton/the-house-of-mirth"
+      },
+      "type_tags": ["narrative_reflective", "novel", "social_detail"],
+      "role_tags": ["narrative_reflective"],
+      "selection_priority": 3,
+      "notes": [
+        "Reserve narrative source for reflective and social-pressure chapters."
+      ]
+    },
+    {
+      "source_id": "up_from_slavery_public_en",
+      "title": "Up from Slavery",
+      "author": "Booker T. Washington",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/up_from_slavery_public_v2.epub",
+      "acquisition": {
+        "kind": "gutendex_search",
+        "search_title": "Up from Slavery",
+        "author_match": "Washington"
+      },
+      "type_tags": ["narrative_reflective", "memoir", "social_thought"],
+      "role_tags": ["narrative_reflective", "argumentative"],
+      "selection_priority": 4,
+      "notes": [
+        "Memoir plus social-thought source that can support both trajectory and durable-trace comparisons."
+      ]
+    },
+    {
+      "source_id": "democracy_and_education_public_en",
+      "title": "Democracy and Education",
+      "author": "John Dewey",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/democracy_and_education_public_v2.epub",
+      "acquisition": {
+        "kind": "gutendex_search",
+        "search_title": "Democracy and Education",
+        "author_match": "Dewey"
+      },
+      "type_tags": ["expository", "philosophical", "educational_thought"],
+      "role_tags": ["expository"],
+      "selection_priority": 2,
+      "notes": [
+        "High-value expository/philosophical English source for concept-heavy chapter units."
+      ]
+    },
+    {
+      "source_id": "representative_government_public_en",
+      "title": "Considerations on Representative Government",
+      "author": "John Stuart Mill",
+      "language": "en",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "en/considerations_on_representative_government_public_v2.epub",
+      "acquisition": {
+        "kind": "gutendex_search",
+        "search_title": "Considerations on Representative Government",
+        "author_match": "Mill"
+      },
+      "type_tags": ["argumentative", "essayistic", "social_thought", "modern_political_classic"],
+      "role_tags": ["argumentative", "expository"],
+      "selection_priority": 5,
+      "notes": [
+        "Reserve public political-theory source to keep English argumentative and expository coverage broad."
+      ]
+    },
+    {
+      "source_id": "panghuang_public_zh",
+      "title": "彷徨",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/panghuang_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "彷徨",
+        "lang": "zh"
+      },
+      "type_tags": ["narrative_reflective", "short_story", "modern_vernacular"],
+      "role_tags": ["narrative_reflective"],
+      "selection_priority": 2,
+      "notes": [
+        "Modern vernacular Chinese narrative source for chapter-scale and local-pressure comparison."
+      ]
+    },
+    {
+      "source_id": "gushi_xinbian_public_zh",
+      "title": "故事新編",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/gushi_xinbian_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "故事新編",
+        "lang": "zh"
+      },
+      "type_tags": ["narrative_reflective", "allusion_dense", "modern_vernacular"],
+      "role_tags": ["narrative_reflective", "reference_heavy"],
+      "selection_priority": 3,
+      "notes": [
+        "Allusion-rich modern vernacular fiction for bridge and callback pressure."
+      ]
+    },
+    {
+      "source_id": "beiying_public_zh",
+      "title": "背影",
+      "author": "朱自清",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/beiying_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "背影",
+        "lang": "zh"
+      },
+      "type_tags": ["expository", "narrative_reflective", "essayistic", "modern_vernacular"],
+      "role_tags": ["expository", "argumentative", "narrative_reflective"],
+      "selection_priority": 1,
+      "notes": [
+        "Modern vernacular Chinese essay collection that can serve expository, argumentative, and reflective evaluation slices."
+      ]
+    },
+    {
+      "source_id": "ouyou_zaji_public_zh",
+      "title": "歐遊雜記",
+      "author": "朱自清",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/ouyou_zaji_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "歐遊雜記",
+        "lang": "zh"
+      },
+      "type_tags": ["narrative_reflective", "travel", "modern_vernacular", "reference_dense"],
+      "role_tags": ["narrative_reflective", "reference_heavy"],
+      "selection_priority": 1,
+      "notes": [
+        "Travel-reflective Chinese prose that should yield good chapter units and bridge opportunities."
+      ]
+    },
+    {
+      "source_id": "refeng_public_zh",
+      "title": "熱風",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/refeng_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "熱風",
+        "lang": "zh"
+      },
+      "type_tags": ["argumentative", "essayistic", "social_thought", "modern_vernacular"],
+      "role_tags": ["argumentative"],
+      "selection_priority": 2,
+      "notes": [
+        "Strong Chinese argumentative candidate for pressure, distinction, and reaction-value evaluation."
+      ]
+    },
+    {
+      "source_id": "fen_public_zh",
+      "title": "墳",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/fen_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "墳",
+        "lang": "zh"
+      },
+      "type_tags": ["expository", "essayistic", "philosophical", "modern_vernacular"],
+      "role_tags": ["expository", "argumentative"],
+      "selection_priority": 1,
+      "notes": [
+        "Best modern Chinese candidate in this public pass for expository and philosophical pressure."
+      ]
+    },
+    {
+      "source_id": "chenlun_public_zh",
+      "title": "沉淪",
+      "author": "郁達夫",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/chenlun_public_v2.epub",
+      "acquisition": {
+        "kind": "gutendex_search",
+        "search_title": "沉沦",
+        "author_match": "郁達夫"
+      },
+      "type_tags": ["narrative_reflective", "modern_vernacular", "short_story"],
+      "role_tags": ["narrative_reflective"],
+      "selection_priority": 2,
+      "notes": [
+        "Modern vernacular Chinese prose with stronger public EPUB availability than the weaker travel-shell fallback."
+      ]
+    },
+    {
+      "source_id": "nanqiang_beidiaoji_public_zh",
+      "title": "南腔北調集",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/nanqiang_beidiaoji_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "南腔北調集",
+        "lang": "zh"
+      },
+      "type_tags": ["expository", "argumentative", "essayistic", "social_thought", "modern_vernacular"],
+      "role_tags": ["expository", "argumentative"],
+      "selection_priority": 3,
+      "notes": [
+        "Modern Chinese essay collection that can serve both expository and argumentative benchmark slices."
+      ]
+    },
+    {
+      "source_id": "huagai_ji_public_zh",
+      "title": "華蓋集",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/huagai_ji_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "華蓋集",
+        "lang": "zh"
+      },
+      "type_tags": ["argumentative", "essayistic", "modern_vernacular"],
+      "role_tags": ["argumentative"],
+      "selection_priority": 4,
+      "notes": [
+        "Reserve essayistic candidate if stronger Chinese argumentative coverage is needed."
+      ]
+    },
+    {
+      "source_id": "huagai_ji_xubian_public_zh",
+      "title": "華蓋集續編",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/huagai_ji_xubian_public_v2.epub",
+      "acquisition": {
+        "kind": "wikisource_export",
+        "page_title": "華蓋集續編",
+        "lang": "zh"
+      },
+      "type_tags": ["argumentative", "essayistic", "modern_vernacular"],
+      "role_tags": ["argumentative"],
+      "selection_priority": 5,
+      "notes": [
+        "Additional reserve candidate for Chinese essayistic coverage."
+      ]
+    },
+    {
+      "source_id": "yuli_public_zh",
+      "title": "玉梨魂",
+      "author": "徐枕亞",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/yuli_public_v2.epub",
+      "acquisition": {
+        "kind": "gutendex_search",
+        "search_title": "玉梨魂",
+        "author_match": "徐枕亞"
+      },
+      "type_tags": ["narrative_reflective", "modern_vernacular"],
+      "role_tags": ["narrative_reflective"],
+      "selection_priority": 3,
+      "notes": [
+        "Adds a non-Lu-Xun, non-Zhu-Ziqing public/open Chinese narrative source with usable chapter structure."
+      ]
+    },
+    {
+      "source_id": "ershinian_mudu_public_zh",
+      "title": "二十年目睹之怪現狀",
+      "author": "吳趼人",
+      "language": "zh",
+      "origin": "public-open-access",
+      "storage_mode": "tracked",
+      "promoted_local_path": "zh/ershinian_mudu_public_v2.epub",
+      "acquisition": {
+        "kind": "gutendex_search",
+        "search_title": "二十年目睹之怪現狀",
+        "author_match": "吳"
+      },
+      "type_tags": ["narrative_reflective", "reference_dense", "vernacular_classic"],
+      "role_tags": ["reference_heavy", "narrative_reflective"],
+      "selection_priority": 3,
+      "notes": [
+        "Useful classical/late-Qing reserve for chapter-rich Chinese reference-heavy coverage."
+      ]
+    }
+  ]
+}

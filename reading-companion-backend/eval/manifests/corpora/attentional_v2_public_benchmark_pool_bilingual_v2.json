@@ -1,0 +1,32 @@
+{
+  "manifest_id": "attentional_v2_public_benchmark_pool_bilingual_v2",
+  "description": "Combined bilingual tracked public/open source pool used to build the expanded v2 attentional_v2 benchmark family.",
+  "language_tracks": {
+    "en": [
+      "walden_205_en",
+      "souls_of_black_folk_408_en",
+      "pride_and_prejudice_1342_en",
+      "moby_dick_2701_en",
+      "middlemarch_145_en",
+      "on_liberty_public_en",
+      "varieties_of_religious_experience_public_en",
+      "portrait_of_a_lady_public_en",
+      "darkwater_public_en",
+      "women_and_economics_public_en",
+      "up_from_slavery_public_en"
+    ],
+    "zh": [
+      "zhaohua_xishi_25271_zh",
+      "nahan_27166_zh",
+      "rulin_waishi_24032_zh",
+      "laocan_youji_25124_zh",
+      "jinghua_yuan_25377_zh",
+      "ouyou_zaji_public_zh",
+      "chenlun_public_zh",
+      "gushi_xinbian_public_zh",
+      "ershinian_mudu_public_zh",
+      "beiying_public_zh",
+      "fen_public_zh"
+    ]
+  }
+}

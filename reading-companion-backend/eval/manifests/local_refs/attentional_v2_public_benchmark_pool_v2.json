@@ -1,0 +1,138 @@
+{
+  "manifest_id": "attentional_v2_public_benchmark_pool_v2_local_refs",
+  "description": "Local path references and checksums for the tracked public/open books used by the v2 attentional_v2 benchmark family.",
+  "refs": [
+    {
+      "source_id": "walden_205_en",
+      "relative_local_path": "state/library_sources/en/walden_205.epub",
+      "sha256": "611551be1134794ad3edf996db55a8a13d9a3c5a157441138eb6fcfbb83805ac",
+      "file_size": 688009
+    },
+    {
+      "source_id": "souls_of_black_folk_408_en",
+      "relative_local_path": "state/library_sources/en/souls_of_black_folk_408.epub",
+      "sha256": "d106f906cd24b0e32152039e4c6f42e2c84fc943ec21d4169b1c5c979f8ddd5b",
+      "file_size": 2012882
+    },
+    {
+      "source_id": "pride_and_prejudice_1342_en",
+      "relative_local_path": "state/library_sources/en/pride_and_prejudice_1342.epub",
+      "sha256": "56141234a7c6a62593e972a3ed62b10cdc8e7e29607ccce124fc757a2e65b115",
+      "file_size": 24837301
+    },
+    {
+      "source_id": "moby_dick_2701_en",
+      "relative_local_path": "state/library_sources/en/moby_dick_2701.epub",
+      "sha256": "143339d0134d0f90bc57c414aac44960f0a469b48d2f2d51d785a0a430e7c423",
+      "file_size": 816021
+    },
+    {
+      "source_id": "middlemarch_145_en",
+      "relative_local_path": "state/library_sources/en/middlemarch_145.epub",
+      "sha256": "d6177079d1db5d915c7f8e516cf0f28bfabb7bb42c329d395b27d6c0f242ab8d",
+      "file_size": 1053947
+    },
+    {
+      "source_id": "zhaohua_xishi_25271_zh",
+      "relative_local_path": "state/library_sources/zh/zhaohua_xishi_25271.normalized.epub",
+      "sha256": "887c1c50d891bb87c0a996f4374f6243884d80dccae3482ed5f8ef1a54cd3710",
+      "file_size": 58963
+    },
+    {
+      "source_id": "nahan_27166_zh",
+      "relative_local_path": "state/library_sources/zh/nahan_27166.normalized.epub",
+      "sha256": "4adc5e92efbb34bd272fd5fa35a71c060f60264e936e07d14410dba702c8e353",
+      "file_size": 83059
+    },
+    {
+      "source_id": "rulin_waishi_24032_zh",
+      "relative_local_path": "state/library_sources/zh/rulin_waishi_24032.normalized.epub",
+      "sha256": "1d38845c2809efe06073e575cf642edd9cd8bc2e72cf41b2d50933d5cb563051",
+      "file_size": 399175
+    },
+    {
+      "source_id": "laocan_youji_25124_zh",
+      "relative_local_path": "state/library_sources/zh/laocan_youji_25124.normalized.epub",
+      "sha256": "9fddad830a361ba90af5d458763788d2a593e5f076e7faa579467218e2fe4ad1",
+      "file_size": 180961
+    },
+    {
+      "source_id": "jinghua_yuan_25377_zh",
+      "relative_local_path": "state/library_sources/zh/jinghua_yuan_25377.normalized.epub",
+      "sha256": "276c2fcfd38867444cd5f9b3eead38f0ffe22169951fd3445371c453b876d3a6",
+      "file_size": 665278
+    },
+    {
+      "source_id": "on_liberty_public_en",
+      "relative_local_path": "state/library_sources/en/on_liberty_public_v2.epub",
+      "sha256": "71760d073cc496b7fb751363d277414e72d1acce6bb4fa273963cbf6c18e6576",
+      "file_size": 528392
+    },
+    {
+      "source_id": "varieties_of_religious_experience_public_en",
+      "relative_local_path": "state/library_sources/en/the_varieties_of_religious_experience_public_v2.epub",
+      "sha256": "86791e1720cc77717ab491affc07bb5bacb0a92696b9e085fd047fd274fc6469",
+      "file_size": 876986
+    },
+    {
+      "source_id": "portrait_of_a_lady_public_en",
+      "relative_local_path": "state/library_sources/en/the_portrait_of_a_lady_public_v2.epub",
+      "sha256": "9b754ffb0b4dfa21dc06fbcbf2a4db7431f4c231c8dd165e275a6e3a5b5a71be",
+      "file_size": 976887
+    },
+    {
+      "source_id": "darkwater_public_en",
+      "relative_local_path": "state/library_sources/en/darkwater_public_v2.epub",
+      "sha256": "b2ac19db943af8bf8d30a1d13feb19eb014cbc7505e417e62c58e8b425ff2f66",
+      "file_size": 670865
+    },
+    {
+      "source_id": "women_and_economics_public_en",
+      "relative_local_path": "state/library_sources/en/women_and_economics_public_v2.epub",
+      "sha256": "e4caec5ca0616f0807a530d5814e40afd77537d60934cf515d402b6a11a4aece",
+      "file_size": 619600
+    },
+    {
+      "source_id": "up_from_slavery_public_en",
+      "relative_local_path": "state/library_sources/en/up_from_slavery_public_v2.epub",
+      "sha256": "eefe645a1ea35747c0d55337e1fa741205a995f8e470cc8111feb19ae86a4919",
+      "file_size": 346007
+    },
+    {
+      "source_id": "ouyou_zaji_public_zh",
+      "relative_local_path": "state/library_sources/zh/ouyou_zaji_public_v2.epub",
+      "sha256": "dc64fcca609c8d2e601ec6fc68b5a320fbef277df6db6cb678ca976f6cad3ef9",
+      "file_size": 115655
+    },
+    {
+      "source_id": "chenlun_public_zh",
+      "relative_local_path": "state/library_sources/zh/chenlun_public_v2.epub",
+      "sha256": "5a99b44bda0d2818558afdf1d37d8d5f6203ba2b0641386b8f896ff8a7a595d0",
+      "file_size": 21973
+    },
+    {
+      "source_id": "gushi_xinbian_public_zh",
+      "relative_local_path": "state/library_sources/zh/gushi_xinbian_public_v2.epub",
+      "sha256": "b5b016e964333ccae37c27309b96bf31c89c8360e68a370accc7be8fd27067d2",
+      "file_size": 132031
+    },
+    {
+      "source_id": "ershinian_mudu_public_zh",
+      "relative_local_path": "state/library_sources/zh/ershinian_mudu_public_v2.epub",
+      "sha256": "2a8a0a234d422c7af854e0ac2b8629ef328fab883b03e41c28b48094140d4b92",
+      "file_size": 838356
+    },
+    {
+      "source_id": "beiying_public_zh",
+      "relative_local_path": "state/library_sources/zh/beiying_public_v2.epub",
+      "sha256": "b1c59c2c25656d2b70f5ee861414b4ce2becf20657887ef8436950800f997388",
+      "file_size": 24627
+    },
+    {
+      "source_id": "fen_public_zh",
+      "relative_local_path": "state/library_sources/zh/fen_public_v2.epub",
+      "sha256": "2d1519fa1b8b985a2804f28ba4baf6ffacc326a63242507f8b9792aff14a5937",
+      "file_size": 28977
+    }
+  ]
+}

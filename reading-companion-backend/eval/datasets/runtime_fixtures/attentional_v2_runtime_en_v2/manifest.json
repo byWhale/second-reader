@@ -1,0 +1,23 @@
+{
+  "dataset_id": "attentional_v2_runtime_en_v2",
+  "family": "runtime_fixtures",
+  "language_track": "en",
+  "version": "2",
+  "description": "EN runtime and resume fixtures derived from the v2 chapter corpus.",
+  "primary_file": "fixtures.jsonl",
+  "question_ids": [
+    "EQ-CM-005",
+    "EQ-AV2-007",
+    "EQ-GATE-001",
+    "EQ-GATE-003"
+  ],
+  "source_manifest_refs": [
+    "eval/manifests/source_books/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/local_refs/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/corpora/attentional_v2_public_benchmark_pool_bilingual_v2.json"
+  ],
+  "split_refs": [
+    "eval/manifests/splits/attentional_v2_public_benchmark_pool_bilingual_v2_splits.json"
+  ],
+  "storage_mode": "tracked"
+}

@@ -1,0 +1,2433 @@
+{
+  "manifest_id": "attentional_v2_public_benchmark_pool_v2",
+  "description": "Combined tracked public/open source-book inventory used by the v2 attentional_v2 benchmark family.",
+  "books": [
+    {
+      "source_id": "walden_205_en",
+      "title": "Walden, and On The Duty Of Civil Disobedience",
+      "author": "Henry David Thoreau",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/205",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/walden_205.epub",
+      "type_tags": [
+        "expository",
+        "philosophical",
+        "essayistic"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "essayistic",
+        "philosophical"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for conceptual pressure and reflective prose.",
+        "Useful for local closure and chapter-scale accumulation."
+      ],
+      "sha256": "611551be1134794ad3edf996db55a8a13d9a3c5a157441138eb6fcfbb83805ac",
+      "file_size": 688009,
+      "output_dir": "output/walden-and-on-the-duty-of-civil-disobedience",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 23,
+      "sentence_count_total": 4295,
+      "median_chapter_sentences": 163.0,
+      "median_chapter_paragraphs": 22.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "Where I Lived, and What I Lived For",
+          "sentence_count": 223,
+          "paragraph_count": 27,
+          "href": "9088934595127000382_205-h-4.htm.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "Visitors",
+          "sentence_count": 193,
+          "paragraph_count": 28,
+          "href": "9088934595127000382_205-h-8.htm.xhtml",
+          "spine_index": 9,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "18",
+          "chapter_number": 0,
+          "chapter_title": "Former Inhabitants and Winter Visitors",
+          "sentence_count": 163,
+          "paragraph_count": 27,
+          "href": "9088934595127000382_205-h-16.htm.xhtml",
+          "spine_index": 17,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "Reading",
+          "sentence_count": 135,
+          "paragraph_count": 13,
+          "href": "9088934595127000382_205-h-5.htm.xhtml",
+          "spine_index": 6,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "Sounds",
+          "sentence_count": 200,
+          "paragraph_count": 28,
+          "href": "9088934595127000382_205-h-6.htm.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "9",
+          "chapter_number": 0,
+          "chapter_title": "Solitude",
+          "sentence_count": 131,
+          "paragraph_count": 20,
+          "href": "9088934595127000382_205-h-7.htm.xhtml",
+          "spine_index": 8,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/205"
+      }
+    },
+    {
+      "source_id": "souls_of_black_folk_408_en",
+      "title": "The Souls of Black Folk",
+      "author": "W. E. B. Du Bois",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/408",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/souls_of_black_folk_408.epub",
+      "type_tags": [
+        "essayistic",
+        "argumentative",
+        "social_thought"
+      ],
+      "role_tags": [
+        "argumentative",
+        "essayistic",
+        "social_thought"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for argumentative and reflective chapter passages.",
+        "Likely useful for bridge-worthy concepts and durable trace."
+      ],
+      "sha256": "d106f906cd24b0e32152039e4c6f42e2c84fc943ec21d4169b1c5c979f8ddd5b",
+      "file_size": 2012882,
+      "output_dir": "output/the-souls-of-black-folk",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 19,
+      "sentence_count_total": 2918,
+      "median_chapter_sentences": 155.0,
+      "median_chapter_paragraphs": 28.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "I. Of Our Spiritual Strivings",
+          "sentence_count": 114,
+          "paragraph_count": 21,
+          "href": "6865893140429338400_408-h-2.htm.xhtml",
+          "spine_index": 3,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "V. Of the Wings of Atalanta",
+          "sentence_count": 102,
+          "paragraph_count": 24,
+          "href": "6865893140429338400_408-h-6.htm.xhtml",
+          "spine_index": 7,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "14",
+          "chapter_number": 0,
+          "chapter_title": "XI. Of the Passing of the First-Born",
+          "sentence_count": 99,
+          "paragraph_count": 17,
+          "href": "6865893140429338400_408-h-12.htm.xhtml",
+          "spine_index": 13,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "II. Of the Dawn of Freedom",
+          "sentence_count": 245,
+          "paragraph_count": 42,
+          "href": "6865893140429338400_408-h-3.htm.xhtml",
+          "spine_index": 4,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "III. Of Mr. Booker T. Washington and Others",
+          "sentence_count": 201,
+          "paragraph_count": 42,
+          "href": "6865893140429338400_408-h-4.htm.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "IV. Of the Meaning of Progress",
+          "sentence_count": 185,
+          "paragraph_count": 28,
+          "href": "6865893140429338400_408-h-5.htm.xhtml",
+          "spine_index": 6,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/408"
+      }
+    },
+    {
+      "source_id": "pride_and_prejudice_1342_en",
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/1342",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/pride_and_prejudice_1342.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "novel",
+        "social_detail"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "novel",
+        "social_detail"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for character judgment, revision, and later reinterpretation."
+      ],
+      "sha256": "56141234a7c6a62593e972a3ed62b10cdc8e7e29607ccce124fc757a2e65b115",
+      "file_size": 24837301,
+      "output_dir": "output/pride-and-prejudice",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 63,
+      "sentence_count_total": 91202,
+      "median_chapter_sentences": 1444.0,
+      "median_chapter_paragraphs": 398.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "Mrs Bennet and her two youngest girls. CHAPTER IX.",
+          "sentence_count": 1207,
+          "paragraph_count": 430,
+          "href": "4808116432898441278_1342-h-0.htm.xhtml",
+          "spine_index": 1,
+          "position_bucket": "early",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "22",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER XXI.",
+          "sentence_count": 1332,
+          "paragraph_count": 376,
+          "href": "4808116432898441278_1342-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "middle",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "62",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER LXI.",
+          "sentence_count": 84,
+          "paragraph_count": 23,
+          "href": "4808116432898441278_1342-h-5.htm.xhtml",
+          "spine_index": 6,
+          "position_bucket": "late",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "11",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER X.",
+          "sentence_count": 1207,
+          "paragraph_count": 430,
+          "href": "4808116432898441278_1342-h-0.htm.xhtml",
+          "spine_index": 1,
+          "position_bucket": "early",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "12",
+          "chapter_number": 0,
+          "chapter_title": "Piling up the fire. CHAPTER XI.",
+          "sentence_count": 1332,
+          "paragraph_count": 376,
+          "href": "4808116432898441278_1342-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "13",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER XII.",
+          "sentence_count": 1332,
+          "paragraph_count": 376,
+          "href": "4808116432898441278_1342-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 2.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/1342"
+      }
+    },
+    {
+      "source_id": "moby_dick_2701_en",
+      "title": "Moby Dick; Or, The Whale",
+      "author": "Herman Melville",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/2701",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/moby_dick_2701.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "allusion_dense",
+        "novel"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "allusion_dense",
+        "novel"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for motif, callback, and chapter-scale accumulation."
+      ],
+      "sha256": "143339d0134d0f90bc57c414aac44960f0a469b48d2f2d51d785a0a430e7c423",
+      "file_size": 816021,
+      "output_dir": "output/moby-dick-or-the-whale",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 146,
+      "sentence_count_total": 160741,
+      "median_chapter_sentences": 1096.0,
+      "median_chapter_paragraphs": 263.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "22",
+          "chapter_number": 16,
+          "chapter_title": "CHAPTER 16. The Ship.",
+          "sentence_count": 1132,
+          "paragraph_count": 313,
+          "href": "3831726209781553096_2701-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "50",
+          "chapter_number": 44,
+          "chapter_title": "CHAPTER 44. The Chart.",
+          "sentence_count": 1066,
+          "paragraph_count": 249,
+          "href": "3831726209781553096_2701-h-3.htm.xhtml",
+          "spine_index": 4,
+          "position_bucket": "middle",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "98",
+          "chapter_number": 92,
+          "chapter_title": "CHAPTER 92. Ambergris.",
+          "sentence_count": 1096,
+          "paragraph_count": 256,
+          "href": "3831726209781553096_2701-h-7.htm.xhtml",
+          "spine_index": 8,
+          "position_bucket": "late",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "23",
+          "chapter_number": 17,
+          "chapter_title": "CHAPTER 17. The Ramadan.",
+          "sentence_count": 1132,
+          "paragraph_count": 313,
+          "href": "3831726209781553096_2701-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "24",
+          "chapter_number": 18,
+          "chapter_title": "CHAPTER 18. His Mark.",
+          "sentence_count": 1132,
+          "paragraph_count": 313,
+          "href": "3831726209781553096_2701-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 2.75
+        },
+        {
+          "chapter_id": "25",
+          "chapter_number": 19,
+          "chapter_title": "CHAPTER 19. The Prophet.",
+          "sentence_count": 1132,
+          "paragraph_count": 313,
+          "href": "3831726209781553096_2701-h-1.htm.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 2.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/2701"
+      }
+    },
+    {
+      "source_id": "middlemarch_145_en",
+      "title": "Middlemarch",
+      "author": "George Eliot",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/145",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/middlemarch_145.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "novel",
+        "social_thought"
+      ],
+      "role_tags": [
+        "argumentative",
+        "narrative_reflective",
+        "novel",
+        "social_thought"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good long-span reflective novel for chapter trajectory comparisons."
+      ],
+      "sha256": "d6177079d1db5d915c7f8e516cf0f28bfabb7bb42c329d395b27d6c0f242ab8d",
+      "file_size": 1053947,
+      "output_dir": "output/middlemarch",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 101,
+      "sentence_count_total": 19591,
+      "median_chapter_sentences": 184.0,
+      "median_chapter_paragraphs": 52.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "17",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER XI.",
+          "sentence_count": 230,
+          "paragraph_count": 88,
+          "href": "7225458211617286298_145-h-12.htm.xhtml",
+          "spine_index": 13,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "36",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER XXVIII.",
+          "sentence_count": 116,
+          "paragraph_count": 33,
+          "href": "7225458211617286298_145-h-29.htm.xhtml",
+          "spine_index": 30,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "69",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER LVIII.",
+          "sentence_count": 320,
+          "paragraph_count": 99,
+          "href": "7225458211617286298_145-h-59.htm.xhtml",
+          "spine_index": 60,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "19",
+          "chapter_number": 0,
+          "chapter_title": "BOOK II. OLD AND YOUNG.",
+          "sentence_count": 221,
+          "paragraph_count": 52,
+          "href": "7225458211617286298_145-h-14.htm.xhtml",
+          "spine_index": 15,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "20",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER XIII.",
+          "sentence_count": 221,
+          "paragraph_count": 52,
+          "href": "7225458211617286298_145-h-14.htm.xhtml",
+          "spine_index": 15,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "21",
+          "chapter_number": 0,
+          "chapter_title": "CHAPTER XIV.",
+          "sentence_count": 259,
+          "paragraph_count": 93,
+          "href": "7225458211617286298_145-h-15.htm.xhtml",
+          "spine_index": 16,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/145"
+      }
+    },
+    {
+      "source_id": "zhaohua_xishi_25271_zh",
+      "title": "朝花夕拾",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/25271",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/zhaohua_xishi_25271.normalized.epub",
+      "type_tags": [
+        "essayistic",
+        "narrative_reflective",
+        "modern_vernacular"
+      ],
+      "role_tags": [
+        "argumentative",
+        "narrative_reflective",
+        "essayistic",
+        "modern_vernacular"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Important modern vernacular Chinese track.",
+        "Good for reflective prose and durable trace."
+      ],
+      "sha256": "887c1c50d891bb87c0a996f4374f6243884d80dccae3482ed5f8ef1a54cd3710",
+      "file_size": 58963,
+      "output_dir": "output/朝花夕拾-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 42,
+      "sentence_count_total": 968,
+      "median_chapter_sentences": 19.0,
+      "median_chapter_paragraphs": 11.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "——吃了我飼養著的可愛的小小的隱鼠。",
+          "sentence_count": 87,
+          "paragraph_count": 45,
+          "href": "chapter_005.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "20",
+          "chapter_number": 0,
+          "chapter_title": "然而人們一見他，為什麼就都有些緊張，而且高興起來呢？",
+          "sentence_count": 36,
+          "paragraph_count": 21,
+          "href": "chapter_020.xhtml",
+          "spine_index": 20,
+          "position_bucket": "middle",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "41",
+          "chapter_number": 0,
+          "chapter_title": "明明是專在和我為難。",
+          "sentence_count": 47,
+          "paragraph_count": 25,
+          "href": "chapter_041.xhtml",
+          "spine_index": 41,
+          "position_bucket": "late",
+          "score": 4.75
+        },
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "隨俗來談一談，——辯一辯了。",
+          "sentence_count": 42,
+          "paragraph_count": 26,
+          "href": "chapter_004.xhtml",
+          "spine_index": 4,
+          "position_bucket": "early",
+          "score": 4.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "的卻是她的時候，就叫她阿長。",
+          "sentence_count": 22,
+          "paragraph_count": 12,
+          "href": "chapter_007.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 4.25
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "福橘，元旦辟頭的磨難，總算已經受完，可以下床玩耍去了。",
+          "sentence_count": 22,
+          "paragraph_count": 12,
+          "href": "chapter_008.xhtml",
+          "spine_index": 8,
+          "position_bucket": "early",
+          "score": 4.25
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/25271"
+      },
+      "normalization_status": "synthetic_multichapter_epub",
+      "normalized_from_relative_local_path": "state/library_sources/zh/zhaohua_xishi_25271.epub",
+      "normalized_section_count": 42
+    },
+    {
+      "source_id": "nahan_27166_zh",
+      "title": "吶喊",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/27166",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/nahan_27166.normalized.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "short_story",
+        "modern_vernacular"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "modern_vernacular",
+        "short_story"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Useful modern vernacular Chinese fiction track.",
+        "Good for tension, turn, and anchored reactions."
+      ],
+      "sha256": "4adc5e92efbb34bd272fd5fa35a71c060f60264e936e07d14410dba702c8e353",
+      "file_size": 83059,
+      "output_dir": "output/吶喊-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 11,
+      "sentence_count_total": 2636,
+      "median_chapter_sentences": 136.0,
+      "median_chapter_paragraphs": 87.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "2",
+          "chapter_number": 0,
+          "chapter_title": "第二章優勝記略",
+          "sentence_count": 111,
+          "paragraph_count": 73,
+          "href": "chapter_002.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "第五章生計問題",
+          "sentence_count": 124,
+          "paragraph_count": 77,
+          "href": "chapter_005.xhtml",
+          "spine_index": 5,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "9",
+          "chapter_number": 0,
+          "chapter_title": "第九章大團圓",
+          "sentence_count": 498,
+          "paragraph_count": 328,
+          "href": "chapter_009.xhtml",
+          "spine_index": 9,
+          "position_bucket": "late",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "3",
+          "chapter_number": 0,
+          "chapter_title": "第三章續優勝記略",
+          "sentence_count": 127,
+          "paragraph_count": 80,
+          "href": "chapter_003.xhtml",
+          "spine_index": 3,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "第四章戀愛的悲劇",
+          "sentence_count": 136,
+          "paragraph_count": 96,
+          "href": "chapter_004.xhtml",
+          "spine_index": 4,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "第六章從中興到末路",
+          "sentence_count": 151,
+          "paragraph_count": 93,
+          "href": "chapter_006.xhtml",
+          "spine_index": 6,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/27166"
+      },
+      "normalization_status": "synthetic_multichapter_epub",
+      "normalized_from_relative_local_path": "state/library_sources/zh/nahan_27166.epub",
+      "normalized_section_count": 11
+    },
+    {
+      "source_id": "rulin_waishi_24032_zh",
+      "title": "儒林外史",
+      "author": "吳敬梓",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/24032",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/rulin_waishi_24032.normalized.epub",
+      "type_tags": [
+        "argumentative",
+        "satirical",
+        "vernacular_classic"
+      ],
+      "role_tags": [
+        "argumentative",
+        "satirical",
+        "vernacular_classic"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for social critique and satirical pressure."
+      ],
+      "sha256": "1d38845c2809efe06073e575cf642edd9cd8bc2e72cf41b2d50933d5cb563051",
+      "file_size": 399175,
+      "output_dir": "output/儒林外史-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 39,
+      "sentence_count_total": 11978,
+      "median_chapter_sentences": 236.0,
+      "median_chapter_paragraphs": 20.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "第二十一回 冒姓字小子求名 念親戚老夫臥病",
+          "sentence_count": 180,
+          "paragraph_count": 18,
+          "href": "chapter_006.xhtml",
+          "spine_index": 6,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "14",
+          "chapter_number": 0,
+          "chapter_title": "第三十一回 天長縣同訪豪杰 賜書樓大醉高朋",
+          "sentence_count": 291,
+          "paragraph_count": 20,
+          "href": "chapter_014.xhtml",
+          "spine_index": 14,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "27",
+          "chapter_number": 0,
+          "chapter_title": "第四十四回 湯總鎮成功歸故鄉 余明經把酒問葬事",
+          "sentence_count": 184,
+          "paragraph_count": 18,
+          "href": "chapter_027.xhtml",
+          "spine_index": 27,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "第二十二回 認祖孫玉圃聯宗 愛交游雪齋留客",
+          "sentence_count": 234,
+          "paragraph_count": 22,
+          "href": "chapter_007.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "第二十三回 發陰私詩人被打 歎老景寡婦尋夫",
+          "sentence_count": 225,
+          "paragraph_count": 19,
+          "href": "chapter_008.xhtml",
+          "spine_index": 8,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "11",
+          "chapter_number": 0,
+          "chapter_title": "第二十八回 季葦蕭揚州入贅 蕭金鉉白下選書",
+          "sentence_count": 248,
+          "paragraph_count": 18,
+          "href": "chapter_011.xhtml",
+          "spine_index": 11,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/24032"
+      },
+      "normalization_status": "synthetic_multichapter_epub",
+      "normalized_from_relative_local_path": "state/library_sources/zh/rulin_waishi_24032.epub",
+      "normalized_section_count": 39
+    },
+    {
+      "source_id": "laocan_youji_25124_zh",
+      "title": "老殘遊記",
+      "author": "劉鶚",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/25124",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/laocan_youji_25124.normalized.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "social_critique",
+        "vernacular_classic"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "social_critique",
+        "vernacular_classic"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for social reflection and longer Chinese narrative spans."
+      ],
+      "sha256": "9fddad830a361ba90af5d458763788d2a593e5f076e7faa579467218e2fe4ad1",
+      "file_size": 180961,
+      "output_dir": "output/老殘遊記-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 20,
+      "sentence_count_total": 6982,
+      "median_chapter_sentences": 333.5,
+      "median_chapter_paragraphs": 164.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "3",
+          "chapter_number": 0,
+          "chapter_title": "第三回 金線東來尋黑虎 布帆西去訪蒼鷹",
+          "sentence_count": 315,
+          "paragraph_count": 155,
+          "href": "chapter_003.xhtml",
+          "spine_index": 3,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "11",
+          "chapter_number": 0,
+          "chapter_title": "第十一回 疫鼠傳殃成害馬 癡犬流災化毒龍",
+          "sentence_count": 318,
+          "paragraph_count": 161,
+          "href": "chapter_011.xhtml",
+          "spine_index": 11,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "15",
+          "chapter_number": 0,
+          "chapter_title": "第十五回 烈焰有聲驚二翠 嚴刑無度逼孤孀",
+          "sentence_count": 331,
+          "paragraph_count": 163,
+          "href": "chapter_015.xhtml",
+          "spine_index": 15,
+          "position_bucket": "late",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "13",
+          "chapter_number": 0,
+          "chapter_title": "第十三回 娓娓青燈女兒酸語 滔滔黃水觀察嘉謨",
+          "sentence_count": 318,
+          "paragraph_count": 156,
+          "href": "chapter_013.xhtml",
+          "spine_index": 13,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "14",
+          "chapter_number": 0,
+          "chapter_title": "第十四回 大縣若蛙半浮水面 小船如蟻分送饅頭",
+          "sentence_count": 319,
+          "paragraph_count": 157,
+          "href": "chapter_014.xhtml",
+          "spine_index": 14,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "1",
+          "chapter_number": 0,
+          "chapter_title": "第一回 土不制水歷年成患 風能鼓浪到處可危",
+          "sentence_count": 293,
+          "paragraph_count": 152,
+          "href": "chapter_001.xhtml",
+          "spine_index": 1,
+          "position_bucket": "early",
+          "score": 5.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/25124"
+      },
+      "normalization_status": "synthetic_multichapter_epub",
+      "normalized_from_relative_local_path": "state/library_sources/zh/laocan_youji_25124.epub",
+      "normalized_section_count": 20
+    },
+    {
+      "source_id": "jinghua_yuan_25377_zh",
+      "title": "鏡花緣",
+      "author": "李汝珍",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/25377",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/jinghua_yuan_25377.normalized.epub",
+      "type_tags": [
+        "allusion_dense",
+        "fantasy",
+        "vernacular_classic"
+      ],
+      "role_tags": [
+        "reference_heavy",
+        "allusion_dense",
+        "fantasy",
+        "vernacular_classic"
+      ],
+      "selection_priority": 50,
+      "notes": [
+        "Good for unusual transitions, motifs, and bridge opportunities."
+      ],
+      "sha256": "276c2fcfd38867444cd5f9b3eead38f0ffe22169951fd3445371c453b876d3a6",
+      "file_size": 665278,
+      "output_dir": "output/鏡花緣-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 100,
+      "sentence_count_total": 17210,
+      "median_chapter_sentences": 161.5,
+      "median_chapter_paragraphs": 17.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "15",
+          "chapter_number": 0,
+          "chapter_title": "第十五回 喜相逢師生談故舊 巧遇合賓主結新親",
+          "sentence_count": 195,
+          "paragraph_count": 18,
+          "href": "chapter_015.xhtml",
+          "spine_index": 15,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "34",
+          "chapter_number": 0,
+          "chapter_title": "第三十四回 觀麗人女主定吉期 訪良友老翁得凶信",
+          "sentence_count": 105,
+          "paragraph_count": 10,
+          "href": "chapter_034.xhtml",
+          "spine_index": 34,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "67",
+          "chapter_number": 0,
+          "chapter_title": "第六十七回 小才女卞府謁師 老國舅黃門進表",
+          "sentence_count": 181,
+          "paragraph_count": 44,
+          "href": "chapter_067.xhtml",
+          "spine_index": 67,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "16",
+          "chapter_number": 0,
+          "chapter_title": "第十六回 紫衣女慇懃問字 白髮翁傲慢談文",
+          "sentence_count": 189,
+          "paragraph_count": 13,
+          "href": "chapter_016.xhtml",
+          "spine_index": 16,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "17",
+          "chapter_number": 0,
+          "chapter_title": "第十七回 因字聲粗談切韻 聞雁唳細問來賓",
+          "sentence_count": 158,
+          "paragraph_count": 12,
+          "href": "chapter_017.xhtml",
+          "spine_index": 17,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "18",
+          "chapter_number": 0,
+          "chapter_title": "第十八回 辟清談幼女講羲經 發至論書生尊孟子",
+          "sentence_count": 169,
+          "paragraph_count": 14,
+          "href": "chapter_018.xhtml",
+          "spine_index": 18,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/25377"
+      },
+      "normalization_status": "synthetic_multichapter_epub",
+      "normalized_from_relative_local_path": "state/library_sources/zh/jinghua_yuan_25377.epub",
+      "normalized_section_count": 100
+    },
+    {
+      "source_id": "on_liberty_public_en",
+      "title": "On Liberty",
+      "author": "John Stuart Mill",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://standardebooks.org/ebooks/john-stuart-mill/on-liberty/downloads/john-stuart-mill_on-liberty.epub?source=download",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/on_liberty_public_v2.epub",
+      "type_tags": [
+        "argumentative",
+        "essayistic",
+        "social_thought",
+        "modern_political_classic"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "essayistic",
+        "modern_political_classic",
+        "social_thought"
+      ],
+      "selection_priority": 1,
+      "notes": [
+        "Foundational liberty text for argumentative and social-thought coverage.",
+        "Expected to support distinction, bridge, and durable-trace cases."
+      ],
+      "sha256": "71760d073cc496b7fb751363d277414e72d1acce6bb4fa273963cbf6c18e6576",
+      "file_size": 528392,
+      "output_dir": "output/on-liberty",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 16,
+      "sentence_count_total": 2117,
+      "median_chapter_sentences": 164.5,
+      "median_chapter_paragraphs": 17.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "I",
+          "sentence_count": 183,
+          "paragraph_count": 17,
+          "href": "text/introduction.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "I: Introductory",
+          "sentence_count": 146,
+          "paragraph_count": 18,
+          "href": "text/chapter-1.xhtml",
+          "spine_index": 6,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "13",
+          "chapter_number": 0,
+          "chapter_title": "IV: Of the Limits to the Authority of Society Over the Individual",
+          "sentence_count": 200,
+          "paragraph_count": 23,
+          "href": "text/chapter-4.xhtml",
+          "spine_index": 9,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "II",
+          "sentence_count": 183,
+          "paragraph_count": 17,
+          "href": "text/introduction.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "III",
+          "sentence_count": 183,
+          "paragraph_count": 17,
+          "href": "text/introduction.xhtml",
+          "spine_index": 2,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "12",
+          "chapter_number": 0,
+          "chapter_title": "III: Of Individuality, as One of the Elements of Well-Being",
+          "sentence_count": 243,
+          "paragraph_count": 21,
+          "href": "text/chapter-3.xhtml",
+          "spine_index": 8,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://standardebooks.org/ebooks/john-stuart-mill/on-liberty/downloads/john-stuart-mill_on-liberty.epub?source=download",
+        "page_url": "https://standardebooks.org/ebooks/john-stuart-mill/on-liberty"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "varieties_of_religious_experience_public_en",
+      "title": "The Varieties of Religious Experience",
+      "author": "William James",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://standardebooks.org/ebooks/william-james/the-varieties-of-religious-experience/downloads/william-james_the-varieties-of-religious-experience.epub?source=download",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/the_varieties_of_religious_experience_public_v2.epub",
+      "type_tags": [
+        "expository",
+        "philosophical",
+        "reflective_nonfiction"
+      ],
+      "role_tags": [
+        "expository",
+        "narrative_reflective",
+        "philosophical",
+        "reflective_nonfiction"
+      ],
+      "selection_priority": 2,
+      "notes": [
+        "Likely to support expository chapters with reflective and interpretive pressure."
+      ],
+      "sha256": "86791e1720cc77717ab491affc07bb5bacb0a92696b9e085fd047fd274fc6469",
+      "file_size": 876986,
+      "output_dir": "output/the-varieties-of-religious-experience",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 28,
+      "sentence_count_total": 18260,
+      "median_chapter_sentences": 488.5,
+      "median_chapter_paragraphs": 89.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "Lecture I: Religion and Neurology",
+          "sentence_count": 326,
+          "paragraph_count": 62,
+          "href": "text/chapter-1.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "14",
+          "chapter_number": 0,
+          "chapter_title": "Lecture VIII: The Divided Self, and the Process of Its Unification",
+          "sentence_count": 395,
+          "paragraph_count": 89,
+          "href": "text/chapter-6.xhtml",
+          "spine_index": 10,
+          "position_bucket": "middle",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "23",
+          "chapter_number": 0,
+          "chapter_title": "Lecture XVIII: Philosophy",
+          "sentence_count": 366,
+          "paragraph_count": 70,
+          "href": "text/chapter-12.xhtml",
+          "spine_index": 16,
+          "position_bucket": "late",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "Lecture II: Circumscription of the Topic",
+          "sentence_count": 437,
+          "paragraph_count": 71,
+          "href": "text/chapter-2.xhtml",
+          "spine_index": 6,
+          "position_bucket": "early",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "15",
+          "chapter_number": 0,
+          "chapter_title": "Lecture IX: Conversion",
+          "sentence_count": 462,
+          "paragraph_count": 82,
+          "href": "text/chapter-7.xhtml",
+          "spine_index": 11,
+          "position_bucket": "middle",
+          "score": 5.75
+        },
+        {
+          "chapter_id": "24",
+          "chapter_number": 0,
+          "chapter_title": "Lecture XIX: Other Characteristics",
+          "sentence_count": 399,
+          "paragraph_count": 80,
+          "href": "text/chapter-13.xhtml",
+          "spine_index": 17,
+          "position_bucket": "late",
+          "score": 5.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://standardebooks.org/ebooks/william-james/the-varieties-of-religious-experience/downloads/william-james_the-varieties-of-religious-experience.epub?source=download",
+        "page_url": "https://standardebooks.org/ebooks/william-james/the-varieties-of-religious-experience"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "portrait_of_a_lady_public_en",
+      "title": "The Portrait of a Lady",
+      "author": "Henry James",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://standardebooks.org/ebooks/henry-james/the-portrait-of-a-lady/downloads/henry-james_the-portrait-of-a-lady.epub?source=download",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/the_portrait_of_a_lady_public_v2.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "novel",
+        "social_detail",
+        "allusion_dense"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "allusion_dense",
+        "novel",
+        "social_detail"
+      ],
+      "selection_priority": 2,
+      "notes": [
+        "Long-form narrative candidate for subtle social inference and callback-rich spans."
+      ],
+      "sha256": "9b754ffb0b4dfa21dc06fbcbf2a4db7431f4c231c8dd165e275a6e3a5b5a71be",
+      "file_size": 976887,
+      "output_dir": "output/the-portrait-of-a-lady",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 61,
+      "sentence_count_total": 15419,
+      "median_chapter_sentences": 258.0,
+      "median_chapter_paragraphs": 76.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "VI",
+          "sentence_count": 168,
+          "paragraph_count": 22,
+          "href": "text/chapter-6.xhtml",
+          "spine_index": 9,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "24",
+          "chapter_number": 0,
+          "chapter_title": "XX",
+          "sentence_count": 311,
+          "paragraph_count": 44,
+          "href": "text/chapter-20.xhtml",
+          "spine_index": 23,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "43",
+          "chapter_number": 0,
+          "chapter_title": "XXXIX",
+          "sentence_count": 309,
+          "paragraph_count": 86,
+          "href": "text/chapter-39.xhtml",
+          "spine_index": 42,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "11",
+          "chapter_number": 0,
+          "chapter_title": "VII",
+          "sentence_count": 207,
+          "paragraph_count": 54,
+          "href": "text/chapter-7.xhtml",
+          "spine_index": 10,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "12",
+          "chapter_number": 0,
+          "chapter_title": "VIII",
+          "sentence_count": 164,
+          "paragraph_count": 43,
+          "href": "text/chapter-8.xhtml",
+          "spine_index": 11,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "13",
+          "chapter_number": 0,
+          "chapter_title": "IX",
+          "sentence_count": 161,
+          "paragraph_count": 73,
+          "href": "text/chapter-9.xhtml",
+          "spine_index": 12,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://standardebooks.org/ebooks/henry-james/the-portrait-of-a-lady/downloads/henry-james_the-portrait-of-a-lady.epub?source=download",
+        "page_url": "https://standardebooks.org/ebooks/henry-james/the-portrait-of-a-lady"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "darkwater_public_en",
+      "title": "Darkwater",
+      "author": "W. E. B. Du Bois",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://standardebooks.org/ebooks/w-e-b-du-bois/darkwater/downloads/w-e-b-du-bois_darkwater.epub?source=download",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/darkwater_public_v2.epub",
+      "type_tags": [
+        "argumentative",
+        "essayistic",
+        "social_thought",
+        "reference_dense"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "essayistic",
+        "reference_dense",
+        "social_thought"
+      ],
+      "selection_priority": 3,
+      "notes": [
+        "Strong social-thought prose with likely bridge-worthy and durable-trace passages."
+      ],
+      "sha256": "b2ac19db943af8bf8d30a1d13feb19eb014cbc7505e417e62c58e8b425ff2f66",
+      "file_size": 670865,
+      "output_dir": "output/darkwater",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 28,
+      "sentence_count_total": 7402,
+      "median_chapter_sentences": 305.5,
+      "median_chapter_paragraphs": 83.5,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "9",
+          "chapter_number": 0,
+          "chapter_title": "II: The Souls of White Folk",
+          "sentence_count": 289,
+          "paragraph_count": 70,
+          "href": "text/chapter-2.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "12",
+          "chapter_number": 0,
+          "chapter_title": "The Princess of the Hither Isles",
+          "sentence_count": 251,
+          "paragraph_count": 87,
+          "href": "text/chapter-3.xhtml",
+          "spine_index": 8,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "21",
+          "chapter_number": 0,
+          "chapter_title": "VIII: The Immortal Child",
+          "sentence_count": 307,
+          "paragraph_count": 76,
+          "href": "text/chapter-8.xhtml",
+          "spine_index": 13,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "The Riddle of the Sphinx",
+          "sentence_count": 289,
+          "paragraph_count": 70,
+          "href": "text/chapter-2.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "11",
+          "chapter_number": 0,
+          "chapter_title": "III: The Hands of Ethiopia",
+          "sentence_count": 251,
+          "paragraph_count": 87,
+          "href": "text/chapter-3.xhtml",
+          "spine_index": 8,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "17",
+          "chapter_number": 0,
+          "chapter_title": "VI: Of the Ruling of Men",
+          "sentence_count": 304,
+          "paragraph_count": 99,
+          "href": "text/chapter-6.xhtml",
+          "spine_index": 11,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://standardebooks.org/ebooks/w-e-b-du-bois/darkwater/downloads/w-e-b-du-bois_darkwater.epub?source=download",
+        "page_url": "https://standardebooks.org/ebooks/w-e-b-du-bois/darkwater"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "women_and_economics_public_en",
+      "title": "Women and Economics",
+      "author": "Charlotte Perkins Gilman",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://standardebooks.org/ebooks/charlotte-perkins-gilman/women-and-economics/downloads/charlotte-perkins-gilman_women-and-economics.epub?source=download",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/women_and_economics_public_v2.epub",
+      "type_tags": [
+        "expository",
+        "argumentative",
+        "social_thought",
+        "economic_thought"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "economic_thought",
+        "social_thought"
+      ],
+      "selection_priority": 3,
+      "notes": [
+        "Public/open social-thought text that should improve argumentative and expository English coverage."
+      ],
+      "sha256": "e4caec5ca0616f0807a530d5814e40afd77537d60934cf515d402b6a11a4aece",
+      "file_size": 619600,
+      "output_dir": "output/women-and-economics",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 22,
+      "sentence_count_total": 3016,
+      "median_chapter_sentences": 176.0,
+      "median_chapter_paragraphs": 28.5,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "I",
+          "sentence_count": 193,
+          "paragraph_count": 37,
+          "href": "text/chapter-1.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "9",
+          "chapter_number": 0,
+          "chapter_title": "IV",
+          "sentence_count": 173,
+          "paragraph_count": 19,
+          "href": "text/chapter-4.xhtml",
+          "spine_index": 8,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "16",
+          "chapter_number": 0,
+          "chapter_title": "XI",
+          "sentence_count": 188,
+          "paragraph_count": 38,
+          "href": "text/chapter-11.xhtml",
+          "spine_index": 15,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "II",
+          "sentence_count": 144,
+          "paragraph_count": 27,
+          "href": "text/chapter-2.xhtml",
+          "spine_index": 6,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "III",
+          "sentence_count": 167,
+          "paragraph_count": 21,
+          "href": "text/chapter-3.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "V",
+          "sentence_count": 227,
+          "paragraph_count": 30,
+          "href": "text/chapter-5.xhtml",
+          "spine_index": 9,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://standardebooks.org/ebooks/charlotte-perkins-gilman/women-and-economics/downloads/charlotte-perkins-gilman_women-and-economics.epub?source=download",
+        "page_url": "https://standardebooks.org/ebooks/charlotte-perkins-gilman/women-and-economics"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "up_from_slavery_public_en",
+      "title": "Up from Slavery",
+      "author": "Booker T. Washington",
+      "language": "en",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/2376.epub3.images",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/en/up_from_slavery_public_v2.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "memoir",
+        "social_thought"
+      ],
+      "role_tags": [
+        "argumentative",
+        "narrative_reflective",
+        "memoir",
+        "social_thought"
+      ],
+      "selection_priority": 4,
+      "notes": [
+        "Memoir plus social-thought source that can support both trajectory and durable-trace comparisons."
+      ],
+      "sha256": "eefe645a1ea35747c0d55337e1fa741205a995f8e470cc8111feb19ae86a4919",
+      "file_size": 346007,
+      "output_dir": "output/up-from-slavery-an-autobiography",
+      "detected_book_language": "en",
+      "output_language": "en",
+      "chapter_count": 22,
+      "sentence_count_total": 3592,
+      "median_chapter_sentences": 159.0,
+      "median_chapter_paragraphs": 30.5,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "UP FROM SLAVERY",
+          "sentence_count": 211,
+          "paragraph_count": 22,
+          "href": "6166727889059381258_2376-h-4.htm.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "Chapter V. The Reconstruction Period",
+          "sentence_count": 96,
+          "paragraph_count": 15,
+          "href": "6166727889059381258_2376-h-8.htm.xhtml",
+          "spine_index": 9,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "17",
+          "chapter_number": 0,
+          "chapter_title": "Chapter XII. Raising Money",
+          "sentence_count": 196,
+          "paragraph_count": 45,
+          "href": "6166727889059381258_2376-h-15.htm.xhtml",
+          "spine_index": 16,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "Chapter I. A Slave Among Slaves",
+          "sentence_count": 211,
+          "paragraph_count": 22,
+          "href": "6166727889059381258_2376-h-4.htm.xhtml",
+          "spine_index": 5,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "Chapter II. Boyhood Days",
+          "sentence_count": 169,
+          "paragraph_count": 27,
+          "href": "6166727889059381258_2376-h-5.htm.xhtml",
+          "spine_index": 6,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "Chapter III. The Struggle For An Education",
+          "sentence_count": 226,
+          "paragraph_count": 37,
+          "href": "6166727889059381258_2376-h-6.htm.xhtml",
+          "spine_index": 7,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/2376.epub3.images",
+        "gutendex_result": {
+          "id": 2376,
+          "title": "Up from Slavery: An Autobiography",
+          "authors": [
+            {
+              "name": "Washington, Booker T.",
+              "birth_year": 1856,
+              "death_year": 1915
+            }
+          ],
+          "summaries": [
+            "\"Up from Slavery: An Autobiography\" by Booker T. Washington is an autobiography published in 1901. It chronicles Washington's journey from being enslaved during the Civil War to becoming an influential educator. The book describes his struggles to gain education at Hampton Institute and his founding of Tuskegee Institute in Alabama. Washington advocates for vocational training and practical skills as a path for Black Americans to achieve economic independence and ease racial tensions in the post-Reconstruction South, a philosophy that sparked both acclaim and controversy. (This is an automatically generated summary.)"
+          ],
+          "editors": [],
+          "translators": [],
+          "subjects": [
+            "African Americans -- Biography",
+            "Educators -- United States -- Biography",
+            "Tuskegee Institute",
+            "Washington, Booker T., 1856-1915"
+          ],
+          "bookshelves": [
+            "African American Writers",
+            "Category: Biographies",
+            "Category: History - American",
+            "Slavery"
+          ],
+          "languages": [
+            "en"
+          ],
+          "copyright": false,
+          "media_type": "Text",
+          "formats": {
+            "text/html": "https://www.gutenberg.org/ebooks/2376.html.images",
+            "application/epub+zip": "https://www.gutenberg.org/ebooks/2376.epub3.images",
+            "application/x-mobipocket-ebook": "https://www.gutenberg.org/ebooks/2376.kf8.images",
+            "application/rdf+xml": "https://www.gutenberg.org/ebooks/2376.rdf",
+            "image/jpeg": "https://www.gutenberg.org/cache/epub/2376/pg2376.cover.medium.jpg",
+            "application/octet-stream": "https://www.gutenberg.org/cache/epub/2376/pg2376-h.zip",
+            "text/plain; charset=utf-8": "https://www.gutenberg.org/ebooks/2376.txt.utf-8",
+            "text/plain; charset=us-ascii": "https://www.gutenberg.org/files/2376/2376-0.txt"
+          },
+          "download_count": 7614
+        }
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "ouyou_zaji_public_zh",
+      "title": "歐遊雜記",
+      "author": "朱自清",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E6%AD%90%E9%81%8A%E9%9B%9C%E8%A8%98",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/ouyou_zaji_public_v2.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "travel",
+        "modern_vernacular",
+        "reference_dense"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "modern_vernacular",
+        "reference_dense",
+        "travel"
+      ],
+      "selection_priority": 1,
+      "notes": [
+        "Travel-reflective Chinese prose that should yield good chapter units and bridge opportunities."
+      ],
+      "sha256": "dc64fcca609c8d2e601ec6fc68b5a320fbef277df6db6cb678ca976f6cad3ef9",
+      "file_size": 115655,
+      "output_dir": "output/歐遊雜記",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 15,
+      "sentence_count_total": 1770,
+      "median_chapter_sentences": 80.0,
+      "median_chapter_paragraphs": 13.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "威尼斯",
+          "sentence_count": 80,
+          "paragraph_count": 11,
+          "href": "c2_ou_you_za_ji_wei_ni_si.xhtml",
+          "spine_index": 3,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "羅馬",
+          "sentence_count": 150,
+          "paragraph_count": 36,
+          "href": "c4_ou_you_za_ji_luo_ma.xhtml",
+          "spine_index": 5,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "11",
+          "chapter_number": 0,
+          "chapter_title": "德瑞司登",
+          "sentence_count": 78,
+          "paragraph_count": 8,
+          "href": "c9_ou_you_za_ji_de_rui_si_deng.xhtml",
+          "spine_index": 10,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "佛羅倫司",
+          "sentence_count": 90,
+          "paragraph_count": 13,
+          "href": "c3_ou_you_za_ji_fu_luo_lun_si.xhtml",
+          "spine_index": 4,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "滂卑故城",
+          "sentence_count": 78,
+          "paragraph_count": 10,
+          "href": "c5_ou_you_za_ji_pang_bei_gu_cheng.xhtml",
+          "spine_index": 6,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "瑞士",
+          "sentence_count": 139,
+          "paragraph_count": 13,
+          "href": "c6_ou_you_za_ji_rui_shi.xhtml",
+          "spine_index": 7,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E6%AD%90%E9%81%8A%E9%9B%9C%E8%A8%98",
+        "page_title": "歐遊雜記"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "chenlun_public_zh",
+      "title": "沉淪",
+      "author": "郁達夫",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/27636.epub3.images",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/chenlun_public_v2.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "modern_vernacular",
+        "short_story"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "modern_vernacular",
+        "short_story"
+      ],
+      "selection_priority": 2,
+      "notes": [
+        "Modern vernacular Chinese prose with stronger public EPUB availability than the weaker travel-shell fallback."
+      ],
+      "sha256": "5a99b44bda0d2818558afdf1d37d8d5f6203ba2b0641386b8f896ff8a7a595d0",
+      "file_size": 21973,
+      "output_dir": "output/沉淪-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 17,
+      "sentence_count_total": 321,
+      "median_chapter_sentences": 19.0,
+      "median_chapter_paragraphs": 10.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "了他的哥哥到日本來留學。",
+          "sentence_count": 29,
+          "paragraph_count": 17,
+          "href": "chapter_004.xhtml",
+          "spine_index": 4,
+          "position_bucket": "early",
+          "score": 4.25
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "旅館裡住下了之後，他覺得前途好像有許多歡樂在那裡等他的樣子。",
+          "sentence_count": 20,
+          "paragraph_count": 12,
+          "href": "chapter_007.xhtml",
+          "spine_index": 7,
+          "position_bucket": "middle",
+          "score": 4.25
+        },
+        {
+          "chapter_id": "13",
+          "chapter_number": 0,
+          "chapter_title": "「這大約就是Ａ神宮了。」",
+          "sentence_count": 25,
+          "paragraph_count": 14,
+          "href": "chapter_013.xhtml",
+          "spine_index": 13,
+          "position_bucket": "late",
+          "score": 4.25
+        },
+        {
+          "chapter_id": "8",
+          "chapter_number": 0,
+          "chapter_title": "（Ｎｏｓｔａｌｇｉａ）從未有比那一晚更甚的。",
+          "sentence_count": 21,
+          "paragraph_count": 12,
+          "href": "chapter_008.xhtml",
+          "spine_index": 8,
+          "position_bucket": "middle",
+          "score": 4.25
+        },
+        {
+          "chapter_id": "9",
+          "chapter_number": 0,
+          "chapter_title": "起來，他每天早晨，在被窩裡犯的罪惡，也一次一次的加起來了。",
+          "sentence_count": 21,
+          "paragraph_count": 13,
+          "href": "chapter_009.xhtml",
+          "spine_index": 9,
+          "position_bucket": "middle",
+          "score": 4.25
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "一天的事情，他還是一個人要紅起臉來。",
+          "sentence_count": 25,
+          "paragraph_count": 14,
+          "href": "chapter_010.xhtml",
+          "spine_index": 10,
+          "position_bucket": "middle",
+          "score": 4.25
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/27636.epub3.images",
+        "gutendex_result": {
+          "id": 27636,
+          "title": "沉沦",
+          "authors": [
+            {
+              "name": "Yu, Dafu",
+              "birth_year": 1896,
+              "death_year": 1945
+            }
+          ],
+          "summaries": [
+            "\"沉沦\" by Dafu Yu is a novella written in 1921. The story follows a melancholic Chinese student living in exile in Japan, trapped between isolation and longing for connection. Struggling with sexual desire intertwined with feelings of national shame, he retreats into solitude among nature. His internal conflict between individualism and collectivism intensifies as he encounters Japanese women and grapples with his homeland's weakness. Driven by impulse and desperation, his journey leads toward a devastating conclusion by the sea. (This is an automatically generated summary.)"
+          ],
+          "editors": [],
+          "translators": [],
+          "subjects": [
+            "Chinese fiction",
+            "Chinese prose literature"
+          ],
+          "bookshelves": [
+            "Category: Novels"
+          ],
+          "languages": [
+            "zh"
+          ],
+          "copyright": false,
+          "media_type": "Text",
+          "formats": {
+            "text/html": "https://www.gutenberg.org/ebooks/27636.html.images",
+            "application/epub+zip": "https://www.gutenberg.org/ebooks/27636.epub3.images",
+            "application/x-mobipocket-ebook": "https://www.gutenberg.org/ebooks/27636.kf8.images",
+            "application/rdf+xml": "https://www.gutenberg.org/ebooks/27636.rdf",
+            "image/jpeg": "https://www.gutenberg.org/cache/epub/27636/pg27636.cover.medium.jpg",
+            "application/octet-stream": "https://www.gutenberg.org/files/27636/27636-0.zip",
+            "text/plain; charset=utf-8": "https://www.gutenberg.org/ebooks/27636.txt.utf-8",
+            "text/plain; charset=us-ascii": "https://www.gutenberg.org/files/27636/27636-0.txt"
+          },
+          "download_count": 513
+        }
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "gushi_xinbian_public_zh",
+      "title": "故事新編",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E6%95%85%E4%BA%8B%E6%96%B0%E7%B7%A8",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/gushi_xinbian_public_v2.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "allusion_dense",
+        "modern_vernacular"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "allusion_dense",
+        "modern_vernacular"
+      ],
+      "selection_priority": 3,
+      "notes": [
+        "Allusion-rich modern vernacular fiction for bridge and callback pressure."
+      ],
+      "sha256": "b5b016e964333ccae37c27309b96bf31c89c8360e68a370accc7be8fd27067d2",
+      "file_size": 132031,
+      "output_dir": "output/故事新編",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 12,
+      "sentence_count_total": 2449,
+      "median_chapter_sentences": 255.5,
+      "median_chapter_paragraphs": 112.5,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "4",
+          "chapter_number": 0,
+          "chapter_title": "補天",
+          "sentence_count": 157,
+          "paragraph_count": 80,
+          "href": "c2_bu_tian.xhtml",
+          "spine_index": 3,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "5",
+          "chapter_number": 0,
+          "chapter_title": "奔月",
+          "sentence_count": 276,
+          "paragraph_count": 117,
+          "href": "c3_ben_yue.xhtml",
+          "spine_index": 4,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "9",
+          "chapter_number": 0,
+          "chapter_title": "出關",
+          "sentence_count": 252,
+          "paragraph_count": 108,
+          "href": "c7_chu_guan.xhtml",
+          "spine_index": 8,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "6",
+          "chapter_number": 0,
+          "chapter_title": "理水",
+          "sentence_count": 295,
+          "paragraph_count": 131,
+          "href": "c4_li_shui.xhtml",
+          "spine_index": 5,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "10",
+          "chapter_number": 0,
+          "chapter_title": "非攻",
+          "sentence_count": 259,
+          "paragraph_count": 127,
+          "href": "c8_fei_gong.xhtml",
+          "spine_index": 9,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "7",
+          "chapter_number": 0,
+          "chapter_title": "采薇",
+          "sentence_count": 358,
+          "paragraph_count": 147,
+          "href": "c5_cai_wei__lu_xun_.xhtml",
+          "spine_index": 6,
+          "position_bucket": "middle",
+          "score": 5.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E6%95%85%E4%BA%8B%E6%96%B0%E7%B7%A8",
+        "page_title": "故事新編"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "ershinian_mudu_public_zh",
+      "title": "二十年目睹之怪現狀",
+      "author": "吳趼人",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://www.gutenberg.org/ebooks/24099.epub3.images",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/ershinian_mudu_public_v2.epub",
+      "type_tags": [
+        "narrative_reflective",
+        "reference_dense",
+        "vernacular_classic"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "reference_dense",
+        "vernacular_classic"
+      ],
+      "selection_priority": 3,
+      "notes": [
+        "Useful classical/late-Qing reserve for chapter-rich Chinese reference-heavy coverage."
+      ],
+      "sha256": "2a8a0a234d422c7af854e0ac2b8629ef328fab883b03e41c28b48094140d4b92",
+      "file_size": 838356,
+      "output_dir": "output/二十年目睹之怪現狀-segmented-benchmark-source",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 108,
+      "sentence_count_total": 21260,
+      "median_chapter_sentences": 199.0,
+      "median_chapter_paragraphs": 13.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "chapter_corpus_eligible",
+      "candidate_chapters": [
+        {
+          "chapter_id": "17",
+          "chapter_number": 0,
+          "chapter_title": "第十七回 整歸裝游子走長途 抵家門慈親喜無恙",
+          "sentence_count": 178,
+          "paragraph_count": 13,
+          "href": "chapter_017.xhtml",
+          "spine_index": 17,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "37",
+          "chapter_number": 0,
+          "chapter_title": "第三十七回 說大話謬引同宗 寫佳畫偏留笑柄",
+          "sentence_count": 204,
+          "paragraph_count": 14,
+          "href": "chapter_037.xhtml",
+          "spine_index": 37,
+          "position_bucket": "middle",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "73",
+          "chapter_number": 0,
+          "chapter_title": "第七十三回 書院課文不成師弟 家庭變起難為祖孫",
+          "sentence_count": 178,
+          "paragraph_count": 11,
+          "href": "chapter_073.xhtml",
+          "spine_index": 73,
+          "position_bucket": "late",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "18",
+          "chapter_number": 0,
+          "chapter_title": "第十八回 恣瘋狂家庭現怪狀 避險惡母子議離鄉",
+          "sentence_count": 200,
+          "paragraph_count": 11,
+          "href": "chapter_018.xhtml",
+          "spine_index": 18,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "19",
+          "chapter_number": 0,
+          "chapter_title": "第十九回 具酒食博來滿座歡聲 變田產惹出一場惡氣",
+          "sentence_count": 170,
+          "paragraph_count": 12,
+          "href": "chapter_019.xhtml",
+          "spine_index": 19,
+          "position_bucket": "early",
+          "score": 6.75
+        },
+        {
+          "chapter_id": "20",
+          "chapter_number": 0,
+          "chapter_title": "第二十回 神出鬼沒母子動身 冷嘲熱謔世伯受窘",
+          "sentence_count": 168,
+          "paragraph_count": 14,
+          "href": "chapter_020.xhtml",
+          "spine_index": 20,
+          "position_bucket": "early",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://www.gutenberg.org/ebooks/24099.epub3.images",
+        "gutendex_result": {
+          "id": 24099,
+          "title": "二十年目睹之怪現狀",
+          "authors": [
+            {
+              "name": "Wu, Jianren",
+              "birth_year": 1866,
+              "death_year": 1910
+            }
+          ],
+          "summaries": [
+            "\"二十年目睹之怪現狀\" by Jianren Wu is a novel serialized in the early 1900s and published in book form in 1909. Through a collection of anecdotes, the work chronicles strange events and happenings observed over twenty years. Originally appearing in Liang Qichao's magazine \"New Fiction,\" the novel captures peculiar occurrences and social phenomena of late Qing China. Scholars have analyzed its distinctive plot structure, noting how Wu weaves together episodic stories to create a panoramic view of his era's oddities and anomalies. (This is an automatically generated summary.)"
+          ],
+          "editors": [],
+          "translators": [],
+          "subjects": [
+            "Chinese fiction -- Qing dynasty, 1644-1912",
+            "Short stories, Chinese"
+          ],
+          "bookshelves": [
+            "Category: Historical Novels",
+            "Category: Novels"
+          ],
+          "languages": [
+            "zh"
+          ],
+          "copyright": false,
+          "media_type": "Text",
+          "formats": {
+            "text/html": "https://www.gutenberg.org/ebooks/24099.html.images",
+            "application/epub+zip": "https://www.gutenberg.org/ebooks/24099.epub3.images",
+            "application/x-mobipocket-ebook": "https://www.gutenberg.org/ebooks/24099.kf8.images",
+            "application/rdf+xml": "https://www.gutenberg.org/ebooks/24099.rdf",
+            "image/jpeg": "https://www.gutenberg.org/cache/epub/24099/pg24099.cover.medium.jpg",
+            "application/octet-stream": "https://www.gutenberg.org/files/24099/24099-0.zip",
+            "text/plain; charset=utf-8": "https://www.gutenberg.org/ebooks/24099.txt.utf-8",
+            "text/plain; charset=us-ascii": "https://www.gutenberg.org/files/24099/24099-0.txt"
+          },
+          "download_count": 2399
+        }
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "beiying_public_zh",
+      "title": "背影",
+      "author": "朱自清",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E8%83%8C%E5%BD%B1",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/beiying_public_v2.epub",
+      "type_tags": [
+        "expository",
+        "narrative_reflective",
+        "essayistic",
+        "modern_vernacular"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "narrative_reflective",
+        "essayistic",
+        "modern_vernacular"
+      ],
+      "selection_priority": 1,
+      "notes": [
+        "Modern vernacular Chinese essay collection that can serve expository, argumentative, and reflective evaluation slices."
+      ],
+      "sha256": "b1c59c2c25656d2b70f5ee861414b4ce2becf20657887ef8436950800f997388",
+      "file_size": 24627,
+      "output_dir": "output/背影",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 3,
+      "sentence_count_total": 100,
+      "median_chapter_sentences": 30.0,
+      "median_chapter_paragraphs": 12.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "excerpt_only",
+      "candidate_chapters": [
+        {
+          "chapter_id": "2",
+          "chapter_number": 0,
+          "chapter_title": "背影",
+          "sentence_count": 68,
+          "paragraph_count": 12,
+          "href": "c0_bei_ying.xhtml",
+          "spine_index": 1,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E8%83%8C%E5%BD%B1",
+        "page_title": "背影"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    },
+    {
+      "source_id": "fen_public_zh",
+      "title": "墳",
+      "author": "魯迅",
+      "language": "zh",
+      "origin": "public-open-access",
+      "source_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E5%A2%B3",
+      "storage_mode": "tracked",
+      "relative_local_path": "state/library_sources/zh/fen_public_v2.epub",
+      "type_tags": [
+        "expository",
+        "essayistic",
+        "philosophical",
+        "modern_vernacular"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "essayistic",
+        "modern_vernacular",
+        "philosophical"
+      ],
+      "selection_priority": 1,
+      "notes": [
+        "Best modern Chinese candidate in this public pass for expository and philosophical pressure."
+      ],
+      "sha256": "2d1519fa1b8b985a2804f28ba4baf6ffacc326a63242507f8b9792aff14a5937",
+      "file_size": 28977,
+      "output_dir": "output/墳",
+      "detected_book_language": "zh",
+      "output_language": "zh",
+      "chapter_count": 3,
+      "sentence_count_total": 102,
+      "median_chapter_sentences": 33.0,
+      "median_chapter_paragraphs": 33.0,
+      "screening_status": "screened_v2",
+      "corpus_lane": "excerpt_only",
+      "candidate_chapters": [
+        {
+          "chapter_id": "2",
+          "chapter_number": 0,
+          "chapter_title": "墳",
+          "sentence_count": 67,
+          "paragraph_count": 37,
+          "href": "c0_fen.xhtml",
+          "spine_index": 1,
+          "position_bucket": "middle",
+          "score": 6.75
+        }
+      ],
+      "acquisition": {
+        "download_url": "https://ws-export.wmcloud.org/?format=epub&lang=zh&page=%E5%A2%B3",
+        "page_title": "墳"
+      },
+      "promotion_status": "promoted_v2",
+      "selected_for_public_benchmark": true
+    }
+  ]
+}

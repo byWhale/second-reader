@@ -72,23 +72,36 @@ Language tracks:
 Primary payload:
 - `fixtures.jsonl`
 
-## Planned First Package Set
-The first serious bilingual build should aim for these tracked package ids:
+## Current Package Set
+The benchmark family now has two tracked generations:
 
-### English
-- `attentional_v2_excerpt_en_v1`
-- `attentional_v2_chapters_en_v1`
-- `attentional_v2_runtime_en_v1`
+### Seed generation
+- English:
+  - `attentional_v2_excerpt_en_v1`
+  - `attentional_v2_chapters_en_v1`
+  - `attentional_v2_runtime_en_v1`
+- Chinese:
+  - `attentional_v2_excerpt_zh_v1`
+  - `attentional_v2_chapters_zh_v1`
+  - `attentional_v2_runtime_zh_v1`
+- Shared:
+  - `attentional_v2_compat_shared_v1`
 
-### Chinese
-- `attentional_v2_excerpt_zh_v1`
-- `attentional_v2_chapters_zh_v1`
-- `attentional_v2_runtime_zh_v1`
+### Current benchmark generation
+- English:
+  - `attentional_v2_excerpt_en_v2`
+  - `attentional_v2_excerpt_en_curated_v2`
+  - `attentional_v2_chapters_en_v2`
+  - `attentional_v2_runtime_en_v2`
+- Chinese:
+  - `attentional_v2_excerpt_zh_v2`
+  - `attentional_v2_excerpt_zh_curated_v2`
+  - `attentional_v2_chapters_zh_v2`
+  - `attentional_v2_runtime_zh_v2`
+- Shared:
+  - `attentional_v2_compat_shared_v2`
 
-### Shared
-- `attentional_v2_compat_shared_v1`
-
-These package ids are the first intended targets, not yet populated datasets.
+The `v2` generation is the current serious public-first bilingual benchmark layer.
 
 ## Package Contract
 Every concrete package should contain:
@@ -171,11 +184,90 @@ The manifest side should have these roots available now:
 - `reading-companion-backend/eval/manifests/splits/`
 - `reading-companion-backend/eval/manifests/local_refs/`
 
+## Public-First Large `v2` Build
+The current public-first large corpus expansion is now complete.
+
+### Builder and validator
+- builder:
+  - `reading-companion-backend/eval/attentional_v2/build_public_first_large_corpus.py`
+- validator:
+  - `reading-companion-backend/eval/attentional_v2/validate_public_first_large_corpus.py`
+- shared manifest-driven helper layer:
+  - `reading-companion-backend/eval/attentional_v2/corpus_builder.py`
+- candidate specification:
+  - `reading-companion-backend/eval/attentional_v2/public_first_large_candidates.json`
+
+### Tracked manifest ids
+- candidate screen:
+  - `attentional_v2_public_first_large_candidates_v2`
+- combined tracked public pool:
+  - `attentional_v2_public_benchmark_pool_v2`
+- bilingual corpus manifest:
+  - `attentional_v2_public_benchmark_pool_bilingual_v2`
+- split manifest:
+  - `attentional_v2_public_benchmark_pool_bilingual_v2_splits`
+
+### Current tracked `v2` counts
+- `24` new public/open-access candidates screened
+- `12` newly promoted public/open-access books
+- `22` books in the combined tracked public pool
+- `18` English chapter rows
+- `18` Chinese chapter rows
+- `36` English runtime fixtures
+- `36` Chinese runtime fixtures
+- `54` English seed excerpt cases
+- `24` Chinese seed excerpt cases
+- `16` English curated excerpt cases
+- `16` Chinese curated excerpt cases
+- `36` shared compatibility fixtures
+
+### Current promoted `v2` books
+- English:
+  - `on_liberty_public_en`
+  - `varieties_of_religious_experience_public_en`
+  - `portrait_of_a_lady_public_en`
+  - `darkwater_public_en`
+  - `women_and_economics_public_en`
+  - `up_from_slavery_public_en`
+- Chinese:
+  - `ouyou_zaji_public_zh`
+  - `chenlun_public_zh`
+  - `gushi_xinbian_public_zh`
+  - `ershinian_mudu_public_zh`
+  - `beiying_public_zh`
+  - `fen_public_zh`
+
+### Current quota status
+- chapter corpus:
+  - English and Chinese both meet:
+    - `4` expository
+    - `4` argumentative
+    - `4` narrative_reflective
+    - `4` reference_heavy
+    - `2` reserve
+- curated excerpts:
+  - English and Chinese both meet:
+    - `3` distinction_definition
+    - `3` tension_reversal
+    - `3` callback_bridge
+    - `3` anchored_reaction_selectivity
+    - `3` reconsolidation_later_reinterpretation
+    - `1` reserve
+
+Important build nuance:
+- weak public Chinese sources may be normalized into clean synthetic segmented EPUBs before screening when the underlying text is usable but the original public packaging is too structurally weak for fair chapter selection
+- this normalization is part of the tracked `v2` build process, not an ad hoc exception
+
 ## Immediate Next Step
-- Keep the folder skeleton fixed.
-- Wait for the candidate book pool.
-- Then create the first real source-book manifests.
-- After screening, create the first populated package directories listed above.
+- Treat the tracked `v2` public benchmark family as ready for real evaluation work.
+- Use the local-only supplement only to fill any remaining uncovered phenomenon bucket, not as the main acquisition path.
+- Stop expanding the corpus by default.
+- Start the first serious evaluation runs:
+  - mechanism-integrity
+  - local reading comparison
+  - span trajectory
+  - durable trace / re-entry
+  - runtime viability
 
 ## Current Seed Build Status
 The first public-domain bilingual seed build has now landed in the repo/runtime workspace:
@@ -214,12 +306,21 @@ The first curated excerpt benchmark family has now been frozen on top of the see
   - `reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_excerpt_curated_v1.json`
 
 Current curated counts:
-- English curated cases:
-  - `5` in `storage_mode = tracked`
-  - `10` in `storage_mode = local-only`
-- Chinese curated cases:
-  - `2` in `storage_mode = tracked`
-  - `4` in `storage_mode = local-only`
+- legacy `v1` tracked curated cases:
+  - English:
+    - `5`
+  - Chinese:
+    - `2`
+- legacy `v1` local-only curated cases:
+  - English:
+    - `10`
+  - Chinese:
+    - `4`
+- current `v2` tracked curated cases:
+  - English:
+    - `16`
+  - Chinese:
+    - `16`
 
 Curated-case rules in this pass:
 - every curated case has explicit:
@@ -231,9 +332,9 @@ Curated-case rules in this pass:
 - the curated layer intentionally does not inherit the duplicate/weak `case_id` patterns from the raw seed layer
 
 Important status nuance:
-- the curated English family is strong enough for a first-pass local evaluation run
-- within the Chinese curated family, `storage_mode = tracked` is still intentionally thin because the current public-domain Chinese source pool yielded much weaker parse-safe excerpt material than the manually added supplement
-- later corpus work should expand public-safe Chinese sources if we want a larger `storage_mode = tracked` slice of the same Chinese excerpt benchmark family
+- the old `v1` curated layer remains useful as a seed/reference generation
+- the new tracked `v2` curated layer is now the primary local benchmark layer for both English and Chinese
+- the local-only supplement still matters for fallback and later gap-filling, but it is no longer the primary answer to the Chinese tracked-curation gap
 
 ## Local-Only Supplement Status
 The first `storage_mode = local-only` supplement sourced from the user's Downloads EPUB pool has now landed in the local package mirror:
@@ -256,7 +357,7 @@ The first `storage_mode = local-only` supplement sourced from the user's Downloa
   - `reading-companion-backend/state/eval_local_datasets/compatibility_fixtures/attentional_v2_private_compat_shared_v1/`
 
 Current counts:
-- `9` promoted private source books
+- `9` promoted local-only supplement books
 - `14` English chapter rows
 - `4` Chinese chapter rows
 - `36` English runtime fixtures
@@ -268,7 +369,8 @@ Current counts:
 Important status nuance:
 - these `storage_mode = local-only` packages are structurally real and grounded in canonical parse
 - their text-bearing payloads intentionally remain outside the tracked repo dataset tree
-- the private excerpt cases are still auto-extracted seed cases and still require later manual curation before benchmark promotion
+- the local-only excerpt cases are still primarily seed/support material in the current public-first strategy
+- after the tracked `v2` public benchmark build, these local-only packages should now be treated as fallback or gap-filling material rather than as the main benchmark layer
 
 ## Private Local Supplement Rule
 - Use the tracked `eval/datasets/` tree for `storage_mode = tracked` packages.

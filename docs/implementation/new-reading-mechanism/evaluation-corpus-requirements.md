@@ -163,17 +163,18 @@ Book-level signals that help:
 - no major formatting corruption
 
 ## What I Need From You
-For the real corpus-building step, the most helpful input is:
+For future gap-filling or replacement acquisition passes, the most helpful input is:
 
 ### Preferred book pool
-- ideally `6-10` candidate books for the first corpus-building pass
-- EPUB preferred
-- English and Chinese prose, kept as separate evaluation tracks
-- a mix of:
-  - expository
-  - argumentative
-  - narrative / reflective
-  - reference-heavy / allusion-dense
+For the completed public-first large pass, the target pool was:
+- `24` public/open-access candidates screened
+  - `12` English
+  - `12` Chinese
+- `12` promoted into the tracked benchmark pool
+  - `6` English
+  - `6` Chinese
+
+For future gap-filling acquisition, prefer smaller targeted additions rather than another blind large pass.
 
 ### For each book, useful metadata
 - title
@@ -315,7 +316,7 @@ For durable library and evaluation use, each source book should eventually carry
 - Manually added backend books:
   - place them in a durable source-library territory, not in `state/uploads/`
 - Evaluation corpus:
-- build it from screened durable sources
+  - build it from screened durable sources
 - do not treat ad hoc runtime outputs or uploads as the benchmark corpus
 - Private or copyrighted evaluation packages:
   - build them under `state/eval_local_datasets/`
@@ -335,16 +336,20 @@ The search strategy should be driven by coverage, not by famous-title collecting
 - For the first pass, prefer a smaller high-signal pool over a large random pile.
 
 ### Target acquisition shape
-For each language, the best first pass is:
-- `4-6` candidate books
-- with at least:
-  - `1` expository or philosophical work
-  - `1` argumentative or essayistic work
-  - `1` narrative or reflective work
-  - `1` reference-heavy, allusion-dense, or callback-rich work
+For the current public-first large pass, the target shape is:
+- `12` English candidates screened
+- `12` Chinese candidates screened
+- `6` English books promoted
+- `6` Chinese books promoted
 
-That means the combined first bilingual pool should usually be:
-- `8-12` books total
+Per language, the promoted set should still cover:
+- `2` expository / philosophical / conceptual nonfiction
+- `2` argumentative / essayistic / social-thought books
+- `1` narrative / reflective long-form prose book
+- `1` reference-heavy / callback-rich / allusion-dense book
+
+After this large pass, future acquisition should be gap-filling:
+- add only the books needed to fill a missing role bucket, phenomenon bucket, or quality gap
 
 ### Search order
 For each language, search in this order:
@@ -398,20 +403,62 @@ If two books look equally good, prefer the one that:
 - is easier to keep as a stable evaluation source
 
 ### What I should do after you gather candidates
-Once you provide the candidate pool, I should:
+For future gap-filling acquisition, once a new candidate pool exists, I should:
 - screen parse quality
 - tag each book by evaluation usefulness
 - reject weak or redundant candidates
-- propose the final bilingual corpus split
-- derive excerpt datasets, chapter corpus, and runtime fixtures from that screened pool
+- classify each source into:
+  - `chapter_corpus_eligible`
+  - `excerpt_only`
+  - `reserve`
+  - `reject`
+- promote only the books that fill a real benchmark gap
+- rebuild the affected package families through the manifest-driven corpus builder
+
+## Current Public-First Large `v2` Status
+The current public-first large acquisition pass is now complete at the dataset-build layer.
+
+### Current tracked benchmark outcome
+- `24` public/open-access books screened
+- `12` newly promoted
+- `22` books in the combined tracked public pool
+- tracked `v2` benchmark packages now exist for:
+  - `chapter_corpora`
+  - `runtime_fixtures`
+  - `excerpt_cases`
+  - `compatibility_fixtures`
+
+### Current tracked `v2` package counts
+- `18` English chapter rows
+- `18` Chinese chapter rows
+- `36` English runtime fixtures
+- `36` Chinese runtime fixtures
+- `54` English seed excerpt cases
+- `24` Chinese seed excerpt cases
+- `16` English curated excerpt cases
+- `16` Chinese curated excerpt cases
+- `36` shared compatibility fixtures
+
+### Current implementation entrypoints
+- candidate specification:
+  - `reading-companion-backend/eval/attentional_v2/public_first_large_candidates.json`
+- manifest-driven builder:
+  - `reading-companion-backend/eval/attentional_v2/build_public_first_large_corpus.py`
+- validator:
+  - `reading-companion-backend/eval/attentional_v2/validate_public_first_large_corpus.py`
+- shared helper layer:
+  - `reading-companion-backend/eval/attentional_v2/corpus_builder.py`
+
+### Important operational nuance
+- The tracked public benchmark pool is now strong enough to stop treating book acquisition as the default next step.
+- Later book collection should be gap-filling only.
+- The local-only supplement remains available when a phenomenon bucket or role bucket is still uncovered, but it does not replace the public-first benchmark goal.
+- Weak but text-valuable public Chinese sources may be normalized into synthetic segmented EPUBs when that is necessary to give them fair chapter-level screening.
 
 ## Immediate Next Step
-- Gather a candidate book pool that satisfies the source-book requirements above.
-- When gathering the pool, label each book by language so I can build:
-  - an English evaluation track
-  - a Chinese evaluation track
-- Then I can do the next layer:
-  - corpus intake screening
-  - chapter/excerpt selection
-  - dataset split proposal
-  - fixture-package design for each evaluation family
+- Stop growing the corpus by default.
+- Use the current tracked `v2` benchmark family as the primary input to real evaluation runs.
+- Return to acquisition only if:
+  - a benchmark bucket is still uncovered
+  - a language track remains structurally weaker
+  - or evaluation evidence shows a specific quality gap in the current corpus

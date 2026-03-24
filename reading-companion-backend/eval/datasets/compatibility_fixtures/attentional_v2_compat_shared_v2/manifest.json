@@ -1,0 +1,21 @@
+{
+  "dataset_id": "attentional_v2_compat_shared_v2",
+  "family": "compatibility_fixtures",
+  "language_track": "shared",
+  "version": "2",
+  "description": "Shared compatibility fixtures for the expanded public-first v2 attentional_v2 benchmark family.",
+  "primary_file": "fixtures.jsonl",
+  "question_ids": [
+    "EQ-AV2-008",
+    "EQ-GATE-002"
+  ],
+  "source_manifest_refs": [
+    "eval/manifests/source_books/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/local_refs/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/corpora/attentional_v2_public_benchmark_pool_bilingual_v2.json"
+  ],
+  "split_refs": [
+    "eval/manifests/splits/attentional_v2_public_benchmark_pool_bilingual_v2_splits.json"
+  ],
+  "storage_mode": "tracked"
+}
