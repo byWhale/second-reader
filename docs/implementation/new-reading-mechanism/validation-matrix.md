@@ -80,5 +80,9 @@ Update when: a phase gains new obligations, a check is split out, or acceptance 
   - tracked shared compatibility fixtures:
     - `36`
 - Future Phase 9 validation should treat the tracked `v2` benchmark family as the default benchmark input set unless a later gap-filling pass explicitly supersedes it.
+- The first corrected `mechanism_integrity` run over the tracked curated `v2` excerpt packs is now complete at [attentional_v2_integrity_v2_20260324-152539](/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/attentional_v2_integrity_v2_20260324-152539). It cleared structural viability (`32` cases, `0` structural failures) but did not clear the planned local acceptance bar, with especially weak results in the Chinese slice and in the `callback_bridge` / `reconsolidation_later_reinterpretation` buckets.
+- The first local run also showed an interpretation gap in the current harness: all evaluated cases still selected `advance`, so Phase 9 follow-up should treat local move-quality evidence as incomplete until bridge/reconsolidation pressure is better exercised.
+- The benchmark family is therefore strong enough for factual and structural use, but not yet strong enough to treat all semantic case labels as final ground truth. Phase 9 now includes an explicit dataset-quality hardening pass before broader semantic comparison work becomes authoritative.
+- Dataset hardening authority now lives in [dataset-quality-hardening.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/dataset-quality-hardening.md).
 - Future Phase 8 / 9 work still needs explicit validation for the eventual removal of section-first chapter/detail and marks assumptions.
 - Future Phase 9 work still needs deeper node-level observability validation once standard/debug traces are expanded across the full live interpretive loop.

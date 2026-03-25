@@ -170,7 +170,15 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Screen the public-first large bilingual candidate pool against the documented source-book requirements
 - [x] Promote the selected public/open-access books into the tracked benchmark pool through the manifest-driven builder
 - [x] Freeze the tracked `v2` source-book, corpus, split, and local-ref manifests for the combined public benchmark family
-- [ ] Run mechanism-integrity evaluation
+- [x] Run mechanism-integrity evaluation
+- [ ] Add the dataset-quality hardening workflow before broader semantic comparison work
+- [ ] Build an offline case-audit workflow for curated excerpt cases
+- [ ] Review and harden the weakest local buckets:
+  - `callback_bridge`
+  - `reconsolidation_later_reinterpretation`
+- [ ] Review and harden the weakest Chinese local cases before trusting broader semantic comparison
+- [ ] Freeze a reviewed local benchmark slice after case hardening
+- [ ] Rerun mechanism-integrity on the reviewed local slice
 - [ ] Run local-reading and span-trajectory evaluation
 - [ ] Run durable-trace and re-entry evaluation
 - [ ] Run runtime-viability evaluation
@@ -233,3 +241,8 @@ Update when: status changes, blockers appear, or phases complete.
     - `36` shared compatibility fixtures
   - Closed the earlier Chinese tracked-curation gap enough for real evaluation work by expanding the public-source pool and allowing controlled normalization of structurally weak but text-valuable public Chinese sources into synthetic segmented EPUBs before screening.
   - Shifted the default next step for Phase 9 from corpus bootstrapping to actual evaluation execution; later book acquisition is now gap-filling only unless real evaluation evidence reveals a benchmark-coverage hole.
+  - Ran the first full `mechanism_integrity` pass over the tracked curated `v2` excerpt packs with the new local benchmark harness. The authoritative run is `attentional_v2_integrity_v2_20260324-152539` under `reading-companion-backend/eval/runs/attentional_v2/`, with `32` cases, `0` structural failures, and judged averages of `text_groundedness 3.594`, `meaning_unit_quality 3.500`, `move_quality 3.500`, `reaction_quality 3.594`, and `case_fit 3.094`.
+  - Important first-pass result: the benchmark layer is viable, but `attentional_v2` is not yet at the planned local acceptance line. The English slice is mixed-but-closer, the Chinese slice is clearly below target, and the weakest buckets are `callback_bridge` and `reconsolidation_later_reinterpretation`.
+  - Important harness note: the first attempted judged run exposed a score-scale bug in the rubric prompt, so the earlier run with all-`1.0` averages is superseded. The authoritative first-pass result is the corrected run above, after fixing sentence-id ordering in structural checks and the rubric scale contract.
+  - Important interpretation note for next work: every evaluated local case still chose `advance`, which suggests the excerpt harness is currently best at testing closure and anchored selectivity but still under-exercises meaningful `dwell` / `bridge` / `reframe` diversity. The next evaluation step should keep the current run result, but also refine bridge and reconsolidation case pressure before treating local move quality as mature evidence.
+  - Promoted dataset-quality hardening into its own explicit Phase 9 work item. The project now treats benchmark-case review as a first-class task rather than a quiet background assumption, and the immediate recommendation is to harden the local excerpt slice before trusting broader semantic comparison work too much.

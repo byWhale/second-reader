@@ -44,6 +44,30 @@ Update when: a new evaluation question is added, a question changes owner, or a 
 | EQ-GATE-002 | `runtime_and_compatibility_gate` | Do analysis-state, activity, chapter, and marks surfaces stay schema-valid and usable during migration? | Current product compatibility still matters while section-first surfaces exist. | temp implementation docs now; later reports | compatibility tests + fixture audits | persisted API fixtures | `partially scaffolded` |
 | EQ-GATE-003 | `runtime_and_compatibility_gate` | Can the mechanism complete runs, resume correctly, and stay within acceptable latency/cost bounds? | Runtime viability is a standing gate for promotion. | `docs/backend-reader-evaluation.md` | deterministic runtime metrics | runtime fixtures + chapter corpus | `not started` |
 
+## First Pass Status
+- `2026-03-24`: the first corrected `mechanism_integrity` run completed over the tracked curated `v2` excerpt packs at [attentional_v2_integrity_v2_20260324-152539](/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/attentional_v2_integrity_v2_20260324-152539).
+- Questions materially advanced by that run:
+  - `EQ-AV2-001`
+  - `EQ-AV2-002`
+  - `EQ-AV2-003`
+  - `EQ-AV2-004`
+  - `EQ-AV2-005`
+  - the judged local-case slice of `EQ-AV2-006`
+- What the run established:
+  - the tracked curated `v2` excerpt family is viable as a real benchmark input set
+  - the local harness can evaluate all `32` cases without structural failure
+  - `attentional_v2` is not yet at the planned local acceptance bar
+- Main first-pass weaknesses:
+  - Chinese local-case quality trails English sharply
+  - `callback_bridge` and `reconsolidation_later_reinterpretation` are the weakest buckets
+  - all evaluated local cases still selected `advance`, so move-diversity evidence is still immature
+- What is still not answered by this run:
+  - cross-mechanism local comparison against `iterator_v1`
+  - chapter-scale trajectory comparison
+  - durable-trace / re-entry comparison
+  - runtime viability / latency / cost comparison
+  - the structural persisted-history half of `EQ-AV2-006`
+
 ## What This Means For Current Work
 - The current new-mechanism implementation project still has to do both:
   - cross-mechanism comparison work
@@ -57,6 +81,9 @@ Update when: a new evaluation question is added, a question changes owner, or a 
     - runtime/resume fixture set
     - persisted compatibility fixture set
 - Only after that should we design the actual datasets and corpora.
+- After the first corrected local run, there is now one more explicit rule:
+  - broader semantic comparison work should not be treated as authoritative until the weak local excerpt buckets have gone through dataset-quality hardening
+  - see [dataset-quality-hardening.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/dataset-quality-hardening.md)
 
 ## Dataset Design Implications
 - `excerpt dataset`

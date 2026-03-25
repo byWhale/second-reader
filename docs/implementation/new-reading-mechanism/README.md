@@ -54,6 +54,9 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 - `evaluation-dataset-layout.md`
   - concrete family-first dataset-package design for the bilingual `attentional_v2` benchmark build
   - defines package ids, folder roots, the split between tracked datasets, tracked manifests, and local-only private dataset packages, and the current public-first large `v2` benchmark family
+- `dataset-quality-hardening.md`
+  - explicit plan for strengthening semantic case trust before broader semantic comparison work
+  - defines the review-status ladder, the weak-bucket hardening workflow, and the LLM-plus-human review split
 - `stable-doc-impact.md`
   - map of which long-term docs must be updated when each workstream lands
 - `runtime-artifact-map.md`
@@ -86,5 +89,6 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 7. `evaluation-question-map.md`
 8. `evaluation-corpus-requirements.md`
 9. `evaluation-dataset-layout.md`
-10. `runtime-artifact-map.md`
-11. Stable docs listed above, as required by the task at hand
+10. `dataset-quality-hardening.md`
+11. `runtime-artifact-map.md`
+12. Stable docs listed above, as required by the task at hand
