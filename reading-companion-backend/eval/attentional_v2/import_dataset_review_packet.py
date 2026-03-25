@@ -113,14 +113,17 @@ def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packe
     history.append(event)
     row["review_history"] = history
     row["human_review_latest"] = event
+    row["review_status"] = "human_reviewed"
+    row["human_review_decision"] = action
 
-    status_map = {
-        "keep": ("human_reviewed_v1_keep", "reviewed_active"),
-        "revise": ("human_reviewed_v1_revise", "reviewed_active"),
-        "drop": ("human_reviewed_v1_drop", "needs_replacement"),
-        "unclear": ("human_reviewed_v1_unclear", "needs_adjudication"),
+    benchmark_status_map = {
+        "keep": "reviewed_active",
+        "revise": "needs_revision",
+        "drop": "needs_replacement",
+        "unclear": "needs_adjudication",
     }
-    row["curation_status"], row["benchmark_status"] = status_map[action]
+    row["benchmark_status"] = benchmark_status_map[action]
+    row["curation_status"] = f"human_reviewed_v1_{action}"
 
     if revised_selection_reason:
         row["selection_reason"] = revised_selection_reason
@@ -132,6 +135,23 @@ def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packe
         row["human_review_notes"] = review_notes
     if problem_types:
         row["human_review_problem_types"] = problem_types
+    case_provenance = row.get("case_provenance")
+    if not isinstance(case_provenance, dict):
+        case_provenance = {}
+        row["case_provenance"] = case_provenance
+    packet_ids = case_provenance.get("review_packet_ids")
+    if not isinstance(packet_ids, list):
+        packet_ids = []
+        case_provenance["review_packet_ids"] = packet_ids
+    if packet_id not in packet_ids:
+        packet_ids.append(packet_id)
+    case_provenance["human_review_count"] = len(history)
+    row["metadata_sync"] = {
+        "last_synced_at": utc_now(),
+        "sync_reason": "import_dataset_review_packet",
+        "case_id": str(row.get("case_id", "")),
+        "packet_id": packet_id,
+    }
     return row
 
 

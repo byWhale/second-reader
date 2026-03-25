@@ -150,6 +150,8 @@ The human loop should stay intentionally simple and not require a frontend websi
 ### Packet folders
 - `reading-companion-backend/eval/review_packets/pending/`
 - `reading-companion-backend/eval/review_packets/archive/`
+- `reading-companion-backend/eval/review_packets/review_queue_summary.json`
+- `reading-companion-backend/eval/review_packets/review_queue_summary.md`
 
 ### Current active packets
 - `attentional_v2_zh_weak_buckets_round1`
@@ -220,6 +222,20 @@ The importer:
 - merges review metadata into the dataset rows
 - archives the packet under `eval/review_packets/archive/`
 
+Imported packets now drive the reviewed benchmark slice through:
+- `review_status`
+  - `builder_curated`
+  - `human_reviewed`
+- `benchmark_status`
+  - `reviewed_active`
+  - `needs_revision`
+  - `needs_replacement`
+  - `needs_adjudication`
+
+Important rule:
+- `revise` should not be treated as immediately freezeable.
+- A `revise` decision means the case still needs a follow-up edit or relabel before it can enter the reviewed slice.
+
 ### Why this workflow exists
 - It keeps review executable on the same machine with no upload ceremony.
 - It keeps the human task readable.
@@ -237,13 +253,19 @@ After edits:
   - `reading-companion-backend/eval/attentional_v2/backfill_case_review_metadata.py`
 - reviewed-slice freezing:
   - `reading-companion-backend/eval/attentional_v2/freeze_reviewed_dataset_slice.py`
+- queue summary generation:
+  - `reading-companion-backend/eval/attentional_v2/build_review_queue_summary.py`
 
-The current tracked curated `v2` excerpt datasets now carry baseline fields such as:
+The current curated excerpt datasets now carry baseline fields such as:
 - `review_status`
 - `benchmark_status`
 - `case_provenance`
 - `review_history`
 - `metadata_sync`
+
+That baseline metadata now exists across:
+- tracked curated excerpt datasets
+- local-only curated excerpt datasets
 
 That makes the later freeze step explicit and reproducible instead of depending on one-off dataset edits.
 
@@ -281,15 +303,11 @@ Before trusting broader semantic comparison too much, the excerpt family should 
 - rerun of `mechanism_integrity` shows the same failures are not mostly caused by mislabeled cases
 
 ## To-Do Now
-1. Add a case-audit workflow for semantic dataset review.
-2. Build an offline LLM case-review harness for curated excerpt cases.
-3. Run the first case audit over:
-   - `callback_bridge`
-   - `reconsolidation_later_reinterpretation`
-   - weakest Chinese local cases
-4. Promote reviewed cases out of `builder_curated` where justified.
-5. Freeze the reviewed local benchmark slice.
-6. Rerun `mechanism_integrity` on that reviewed slice before trusting broader semantic evaluation.
+1. Keep the active packet queue current and visible through `review_queue_summary.md`.
+2. Import the reviewed packet(s).
+3. Promote reviewed cases out of `builder_curated` where justified.
+4. Freeze the reviewed local benchmark slice.
+5. Rerun `mechanism_integrity` on that reviewed slice before trusting broader semantic evaluation.
 
 ## Recommendation For Immediate Next Step
 - Do not jump straight into broader semantic comparison yet.
@@ -298,6 +316,8 @@ Before trusting broader semantic comparison too much, the excerpt family should 
   - use the active human-review packets:
     - `attentional_v2_zh_weak_buckets_round1`
     - `attentional_v2_en_weak_cases_round1`
+  - use the queue summary:
+    - `reading-companion-backend/eval/review_packets/review_queue_summary.md`
   - use the companion machine audits:
     - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/`
     - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/`

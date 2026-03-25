@@ -1,0 +1,89 @@
+{
+  "generated_at": "2026-03-25T00:54:37.593863Z",
+  "active_packet_count": 2,
+  "packets": [
+    {
+      "packet_id": "attentional_v2_en_weak_cases_round1",
+      "packet_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/pending/attentional_v2_en_weak_cases_round1",
+      "created_at": "2026-03-25T00:43:44.415672Z",
+      "dataset_id": "attentional_v2_excerpt_en_curated_v2",
+      "family": "excerpt_cases",
+      "storage_mode": "tracked",
+      "case_count": 6,
+      "selection_filters": {
+        "buckets": [],
+        "limit": 0,
+        "only_unreviewed": false,
+        "case_ids": [
+          "varieties_of_religious_experience_public_en__6__distinction_definition__v2",
+          "darkwater_public_en__9__tension_reversal__v2",
+          "walden_205_en__6__callback_bridge__v2",
+          "walden_205_en__10__callback_bridge__v2",
+          "on_liberty_public_en__10__callback_bridge__v2",
+          "souls_of_black_folk_408_en__8__reconsolidation_later_reinterpretation__v2"
+        ]
+      },
+      "latest_case_audit": {
+        "run_id": "attentional_v2_en_weak_cases_round1__20260325-004347",
+        "run_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347",
+        "aggregate_path": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/summary/aggregate.json",
+        "report_path": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/summary/report.md",
+        "aggregate": {
+          "case_count": 6,
+          "factual_failure_count": 0,
+          "primary_decisions": {
+            "keep": 4,
+            "revise": 2
+          },
+          "adversarial_risk_counts": {
+            "medium": 5,
+            "low": 1
+          },
+          "average_bucket_fit": 2,
+          "average_focus_clarity": 2,
+          "average_excerpt_strength": 2
+        }
+      }
+    },
+    {
+      "packet_id": "attentional_v2_zh_weak_buckets_round1",
+      "packet_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/pending/attentional_v2_zh_weak_buckets_round1",
+      "created_at": "2026-03-25T00:27:12.572826Z",
+      "dataset_id": "attentional_v2_excerpt_zh_curated_v2",
+      "family": "excerpt_cases",
+      "storage_mode": "tracked",
+      "case_count": 6,
+      "selection_filters": {
+        "buckets": [
+          "callback_bridge",
+          "reconsolidation_later_reinterpretation"
+        ],
+        "limit": 0,
+        "only_unreviewed": false,
+        "case_ids": []
+      },
+      "latest_case_audit": {
+        "run_id": "attentional_v2_zh_weak_buckets_round1__20260325-003459",
+        "run_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459",
+        "aggregate_path": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/summary/aggregate.json",
+        "report_path": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/summary/report.md",
+        "aggregate": {
+          "case_count": 6,
+          "factual_failure_count": 0,
+          "primary_decisions": {
+            "keep": 1,
+            "revise": 4,
+            "drop": 1
+          },
+          "adversarial_risk_counts": {
+            "medium": 5,
+            "low": 1
+          },
+          "average_bucket_fit": 1.667,
+          "average_focus_clarity": 1.5,
+          "average_excerpt_strength": 1.833
+        }
+      }
+    }
+  ]
+}

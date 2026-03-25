@@ -94,13 +94,27 @@ def main() -> int:
     target_manifest["freeze_criteria"] = {
         "include_status": sorted(include_status),
     }
+    target_manifest["review_queue_summary"] = {
+        "row_count": len(selected_rows),
+        "review_status_counts": {},
+        "benchmark_status_counts": {},
+    }
 
     for row in selected_rows:
         row["freeze_metadata"] = {
             "frozen_from_dataset_id": args.source_dataset_id,
             "frozen_at": target_manifest["frozen_at"],
             "benchmark_status_at_freeze": str(row.get("benchmark_status", "")),
+            "review_status_at_freeze": str(row.get("review_status", "")),
         }
+        review_status = str(row.get("review_status", "")).strip() or "missing"
+        benchmark_status = str(row.get("benchmark_status", "")).strip() or "missing"
+        target_manifest["review_queue_summary"]["review_status_counts"][review_status] = (
+            target_manifest["review_queue_summary"]["review_status_counts"].get(review_status, 0) + 1
+        )
+        target_manifest["review_queue_summary"]["benchmark_status_counts"][benchmark_status] = (
+            target_manifest["review_queue_summary"]["benchmark_status_counts"].get(benchmark_status, 0) + 1
+        )
 
     write_json(target_dir / "manifest.json", target_manifest)
     write_jsonl(target_dir / primary_file, selected_rows)

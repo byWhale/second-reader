@@ -177,6 +177,7 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Prepare the next English weak-case review packet
 - [x] Run the machine-side case audit on the next English weak-case packet
 - [x] Strengthen dataset status/provenance fields for later reviewed-slice freezing
+- [x] Add a machine-readable active-packet queue summary for review operations
 - [ ] Review and harden the weakest local buckets:
   - `callback_bridge`
   - `reconsolidation_later_reinterpretation`
@@ -257,10 +258,12 @@ Update when: status changes, blockers appear, or phases complete.
   - Generated the next English weak-case packet: `attentional_v2_en_weak_cases_round1` under `reading-companion-backend/eval/review_packets/pending/`. It contains the six non-pass English local cases from the first corrected `mechanism_integrity` run.
   - Ran the companion machine-side case audit on that English packet at `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/`. Result: `0` factual failures, `4 keep`, and `2 revise`, which suggests the English weak slice is stronger than the Chinese weak slice but still not clean enough to skip review entirely.
   - Strengthened the curated excerpt datasets for later reviewed-slice freezing: added baseline review/provenance metadata to both tracked curated `v2` excerpt packs, added `backfill_case_review_metadata.py`, and added `freeze_reviewed_dataset_slice.py` so later human-reviewed subsets can be frozen into explicit reviewed benchmark packages instead of being managed ad hoc.
+  - Tightened the reviewed-slice state model before any human packet is imported: packet imports now distinguish `reviewed_active` from `needs_revision`, baseline review/provenance metadata has been backfilled across the tracked and local-only curated excerpt datasets, and a queue summary snapshot now lives under `reading-companion-backend/eval/review_packets/review_queue_summary.{json,md}` so the active hardening queue is visible without reconstructing it from chat.
   - The immediate next path is now concrete rather than implied:
     - review the active packet or packets
       - `attentional_v2_zh_weak_buckets_round1`
       - `attentional_v2_en_weak_cases_round1`
+    - consult `reading-companion-backend/eval/review_packets/review_queue_summary.md` for the current packet queue and latest machine-side audit summaries
     - import the reviewed packet(s)
     - freeze the reviewed local slice
     - rerun `mechanism_integrity`

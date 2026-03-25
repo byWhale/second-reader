@@ -9,6 +9,10 @@ This directory contains human-review packets for benchmark datasets.
   - packets exported by Codex and waiting for human review
 - `archive/`
   - packets already imported back into the dataset with their review CSV preserved
+- `review_queue_summary.json`
+  - machine-readable snapshot of the active packet queue and its latest machine-side audits
+- `review_queue_summary.md`
+  - readable snapshot of the same queue
 
 ## Packet Contents
 Each packet folder should contain:
@@ -26,6 +30,16 @@ Each packet folder should contain:
 
 Codex then runs:
 - `eval/attentional_v2/import_dataset_review_packet.py --packet-id <packet_id> --archive`
+
+Imported packets now feed the dataset through:
+- `review_status`
+  - `builder_curated` -> baseline builder-owned state
+  - `human_reviewed` -> the case has been reviewed by a human
+- `benchmark_status`
+  - `reviewed_active` -> safe to include in the reviewed benchmark slice
+  - `needs_revision` -> human review found the case promising but not ready to freeze yet
+  - `needs_replacement` -> drop and replace
+  - `needs_adjudication` -> still unclear after review
 
 ## Why This Exists
 - The current benchmark family still contains builder-curated cases.
