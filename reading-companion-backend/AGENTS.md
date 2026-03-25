@@ -23,6 +23,9 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
   - inspect mechanism weakness
   - inspect dataset / case / harness weakness
   - do not blame one side by default
+- Current dataset-hardening rule:
+  - use multi-prompt LLM adjudication as the default packet reviewer unless the user explicitly requests manual human review
+  - treat manual human review as optional future escalation for higher-trust `gold` slices, not as the default blocker for current benchmark hardening
 
 ## Local Structure Rules
 - Keep each major LangGraph or workflow node as an independent function when possible.

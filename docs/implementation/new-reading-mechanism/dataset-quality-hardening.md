@@ -16,7 +16,7 @@ We are not copying those frameworks literally. We are using their strongest prac
 - document provenance and curation rationale
 - keep review guidance visible
 - use iterative quality management
-- include human inspection where benchmark trust matters
+- include independent inspection where benchmark trust matters
 - avoid treating versioned data as automatically trustworthy
 
 ## Why This Work Exists
@@ -41,6 +41,9 @@ Authoritative first-pass evidence:
 - Pause broader semantic comparison work until the weakest local buckets are reviewed.
 - It is still acceptable to continue purely structural or runtime-gate work in parallel when that work does not depend on the semantic case labels being final.
 - The first packet-level machine-side audit already indicates real benchmark-design weakness in the targeted Chinese weak-bucket slice, so that slice should now be treated as review-required rather than merely review-optional.
+- The current operational rule is now LLM-led review by default:
+  - multi-prompt LLM adjudication replaces manual human packet review unless the user explicitly requests manual review
+  - human review is now optional later escalation for higher-trust `gold` slices, not the default blocker for current hardening work
 
 ## Truth Layers
 ### Strong factual truth
@@ -75,7 +78,7 @@ Every semantic case should eventually carry one of these meanings, whether or no
 
 3. `human_reviewed`
 - explicitly checked by a human against the source passage and question family
-- suitable for stronger benchmark trust
+- optional future escalation when we want stronger benchmark trust than `llm_reviewed`
 
 4. `gold`
 - human-reviewed and retained after disagreement or adversarial review
@@ -130,22 +133,26 @@ This is especially important for:
 - reconsolidation-worthiness cases
 - subtle Chinese narrative passages
 
-### Stage 4: Human review on flagged cases
-Human review should be reserved for:
-- cases where automated reviewers disagree
-- cases in the weak buckets
-- cases intended for `gold` status
-- cases that materially influence acceptance decisions
+### Stage 4: Final adjudication review
+The current operational reviewer is a final LLM adjudicator that is separate from:
+- the dataset builder
+- the primary case auditor
+- the adversarial disagreement auditor
 
-The human reviewer should decide:
+This adjudication pass should decide:
 - keep as-is
 - rewrite the focus
 - relabel the bucket
 - move to reserve
 - drop and replace
 
-## Packet-Based Human Review Workflow
-The human loop should stay intentionally simple and not require a frontend website.
+Manual human review is now optional later escalation for:
+- cases intended for `gold` status
+- especially high-impact disagreement cases
+- future benchmark-promotion work when we want stronger trust than the current operational mode
+
+## Packet-Based Review Workflow
+The review loop should stay intentionally simple and not require a frontend website.
 
 ### Packet folders
 - `reading-companion-backend/eval/review_packets/pending/`
@@ -153,17 +160,38 @@ The human loop should stay intentionally simple and not require a frontend websi
 - `reading-companion-backend/eval/review_packets/review_queue_summary.json`
 - `reading-companion-backend/eval/review_packets/review_queue_summary.md`
 
-### Current active packets
-- `attentional_v2_zh_weak_buckets_round1`
-  - tracked Chinese `callback_bridge` and `reconsolidation_later_reinterpretation`
-- `attentional_v2_en_weak_cases_round1`
-  - the six non-pass English local cases from the first corrected `mechanism_integrity` run
+### Current packet status
+- active queue:
+  - currently `1` active packet
+  - see `reading-companion-backend/eval/review_packets/review_queue_summary.md`
+  - active round 2 packet:
+    - `attentional_v2_zh_revision_replacement_round2`
+    - `4` `needs_revision`
+    - `2` `needs_replacement`
+    - source dataset: tracked `attentional_v2_excerpt_zh_curated_v2`
+    - purpose: run the next Chinese hardening pass directly on the status-marked weak cases
+    - machine-side case-audit summary is not available yet; the packet itself is ready, but the attempted audit has not produced a finished summary
+- archived round 1 packet results:
+  - `attentional_v2_zh_weak_buckets_round1`
+    - `0 keep`
+    - `4 revise`
+    - `2 drop`
+  - `attentional_v2_en_weak_cases_round1`
+    - `3 keep`
+    - `3 revise`
+    - `0 drop`
 
 ### Export tool
 - `reading-companion-backend/eval/attentional_v2/export_dataset_review_packet.py`
+- `reading-companion-backend/eval/attentional_v2/generate_revision_replacement_packet.py`
 
 Codex uses this tool to create a packet under:
 - `reading-companion-backend/eval/review_packets/pending/<packet_id>/`
+
+Use the revision/replacement generator when the next packet should be selected automatically from dataset rows that already landed in:
+- `needs_revision`
+- `needs_replacement`
+- optionally `needs_adjudication`
 
 Packet contents:
 - `packet_manifest.json`
@@ -172,7 +200,25 @@ Packet contents:
 - `cases.source.jsonl`
 - `README.md`
 
-### What the human reviewer does
+### Current operational review mode
+- Default reviewer:
+  - multi-prompt LLM adjudication
+- Optional later escalation:
+  - manual human review
+- The LLM reviewer should use at least:
+  - primary case-design review
+  - adversarial disagreement review
+  - final adjudication review with a separate prompt role
+
+### What Codex does in the current operational mode
+1. Run factual audit.
+2. Run primary case audit.
+3. Run adversarial disagreement audit.
+4. Run final LLM adjudication and fill the `review__...` columns automatically.
+5. Import the packet back into the dataset.
+
+### Optional manual override mode
+If manual review is explicitly requested later:
 1. Read `cases.preview.md`.
 2. Open `cases.review.csv` in Numbers, Excel, Google Sheets, VS Code, or any CSV-capable editor.
 3. Edit only the `review__...` columns.
@@ -212,6 +258,9 @@ Packet contents:
 ### Import tool
 - `reading-companion-backend/eval/attentional_v2/import_dataset_review_packet.py`
 
+### Final LLM adjudication tool
+- `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+
 Codex imports the completed packet with:
 - `python -m eval.attentional_v2.import_dataset_review_packet --packet-id <packet_id> --archive`
 
@@ -225,6 +274,7 @@ The importer:
 Imported packets now drive the reviewed benchmark slice through:
 - `review_status`
   - `builder_curated`
+  - `llm_reviewed`
   - `human_reviewed`
 - `benchmark_status`
   - `reviewed_active`
@@ -241,6 +291,7 @@ Important rule:
 - It keeps the human task readable.
 - It preserves provenance and pre-import state.
 - It lets later dataset rebuilding use review metadata instead of relying only on memory or chat.
+- It avoids making current dataset quality depend on scarce human review capacity.
 
 ### Stage 5: Re-freeze and rerun
 After edits:
@@ -251,6 +302,8 @@ After edits:
 ### Reviewed-slice support tools
 - baseline metadata backfill:
   - `reading-companion-backend/eval/attentional_v2/backfill_case_review_metadata.py`
+- final LLM packet adjudication:
+  - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
 - reviewed-slice freezing:
   - `reading-companion-backend/eval/attentional_v2/freeze_reviewed_dataset_slice.py`
 - queue summary generation:
@@ -281,46 +334,50 @@ LLM review is useful for:
 ### What it should not replace
 LLM review should **not** be treated as the final authority for:
 - the strongest “ground truth” designation
-- the final decision on ambiguous or high-impact cases
-- the only review on weak buckets when the mechanism direction could change because of the result
+- `gold` benchmark designation
+- later higher-trust benchmark promotion work if we explicitly choose to reintroduce human review
 
 ### Recommended review pattern
 - `single-pass reviewer`
   - cheap first-pass audit over the whole curated set
 - `dual-pass disagreement`
   - one prompt argues for the current label, one tries to break it
-- `human-on-flagged`
-  - a person only reviews disputed or high-impact cases
+- `final adjudicator`
+  - a separate prompt role decides the operational review action for the packet
+- `human-on-escalation`
+  - optional later layer only when explicitly requested or when pursuing `gold`
 
-That gives us leverage without pretending automated review is identical to expert truth.
+That gives us leverage without pretending automated review is identical to expert truth, while still keeping the current hardening loop executable.
 
 ## Practical Quality Gate
 Before trusting broader semantic comparison too much, the excerpt family should satisfy all of these:
 - no factual boundary errors in the targeted review slice
 - weak buckets have gone through at least LLM review and disagreement review
 - flagged cases have explicit keep/relabel/drop decisions
-- at least the first high-impact weak cases have human review
+- at least the first high-impact weak cases have final adjudication review
 - rerun of `mechanism_integrity` shows the same failures are not mostly caused by mislabeled cases
 
 ## To-Do Now
-1. Keep the active packet queue current and visible through `review_queue_summary.md`.
-2. Import the reviewed packet(s).
+1. Keep the packet queue current and visible through `review_queue_summary.md`.
+2. Create replacement or revised packets for the cases that landed in `needs_revision` or `needs_replacement`.
 3. Promote reviewed cases out of `builder_curated` where justified.
-4. Freeze the reviewed local benchmark slice.
+4. Freeze the next reviewed local benchmark slice.
 5. Rerun `mechanism_integrity` on that reviewed slice before trusting broader semantic evaluation.
 
 ## Recommendation For Immediate Next Step
 - Do not jump straight into broader semantic comparison yet.
 - First harden the local excerpt benchmark slice.
 - The best immediate move is:
-  - use the active human-review packets:
-    - `attentional_v2_zh_weak_buckets_round1`
-    - `attentional_v2_en_weak_cases_round1`
   - use the queue summary:
     - `reading-companion-backend/eval/review_packets/review_queue_summary.md`
-  - use the companion machine audits:
-    - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/`
-    - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/`
-  - prioritize the Chinese packet first because the machine-side audit is much weaker there
-  - import the reviewed packet(s)
-  - freeze the reviewed local slice and rerun `mechanism_integrity`
+  - treat the archived round 1 packet results as now authoritative for the reviewed cases:
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_zh_weak_buckets_round1/`
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_en_weak_cases_round1/`
+  - prioritize Chinese replacement work first because the first round produced:
+    - `0 keep`
+    - `4 revise`
+    - `2 drop`
+  - use the first frozen reviewed slices:
+    - `reading-companion-backend/eval/datasets/excerpt_cases/attentional_v2_excerpt_en_curated_v2_llm_reviewed_round1/`
+    - `reading-companion-backend/eval/datasets/excerpt_cases/attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round1/`
+  - rerun `mechanism_integrity` on the reviewed slice before trusting broader semantic comparison

@@ -30,17 +30,20 @@ def latest_audit_for_packet(packet_id: str) -> dict[str, Any] | None:
     matching_dirs = sorted([path for path in RUNS_ROOT.iterdir() if path.is_dir() and path.name.startswith(f"{packet_id}__")])
     if not matching_dirs:
         return None
-    latest_dir = matching_dirs[-1]
-    aggregate_path = latest_dir / "summary" / "aggregate.json"
-    report_path = latest_dir / "summary" / "report.md"
-    aggregate = load_json(aggregate_path) if aggregate_path.exists() else {}
-    return {
-        "run_id": latest_dir.name,
-        "run_dir": str(latest_dir),
-        "aggregate_path": str(aggregate_path) if aggregate_path.exists() else "",
-        "report_path": str(report_path) if report_path.exists() else "",
-        "aggregate": aggregate,
-    }
+    for latest_dir in reversed(matching_dirs):
+        aggregate_path = latest_dir / "summary" / "aggregate.json"
+        report_path = latest_dir / "summary" / "report.md"
+        if not aggregate_path.exists():
+            continue
+        aggregate = load_json(aggregate_path)
+        return {
+            "run_id": latest_dir.name,
+            "run_dir": str(latest_dir),
+            "aggregate_path": str(aggregate_path),
+            "report_path": str(report_path) if report_path.exists() else "",
+            "aggregate": aggregate,
+        }
+    return None
 
 
 def build_summary() -> dict[str, Any]:

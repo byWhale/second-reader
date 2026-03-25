@@ -659,3 +659,26 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/attentional_v2/export_dataset_review_packet.py`
 - `reading-companion-backend/eval/attentional_v2/import_dataset_review_packet.py`
 - `reading-companion-backend/eval/review_packets/README.md`
+
+## Entry 28
+**Decision / Inflection**: Replace manual packet review with multi-prompt LLM adjudication as the operational default for current benchmark hardening.
+
+**Period**: March 2026, during the first dataset-hardening loop after the initial weak-case packets were created.
+
+**Problem**: The benchmark hardening workflow had become executable, but in practice it still depended on scarce human review time. That made the review loop the new bottleneck and risked leaving the benchmark in a half-hardened state where the project knew weak cases existed but could not clear them quickly enough to keep evaluation moving.
+
+**Alternatives considered**: Keep manual review as the default blocker, let the dataset builder make ad hoc untracked judgments in chat, or rely only on the earlier primary/adversarial case-audit prompts without a distinct final adjudication step.
+
+**Why this path won**: The project needed an operational reviewer that was independent enough from the builder logic to reduce self-confirming drift, but still executable without manual review bandwidth. The chosen answer was a multi-prompt LLM review stack: primary case audit, adversarial disagreement audit, and a separate final adjudication pass that writes packet decisions back into the dataset under `llm_reviewed`. Manual human review remains possible later for higher-trust promotion work, but it is no longer the default blocker for current packet hardening.
+
+**What changed in the system**: Stable evaluation docs and the backend agent guide now say that multi-prompt LLM adjudication is the default packet reviewer until explicitly reversed. Packet imports now preserve `review_origin` and `review_policy`, datasets now distinguish `llm_reviewed` from `human_reviewed`, and the first round of weak-case packets was imported under the new rule. The hardening loop now freezes reviewed slices based on `reviewed_active` cases rather than waiting on manual packet completion.
+
+**Why it matters later**: Future contributors need to know that the project deliberately traded human-review dependence for an explicit multi-prompt LLM review policy, not because human review became worthless, but because current benchmark hardening needed to remain executable. Without this context, later readers could misinterpret `llm_reviewed` slices as accidental stopgaps rather than the official operational review state for this period.
+
+**Primary evidence**:
+- `docs/backend-reader-evaluation.md`
+- `reading-companion-backend/AGENTS.md`
+- `docs/implementation/new-reading-mechanism/dataset-quality-hardening.md`
+- `reading-companion-backend/eval/attentional_v2/import_dataset_review_packet.py`
+- `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+- `reading-companion-backend/eval/review_packets/README.md`

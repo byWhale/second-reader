@@ -2,11 +2,11 @@
 
 Purpose: make dataset review executable without a frontend UI.
 
-This directory contains human-review packets for benchmark datasets.
+This directory contains review packets for benchmark datasets.
 
 ## Lifecycle
 - `pending/`
-  - packets exported by Codex and waiting for human review
+  - packets exported by Codex and waiting for review
 - `archive/`
   - packets already imported back into the dataset with their review CSV preserved
 - `review_queue_summary.json`
@@ -22,7 +22,17 @@ Each packet folder should contain:
 - `cases.source.jsonl`
 - `README.md`
 
-## Human Workflow
+## Packet Generators
+- `eval/attentional_v2/export_dataset_review_packet.py`
+  - export an arbitrary packet from explicit case ids, bucket filters, or unreviewed rows
+- `eval/attentional_v2/generate_revision_replacement_packet.py`
+  - export the next hardening packet automatically from rows whose current `benchmark_status` is already `needs_revision`, `needs_replacement`, or another explicitly requested status
+
+## Review Workflow
+Current operational mode:
+- Codex may fill the `review__...` columns automatically through multi-prompt LLM adjudication.
+
+Optional manual mode:
 1. Open `cases.preview.md` for the readable view.
 2. Edit only the `review__...` columns in `cases.review.csv`.
 3. Save the file in place.
@@ -34,10 +44,11 @@ Codex then runs:
 Imported packets now feed the dataset through:
 - `review_status`
   - `builder_curated` -> baseline builder-owned state
+  - `llm_reviewed` -> the case has been adjudicated by the current multi-prompt LLM review policy
   - `human_reviewed` -> the case has been reviewed by a human
 - `benchmark_status`
   - `reviewed_active` -> safe to include in the reviewed benchmark slice
-  - `needs_revision` -> human review found the case promising but not ready to freeze yet
+  - `needs_revision` -> review found the case promising but not ready to freeze yet
   - `needs_replacement` -> drop and replace
   - `needs_adjudication` -> still unclear after review
 
@@ -45,3 +56,4 @@ Imported packets now feed the dataset through:
 - The current benchmark family still contains builder-curated cases.
 - Some benchmark problems are dataset problems rather than mechanism problems.
 - A fast packet workflow makes it practical to improve dataset quality before we trust broader evaluations too much.
+- The current default is LLM-led packet review; manual human review is optional later escalation rather than the default blocker.

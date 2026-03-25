@@ -20,5 +20,10 @@
     ]
   },
   "case_count": 6,
-  "import_contract_version": "1"
+  "import_contract_version": "1",
+  "review_origin": "llm",
+  "review_policy": "llm_thread_adjudication_v1",
+  "llm_review_run_id": "attentional_v2_en_weak_cases_round1__llm_review__20260325-133142",
+  "llm_review_generated_at": "2026-03-25T00:00:00Z",
+  "source_case_audit_run_id": "attentional_v2_en_weak_cases_round1__20260325-004347"
 }

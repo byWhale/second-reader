@@ -269,6 +269,20 @@ Important build nuance:
   - durable trace / re-entry
   - runtime viability
 
+## Expansion Reminder For Later Confidence
+- The current `v2` benchmark family is intended to be:
+  - large enough for first serious evaluation work
+  - but not automatically assumed large enough for final promotion confidence
+- After the reviewed-slice rerun and the first broader comparison passes, the project should explicitly decide whether benchmark-size expansion is needed before any strong default-cutover claim.
+- If sample-size confidence is still too weak, the default next targets should be:
+  - curated excerpt cases:
+    - expand from `16` per language toward roughly `25-30` per language
+  - chapter corpus:
+    - expand from `18` per language toward roughly `24-30` per language
+  - runtime fixtures:
+    - expand only if runtime-gate coverage, not semantic confidence, is still weak
+- This expansion is conditional future work, not an automatic immediate task.
+
 ## Current Seed Build Status
 The first public-domain bilingual seed build has now landed in the repo/runtime workspace:
 

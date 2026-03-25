@@ -18,6 +18,7 @@ ARCHIVE_PACKET_ROOT = REVIEW_PACKET_ROOT / "archive"
 
 ALLOWED_ACTIONS = {"keep", "revise", "drop", "unclear"}
 ALLOWED_CONFIDENCE = {"", "high", "medium", "low"}
+ALLOWED_REVIEW_ORIGINS = {"human", "llm"}
 
 
 def utc_now() -> str:
@@ -89,7 +90,21 @@ def packet_dir_from_args(packet_id: str | None, packet_dir: str | None) -> Path:
     return (PENDING_PACKET_ROOT / packet_id).resolve()
 
 
-def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packet_id: str) -> dict[str, Any]:
+def normalize_review_origin(raw_value: str | None) -> str:
+    review_origin = str(raw_value or "").strip().lower() or "human"
+    if review_origin not in ALLOWED_REVIEW_ORIGINS:
+        raise ValueError(f"Unsupported review origin: {review_origin!r}")
+    return review_origin
+
+
+def merge_review_event(
+    row: dict[str, Any],
+    review_row: dict[str, str],
+    *,
+    packet_id: str,
+    review_origin: str,
+    review_policy: str,
+) -> dict[str, Any]:
     action = str(review_row.get("review__action", "")).strip().lower()
     confidence = str(review_row.get("review__confidence", "")).strip().lower()
     problem_types = normalize_problem_types(review_row.get("review__problem_types", ""))
@@ -101,6 +116,8 @@ def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packe
     event = {
         "packet_id": packet_id,
         "reviewed_at": utc_now(),
+        "review_origin": review_origin,
+        "review_policy": review_policy,
         "action": action,
         "confidence": confidence,
         "problem_types": problem_types,
@@ -112,9 +129,20 @@ def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packe
     history = list(row.get("review_history", []))
     history.append(event)
     row["review_history"] = history
-    row["human_review_latest"] = event
-    row["review_status"] = "human_reviewed"
-    row["human_review_decision"] = action
+    row["review_latest"] = event
+    review_status_map = {
+        "human": "human_reviewed",
+        "llm": "llm_reviewed",
+    }
+    row["review_status"] = review_status_map[review_origin]
+    row["review_origin"] = review_origin
+    row["review_policy"] = review_policy
+    if review_origin == "human":
+        row["human_review_latest"] = event
+        row["human_review_decision"] = action
+    if review_origin == "llm":
+        row["llm_review_latest"] = event
+        row["llm_review_decision"] = action
 
     benchmark_status_map = {
         "keep": "reviewed_active",
@@ -123,7 +151,7 @@ def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packe
         "unclear": "needs_adjudication",
     }
     row["benchmark_status"] = benchmark_status_map[action]
-    row["curation_status"] = f"human_reviewed_v1_{action}"
+    row["curation_status"] = f"{review_origin}_reviewed_v1_{action}"
 
     if revised_selection_reason:
         row["selection_reason"] = revised_selection_reason
@@ -146,6 +174,7 @@ def merge_review_event(row: dict[str, Any], review_row: dict[str, str], *, packe
     if packet_id not in packet_ids:
         packet_ids.append(packet_id)
     case_provenance["human_review_count"] = len(history)
+    case_provenance["latest_review_origin"] = review_origin
     row["metadata_sync"] = {
         "last_synced_at": utc_now(),
         "sync_reason": "import_dataset_review_packet",
@@ -168,6 +197,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--packet-id")
     parser.add_argument("--packet-dir")
+    parser.add_argument("--review-origin")
+    parser.add_argument("--review-policy")
     parser.add_argument("--archive", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
@@ -178,6 +209,10 @@ def main() -> int:
     packet_dir = packet_dir_from_args(args.packet_id, args.packet_dir)
     packet_manifest = load_json(packet_dir / "packet_manifest.json")
     packet_id = str(packet_manifest["packet_id"])
+    review_origin = normalize_review_origin(args.review_origin or packet_manifest.get("review_origin"))
+    review_policy = str(args.review_policy or packet_manifest.get("review_policy") or "").strip() or (
+        "packet_manual_review_v1" if review_origin == "human" else "llm_multi_prompt_adjudication_v1"
+    )
     review_rows = parse_review_rows(packet_dir / "cases.review.csv")
     validate_review_rows(review_rows)
 
@@ -189,12 +224,20 @@ def main() -> int:
         case_id = str(review_row["case_id"]).strip()
         if case_id not in by_case_id:
             raise ValueError(f"Packet references case missing from dataset: {case_id}")
-        by_case_id[case_id] = merge_review_event(by_case_id[case_id], review_row, packet_id=packet_id)
+        by_case_id[case_id] = merge_review_event(
+            by_case_id[case_id],
+            review_row,
+            packet_id=packet_id,
+            review_origin=review_origin,
+            review_policy=review_policy,
+        )
 
     updated_rows = [by_case_id[str(row.get("case_id", ""))] for row in dataset_rows]
     summary = {
         "packet_id": packet_id,
         "imported_at": utc_now(),
+        "review_origin": review_origin,
+        "review_policy": review_policy,
         "dataset_primary_file_path": str(dataset_primary_file),
         "reviewed_case_count": len(review_rows),
         "action_counts": {

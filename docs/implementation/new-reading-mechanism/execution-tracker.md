@@ -178,15 +178,22 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Run the machine-side case audit on the next English weak-case packet
 - [x] Strengthen dataset status/provenance fields for later reviewed-slice freezing
 - [x] Add a machine-readable active-packet queue summary for review operations
+- [x] Replace manual packet review with default LLM adjudication for current dataset-hardening work
+- [x] Apply LLM adjudication to the first weak-case review packets and import the results
+- [x] Generate the next Chinese revision/replacement packet automatically from the `needs_revision` / `needs_replacement` cases
 - [ ] Review and harden the weakest local buckets:
   - `callback_bridge`
   - `reconsolidation_later_reinterpretation`
 - [ ] Review and harden the weakest Chinese local cases before trusting broader semantic comparison
-- [ ] Freeze a reviewed local benchmark slice after case hardening
+- [x] Freeze a reviewed local benchmark slice after case hardening
 - [ ] Rerun mechanism-integrity on the reviewed local slice
 - [ ] Run local-reading and span-trajectory evaluation
 - [ ] Run durable-trace and re-entry evaluation
 - [ ] Run runtime-viability evaluation
+- [ ] Decide whether the current benchmark family is still too small for high-confidence cross-mechanism judgment after the reviewed-slice rerun
+- [ ] If needed, expand the semantic benchmark family before default-cutover work:
+  - curated excerpt cases toward roughly `25-30` per language
+  - chapter corpus toward roughly `24-30` per language
 - [ ] Migrate the frontend and stable API away from section-first chapter/detail and marks surfaces once the section model is intentionally retired
 - [x] Curate the first excerpt-case dataset packs for local/behind-the-mechanism questions
 - [x] Curate the tracked `attentional_v2` benchmark datasets and the later chapter-level evaluation corpus before any real end-to-end comparison
@@ -259,12 +266,23 @@ Update when: status changes, blockers appear, or phases complete.
   - Ran the companion machine-side case audit on that English packet at `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/`. Result: `0` factual failures, `4 keep`, and `2 revise`, which suggests the English weak slice is stronger than the Chinese weak slice but still not clean enough to skip review entirely.
   - Strengthened the curated excerpt datasets for later reviewed-slice freezing: added baseline review/provenance metadata to both tracked curated `v2` excerpt packs, added `backfill_case_review_metadata.py`, and added `freeze_reviewed_dataset_slice.py` so later human-reviewed subsets can be frozen into explicit reviewed benchmark packages instead of being managed ad hoc.
   - Tightened the reviewed-slice state model before any human packet is imported: packet imports now distinguish `reviewed_active` from `needs_revision`, baseline review/provenance metadata has been backfilled across the tracked and local-only curated excerpt datasets, and a queue summary snapshot now lives under `reading-companion-backend/eval/review_packets/review_queue_summary.{json,md}` so the active hardening queue is visible without reconstructing it from chat.
+  - Replaced manual packet review with default LLM adjudication for the current hardening period. The stable evaluation constitution, backend agent guide, packet docs, and temp hardening plan now all treat multi-prompt LLM adjudication as the operational reviewer unless manual review is explicitly requested later.
+  - Applied the new LLM review rule to both archived round-1 weak-case packets and imported the results back into the tracked curated datasets. Current round-1 outcomes:
+    - Chinese weak packet: `0 keep`, `4 revise`, `2 drop`
+    - English weak packet: `3 keep`, `3 revise`, `0 drop`
+  - Froze the first `llm_reviewed` benchmark slices:
+    - `attentional_v2_excerpt_en_curated_v2_llm_reviewed_round1` with `3` reviewed-active cases
+    - `attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round1` with `0` reviewed-active cases
+  - The active packet queue is now empty. The next dataset-hardening move is not more manual review; it is targeted replacement/revision work, especially on the Chinese weak slice, followed by a reviewed-slice rerun of `mechanism_integrity`.
   - The immediate next path is now concrete rather than implied:
-    - review the active packet or packets
-      - `attentional_v2_zh_weak_buckets_round1`
-      - `attentional_v2_en_weak_cases_round1`
-    - consult `reading-companion-backend/eval/review_packets/review_queue_summary.md` for the current packet queue and latest machine-side audit summaries
-    - import the reviewed packet(s)
-    - freeze the reviewed local slice
-    - rerun `mechanism_integrity`
+    - consult `reading-companion-backend/eval/review_packets/review_queue_summary.md` for the current queue state
+    - use the archived round-1 packets plus their imported dataset metadata as the current review authority
+    - build the next revision/replacement packet set, especially for the Chinese weak slice
+    - rerun `mechanism_integrity` on the reviewed slice
     - only then decide whether broader semantic comparison should proceed unchanged
+  - Generated the next Chinese hardening packet directly from the tracked `benchmark_status` flags:
+    - `attentional_v2_zh_revision_replacement_round2`
+    - contains the `4` Chinese `needs_revision` cases and the `2` Chinese `needs_replacement` cases from `attentional_v2_excerpt_zh_curated_v2`
+    - was created by the new helper `reading-companion-backend/eval/attentional_v2/generate_revision_replacement_packet.py`
+  - Important current-state note: the round-2 Chinese packet itself is ready and visible in the queue summary, but the attempted machine-side case audit for that packet has not yet produced a finished summary. Treat the packet as actionable; do not treat a fresh audit result as landed evidence yet.
+  - Recorded an additional Phase 9 reminder so the project does not forget the benchmark-size question: after the reviewed-slice rerun and first broader comparisons, we must explicitly decide whether the current `v2` benchmark family is still too small for high-confidence method judgment. If it is, the next expansion targets are roughly `25-30` curated excerpt cases per language and `24-30` chapter units per language before stronger promotion claims.

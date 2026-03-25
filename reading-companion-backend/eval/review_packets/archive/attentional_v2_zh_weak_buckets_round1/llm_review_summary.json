@@ -1,0 +1,11 @@
+{
+  "packet_id": "attentional_v2_zh_weak_buckets_round1",
+  "generated_at": "2026-03-25T13:36:30Z",
+  "review_origin": "llm",
+  "review_policy": "llm_thread_adjudication_v1",
+  "case_count": 6,
+  "action_counts": {
+    "revise": 4,
+    "drop": 2
+  }
+}

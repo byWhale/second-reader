@@ -40,22 +40,39 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - provenance manifests
   - structural validation
   - explicit case-purpose metadata
-  - targeted human review for ambiguous or high-impact cases
+  - targeted adjudicated review for ambiguous or high-impact cases
+  - when human review capacity is unavailable, multi-prompt LLM adjudication may replace manual review as the operational reviewer
 
 ## Dual Diagnosis Rule
 - Every meaningful evaluation pass should inspect two possibilities:
   - the mechanism is weak
   - the dataset, case framing, or evaluation harness is weak
+- Every meaningful promotion-oriented evaluation pass should also inspect a third possibility:
+  - the current benchmark family is too small or too narrow to support a confident judgment
 - We should not attribute a bad score to the mechanism alone unless the dataset and harness have survived the same scrutiny.
 - We should also not protect the mechanism by assuming every bad result is a benchmark flaw.
 - The required practice is dual diagnosis:
   - inspect the evaluation result itself
   - inspect whether the dataset, case label, case boundary, or harness design may have produced a misleading signal
+- When the project is making a promotion or default-cutover decision, treat benchmark-size adequacy as an explicit gate rather than an implicit hope.
 - This rule is especially important for:
   - builder-curated cases
   - new mechanism-specific buckets
   - new judge prompts or scoring contracts
   - the first serious run on a newly expanded benchmark family
+
+## Benchmark-Size Adequacy Rule
+- A benchmark family can be:
+  - coverage-adequate for first serious diagnosis
+  - yet still too small for final product-confidence or default-cutover judgment
+- Stable evaluation practice should therefore separate:
+  - first serious evaluation readiness
+  - final promotion confidence
+- If reviewed runs reveal that conclusions still depend too heavily on a small number of cases, narrow buckets, or thin chapter coverage, the correct next step is benchmark expansion before stronger product conclusions.
+- Runtime and compatibility fixtures often reach adequacy earlier than semantic excerpt and chapter-comparison datasets.
+- Reports and implementation trackers should explicitly record when:
+  - the benchmark is good enough for early diagnosis
+  - but not yet large enough for high-confidence cross-mechanism or default-cutover decisions
 
 ## Why Reader Evaluation Exists
 - Reader evaluation exists to guide optimization first and preserve evidence second.
@@ -167,6 +184,15 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - mechanism key
   - config fingerprint
   - normalized attention trail, reactions, chapter outputs, and memory summaries when the runtime exposes them
+
+### Current Operational Review Rule
+- Until explicitly reversed in the docs, benchmark-case hardening should default to multi-prompt LLM adjudication rather than manual packet review.
+- The minimum independent review shape for current dataset hardening is:
+  - primary case-design review
+  - adversarial disagreement review
+  - final adjudication review with a separate prompt role
+- This rule exists to keep dataset hardening executable even when human review capacity is limited.
+- Manual human review remains valuable, but it is optional escalation for later higher-trust promotion work rather than a default blocker for current packet review tasks.
 
 ## Observability Posture For Evaluation
 - Default evaluation should rely on `standard` observability first.

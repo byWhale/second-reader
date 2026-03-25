@@ -1,0 +1,23 @@
+{
+  "packet_id": "attentional_v2_zh_weak_buckets_round1",
+  "created_at": "2026-03-25T00:27:12.572826Z",
+  "dataset_id": "attentional_v2_excerpt_zh_curated_v2",
+  "family": "excerpt_cases",
+  "storage_mode": "tracked",
+  "dataset_manifest_path": "eval/datasets/excerpt_cases/attentional_v2_excerpt_zh_curated_v2/manifest.json",
+  "dataset_primary_file_path": "eval/datasets/excerpt_cases/attentional_v2_excerpt_zh_curated_v2/cases.jsonl",
+  "selection_filters": {
+    "buckets": [
+      "callback_bridge",
+      "reconsolidation_later_reinterpretation"
+    ],
+    "limit": 0,
+    "only_unreviewed": false,
+    "case_ids": []
+  },
+  "case_count": 6,
+  "import_contract_version": "1",
+  "review_origin": "llm",
+  "review_policy": "llm_thread_adjudication_v1",
+  "llm_review_generated_at": "2026-03-25T00:00:00Z"
+}
