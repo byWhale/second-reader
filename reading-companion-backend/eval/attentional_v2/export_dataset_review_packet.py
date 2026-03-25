@@ -98,7 +98,7 @@ def normalize_pipe_list(value: Any) -> str:
 def filtered_rows(
     rows: list[dict[str, Any]],
     *,
-    bucket: str | None,
+    buckets: set[str],
     limit: int | None,
     only_unreviewed: bool,
     case_ids: set[str],
@@ -108,7 +108,7 @@ def filtered_rows(
         case_id = str(row.get("case_id", ""))
         if case_ids and case_id not in case_ids:
             continue
-        if bucket and f"__{bucket}__" not in case_id:
+        if buckets and not any(f"__{bucket}__" in case_id for bucket in buckets):
             continue
         if only_unreviewed and row.get("human_review_latest"):
             continue
@@ -308,7 +308,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--family", default="excerpt_cases", choices=FAMILY_CHOICES)
     parser.add_argument("--storage-mode", default="tracked", choices=STORAGE_MODE_CHOICES)
     parser.add_argument("--packet-id")
-    parser.add_argument("--bucket")
+    parser.add_argument("--bucket", action="append", default=[])
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--only-unreviewed", action="store_true")
     parser.add_argument("--case-id", action="append", default=[])
@@ -328,7 +328,7 @@ def main() -> int:
     source_rows = load_jsonl(current_dataset_dir / primary_file)
     selected_rows = filtered_rows(
         source_rows,
-        bucket=(args.bucket or "").strip() or None,
+        buckets={bucket.strip() for bucket in args.bucket if bucket.strip()},
         limit=args.limit if args.limit > 0 else None,
         only_unreviewed=bool(args.only_unreviewed),
         case_ids={case_id.strip() for case_id in args.case_id if case_id.strip()},
@@ -351,7 +351,7 @@ def main() -> int:
         "dataset_manifest_path": str(dataset_manifest_path.relative_to(ROOT)),
         "dataset_primary_file_path": str((current_dataset_dir / primary_file).relative_to(ROOT)),
         "selection_filters": {
-            "bucket": args.bucket or "",
+            "buckets": list(args.bucket),
             "limit": args.limit,
             "only_unreviewed": bool(args.only_unreviewed),
             "case_ids": list(args.case_id),

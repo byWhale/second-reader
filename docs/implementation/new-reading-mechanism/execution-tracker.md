@@ -173,6 +173,10 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Run mechanism-integrity evaluation
 - [x] Add the dataset-quality hardening workflow before broader semantic comparison work
 - [x] Build an offline case-audit workflow for curated excerpt cases
+- [x] Run the first machine-side case audit on the first weak-bucket review packet
+- [x] Prepare the next English weak-case review packet
+- [x] Run the machine-side case audit on the next English weak-case packet
+- [x] Strengthen dataset status/provenance fields for later reviewed-slice freezing
 - [ ] Review and harden the weakest local buckets:
   - `callback_bridge`
   - `reconsolidation_later_reinterpretation`
@@ -247,3 +251,17 @@ Update when: status changes, blockers appear, or phases complete.
   - Important interpretation note for next work: every evaluated local case still chose `advance`, which suggests the excerpt harness is currently best at testing closure and anchored selectivity but still under-exercises meaningful `dwell` / `bridge` / `reframe` diversity. The next evaluation step should keep the current run result, but also refine bridge and reconsolidation case pressure before treating local move quality as mature evidence.
   - Landed the dataset-quality hardening workflow as executable project infrastructure rather than just a note: the stable evaluation docs now require dual diagnosis of mechanism problems versus dataset/harness problems, the backend agent guide now reminds future coding agents about that rule, and the backend now has packet-based export/import tooling for human review of benchmark cases without a frontend UI.
   - Promoted dataset-quality hardening into its own explicit Phase 9 work item. The project now treats benchmark-case review as a first-class task rather than a quiet background assumption, and the immediate recommendation is to harden the local excerpt slice before trusting broader semantic comparison work too much.
+- `2026-03-25`
+  - Generated the first real human-review packet for weak local hardening: `attentional_v2_zh_weak_buckets_round1` under `reading-companion-backend/eval/review_packets/pending/`. It contains the tracked Chinese `callback_bridge` and `reconsolidation_later_reinterpretation` cases from the curated `v2` excerpt family.
+  - Ran the first machine-side case-design audit on that same packet at `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/`. Result: `0` factual failures, but only `1 keep`, `4 revise`, and `1 drop`, with low average bucket-fit / focus-clarity / excerpt-strength scores. The machine-side audit therefore agrees that the weakest local slice likely has real case-design problems, not only mechanism problems.
+  - Generated the next English weak-case packet: `attentional_v2_en_weak_cases_round1` under `reading-companion-backend/eval/review_packets/pending/`. It contains the six non-pass English local cases from the first corrected `mechanism_integrity` run.
+  - Ran the companion machine-side case audit on that English packet at `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/`. Result: `0` factual failures, `4 keep`, and `2 revise`, which suggests the English weak slice is stronger than the Chinese weak slice but still not clean enough to skip review entirely.
+  - Strengthened the curated excerpt datasets for later reviewed-slice freezing: added baseline review/provenance metadata to both tracked curated `v2` excerpt packs, added `backfill_case_review_metadata.py`, and added `freeze_reviewed_dataset_slice.py` so later human-reviewed subsets can be frozen into explicit reviewed benchmark packages instead of being managed ad hoc.
+  - The immediate next path is now concrete rather than implied:
+    - review the active packet or packets
+      - `attentional_v2_zh_weak_buckets_round1`
+      - `attentional_v2_en_weak_cases_round1`
+    - import the reviewed packet(s)
+    - freeze the reviewed local slice
+    - rerun `mechanism_integrity`
+    - only then decide whether broader semantic comparison should proceed unchanged

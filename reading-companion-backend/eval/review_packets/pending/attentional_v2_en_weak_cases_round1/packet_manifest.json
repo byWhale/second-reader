@@ -1,0 +1,24 @@
+{
+  "packet_id": "attentional_v2_en_weak_cases_round1",
+  "created_at": "2026-03-25T00:43:44.415672Z",
+  "dataset_id": "attentional_v2_excerpt_en_curated_v2",
+  "family": "excerpt_cases",
+  "storage_mode": "tracked",
+  "dataset_manifest_path": "eval/datasets/excerpt_cases/attentional_v2_excerpt_en_curated_v2/manifest.json",
+  "dataset_primary_file_path": "eval/datasets/excerpt_cases/attentional_v2_excerpt_en_curated_v2/cases.jsonl",
+  "selection_filters": {
+    "buckets": [],
+    "limit": 0,
+    "only_unreviewed": false,
+    "case_ids": [
+      "varieties_of_religious_experience_public_en__6__distinction_definition__v2",
+      "darkwater_public_en__9__tension_reversal__v2",
+      "walden_205_en__6__callback_bridge__v2",
+      "walden_205_en__10__callback_bridge__v2",
+      "on_liberty_public_en__10__callback_bridge__v2",
+      "souls_of_black_folk_408_en__8__reconsolidation_later_reinterpretation__v2"
+    ]
+  },
+  "case_count": 6,
+  "import_contract_version": "1"
+}

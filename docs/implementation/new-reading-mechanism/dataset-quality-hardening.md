@@ -29,6 +29,8 @@ We are not copying those frameworks literally. We are using their strongest prac
 
 Authoritative first-pass evidence:
 - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_integrity_v2_20260324-152539/`
+- first packet-level machine-side case audit:
+  - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/`
 
 ## Current Decision
 - Do **not** treat the current curated `v2` excerpt packs as final ground truth.
@@ -38,6 +40,7 @@ Authoritative first-pass evidence:
   - still eligible for review and promotion
 - Pause broader semantic comparison work until the weakest local buckets are reviewed.
 - It is still acceptable to continue purely structural or runtime-gate work in parallel when that work does not depend on the semantic case labels being final.
+- The first packet-level machine-side audit already indicates real benchmark-design weakness in the targeted Chinese weak-bucket slice, so that slice should now be treated as review-required rather than merely review-optional.
 
 ## Truth Layers
 ### Strong factual truth
@@ -148,6 +151,12 @@ The human loop should stay intentionally simple and not require a frontend websi
 - `reading-companion-backend/eval/review_packets/pending/`
 - `reading-companion-backend/eval/review_packets/archive/`
 
+### Current active packets
+- `attentional_v2_zh_weak_buckets_round1`
+  - tracked Chinese `callback_bridge` and `reconsolidation_later_reinterpretation`
+- `attentional_v2_en_weak_cases_round1`
+  - the six non-pass English local cases from the first corrected `mechanism_integrity` run
+
 ### Export tool
 - `reading-companion-backend/eval/attentional_v2/export_dataset_review_packet.py`
 
@@ -223,6 +232,21 @@ After edits:
 - rerun `mechanism_integrity`
 - compare whether the failures still point at the mechanism instead of case ambiguity
 
+### Reviewed-slice support tools
+- baseline metadata backfill:
+  - `reading-companion-backend/eval/attentional_v2/backfill_case_review_metadata.py`
+- reviewed-slice freezing:
+  - `reading-companion-backend/eval/attentional_v2/freeze_reviewed_dataset_slice.py`
+
+The current tracked curated `v2` excerpt datasets now carry baseline fields such as:
+- `review_status`
+- `benchmark_status`
+- `case_provenance`
+- `review_history`
+- `metadata_sync`
+
+That makes the later freeze step explicit and reproducible instead of depending on one-off dataset edits.
+
 ## How LLM-As-Judge Can Help
 ### Good uses
 LLM review is useful for:
@@ -271,6 +295,12 @@ Before trusting broader semantic comparison too much, the excerpt family should 
 - Do not jump straight into broader semantic comparison yet.
 - First harden the local excerpt benchmark slice.
 - The best immediate move is:
-  - build the LLM-based case-audit workflow
-  - run it on the weak buckets
-  - then decide which cases require human review
+  - use the active human-review packets:
+    - `attentional_v2_zh_weak_buckets_round1`
+    - `attentional_v2_en_weak_cases_round1`
+  - use the companion machine audits:
+    - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_weak_buckets_round1__20260325-003459/`
+    - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_en_weak_cases_round1__20260325-004347/`
+  - prioritize the Chinese packet first because the machine-side audit is much weaker there
+  - import the reviewed packet(s)
+  - freeze the reviewed local slice and rerun `mechanism_integrity`
