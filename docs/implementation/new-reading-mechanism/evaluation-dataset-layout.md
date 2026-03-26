@@ -312,6 +312,58 @@ If the current tracked curated + seed `v2` pool is insufficient:
     - expand only if runtime-gate coverage, not semantic confidence, is still weak
 - This expansion is conditional future work, not an automatic immediate task.
 
+## Planned Modern-Nonfiction Expansion
+The next gap-filling pass should use the downloaded modern-nonfiction books to increase both category diversity and overall dataset size.
+
+### Two-layer rule
+1. build a large local-only modern supplement first
+2. then promote balanced reviewed additions into the formal benchmark
+
+Reason:
+- the user-provided download pool may be category-rich but not perfectly language-balanced
+- we still want aggressive growth in candidate volume without breaking formal benchmark discipline
+
+### Expected local-only supplement size
+- usable books:
+  - `12-16`
+- excerpt seed candidates:
+  - roughly `120-160`
+- chapter candidates:
+  - roughly `30-50`
+- runtime candidates:
+  - roughly `50-80`
+
+### Expected benchmark promotion targets after review
+- curated excerpt benchmark:
+  - grow from `16` per language toward `30` per language
+- reviewed-active excerpt slice:
+  - grow from `9` per language toward `12+` per language
+- chapter corpus:
+  - grow from `18` per language toward `30` per language
+- runtime fixtures:
+  - grow from `36` per language toward `54` per language when the new books materially improve coverage
+- compatibility fixtures:
+  - grow from `36` shared toward `54` shared after live outputs are materialized
+
+### Category requirement for this pass
+The modern supplement should cover all of:
+- `business`
+- `management_economics`
+- `biography`
+- `history`
+- `social_reportage`
+- `science_technology`
+- `psychology_decision`
+- `literature`
+
+Preferred emphasis:
+- `management_economics`
+- `business`
+- `biography`
+
+The concrete shortlist and per-book reasons live in:
+- `docs/implementation/new-reading-mechanism/modern-nonfiction-expansion-booklist.md`
+
 ## Current Seed Build Status
 The first public-domain bilingual seed build has now landed in the repo/runtime workspace:
 

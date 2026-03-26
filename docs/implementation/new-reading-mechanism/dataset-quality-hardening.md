@@ -266,9 +266,10 @@ The review loop should stay intentionally simple and not require a frontend webs
   - current decision point:
     - the reviewed slice is no longer too small to be meaningful
     - broader semantic comparison should still remain blocked for now
+    - the first two targeted mechanism-repair passes are now landed
     - the next real choice is:
-      - start a first mechanism-repair pass from the current `9 + 9` reviewed slice
-      - or run one more balanced expansion round to reach the preferred `10-12` reviewed-active cases per language before broad mechanism tuning
+      - rerun the full `9 + 9` reviewed slice now
+      - or land one more narrow repair on distinction / anchorless-callback handling first
   - most recent bilingual hardening round:
     - implementation note:
       - the current import path is dataset-local, so one balanced bilingual round is represented as a synchronized packet pair rather than one mixed packet
@@ -459,6 +460,41 @@ The review loop should stay intentionally simple and not require a frontend webs
         - exact callback-cue reading
         - exact distinction / recognition-gap reading
         - durable-pattern recognition before withholding reaction or defaulting to generic biography summary
+  - second mechanism-repair pass:
+    - code changes:
+      - Phase 4 zoom/closure now receive deterministic local textual cue packets for:
+        - `callback_cue`
+        - `distinction_cue`
+        - `recognition_gap`
+        - `durable_pattern`
+      - the live runner now passes richer boundary context into the local cycle:
+        - trigger output
+        - gate state
+        - trigger signals
+        - callback-anchor ids
+    - focused verification:
+      - targeted tests passed for cue packaging, prompt-version manifests, and runner boundary-context handoff
+      - targeted rerun:
+        - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_integrity_repair_pass2_targeted_20260326/`
+        - same four weak Chinese reviewed cases as repair pass 1
+    - result:
+      - `2 pass`
+      - `1 partial`
+      - `1 fail`
+      - strongest improvements:
+        - `jinghua_yuan_25377_zh__34__callback_bridge__v2`: `partial -> pass`
+        - `chenlun_public_zh__4__reconsolidation_later_reinterpretation__v2`: `fail -> pass`
+        - `gushi_xinbian_public_zh__4__distinction_definition__v2`: `fail -> partial`
+      - remaining hard failure:
+        - `jinghua_yuan_25377_zh__15__callback_bridge__v2`
+    - interpretation:
+      - the repair work is now changing the benchmark outcome materially instead of only cosmetically
+      - the remaining weakness is narrower than before:
+        - one distinction / recognition-gap case is still too shallow
+        - one callback case still misbridges when the cue is explicit but the strongest supporting anchor is absent or wrong in the retrieved already-read space
+      - this is now the next decision gate:
+        - rerun the full reviewed slice immediately
+        - or land one more narrow repair on distinction / anchorless-callback handling first
 
 ### Export tool
 - `reading-companion-backend/eval/attentional_v2/export_dataset_review_packet.py`

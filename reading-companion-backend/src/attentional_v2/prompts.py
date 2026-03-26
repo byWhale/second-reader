@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v2"
-ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v2"
-MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v2"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v3"
+ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v3"
+MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v3"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
 REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v1"
 BRIDGE_RESOLUTION_PROMPT_VERSION = "attentional_v2.bridge_resolution.v1"
@@ -84,6 +84,9 @@ Relevant anchors:
 Live activations:
 {activation_context}
 
+Deterministic local textual cues:
+{local_textual_cues}
+
 Policy snapshot:
 {policy_snapshot}
 
@@ -124,6 +127,7 @@ Rules:
 - Closure must be earned, not forced.
 - Preserve unresolved pressure when the text is still incomplete.
 - Close around the sharpest live distinction, callback cue, or explanatory pattern in the current span instead of flattening the span into generic scene summary.
+- When deterministic local cues show a callback, recognition gap, or durable pattern, address that cue directly in the summary or unresolved note.
 - Only propose explicit state operations.
 - Do not use future unseen text.
 - Return JSON only.""",
@@ -144,6 +148,9 @@ Relevant anchors:
 
 Live activations:
 {activation_context}
+
+Deterministic local textual cues:
+{local_textual_cues}
 
 Zoom result:
 {zoom_result}

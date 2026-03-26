@@ -77,6 +77,64 @@ These are requirements for the books themselves, before curation.
   - Avoid making the first corpus depend on deep domain expertise to understand whether a passage was read well.
   - Some specialized books are useful, but not if only a specialist could evaluate them fairly.
 
+## Current Gap-Filling Direction
+The first large tracked `v2` benchmark solved the earlier "public-first seed corpus" problem, but it left one important genre-distribution weakness:
+- the current benchmark pool leans too heavily toward fiction / literary prose
+
+That means the benchmark is currently stronger at exposing:
+- callback and bridge behavior in narrative prose
+- local ambiguity, scene pressure, and literary distinction handling
+
+And still weaker at exposing:
+- claim-evidence linkage in nonfiction
+- concept-definition and concept-distinction handling
+- advice / principle extraction without over-generalization
+- timeline, causality, and decision-path reasoning over real people and institutions
+- pattern detection in nonfiction explanatory prose
+
+### Next acquisition rule
+The next source-book expansion should explicitly diversify beyond fiction and literary prose.
+
+Required direction:
+- keep literature in the corpus
+- do not let literature remain the dominant shape of the benchmark
+- add more nonfiction, especially books that help expose mechanism weakness on:
+  - argument structure
+  - principle extraction
+  - explanatory patterns
+  - real-world causality
+  -人物/组织长期演化
+
+### Preferred category weighting for the next modern expansion
+If the next acquisition pass is constrained, prioritize in this order:
+1. `management_economics`
+2. `business`
+3. `biography`
+4. `history`
+5. `social_reportage`
+6. `science_technology`
+7. `psychology_decision`
+8. `literature` as a continuing but no-longer-dominant control category
+
+### Operational storage rule for modern copyrighted books
+- modern copyrighted additions should default to:
+  - durable local source-library books under `reading-companion-backend/state/library_sources/`
+  - local-only text-bearing evaluation packages under `reading-companion-backend/state/eval_local_datasets/`
+- tracked manifests and tracked benchmark structure should still stay unified with the same benchmark family
+- acquisition-language rule for modern books:
+  - prefer the original-language edition by default
+  - use translated editions only when:
+    - the original-language edition is unavailable
+    - or a later explicit language-track goal requires the translation as a separate acquisition
+  - for English-origin business / management / biography books such as:
+    - `Poor Charlie's Almanack`
+    - `The Almanack of Naval Ravikant`
+    - `Steve Jobs`
+    - `Elon Musk`
+    download the English original first rather than a Chinese translation
+- the exact first modern-nonfiction shortlist and per-book rationale now live in:
+  - `docs/implementation/new-reading-mechanism/modern-nonfiction-expansion-booklist.md`
+
 ## Corpus-Level Coverage Requirements
 These are requirements for the corpus as a whole. Some can be satisfied during curation, but only if the source-book pool is rich enough.
 

@@ -672,6 +672,26 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     book_title=provisioned.title,
                     author=provisioned.author,
                     chapter_title=_clean_text(chapter.get("title")),
+                    boundary_context={
+                        "trigger_output": _clean_text(trigger_state.get("output")),
+                        "gate_state": _clean_text(trigger_state.get("gate_state")),
+                        "cadence_counter": int(trigger_state.get("cadence_counter", 0) or 0),
+                        "trigger_signals": [
+                            {
+                                "signal_kind": _clean_text(signal.get("signal_kind")),
+                                "family": _clean_text(signal.get("family")),
+                                "strength": _clean_text(signal.get("strength")),
+                                "evidence": _clean_text(signal.get("evidence")),
+                            }
+                            for signal in trigger_state.get("signals", [])
+                            if isinstance(signal, dict)
+                        ],
+                        "callback_anchor_ids": [
+                            _clean_text(anchor_id)
+                            for anchor_id in trigger_state.get("callback_anchor_ids", [])
+                            if _clean_text(anchor_id)
+                        ],
+                    },
                 )
                 zoom_result = dict(phase4.get("zoom_result") or {})
                 closure_result = dict(phase4.get("closure_result") or {})

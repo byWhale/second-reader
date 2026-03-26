@@ -13,9 +13,14 @@ Last updated: `2026-03-26`
 - Phase 9 preparation for the new reading mechanism project
 - use `docs/implementation/new-reading-mechanism/` as the temporary working set for design capture, planning, progress tracking, and open questions
 - keep the current active route explicit:
-  - continue benchmark hardening through a balanced bilingual excerpt round
-  - do not trust broader semantic comparison until the next bilingual hardening and reviewed-slice expansion round lands
-  - only then trust broader semantic comparison more strongly
+  - keep broader semantic comparison blocked while the current mechanism-repair gate is unresolved
+  - the next real choice is:
+    - rerun the full `9 + 9` reviewed slice now after repair pass 2
+    - or land one more narrow repair on distinction / anchorless-callback handling first
+  - keep the next corpus-growth direction explicit too:
+    - the benchmark should no longer grow as literature-heavy by default
+    - the next acquisition pass should diversify into modern nonfiction with emphasis on management / economics, business, and biography
+    - once the books are downloaded, treat that pass as a large supplement build rather than a tiny patch
 - the temporary side branch for a universal shared LLM invocation/traceability layer is now landed
   - shared provider contracts, key-pool failover, task-level profiles, and standard/debug trace sinks now live in backend infrastructure
   - the return path is direct:
@@ -87,7 +92,40 @@ Last updated: `2026-03-26`
     - exact callback-cue reading
     - distinction / recognition-gap closure
     - durable-pattern framing for reconsolidation cases
+- The second mechanism-repair pass has now landed:
+  - Phase 4 zoom/closure receive deterministic local textual cue packets for:
+    - `callback_cue`
+    - `distinction_cue`
+    - `recognition_gap`
+    - `durable_pattern`
+  - the live runner now passes trigger output, gate state, trigger signals, and callback-anchor ids into the local boundary context
+- Second repair-pass evidence:
+  - targeted run:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_integrity_repair_pass2_targeted_20260326/`
+  - result:
+    - `2 pass`
+    - `1 partial`
+    - `1 fail`
+    - major improvement on:
+      - one callback case (`jinghua_yuan_25377_zh__34__callback_bridge__v2`)
+      - the targeted reconsolidation case (`chenlun_public_zh__4__reconsolidation_later_reinterpretation__v2`)
+    - remaining narrow weakness:
+      - one distinction / recognition-gap case is still shallow
+      - one callback case still misbridges because the actual supporting prior-acquaintance anchor is not honestly resolved
+- The next real decision point is now:
+  - rerun the full `9 + 9` reviewed slice immediately
+  - or land one more narrow repair first
 - Stable mechanism docs are now split between the shared platform doc (`docs/backend-reading-mechanism.md`) and per-mechanism docs under `docs/backend-reading-mechanisms/`.
+- The next modern source-book expansion is now recorded explicitly in:
+  - it now includes both:
+    - why these books were selected
+    - what we will do with them after download
+  - `docs/implementation/new-reading-mechanism/modern-nonfiction-expansion-booklist.md`
+  - use that file for:
+    - why the current corpus mix is still too literature-heavy
+    - the first `16`-book executable shortlist
+    - category coverage and priority
+    - post-download supplement-build workflow and larger size targets
 - Storage helpers still read older shared-path and flat legacy artifacts for compatibility, but new writes should target the namespaced mechanism paths.
 - Normal reading runs do not persist normalized eval bundles; those exports are reserved for explicit eval-mode runs.
 - Backend mechanism work is still shifting toward one shared runtime shell plus multiple mechanism-specific implementations. During this migration, `iterator_reader` remains the only default mechanism unless stable docs say otherwise.

@@ -55,6 +55,61 @@ _STATE_OPERATION_TYPES = {
 }
 _CLOSURE_DECISIONS: set[ClosureDecision] = {"continue", "close"}
 _EMISSION_DECISIONS: set[ReactionEmissionDecision] = {"emit", "withhold"}
+_CALLBACK_MARKERS = (
+    "since that day",
+    "from that day",
+    "when they were young",
+    "earlier",
+    "previously",
+    "remember",
+    "recall",
+    "當年",
+    "当年",
+    "自從",
+    "自从",
+    "那日",
+    "先前",
+    "從前",
+    "从前",
+    "記得",
+    "记得",
+)
+_DISTINCTION_MARKERS = (
+    "different",
+    "differs",
+    "instead",
+    "rather than",
+    "however",
+    "in contrast",
+    "不同",
+    "大不同",
+    "不是",
+    "而是",
+    "却",
+    "卻",
+)
+_RECOGNITION_GAP_MARKERS = (
+    "did not know",
+    "didn't know",
+    "could not tell",
+    "不知道",
+    "不知",
+    "未識",
+    "未识",
+)
+_DURABLE_PATTERN_MARKERS = (
+    "again and again",
+    "repeatedly",
+    "always",
+    "habitually",
+    "換來換去",
+    "换来换去",
+    "無恆性",
+    "无恆性",
+    "无恒性",
+    "心思太活",
+    "不能按部就班",
+)
 
 
 def _timestamp() -> str:
@@ -135,6 +190,47 @@ def _activation_context(activations: KnowledgeActivationsState, *, limit: int = 
             }
         )
     return context
+
+
+def _local_textual_cues(
+    current_span_sentences: list[dict[str, object]],
+    *,
+    limit: int = 6,
+) -> list[dict[str, str]]:
+    """Extract small deterministic cue packets for callback/distinction/pattern pressure."""
+
+    cues: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for sentence in current_span_sentences:
+        sentence_id = _clean_text(sentence.get("sentence_id"))
+        text = _clean_text(sentence.get("text"))
+        if not sentence_id or not text:
+            continue
+        lowered = text.lower()
+
+        def add_cue(cue_type: str, reason: str) -> None:
+            key = (sentence_id, cue_type)
+            if key in seen or len(cues) >= limit:
+                return
+            seen.add(key)
+            cues.append(
+                {
+                    "sentence_id": sentence_id,
+                    "cue_type": cue_type,
+                    "evidence": text[:180],
+                    "reason": reason,
+                }
+            )
+
+        if any(marker in lowered for marker in _CALLBACK_MARKERS):
+            add_cue("callback_cue", "sentence contains an explicit backward-looking or prior-time marker")
+        if any(marker in lowered for marker in _DISTINCTION_MARKERS):
+            add_cue("distinction_cue", "sentence contains explicit contrast or difference language")
+        if any(marker in lowered for marker in _RECOGNITION_GAP_MARKERS):
+            add_cue("recognition_gap", "sentence contains an explicit failure-to-recognize cue")
+        if any(marker in lowered for marker in _DURABLE_PATTERN_MARKERS):
+            add_cue("durable_pattern", "sentence contains repeated-behavior or character-pattern evidence")
+    return cues
 
 
 def _write_prompt_manifest(
@@ -275,6 +371,7 @@ def zoom_read(
 
     prompts = ATTENTIONAL_V2_PROMPTS
     focal_text = _clean_text(focal_sentence.get("text"))
+    local_textual_cues = _local_textual_cues([*local_context_sentences, focal_sentence])
     structural_frame = _structural_frame(
         book_title=book_title,
         author=author,
@@ -304,6 +401,7 @@ def zoom_read(
         working_pressure=_json_block(working_pressure),
         anchor_context=_json_block(_anchor_context(anchor_memory)),
         activation_context=_json_block(_activation_context(knowledge_activations)),
+        local_textual_cues=_json_block(local_textual_cues),
         policy_snapshot=_json_block(reader_policy),
         output_language_name=language_name(output_language),
     )
@@ -364,6 +462,7 @@ def meaning_unit_closure(
         }
         for sentence in current_span_sentences
     ]
+    local_textual_cues = _local_textual_cues(current_span_sentences)
     user_prompt = _render_prompt(
         prompts.meaning_unit_closure_prompt,
         structural_frame=_json_block(structural_frame),
@@ -372,6 +471,7 @@ def meaning_unit_closure(
         working_pressure=_json_block(working_pressure),
         anchor_context=_json_block(_anchor_context(anchor_memory)),
         activation_context=_json_block(_activation_context(knowledge_activations)),
+        local_textual_cues=_json_block(local_textual_cues),
         zoom_result=_json_block(dict(zoom_result or {})),
         policy_snapshot=_json_block(reader_policy),
         output_language_name=language_name(output_language),

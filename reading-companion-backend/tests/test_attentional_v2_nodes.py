@@ -82,8 +82,8 @@ def test_zoom_read_writes_prompt_manifest_and_normalizes_payload(tmp_path, monke
     assert result["pressure_updates"][0]["operation_type"] == "update"
     assert result["bridge_candidate"]["target_anchor_id"] == "a-1"
     assert result["consider_reaction_emission"] is True
-    assert manifest["prompt_version"] == "attentional_v2.zoom_read.v2"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v2"
+    assert manifest["prompt_version"] == "attentional_v2.zoom_read.v3"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v3"
 
 
 def test_controller_decision_refuses_bridge_without_candidates(monkeypatch):
@@ -312,3 +312,37 @@ def test_run_phase4_local_cycle_keeps_zoom_bridge_hints(monkeypatch):
     assert result["bridge_candidates"][0]["target_sentence_id"] == "c1-s1"
     assert result["controller_result"]["chosen_move"] == "bridge"
     assert result["controller_result"]["target_sentence_id"] == "c1-s1"
+
+
+def test_zoom_read_prompt_receives_local_textual_cues(monkeypatch):
+    """Zoom prompt should include deterministic cue packets for local callback/distinction pressure."""
+
+    captured_prompt: dict[str, str] = {}
+
+    def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
+        captured_prompt["value"] = prompt
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    zoom_read(
+        focal_sentence=_sentence("c1-s3", "因為這和伊先前听慣的“nganga”的哭聲大不同了，所以竟不知道這也是一种哭。", sentence_index=3),
+        local_context_sentences=[
+            _sentence("c1-s1", "忽而听到嗚嗚咽咽的聲音了。", sentence_index=1),
+            _sentence("c1-s2", "卻見方板底下的小眼睛里含著兩粒眼淚。", sentence_index=2),
+        ],
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        output_language="zh",
+        output_dir=None,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+    )
+
+    prompt_text = captured_prompt["value"]
+    assert "Deterministic local textual cues" in prompt_text
+    assert "recognition_gap" in prompt_text
+    assert "distinction_cue" in prompt_text

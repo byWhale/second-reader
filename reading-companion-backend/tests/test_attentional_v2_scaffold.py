@@ -230,11 +230,13 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
     captured_bridge_candidates: list[dict[str, object]] = []
+    captured_boundary_contexts: list[dict[str, object]] = []
 
     def fake_phase4_local_cycle(**kwargs):
         focal_sentence = kwargs["focal_sentence"]
         anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
         captured_bridge_candidates.extend(kwargs["bridge_candidates"])
+        captured_boundary_contexts.append(dict(kwargs["boundary_context"]))
         return {
             "zoom_result": None,
             "closure_result": {
@@ -355,6 +357,9 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert chapter_payload["visible_reaction_count"] >= 1
     assert captured_bridge_candidates[0]["target_sentence_id"] == "c1-s1"
     assert captured_bridge_candidates[0]["retrieval_channel"] == "source_callback"
+    assert captured_boundary_contexts[0]["trigger_output"] == "zoom_now"
+    assert captured_boundary_contexts[0]["gate_state"] == "hot"
+    assert isinstance(captured_boundary_contexts[0]["trigger_signals"], list)
     shell = load_runtime_shell(runtime_shell_file(result.output_dir))
     assert shell["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
     assert shell["status"] == "completed"

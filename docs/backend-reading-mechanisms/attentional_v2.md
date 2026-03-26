@@ -75,6 +75,12 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - The current scaffold already has the Phase 4 node boundary and handoff shape:
   - `zoom_read -> meaning_unit_closure -> controller_decision`
   - optional `reaction_emission` gate after closure when the moment earns a visible anchored thought
+- The live Phase 4 boundary context now carries:
+  - trigger output
+  - gate state
+  - trigger-signal evidence
+  - callback-anchor ids
+  so closure/controller decisions can stay answerable to the same trigger evidence that opened the local cycle.
 - The current Phase 4 controller candidate pool now merges three sources before choosing the next move:
   - one optional zoom-level bridge hint
   - closure-level bridge candidates
@@ -144,10 +150,23 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - open tensions
     - unresolved questions
     - active motifs and recurrence notes
+  - `boundary context`
+    - trigger output
+    - gate state
+    - cadence counter
+    - trigger-signal evidence
+    - callback-anchor ids
   - `retrieved anchors`
     - a small set of earlier spans selected because they are semantically, structurally, or motif-recurrently relevant
   - `deterministic candidate set`
     - memory-first retained anchors plus bounded look-back source-space candidates for honest bridge judgment
+  - `deterministic local textual cues`
+    - compact cue packets such as:
+      - `callback_cue`
+      - `distinction_cue`
+      - `recognition_gap`
+      - `durable_pattern`
+    - these cues are meant to keep local interpretation centered on the exact textual pressure instead of flattening it into generic scene summary
 - Retrieved anchors are chosen by a mix of:
   - semantic similarity
   - motif recurrence

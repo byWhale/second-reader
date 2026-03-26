@@ -51,6 +51,9 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 - `evaluation-corpus-requirements.md`
   - source-book and corpus-quality requirements for the future benchmark datasets
   - separates what curation can solve from what the source books must already satisfy
+- `modern-nonfiction-expansion-booklist.md`
+  - concrete next-pass modern book shortlist and selection rationale for diversifying the benchmark beyond literature-heavy sources
+  - freezes the first `16`-book executable acquisition list with category coverage and priority
 - `evaluation-dataset-layout.md`
   - concrete family-first dataset-package design for the bilingual `attentional_v2` benchmark build
   - defines package ids, folder roots, the split between tracked datasets, tracked manifests, and local-only private dataset packages, and the current public-first large `v2` benchmark family
@@ -88,7 +91,8 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 6. `open-questions.md`
 7. `evaluation-question-map.md`
 8. `evaluation-corpus-requirements.md`
-9. `evaluation-dataset-layout.md`
-10. `dataset-quality-hardening.md`
-11. `runtime-artifact-map.md`
-12. Stable docs listed above, as required by the task at hand
+9. `modern-nonfiction-expansion-booklist.md`
+10. `evaluation-dataset-layout.md`
+11. `dataset-quality-hardening.md`
+12. `runtime-artifact-map.md`
+13. Stable docs listed above, as required by the task at hand
