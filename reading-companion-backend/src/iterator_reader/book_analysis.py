@@ -12,7 +12,7 @@ from src.prompts.capabilities.book_analysis import BOOK_ANALYSIS_PROMPTS, BookAn
 from src.tools.search import search_web
 
 from .language import language_name
-from .llm_utils import invoke_json, invoke_text
+from .llm_utils import LLMTraceContext, invoke_json, invoke_text, llm_invocation_scope
 from .models import (
     BookAnalysisPolicy,
     BookAnalysisState,
@@ -497,18 +497,21 @@ def _synthesize_book_analysis_with_llm(
     evidence_checks: list[dict[str, object]],
     prompt_set: BookAnalysisPromptSet = BOOK_ANALYSIS_PROMPTS,
 ) -> str:
-    payload = invoke_text(
-        prompt_set.synthesis_system,
-        prompt_set.synthesis_prompt.format(
-            user_intent=user_intent or "Not specified",
-            output_language_name=language_name(output_language),
-            claim_cards_json=json.dumps(claim_cards, ensure_ascii=False, indent=2),
-            chapter_arc_json=json.dumps(chapter_arc, ensure_ascii=False, indent=2),
-            deep_dossiers_json=json.dumps(deep_dossiers, ensure_ascii=False, indent=2),
-            evidence_checks_json=json.dumps(evidence_checks, ensure_ascii=False, indent=2),
-        ),
-        default="",
-    ).strip()
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="book_analysis", node="synthesis")
+    ):
+        payload = invoke_text(
+            prompt_set.synthesis_system,
+            prompt_set.synthesis_prompt.format(
+                user_intent=user_intent or "Not specified",
+                output_language_name=language_name(output_language),
+                claim_cards_json=json.dumps(claim_cards, ensure_ascii=False, indent=2),
+                chapter_arc_json=json.dumps(chapter_arc, ensure_ascii=False, indent=2),
+                deep_dossiers_json=json.dumps(deep_dossiers, ensure_ascii=False, indent=2),
+                evidence_checks_json=json.dumps(evidence_checks, ensure_ascii=False, indent=2),
+            ),
+            default="",
+        ).strip()
     if not payload:
         return ""
     if not payload.startswith("#"):
@@ -606,18 +609,21 @@ def run_book_analysis(
             fallback = False
             payload: object = {}
             try:
-                payload = invoke_json(
-                    prompt_set.skim_system,
-                    prompt_set.skim_prompt.format(
-                        chapter_title=chapter.get("title", ""),
-                        segment_ref=segment_ref,
-                        segment_summary=segment_summary,
-                        user_intent=user_intent or "Not specified",
-                        segment_text=segment_text[:7000],
-                        output_language_name=language_name(output_language),
-                    ),
-                    default={},
-                )
+                with llm_invocation_scope(
+                    trace_context=LLMTraceContext(stage="book_analysis", node="skim")
+                ):
+                    payload = invoke_json(
+                        prompt_set.skim_system,
+                        prompt_set.skim_prompt.format(
+                            chapter_title=chapter.get("title", ""),
+                            segment_ref=segment_ref,
+                            segment_summary=segment_summary,
+                            user_intent=user_intent or "Not specified",
+                            segment_text=segment_text[:7000],
+                            output_language_name=language_name(output_language),
+                        ),
+                        default={},
+                    )
             except Exception:
                 payload = {}
                 fallback = True
@@ -806,15 +812,18 @@ def run_book_analysis(
         max_queries = min(max_queries_per_claim, total_query_slots)
         payload: object = {}
         try:
-            payload = invoke_json(
-                prompt_set.query_system,
-                prompt_set.query_prompt.format(
-                    claim_statement=claim.get("statement", ""),
-                    evidence_status=claim.get("evidence_status", "gap"),
-                    max_queries=max_queries,
-                ),
-                default={},
-            )
+            with llm_invocation_scope(
+                trace_context=LLMTraceContext(stage="book_analysis", node="query_generation")
+            ):
+                payload = invoke_json(
+                    prompt_set.query_system,
+                    prompt_set.query_prompt.format(
+                        claim_statement=claim.get("statement", ""),
+                        evidence_status=claim.get("evidence_status", "gap"),
+                        max_queries=max_queries,
+                    ),
+                    default={},
+                )
         except Exception:
             payload = {}
         queries = []

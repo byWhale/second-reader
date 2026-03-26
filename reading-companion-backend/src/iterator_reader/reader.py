@@ -15,7 +15,7 @@ from langgraph.graph import END, StateGraph
 from src.tools.search import classify_search_problem, search_web
 
 from .language import language_name
-from .llm_utils import ReaderLLMError, invoke_json
+from .llm_utils import LLMTraceContext, ReaderLLMError, invoke_json, llm_invocation_scope
 from .models import (
     ChapterMemorySummary,
     FindingStatus,
@@ -1410,20 +1410,23 @@ def _plan_subsegments_with_llm(
 
     prompt_set = _prompt_set(state)
     try:
-        payload = invoke_json(
-            prompt_set.reader_subsegment_plan_system,
-            prompt_set.reader_subsegment_plan_prompt.format(
-                book_context=_format_book_context(state),
-                current_part_context=_format_current_part_context(state),
-                chapter_title=state.get("chapter_title", ""),
-                segment_ref=_segment_ref(state),
-                segment_summary=state.get("segment_summary", ""),
-                numbered_sentences=_numbered_sentences_block(sentences),
-                user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
-                output_language_name=language_name(state.get("output_language", "en")),
-            ),
-            default={},
-        )
+        with llm_invocation_scope(
+            trace_context=LLMTraceContext(stage="reader", node="subsegment_plan")
+        ):
+            payload = invoke_json(
+                prompt_set.reader_subsegment_plan_system,
+                prompt_set.reader_subsegment_plan_prompt.format(
+                    book_context=_format_book_context(state),
+                    current_part_context=_format_current_part_context(state),
+                    chapter_title=state.get("chapter_title", ""),
+                    segment_ref=_segment_ref(state),
+                    segment_summary=state.get("segment_summary", ""),
+                    numbered_sentences=_numbered_sentences_block(sentences),
+                    user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
+                    output_language_name=language_name(state.get("output_language", "en")),
+                ),
+                default={},
+            )
     except ReaderLLMError:
         return None, "llm_error"
     except Exception:
@@ -1951,18 +1954,21 @@ def run_chapter_reflection(
     compact_segments = _compact_segments_for_chapter_reflection(segments)
     payload: object = {}
     try:
-        payload = invoke_json(
-            prompt_set.reader_chapter_reflect_system,
-            prompt_set.reader_chapter_reflect_prompt.format(
-                chapter_title=chapter_title,
-                chapter_primary_role=chapter_primary_role,
-                chapter_role_tags=", ".join(chapter_role_tags or []) or "none",
-                user_intent=user_intent or _default_user_intent(output_language),
-                segments_json=json.dumps(compact_segments, ensure_ascii=False, indent=2),
-                output_language_name=language_name(output_language),
-            ),
-            default={},
-        )
+        with llm_invocation_scope(
+            trace_context=LLMTraceContext(stage="reader", node="chapter_reflection")
+        ):
+            payload = invoke_json(
+                prompt_set.reader_chapter_reflect_system,
+                prompt_set.reader_chapter_reflect_prompt.format(
+                    chapter_title=chapter_title,
+                    chapter_primary_role=chapter_primary_role,
+                    chapter_role_tags=", ".join(chapter_role_tags or []) or "none",
+                    user_intent=user_intent or _default_user_intent(output_language),
+                    segments_json=json.dumps(compact_segments, ensure_ascii=False, indent=2),
+                    output_language_name=language_name(output_language),
+                ),
+                default={},
+            )
     except Exception:
         payload = {}
     return _normalize_chapter_reflection_payload(payload, segments, output_language)
@@ -2215,21 +2221,22 @@ def think_node(state: ReaderState) -> ReaderState:
     """Decide whether this semantic unit deserves expression."""
     memory_text, _budget = _assemble_memory_packet(state, "think")
     prompt_set = _prompt_set(state)
-    payload = invoke_json(
-        prompt_set.reader_think_system,
-        prompt_set.reader_think_prompt.format(
-            book_context=_format_book_context(state),
-            current_part_context=_format_current_part_context(state),
-            chapter_title=state.get("chapter_title", ""),
-            segment_ref=_segment_ref(state),
-            segment_summary=state.get("segment_summary", ""),
-            segment_text=state.get("segment_text", "")[:6000],
-            memory_text=memory_text,
-            user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
-            output_language_name=language_name(state.get("output_language", "en")),
-        ),
-        default={},
-    )
+    with llm_invocation_scope(trace_context=LLMTraceContext(stage="reader", node="think")):
+        payload = invoke_json(
+            prompt_set.reader_think_system,
+            prompt_set.reader_think_prompt.format(
+                book_context=_format_book_context(state),
+                current_part_context=_format_current_part_context(state),
+                chapter_title=state.get("chapter_title", ""),
+                segment_ref=_segment_ref(state),
+                segment_summary=state.get("segment_summary", ""),
+                segment_text=state.get("segment_text", "")[:6000],
+                memory_text=memory_text,
+                user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
+                output_language_name=language_name(state.get("output_language", "en")),
+            ),
+            default={},
+        )
     return {
         "thought": _normalize_thought(
             payload,
@@ -2243,23 +2250,24 @@ def express_node(state: ReaderState) -> ReaderState:
     """Produce mixed reactions for this semantic unit."""
     memory_text, _budget = _assemble_memory_packet(state, "express")
     prompt_set = _prompt_set(state)
-    payload = invoke_json(
-        prompt_set.reader_express_system,
-        prompt_set.reader_express_prompt.format(
-            book_context=_format_book_context(state),
-            current_part_context=_format_current_part_context(state),
-            chapter_title=state.get("chapter_title", ""),
-            segment_ref=_segment_ref(state),
-            segment_summary=state.get("segment_summary", ""),
-            segment_text=state.get("segment_text", "")[:6000],
-            thought_json=json.dumps(state.get("thought") or {}, ensure_ascii=False, indent=2),
-            memory_text=memory_text,
-            user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
-            revision_instruction=state.get("revision_instruction") or _default_revision_instruction(state.get("output_language", "en")),
-            output_language_name=language_name(state.get("output_language", "en")),
-        ),
-        default={},
-    )
+    with llm_invocation_scope(trace_context=LLMTraceContext(stage="reader", node="express")):
+        payload = invoke_json(
+            prompt_set.reader_express_system,
+            prompt_set.reader_express_prompt.format(
+                book_context=_format_book_context(state),
+                current_part_context=_format_current_part_context(state),
+                chapter_title=state.get("chapter_title", ""),
+                segment_ref=_segment_ref(state),
+                segment_summary=state.get("segment_summary", ""),
+                segment_text=state.get("segment_text", "")[:6000],
+                thought_json=json.dumps(state.get("thought") or {}, ensure_ascii=False, indent=2),
+                memory_text=memory_text,
+                user_intent=state.get("user_intent") or _default_user_intent(state.get("output_language", "en")),
+                revision_instruction=state.get("revision_instruction") or _default_revision_instruction(state.get("output_language", "en")),
+                output_language_name=language_name(state.get("output_language", "en")),
+            ),
+            default={},
+        )
     return {
         "reactions": _normalize_reactions(payload, state),
         "search_results": [],
@@ -2338,20 +2346,23 @@ def _fuse_curiosity_reaction(reaction: ReactionPayload, state: ReaderState) -> R
 
     prompt_set = _prompt_set(state)
     try:
-        payload = invoke_json(
-            prompt_set.reader_curiosity_fuse_system,
-            prompt_set.reader_curiosity_fuse_prompt.format(
-                chapter_title=state.get("chapter_title", ""),
-                segment_ref=_segment_ref(state),
-                segment_summary=state.get("segment_summary", ""),
-                anchor_quote=reaction.get("anchor_quote", "") or "（无）",
-                reaction_content=reaction.get("content", "") or reaction.get("search_query", ""),
-                search_query=reaction.get("search_query", ""),
-                search_results=json.dumps(reaction.get("search_results", []), ensure_ascii=False, indent=2),
-                output_language_name=language_name(state.get("output_language", "en")),
-            ),
-            default={},
-        )
+        with llm_invocation_scope(
+            trace_context=LLMTraceContext(stage="reader", node="curiosity_fuse")
+        ):
+            payload = invoke_json(
+                prompt_set.reader_curiosity_fuse_system,
+                prompt_set.reader_curiosity_fuse_prompt.format(
+                    chapter_title=state.get("chapter_title", ""),
+                    segment_ref=_segment_ref(state),
+                    segment_summary=state.get("segment_summary", ""),
+                    anchor_quote=reaction.get("anchor_quote", "") or "（无）",
+                    reaction_content=reaction.get("content", "") or reaction.get("search_query", ""),
+                    search_query=reaction.get("search_query", ""),
+                    search_results=json.dumps(reaction.get("search_results", []), ensure_ascii=False, indent=2),
+                    output_language_name=language_name(state.get("output_language", "en")),
+                ),
+                default={},
+            )
     except ReaderLLMError:
         raise
     except Exception:
@@ -2385,25 +2396,26 @@ def reflect_node(state: ReaderState) -> ReaderState:
     if active_reactions:
         memory_text, _budget = _assemble_memory_packet(state, "reflect")
         prompt_set = _prompt_set(state)
-        payload = invoke_json(
-            prompt_set.reader_reflect_system,
-            prompt_set.reader_reflect_prompt.format(
-                book_context=_format_book_context(state),
-                current_part_context=_format_current_part_context(state),
-                chapter_title=state.get("chapter_title", ""),
-                segment_ref=_segment_ref(state),
-                segment_summary=state.get("segment_summary", ""),
-                segment_text=state.get("segment_text", "")[:6000],
-                memory_text=memory_text,
-                reactions_json=json.dumps(
-                    state.get("reactions", []),
-                    ensure_ascii=False,
-                    indent=2,
+        with llm_invocation_scope(trace_context=LLMTraceContext(stage="reader", node="reflect")):
+            payload = invoke_json(
+                prompt_set.reader_reflect_system,
+                prompt_set.reader_reflect_prompt.format(
+                    book_context=_format_book_context(state),
+                    current_part_context=_format_current_part_context(state),
+                    chapter_title=state.get("chapter_title", ""),
+                    segment_ref=_segment_ref(state),
+                    segment_summary=state.get("segment_summary", ""),
+                    segment_text=state.get("segment_text", "")[:6000],
+                    memory_text=memory_text,
+                    reactions_json=json.dumps(
+                        state.get("reactions", []),
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                    output_language_name=language_name(state.get("output_language", "en")),
                 ),
-                output_language_name=language_name(state.get("output_language", "en")),
-            ),
-            default={},
-        )
+                default={},
+            )
 
     reflection = _normalize_reflection(payload, state)
     revision_count = state.get("revision_count", 0)

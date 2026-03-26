@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.iterator_reader.language import language_name
-from src.iterator_reader.llm_utils import invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, invoke_json, llm_invocation_scope
 
 from .prompts import ATTENTIONAL_V2_PROMPTS
 from .schemas import (
@@ -315,7 +315,8 @@ def zoom_read(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.zoom_read_system, user_prompt, default={})
+    with llm_invocation_scope(trace_context=LLMTraceContext(stage="phase4", node="zoom_read")):
+        payload = invoke_json(prompts.zoom_read_system, user_prompt, default={})
     anchor_quote = _clean_text(payload.get("anchor_quote")) if isinstance(payload, dict) else ""
     if anchor_quote and anchor_quote not in focal_text:
         anchor_quote = ""
@@ -383,7 +384,10 @@ def meaning_unit_closure(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.meaning_unit_closure_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase4", node="meaning_unit_closure")
+    ):
+        payload = invoke_json(prompts.meaning_unit_closure_system, user_prompt, default={})
     closure_decision = _clean_text(payload.get("closure_decision")).lower() if isinstance(payload, dict) else ""
     if closure_decision not in _CLOSURE_DECISIONS:
         closure_decision = "continue"
@@ -429,7 +433,10 @@ def controller_decision(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.controller_decision_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase4", node="controller_decision")
+    ):
+        payload = invoke_json(prompts.controller_decision_system, user_prompt, default={})
     chosen_move = _clean_text(payload.get("chosen_move")).lower().replace("-", "_") if isinstance(payload, dict) else ""
     if chosen_move not in _MOVE_TYPES:
         chosen_move = str(closure_result.get("dominant_move", "advance"))
@@ -488,7 +495,10 @@ def reaction_emission(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.reaction_emission_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase4", node="reaction_emission")
+    ):
+        payload = invoke_json(prompts.reaction_emission_system, user_prompt, default={})
     decision = _clean_text(payload.get("decision")).lower() if isinstance(payload, dict) else ""
     if decision not in _EMISSION_DECISIONS:
         decision = "withhold"

@@ -22,6 +22,7 @@ from eval.common.taxonomy import (
 from eval.subsegment.dataset import BenchmarkCase, BenchmarkDataset, load_benchmark_dataset
 from eval.subsegment.judge import judge_downstream_pairwise, judge_plan_pairwise
 from eval.subsegment.report import build_markdown_report
+from src.iterator_reader.llm_utils import eval_trace_context, llm_invocation_scope
 from src.iterator_reader.policy import chapter_budget, default_budget_policy, resolve_skill_policy, segment_budget
 from src.iterator_reader.reader import _estimate_tokens, create_reader_state, plan_reader_subsegments, run_reader_segment
 
@@ -395,90 +396,96 @@ def run_benchmark(
         local_impact_judge if local_impact_judge is not None else judge_downstream_pairwise
     )
 
-    case_results: list[dict[str, Any]] = []
-    for case in cases:
-        _json_dump(run_root / "inputs" / f"{case.case_id}.json", _case_to_dict(case))
-        scope_results: dict[str, Any] = {}
-        for scope in effective_scopes:
-            scoped = _scope_result(
-                scope,
-                case=case,
-                dataset=dataset,
-                judge_mode=judge_mode,
-                direct_judge=effective_direct_judge,
-                local_impact_judge=effective_local_impact_judge,
-                segment_timeout_seconds=segment_timeout_seconds,
-            )
-            scope_results[scope] = scoped
-            for strategy, payload in scoped["strategies"].items():
-                _json_dump(
-                    run_root / scope / "plans" / f"{case.case_id}.{strategy}.json",
-                    {
-                        "target": target,
-                        "scope": scope,
-                        "methods": methods,
-                        "case_id": case.case_id,
-                        "strategy": strategy,
-                        "planner_source": payload.get("planner_source", ""),
-                        "diagnostics": payload.get("diagnostics", {}),
-                        "subsegments": payload.get("subsegments", []),
-                        "metrics": payload.get("metrics", {}),
-                        "runtime_root": str(runtime_root),
-                    },
-                )
-                if scope == LOCAL_IMPACT:
-                    _json_dump(
-                        run_root / scope / "sections" / f"{case.case_id}.{strategy}.json",
-                        payload.get("rendered", {}),
-                    )
-
-            _json_dump(run_root / scope / "judge" / f"{case.case_id}.json", scoped["judgment"])
-
-        case_results.append(
-            {
-                "case_id": case.case_id,
-                "split": case.split,
-                "segment_ref": case.segment_ref,
-                "tags": list(case.tags),
-                "scope_results": scope_results,
-            }
+    with llm_invocation_scope(
+        trace_context=eval_trace_context(
+            run_root,
+            eval_target=f"subsegment_benchmark:{run_name}",
         )
+    ):
+        case_results: list[dict[str, Any]] = []
+        for case in cases:
+            _json_dump(run_root / "inputs" / f"{case.case_id}.json", _case_to_dict(case))
+            scope_results: dict[str, Any] = {}
+            for scope in effective_scopes:
+                scoped = _scope_result(
+                    scope,
+                    case=case,
+                    dataset=dataset,
+                    judge_mode=judge_mode,
+                    direct_judge=effective_direct_judge,
+                    local_impact_judge=effective_local_impact_judge,
+                    segment_timeout_seconds=segment_timeout_seconds,
+                )
+                scope_results[scope] = scoped
+                for strategy, payload in scoped["strategies"].items():
+                    _json_dump(
+                        run_root / scope / "plans" / f"{case.case_id}.{strategy}.json",
+                        {
+                            "target": target,
+                            "scope": scope,
+                            "methods": methods,
+                            "case_id": case.case_id,
+                            "strategy": strategy,
+                            "planner_source": payload.get("planner_source", ""),
+                            "diagnostics": payload.get("diagnostics", {}),
+                            "subsegments": payload.get("subsegments", []),
+                            "metrics": payload.get("metrics", {}),
+                            "runtime_root": str(runtime_root),
+                        },
+                    )
+                    if scope == LOCAL_IMPACT:
+                        _json_dump(
+                            run_root / scope / "sections" / f"{case.case_id}.{strategy}.json",
+                            payload.get("rendered", {}),
+                        )
 
-    aggregate = _aggregate(
-        target=target,
-        scopes=effective_scopes,
-        methods=methods,
-        dataset=dataset,
-        cases=cases,
-        case_results=case_results,
-    )
-    aggregate["segment_timeout_seconds"] = max(1, int(segment_timeout_seconds or 45))
-    aggregate["case_ids"] = [case.case_id for case in cases]
-    _json_dump(run_root / "summary" / "case_results.json", case_results)
-    _json_dump(run_root / "summary" / "aggregate.json", aggregate)
+                _json_dump(run_root / scope / "judge" / f"{case.case_id}.json", scoped["judgment"])
 
-    markdown = build_markdown_report(
-        dataset_id=dataset.dataset_id,
-        dataset_version=dataset.version,
-        target=target,
-        scopes=effective_scopes,
-        methods=methods,
-        comparison_target=COMPARISON_TARGET,
-        rubric_summary_by_scope=RUBRIC_SUMMARY_BY_SCOPE,
-        aggregate=aggregate,
-        case_results=case_results,
-    )
-    final_report_path = Path(report_path) if report_path is not None else run_root / "summary" / "report.md"
-    final_report_path.parent.mkdir(parents=True, exist_ok=True)
-    final_report_path.write_text(markdown, encoding="utf-8")
+            case_results.append(
+                {
+                    "case_id": case.case_id,
+                    "split": case.split,
+                    "segment_ref": case.segment_ref,
+                    "tags": list(case.tags),
+                    "scope_results": scope_results,
+                }
+            )
 
-    return {
-        "run_id": run_name,
-        "run_root": str(run_root),
-        "report_path": str(final_report_path),
-        "aggregate": aggregate,
-        "case_results": case_results,
-    }
+        aggregate = _aggregate(
+            target=target,
+            scopes=effective_scopes,
+            methods=methods,
+            dataset=dataset,
+            cases=cases,
+            case_results=case_results,
+        )
+        aggregate["segment_timeout_seconds"] = max(1, int(segment_timeout_seconds or 45))
+        aggregate["case_ids"] = [case.case_id for case in cases]
+        _json_dump(run_root / "summary" / "case_results.json", case_results)
+        _json_dump(run_root / "summary" / "aggregate.json", aggregate)
+
+        markdown = build_markdown_report(
+            dataset_id=dataset.dataset_id,
+            dataset_version=dataset.version,
+            target=target,
+            scopes=effective_scopes,
+            methods=methods,
+            comparison_target=COMPARISON_TARGET,
+            rubric_summary_by_scope=RUBRIC_SUMMARY_BY_SCOPE,
+            aggregate=aggregate,
+            case_results=case_results,
+        )
+        final_report_path = Path(report_path) if report_path is not None else run_root / "summary" / "report.md"
+        final_report_path.parent.mkdir(parents=True, exist_ok=True)
+        final_report_path.write_text(markdown, encoding="utf-8")
+
+        return {
+            "run_id": run_name,
+            "run_root": str(run_root),
+            "report_path": str(final_report_path),
+            "aggregate": aggregate,
+            "case_results": case_results,
+        }
 
 
 def _parse_args() -> argparse.Namespace:

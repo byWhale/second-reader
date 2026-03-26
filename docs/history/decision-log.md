@@ -682,3 +682,26 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/attentional_v2/import_dataset_review_packet.py`
 - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
 - `reading-companion-backend/eval/review_packets/README.md`
+
+## Entry 29
+**Decision / Inflection**: Promote project-owned LLM invocation, provider/profile policy, and trace emission into one shared backend layer.
+
+**Period**: March 2026, during the benchmark-hardening side branch for universal LLM invocation and traceability.
+
+**Problem**: The backend had accumulated multiple prompt-to-provider paths: iterator-specific helpers, eval scripts with direct provider clients, and a newer packet-audit tracing path that only covered one review workflow. That made failover policy, model-profile policy, and LLM traceability inconsistent across runtime and evaluation work. It also made the new packet-audit observability improvements look like a local tool instead of a backend capability.
+
+**Alternatives considered**: Keep provider logic inside `src/iterator_reader/llm_utils.py` and patch more call sites around it, let each eval script keep its own provider client as long as it used the same API key, or support broad silent cross-model fallback for resilience.
+
+**Why this path won**: The project needed one explicit invocation boundary that could separate operational concerns from semantic ones. A shared backend layer made it possible to keep same-model key failover as an operational fallback while forbidding silent cross-model switching inside one runtime or evaluation run. It also made task-level model policy concrete: cheaper/stabler runtime profiles, stronger pinned judge profiles, and explicit optional cross-model disagreement only when deliberately invoked. Centralizing trace emission also made runtime and eval observability comparable without requiring every mechanism or script to reinvent it.
+
+**What changed in the system**: `src/reading_runtime/` now owns a structured provider/profile registry, contract adapters for `anthropic`, `google_genai`, and `openai_compatible`, one shared invocation gateway, and standard/debug trace helpers. The legacy iterator helper path is now a compatibility wrapper over that gateway. Runtime/eval call sites for packet audits, packet adjudication, integrity judging, `attentional_v2`, `iterator_v1`, and one-off comparison helpers now run through the shared layer. Backend setup now includes a registry example file plus env guidance for provider-specific secrets and task-level profiles.
+
+**Why it matters later**: Future contributors need to know that failover policy, model choice, and traceability are now platform concerns, not mechanism-local conveniences. Without this entry, later readers could mistake the profile split between runtime and judge paths for ad hoc tuning, or reintroduce direct provider clients that silently bypass the shared trace contract.
+
+**Primary evidence**:
+- `reading-companion-backend/src/reading_runtime/llm_registry.py`
+- `reading-companion-backend/src/reading_runtime/llm_gateway.py`
+- `reading-companion-backend/src/iterator_reader/llm_utils.py`
+- `docs/backend-reading-mechanism.md`
+- `docs/backend-reader-evaluation.md`
+- `README.md`

@@ -202,6 +202,38 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - This rule exists to keep dataset hardening executable even when human review capacity is limited.
 - Manual human review remains valuable, but it is optional escalation for later higher-trust promotion work rather than a default blocker for current packet review tasks.
 
+### Judge Model Policy
+- Judge quality and runtime-reader cost should be treated as different concerns.
+- The project may therefore use different model profiles for:
+  - live runtime reading
+  - dataset hardening / packet review
+  - evaluation judging
+- Those profiles should be resolved through one shared backend provider registry rather than ad hoc per-script model config.
+- Default policy:
+  - dataset hardening and evaluation judging should prefer the strongest trustworthy pinned model profile available
+  - live runtime reading may prefer a cheaper/stabler pinned model profile when book-scale cost and throughput matter
+- Operational failover and semantic model choice must not be conflated.
+  - rotating across keys for the same provider/model profile is an operational fallback
+  - switching to a different model family is a semantic change
+- For benchmark trust and comparability:
+  - one packet review run should pin one primary judge model profile
+  - one evaluation run should pin one primary judge model profile
+  - do not silently mix different model families inside one packet review run or one evaluation run
+- Cross-model review is still valuable, but it should be explicit and selective.
+  - use a second strong model family mainly for disagreement, adjudication, or high-impact spot checks
+  - do not require multi-model judging on every routine case if it would make the workflow too expensive or too noisy
+
+### Shared LLM Invocation Boundary
+- Project-owned prompt-to-provider calls should flow through one shared backend invocation layer.
+- That shared layer should own:
+  - provider-contract adaptation
+  - key-pool failover within the same pinned model family
+  - task-level profile resolution
+  - retry and concurrency policy
+  - standard/debug trace emission
+- Silent cross-model switching inside one packet review run or one evaluation run is not allowed.
+- Eval reports should be able to recover which provider/model profile actually judged the run from the trace artifacts.
+
 ## Observability Posture For Evaluation
 - Default evaluation should rely on `standard` observability first.
   - Standard mode should preserve enough runtime history for trustworthy resume, durable trace audits, and baseline cross-mechanism comparison.

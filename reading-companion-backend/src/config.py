@@ -34,6 +34,24 @@ def get_llm_config() -> dict:
     }
 
 
+def get_llm_provider_contract() -> str:
+    """Return the legacy provider contract for fallback registry generation."""
+
+    return os.getenv("LLM_PROVIDER_CONTRACT", "anthropic").strip().lower() or "anthropic"
+
+
+def get_llm_registry_path() -> str:
+    """Return the optional structured LLM registry config path."""
+
+    return os.getenv("LLM_REGISTRY_PATH", "").strip()
+
+
+def get_llm_registry_json() -> str:
+    """Return the optional inline structured LLM registry payload."""
+
+    return os.getenv("LLM_REGISTRY_JSON", "").strip()
+
+
 def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
     """Parse one integer env var with a lower bound fallback."""
     raw = os.getenv(name, "").strip()

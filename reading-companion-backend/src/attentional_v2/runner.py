@@ -11,6 +11,7 @@ from src.reading_core import BookDocument
 from src.reading_core.storage import book_document_file, save_book_document
 from src.reading_core.runtime_contracts import MechanismInfo, ParseRequest, ParseResult, ReadRequest, ReadResult
 from src.reading_runtime import artifacts as runtime_artifacts
+from src.reading_runtime.llm_registry import DEFAULT_RUNTIME_PROFILE_ID
 from src.reading_runtime.provisioning import ProvisionedBook, ensure_canonical_parse
 from src.reading_runtime.sequential_state import (
     append_activity_event,
@@ -22,6 +23,7 @@ from src.reading_runtime.sequential_state import (
     write_run_state,
 )
 from src.reading_runtime.shell_state import load_runtime_shell, save_runtime_shell
+from src.iterator_reader.llm_utils import llm_invocation_scope, runtime_trace_context
 
 from .bridge import build_anchor_record, run_phase5_bridge_cycle
 from .evaluation import build_normalized_eval_bundle, persist_normalized_eval_bundle
@@ -434,60 +436,68 @@ def parse_attentional_v2(request: ParseRequest, mechanism: MechanismInfo) -> Par
 
     save_book_document(book_document_file(provisioned.output_dir), provisioned.book_document)
     created = not runtime_artifacts.book_manifest_file(provisioned.output_dir).exists()
-    artifact_tree = initialize_artifact_tree(provisioned.output_dir)
-    survey_summary = write_book_survey_artifacts(
-        provisioned.output_dir,
-        provisioned.book_document,
-        policy_snapshot=build_default_reader_policy(),
-    )
-    chapter_ids = [
-        int(chapter.get("id", 0) or 0)
-        for chapter in provisioned.book_document.get("chapters", [])
-        if isinstance(chapter, dict) and int(chapter.get("id", 0) or 0) > 0
-    ]
-    _write_manifest(
-        provisioned.output_dir,
-        provisioned.book_document,
-        chapter_statuses={chapter_id: "pending" for chapter_id in chapter_ids},
-    )
-    write_parse_progress(
-        provisioned.output_dir,
-        book_title=provisioned.title,
-        status="ready",
-        total_chapters=len(chapter_ids),
-        completed_chapters=len(chapter_ids),
-        parsed_chapter_ids=chapter_ids,
-        sync_run_state=False,
-    )
-    write_run_state(
-        provisioned.output_dir,
-        build_run_state(
-            book_title=provisioned.title,
-            stage="ready",
-            total_chapters=len(chapter_ids),
-            completed_chapters=0,
-            resume_available=False,
+    with llm_invocation_scope(
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        trace_context=runtime_trace_context(
+            provisioned.output_dir,
+            mechanism_key=mechanism.key,
+            stage="parse",
         ),
-    )
-    append_activity_event(
-        provisioned.output_dir,
-        {
-            "type": "structure_ready",
-            "message": "Attentional V2 parse is ready; the shared sentence substrate and survey artifacts are available.",
-        },
-    )
-    return ParseResult(
-        mechanism=mechanism,
-        book_document=provisioned.book_document,
-        output_dir=provisioned.output_dir,
-        created=created,
-        mechanism_artifact=_artifact_summary(
-            provisioned,
+    ):
+        artifact_tree = initialize_artifact_tree(provisioned.output_dir)
+        survey_summary = write_book_survey_artifacts(
+            provisioned.output_dir,
             provisioned.book_document,
-            artifact_tree=artifact_tree,
-            survey_summary=survey_summary,
-        ),
-    )
+            policy_snapshot=build_default_reader_policy(),
+        )
+        chapter_ids = [
+            int(chapter.get("id", 0) or 0)
+            for chapter in provisioned.book_document.get("chapters", [])
+            if isinstance(chapter, dict) and int(chapter.get("id", 0) or 0) > 0
+        ]
+        _write_manifest(
+            provisioned.output_dir,
+            provisioned.book_document,
+            chapter_statuses={chapter_id: "pending" for chapter_id in chapter_ids},
+        )
+        write_parse_progress(
+            provisioned.output_dir,
+            book_title=provisioned.title,
+            status="ready",
+            total_chapters=len(chapter_ids),
+            completed_chapters=len(chapter_ids),
+            parsed_chapter_ids=chapter_ids,
+            sync_run_state=False,
+        )
+        write_run_state(
+            provisioned.output_dir,
+            build_run_state(
+                book_title=provisioned.title,
+                stage="ready",
+                total_chapters=len(chapter_ids),
+                completed_chapters=0,
+                resume_available=False,
+            ),
+        )
+        append_activity_event(
+            provisioned.output_dir,
+            {
+                "type": "structure_ready",
+                "message": "Attentional V2 parse is ready; the shared sentence substrate and survey artifacts are available.",
+            },
+        )
+        return ParseResult(
+            mechanism=mechanism,
+            book_document=provisioned.book_document,
+            output_dir=provisioned.output_dir,
+            created=created,
+            mechanism_artifact=_artifact_summary(
+                provisioned,
+                provisioned.book_document,
+                artifact_tree=artifact_tree,
+                survey_summary=survey_summary,
+            ),
+        )
 
 
 def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadResult:
@@ -503,111 +513,338 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
     output_dir = provisioned.output_dir
     save_book_document(book_document_file(output_dir), provisioned.book_document)
     created = not runtime_artifacts.book_manifest_file(output_dir).exists()
-    if not request.continue_mode:
-        _reset_live_runtime(output_dir)
-    artifact_tree = initialize_artifact_tree(output_dir)
-    survey_summary = write_book_survey_artifacts(
-        output_dir,
-        provisioned.book_document,
-        policy_snapshot=build_default_reader_policy(),
-    )
-    if not request.continue_mode:
-        _write_manifest(output_dir, provisioned.book_document)
-    _update_shell_phase(output_dir, status="running", phase="preparing")
+    with llm_invocation_scope(
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        trace_context=runtime_trace_context(
+            output_dir,
+            mechanism_key=mechanism.key,
+            stage="read",
+        ),
+    ):
+        if not request.continue_mode:
+            _reset_live_runtime(output_dir)
+        artifact_tree = initialize_artifact_tree(output_dir)
+        survey_summary = write_book_survey_artifacts(
+            output_dir,
+            provisioned.book_document,
+            policy_snapshot=build_default_reader_policy(),
+        )
+        if not request.continue_mode:
+            _write_manifest(output_dir, provisioned.book_document)
+        _update_shell_phase(output_dir, status="running", phase="preparing")
 
-    bundle = _load_runtime_bundle(output_dir)
-    resume_payload: dict[str, object] | None = None
-    if request.continue_mode:
-        resume_payload = resume_from_checkpoint(output_dir, book_document=provisioned.book_document)
         bundle = _load_runtime_bundle(output_dir)
+        resume_payload: dict[str, object] | None = None
+        if request.continue_mode:
+            resume_payload = resume_from_checkpoint(output_dir, book_document=provisioned.book_document)
+            bundle = _load_runtime_bundle(output_dir)
 
-    reader_policy: ReaderPolicy = bundle["reader_policy"]  # type: ignore[assignment]
-    local_buffer: LocalBufferState = bundle["local_buffer"]  # type: ignore[assignment]
-    trigger_state: TriggerState = bundle["trigger_state"]  # type: ignore[assignment]
-    working_pressure: WorkingPressureState = bundle["working_pressure"]  # type: ignore[assignment]
-    anchor_memory: AnchorMemoryState = bundle["anchor_memory"]  # type: ignore[assignment]
-    reflective_summaries: ReflectiveSummariesState = bundle["reflective_summaries"]  # type: ignore[assignment]
-    knowledge_activations: KnowledgeActivationsState = bundle["knowledge_activations"]  # type: ignore[assignment]
-    move_history: MoveHistoryState = bundle["move_history"]  # type: ignore[assignment]
-    reaction_records: ReactionRecordsState = bundle["reaction_records"]  # type: ignore[assignment]
-    reconsolidation_records = bundle["reconsolidation_records"]
-    resume_metadata = bundle["resume_metadata"]
+        reader_policy: ReaderPolicy = bundle["reader_policy"]  # type: ignore[assignment]
+        local_buffer: LocalBufferState = bundle["local_buffer"]  # type: ignore[assignment]
+        trigger_state: TriggerState = bundle["trigger_state"]  # type: ignore[assignment]
+        working_pressure: WorkingPressureState = bundle["working_pressure"]  # type: ignore[assignment]
+        anchor_memory: AnchorMemoryState = bundle["anchor_memory"]  # type: ignore[assignment]
+        reflective_summaries: ReflectiveSummariesState = bundle["reflective_summaries"]  # type: ignore[assignment]
+        knowledge_activations: KnowledgeActivationsState = bundle["knowledge_activations"]  # type: ignore[assignment]
+        move_history: MoveHistoryState = bundle["move_history"]  # type: ignore[assignment]
+        reaction_records: ReactionRecordsState = bundle["reaction_records"]  # type: ignore[assignment]
+        reconsolidation_records = bundle["reconsolidation_records"]
+        resume_metadata = bundle["resume_metadata"]
 
-    chapter_statuses = _chapter_statuses(provisioned.book_document, output_dir)
-    resume_chapter_id = int(resume_payload.get("local_continuity", {}).get("chapter_id", 0) or 0) if isinstance(resume_payload, dict) else None
-    chapters = _chapter_selection(
-        provisioned.book_document,
-        output_dir,
-        chapter_number=request.chapter_number,
-        continue_mode=request.continue_mode,
-        resume_chapter_id=resume_chapter_id,
-    )
-
-    completed_chapters = len([status for status in chapter_statuses.values() if status == "done"])
-    total_chapters = len([chapter for chapter in provisioned.book_document.get("chapters", []) if isinstance(chapter, dict)])
-    run_started_at = _timestamp()
-
-    for chapter in chapters:
-        chapter_id = int(chapter.get("id", 0) or 0)
-        chapter_ref = _chapter_ref(chapter)
-        chapter_statuses[chapter_id] = "in_progress"
-        _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
-        write_run_state(
+        chapter_statuses = _chapter_statuses(provisioned.book_document, output_dir)
+        resume_chapter_id = int(resume_payload.get("local_continuity", {}).get("chapter_id", 0) or 0) if isinstance(resume_payload, dict) else None
+        chapters = _chapter_selection(
+            provisioned.book_document,
             output_dir,
-            build_run_state(
-                book_title=provisioned.title,
-                stage="deep_reading",
-                total_chapters=total_chapters,
-                completed_chapters=completed_chapters,
-                current_chapter_id=chapter_id,
-                current_chapter_ref=chapter_ref,
-                current_phase_step="reading",
-                resume_available=bool(load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("resume_available")),
-                last_checkpoint_at=load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("last_checkpoint_at"),
-            ),
-        )
-        append_activity_event(
-            output_dir,
-            {
-                "type": "chapter_started",
-                "message": f"Started {chapter_ref}.",
-                "chapter_id": chapter_id,
-                "chapter_ref": chapter_ref,
-            },
+            chapter_number=request.chapter_number,
+            continue_mode=request.continue_mode,
+            resume_chapter_id=resume_chapter_id,
         )
 
-        meaning_units_in_chapter: list[dict[str, object]] = []
-        sentences = [dict(sentence) for sentence in chapter.get("sentences", []) if isinstance(sentence, dict)]
-        start_index = 0
-        if request.continue_mode and resume_chapter_id == chapter_id:
-            start_index = _chapter_start_index(chapter, _clean_text(local_buffer.get("current_sentence_id")))
-        if start_index >= len(sentences):
-            chapter_statuses[chapter_id] = "done"
-            continue
+        completed_chapters = len([status for status in chapter_statuses.values() if status == "done"])
+        total_chapters = len([chapter for chapter in provisioned.book_document.get("chapters", []) if isinstance(chapter, dict)])
+        run_started_at = _timestamp()
 
-        for sentence in sentences[start_index:]:
-            sentence_id = _clean_text(sentence.get("sentence_id"))
-            local_buffer, trigger_state = process_sentence_intake(
-                sentence,
-                local_buffer=local_buffer,
+        for chapter in chapters:
+            chapter_id = int(chapter.get("id", 0) or 0)
+            chapter_ref = _chapter_ref(chapter)
+            chapter_statuses[chapter_id] = "in_progress"
+            _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
+            write_run_state(
+                output_dir,
+                build_run_state(
+                    book_title=provisioned.title,
+                    stage="deep_reading",
+                    total_chapters=total_chapters,
+                    completed_chapters=completed_chapters,
+                    current_chapter_id=chapter_id,
+                    current_chapter_ref=chapter_ref,
+                    current_phase_step="reading",
+                    resume_available=bool(load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("resume_available")),
+                    last_checkpoint_at=load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("last_checkpoint_at"),
+                ),
+            )
+            append_activity_event(
+                output_dir,
+                {
+                    "type": "chapter_started",
+                    "message": f"Started {chapter_ref}.",
+                    "chapter_id": chapter_id,
+                    "chapter_ref": chapter_ref,
+                },
+            )
+
+            meaning_units_in_chapter: list[dict[str, object]] = []
+            sentences = [dict(sentence) for sentence in chapter.get("sentences", []) if isinstance(sentence, dict)]
+            start_index = 0
+            if request.continue_mode and resume_chapter_id == chapter_id:
+                start_index = _chapter_start_index(chapter, _clean_text(local_buffer.get("current_sentence_id")))
+            if start_index >= len(sentences):
+                chapter_statuses[chapter_id] = "done"
+                continue
+
+            for sentence in sentences[start_index:]:
+                sentence_id = _clean_text(sentence.get("sentence_id"))
+                local_buffer, trigger_state = process_sentence_intake(
+                    sentence,
+                    local_buffer=local_buffer,
+                    working_pressure=working_pressure,
+                    anchor_memory=anchor_memory,
+                )
+                save_json(trigger_state_file(output_dir), trigger_state)
+
+                current_activity = _current_activity(
+                    chapter_id=chapter_id,
+                    chapter_ref=chapter_ref,
+                    sentence=sentence,
+                    local_buffer=local_buffer,
+                )
+                persist_reading_position(
+                    output_dir,
+                    chapter_id=chapter_id,
+                    chapter_ref=chapter_ref,
+                    local_buffer=local_buffer,
+                    status="running",
+                    phase="reading",
+                )
+                write_run_state(
+                    output_dir,
+                    build_run_state(
+                        book_title=provisioned.title,
+                        stage="deep_reading",
+                        total_chapters=total_chapters,
+                        completed_chapters=completed_chapters,
+                        current_chapter_id=chapter_id,
+                        current_chapter_ref=chapter_ref,
+                        current_segment_ref=_compatibility_section_ref(chapter_id, sentence),
+                        current_reading_activity=current_activity,
+                        current_phase_step="reading",
+                        resume_available=True,
+                        last_checkpoint_at=load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("last_checkpoint_at"),
+                    ),
+                )
+
+                if _clean_text(trigger_state.get("output")) == "no_zoom":
+                    continue
+
+                current_span_sentences = _span_sentences(local_buffer)
+                candidate_set = generate_candidate_set(
+                    provisioned.book_document,
+                    current_sentence_id=sentence_id,
+                    current_text=_clean_text(sentence.get("text")),
+                    anchor_memory=anchor_memory,
+                )
+                phase4 = run_phase4_local_cycle(
+                    focal_sentence=sentence,
+                    current_span_sentences=current_span_sentences,
+                    trigger_state=trigger_state,
+                    working_pressure=working_pressure,
+                    anchor_memory=anchor_memory,
+                    knowledge_activations=knowledge_activations,
+                    reader_policy=reader_policy,
+                    bridge_candidates=[],
+                    output_language=provisioned.output_language,
+                    output_dir=output_dir,
+                    book_title=provisioned.title,
+                    author=provisioned.author,
+                    chapter_title=_clean_text(chapter.get("title")),
+                )
+                zoom_result = dict(phase4.get("zoom_result") or {})
+                closure_result = dict(phase4.get("closure_result") or {})
+                controller_result = dict(phase4.get("controller_result") or {})
+                reaction_result = dict(phase4.get("reaction_result") or {})
+                working_pressure = apply_working_pressure_operations(working_pressure, zoom_result.get("pressure_updates", []))
+                working_pressure = apply_working_pressure_operations(
+                    working_pressure,
+                    closure_result.get("proposed_state_operations", []),
+                )
+
+                chosen_move = _clean_text(controller_result.get("chosen_move"))
+                if chosen_move in {"advance", "dwell", "bridge", "reframe"}:
+                    move_history = append_move(
+                        move_history,
+                        {
+                            "move_id": f"move:{sentence_id}:{chosen_move}",
+                            "move_type": chosen_move,
+                            "reason": _clean_text(controller_result.get("reason")) or "controller decision",
+                            "source_sentence_id": sentence_id,
+                            "target_anchor_id": _clean_text(controller_result.get("target_anchor_id")),
+                            "target_sentence_id": _clean_text(controller_result.get("target_sentence_id")),
+                            "created_at": _timestamp(),
+                        },
+                    )
+
+                emitted_reaction: AnchoredReactionRecord | None = None
+                current_anchor = build_anchor_record(
+                    sentence_start_id=_clean_text(current_span_sentences[0].get("sentence_id")) if current_span_sentences else sentence_id,
+                    sentence_end_id=sentence_id,
+                    quote=_clean_text(reaction_result.get("reaction", {}).get("anchor_quote")) or _clean_text(sentence.get("text")),
+                    locator=dict(sentence.get("locator", {})) if isinstance(sentence.get("locator"), dict) else {},
+                    anchor_kind="visible_reaction",
+                    why_it_mattered=_clean_text(reaction_result.get("reason")) or _clean_text(zoom_result.get("local_interpretation")) or _clean_text(closure_result.get("meaning_unit_summary")),
+                )
+
+                if reaction_result.get("decision") == "emit" and isinstance(reaction_result.get("reaction"), dict):
+                    anchor_memory = upsert_anchor_record(anchor_memory, current_anchor)
+                    chapter_reaction_count = len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))
+                    emitted_reaction = build_reaction_record(
+                        reaction=reaction_result["reaction"],
+                        primary_anchor=current_anchor,
+                        chapter_id=chapter_id,
+                        chapter_ref=chapter_ref,
+                        emitted_at_sentence_id=sentence_id,
+                        compatibility_section_ref=_compatibility_section_ref(chapter_id, sentence),
+                        ordinal=chapter_reaction_count + 1,
+                    )
+                    reaction_records = append_reaction_record(reaction_records, emitted_reaction)
+                    append_activity_event(
+                        output_dir,
+                        {
+                            "type": "reaction_emitted",
+                            "stream": "mindstream",
+                            "kind": "thought",
+                            "visibility": "default",
+                            "message": _clean_text(emitted_reaction.get("thought")),
+                            "chapter_id": chapter_id,
+                            "chapter_ref": chapter_ref,
+                            "segment_ref": _compatibility_section_ref(chapter_id, sentence),
+                            "anchor_quote": _clean_text(emitted_reaction.get("primary_anchor", {}).get("quote")),
+                            "reading_locus": _reading_locus(chapter_id, chapter_ref, sentence, local_buffer),
+                            "move_type": chosen_move or None,
+                            "active_reaction_id": _clean_text(emitted_reaction.get("reaction_id")),
+                            "reaction_types": [_clean_text(emitted_reaction.get("type"))],
+                            "current_excerpt": _clean_text(sentence.get("text"))[:220],
+                        },
+                    )
+
+                if chosen_move == "bridge":
+                    phase5 = run_phase5_bridge_cycle(
+                        current_span_sentences=current_span_sentences,
+                        candidate_set=candidate_set,
+                        working_pressure=working_pressure,
+                        anchor_memory=anchor_memory,
+                        knowledge_activations=knowledge_activations,
+                        move_history=move_history,
+                        reader_policy=reader_policy,
+                        output_language=provisioned.output_language,
+                        current_anchor=current_anchor,
+                        output_dir=output_dir,
+                        book_title=provisioned.title,
+                        author=provisioned.author,
+                        chapter_title=_clean_text(chapter.get("title")),
+                    )
+                    working_pressure = phase5["working_pressure"]  # type: ignore[assignment]
+                    anchor_memory = phase5["anchor_memory"]  # type: ignore[assignment]
+                    knowledge_activations = phase5["knowledge_activations"]  # type: ignore[assignment]
+                    move_history = phase5["move_history"]  # type: ignore[assignment]
+
+                if _clean_text(closure_result.get("closure_decision")) == "close":
+                    meaning_units_in_chapter.append(
+                        {
+                            "sentence_ids": [sentence_id for sentence_id in local_buffer.get("open_meaning_unit_sentence_ids", []) if _clean_text(sentence_id)],
+                            "summary": _clean_text(closure_result.get("meaning_unit_summary")),
+                            "dominant_move": _clean_text(closure_result.get("dominant_move")),
+                        }
+                    )
+                    local_buffer = close_local_meaning_unit(local_buffer)
+
+                bundle.update(
+                    {
+                        "local_buffer": local_buffer,
+                        "trigger_state": trigger_state,
+                        "working_pressure": working_pressure,
+                        "anchor_memory": anchor_memory,
+                        "reflective_summaries": reflective_summaries,
+                        "knowledge_activations": knowledge_activations,
+                        "move_history": move_history,
+                        "reaction_records": reaction_records,
+                        "reconsolidation_records": reconsolidation_records,
+                        "reader_policy": reader_policy,
+                        "resume_metadata": resume_metadata,
+                    }
+                )
+                _save_runtime_bundle(output_dir, bundle)
+                active_refs = {
+                    "reaction_id": _clean_text(emitted_reaction.get("reaction_id")) if emitted_reaction else "",
+                    "anchor_id": _clean_text(current_anchor.get("anchor_id")),
+                    "move_id": _clean_text(move_history.get("moves", [])[-1].get("move_id")) if move_history.get("moves") else "",
+                }
+                persist_reading_position(
+                    output_dir,
+                    chapter_id=chapter_id,
+                    chapter_ref=chapter_ref,
+                    local_buffer=local_buffer,
+                    active_artifact_refs={key: value for key, value in active_refs.items() if value},
+                    status="running",
+                    phase="reading",
+                )
+
+            chapter_end_anchor = build_anchor_record(
+                sentence_start_id=_clean_text(sentences[-1].get("sentence_id")) if sentences else f"c{chapter_id}-end",
+                sentence_end_id=_clean_text(sentences[-1].get("sentence_id")) if sentences else f"c{chapter_id}-end",
+                quote=_clean_text(sentences[-1].get("text")) if sentences else chapter_ref,
+                locator=dict(sentences[-1].get("locator", {})) if sentences and isinstance(sentences[-1].get("locator"), dict) else {},
+                anchor_kind="chapter_end",
+                why_it_mattered="chapter-end consolidation anchor",
+            )
+            phase6 = run_phase6_chapter_cycle(
+                book_id=runtime_artifacts.book_id_from_output_dir(output_dir),
+                chapter=chapter,
+                meaning_units_in_chapter=meaning_units_in_chapter,
+                chapter_end_anchor=chapter_end_anchor,
                 working_pressure=working_pressure,
                 anchor_memory=anchor_memory,
+                reflective_summaries=reflective_summaries,
+                knowledge_activations=knowledge_activations,
+                reaction_records=reaction_records,
+                reader_policy=reader_policy,
+                output_language=provisioned.output_language,
+                output_dir=output_dir,
+                persist_compatibility_projection=True,
+                book_title=provisioned.title,
+                author=provisioned.author,
             )
-            save_json(trigger_state_file(output_dir), trigger_state)
-
-            current_activity = _current_activity(
-                chapter_id=chapter_id,
-                chapter_ref=chapter_ref,
-                sentence=sentence,
-                local_buffer=local_buffer,
-            )
-            persist_reading_position(
+            working_pressure = phase6["working_pressure"]  # type: ignore[assignment]
+            anchor_memory = phase6["anchor_memory"]  # type: ignore[assignment]
+            reflective_summaries = phase6["reflective_summaries"]  # type: ignore[assignment]
+            knowledge_activations = phase6["knowledge_activations"]  # type: ignore[assignment]
+            reaction_records = phase6["reaction_records"]  # type: ignore[assignment]
+            chapter_statuses[chapter_id] = "done"
+            completed_chapters += 1
+            _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
+            checkpoint = write_full_checkpoint(
                 output_dir,
-                chapter_id=chapter_id,
-                chapter_ref=chapter_ref,
-                local_buffer=local_buffer,
-                status="running",
-                phase="reading",
+                checkpoint_id=f"chapter-{chapter_id:03d}",
+                checkpoint_reason="chapter_boundary",
+            )
+            append_activity_event(
+                output_dir,
+                {
+                    "type": "chapter_completed",
+                    "message": f"Finished {chapter_ref} with {len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))} visible reactions.",
+                    "chapter_id": chapter_id,
+                    "chapter_ref": chapter_ref,
+                },
             )
             write_run_state(
                 output_dir,
@@ -618,138 +855,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     completed_chapters=completed_chapters,
                     current_chapter_id=chapter_id,
                     current_chapter_ref=chapter_ref,
-                    current_segment_ref=_compatibility_section_ref(chapter_id, sentence),
-                    current_reading_activity=current_activity,
-                    current_phase_step="reading",
+                    current_phase_step="chapter_completed",
                     resume_available=True,
-                    last_checkpoint_at=load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("last_checkpoint_at"),
+                    last_checkpoint_at=checkpoint.get("created_at"),
                 ),
             )
-
-            if _clean_text(trigger_state.get("output")) == "no_zoom":
-                continue
-
-            current_span_sentences = _span_sentences(local_buffer)
-            candidate_set = generate_candidate_set(
-                provisioned.book_document,
-                current_sentence_id=sentence_id,
-                current_text=_clean_text(sentence.get("text")),
-                anchor_memory=anchor_memory,
-            )
-            phase4 = run_phase4_local_cycle(
-                focal_sentence=sentence,
-                current_span_sentences=current_span_sentences,
-                trigger_state=trigger_state,
-                working_pressure=working_pressure,
-                anchor_memory=anchor_memory,
-                knowledge_activations=knowledge_activations,
-                reader_policy=reader_policy,
-                bridge_candidates=[],
-                output_language=provisioned.output_language,
-                output_dir=output_dir,
-                book_title=provisioned.title,
-                author=provisioned.author,
-                chapter_title=_clean_text(chapter.get("title")),
-            )
-            zoom_result = dict(phase4.get("zoom_result") or {})
-            closure_result = dict(phase4.get("closure_result") or {})
-            controller_result = dict(phase4.get("controller_result") or {})
-            reaction_result = dict(phase4.get("reaction_result") or {})
-            working_pressure = apply_working_pressure_operations(working_pressure, zoom_result.get("pressure_updates", []))
-            working_pressure = apply_working_pressure_operations(
-                working_pressure,
-                closure_result.get("proposed_state_operations", []),
-            )
-
-            chosen_move = _clean_text(controller_result.get("chosen_move"))
-            if chosen_move in {"advance", "dwell", "bridge", "reframe"}:
-                move_history = append_move(
-                    move_history,
-                    {
-                        "move_id": f"move:{sentence_id}:{chosen_move}",
-                        "move_type": chosen_move,
-                        "reason": _clean_text(controller_result.get("reason")) or "controller decision",
-                        "source_sentence_id": sentence_id,
-                        "target_anchor_id": _clean_text(controller_result.get("target_anchor_id")),
-                        "target_sentence_id": _clean_text(controller_result.get("target_sentence_id")),
-                        "created_at": _timestamp(),
-                    },
-                )
-
-            emitted_reaction: AnchoredReactionRecord | None = None
-            current_anchor = build_anchor_record(
-                sentence_start_id=_clean_text(current_span_sentences[0].get("sentence_id")) if current_span_sentences else sentence_id,
-                sentence_end_id=sentence_id,
-                quote=_clean_text(reaction_result.get("reaction", {}).get("anchor_quote")) or _clean_text(sentence.get("text")),
-                locator=dict(sentence.get("locator", {})) if isinstance(sentence.get("locator"), dict) else {},
-                anchor_kind="visible_reaction",
-                why_it_mattered=_clean_text(reaction_result.get("reason")) or _clean_text(zoom_result.get("local_interpretation")) or _clean_text(closure_result.get("meaning_unit_summary")),
-            )
-
-            if reaction_result.get("decision") == "emit" and isinstance(reaction_result.get("reaction"), dict):
-                anchor_memory = upsert_anchor_record(anchor_memory, current_anchor)
-                chapter_reaction_count = len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))
-                emitted_reaction = build_reaction_record(
-                    reaction=reaction_result["reaction"],
-                    primary_anchor=current_anchor,
-                    chapter_id=chapter_id,
-                    chapter_ref=chapter_ref,
-                    emitted_at_sentence_id=sentence_id,
-                    compatibility_section_ref=_compatibility_section_ref(chapter_id, sentence),
-                    ordinal=chapter_reaction_count + 1,
-                )
-                reaction_records = append_reaction_record(reaction_records, emitted_reaction)
-                append_activity_event(
-                    output_dir,
-                    {
-                        "type": "reaction_emitted",
-                        "stream": "mindstream",
-                        "kind": "thought",
-                        "visibility": "default",
-                        "message": _clean_text(emitted_reaction.get("thought")),
-                        "chapter_id": chapter_id,
-                        "chapter_ref": chapter_ref,
-                        "segment_ref": _compatibility_section_ref(chapter_id, sentence),
-                        "anchor_quote": _clean_text(emitted_reaction.get("primary_anchor", {}).get("quote")),
-                        "reading_locus": _reading_locus(chapter_id, chapter_ref, sentence, local_buffer),
-                        "move_type": chosen_move or None,
-                        "active_reaction_id": _clean_text(emitted_reaction.get("reaction_id")),
-                        "reaction_types": [_clean_text(emitted_reaction.get("type"))],
-                        "current_excerpt": _clean_text(sentence.get("text"))[:220],
-                    },
-                )
-
-            if chosen_move == "bridge":
-                phase5 = run_phase5_bridge_cycle(
-                    current_span_sentences=current_span_sentences,
-                    candidate_set=candidate_set,
-                    working_pressure=working_pressure,
-                    anchor_memory=anchor_memory,
-                    knowledge_activations=knowledge_activations,
-                    move_history=move_history,
-                    reader_policy=reader_policy,
-                    output_language=provisioned.output_language,
-                    current_anchor=current_anchor,
-                    output_dir=output_dir,
-                    book_title=provisioned.title,
-                    author=provisioned.author,
-                    chapter_title=_clean_text(chapter.get("title")),
-                )
-                working_pressure = phase5["working_pressure"]  # type: ignore[assignment]
-                anchor_memory = phase5["anchor_memory"]  # type: ignore[assignment]
-                knowledge_activations = phase5["knowledge_activations"]  # type: ignore[assignment]
-                move_history = phase5["move_history"]  # type: ignore[assignment]
-
-            if _clean_text(closure_result.get("closure_decision")) == "close":
-                meaning_units_in_chapter.append(
-                    {
-                        "sentence_ids": [sentence_id for sentence_id in local_buffer.get("open_meaning_unit_sentence_ids", []) if _clean_text(sentence_id)],
-                        "summary": _clean_text(closure_result.get("meaning_unit_summary")),
-                        "dominant_move": _clean_text(closure_result.get("dominant_move")),
-                    }
-                )
-                local_buffer = close_local_meaning_unit(local_buffer)
-
             bundle.update(
                 {
                     "local_buffer": local_buffer,
@@ -766,149 +876,57 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 }
             )
             _save_runtime_bundle(output_dir, bundle)
-            active_refs = {
-                "reaction_id": _clean_text(emitted_reaction.get("reaction_id")) if emitted_reaction else "",
-                "anchor_id": _clean_text(current_anchor.get("anchor_id")),
-                "move_id": _clean_text(move_history.get("moves", [])[-1].get("move_id")) if move_history.get("moves") else "",
-            }
-            persist_reading_position(
-                output_dir,
-                chapter_id=chapter_id,
-                chapter_ref=chapter_ref,
-                local_buffer=local_buffer,
-                active_artifact_refs={key: value for key, value in active_refs.items() if value},
-                status="running",
-                phase="reading",
-            )
 
-        chapter_end_anchor = build_anchor_record(
-            sentence_start_id=_clean_text(sentences[-1].get("sentence_id")) if sentences else f"c{chapter_id}-end",
-            sentence_end_id=_clean_text(sentences[-1].get("sentence_id")) if sentences else f"c{chapter_id}-end",
-            quote=_clean_text(sentences[-1].get("text")) if sentences else chapter_ref,
-            locator=dict(sentences[-1].get("locator", {})) if sentences and isinstance(sentences[-1].get("locator"), dict) else {},
-            anchor_kind="chapter_end",
-            why_it_mattered="chapter-end consolidation anchor",
-        )
-        phase6 = run_phase6_chapter_cycle(
-            book_id=runtime_artifacts.book_id_from_output_dir(output_dir),
-            chapter=chapter,
-            meaning_units_in_chapter=meaning_units_in_chapter,
-            chapter_end_anchor=chapter_end_anchor,
-            working_pressure=working_pressure,
-            anchor_memory=anchor_memory,
-            reflective_summaries=reflective_summaries,
-            knowledge_activations=knowledge_activations,
-            reaction_records=reaction_records,
-            reader_policy=reader_policy,
-            output_language=provisioned.output_language,
-            output_dir=output_dir,
-            persist_compatibility_projection=True,
-            book_title=provisioned.title,
-            author=provisioned.author,
-        )
-        working_pressure = phase6["working_pressure"]  # type: ignore[assignment]
-        anchor_memory = phase6["anchor_memory"]  # type: ignore[assignment]
-        reflective_summaries = phase6["reflective_summaries"]  # type: ignore[assignment]
-        knowledge_activations = phase6["knowledge_activations"]  # type: ignore[assignment]
-        reaction_records = phase6["reaction_records"]  # type: ignore[assignment]
-        chapter_statuses[chapter_id] = "done"
-        completed_chapters += 1
         _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
-        checkpoint = write_full_checkpoint(
-            output_dir,
-            checkpoint_id=f"chapter-{chapter_id:03d}",
-            checkpoint_reason="chapter_boundary",
-        )
-        append_activity_event(
-            output_dir,
-            {
-                "type": "chapter_completed",
-                "message": f"Finished {chapter_ref} with {len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))} visible reactions.",
-                "chapter_id": chapter_id,
-                "chapter_ref": chapter_ref,
-            },
-        )
+        _update_shell_phase(output_dir, status="completed", phase="idle")
         write_run_state(
             output_dir,
             build_run_state(
                 book_title=provisioned.title,
-                stage="deep_reading",
+                stage="completed",
                 total_chapters=total_chapters,
                 completed_chapters=completed_chapters,
-                current_chapter_id=chapter_id,
-                current_chapter_ref=chapter_ref,
-                current_phase_step="chapter_completed",
-                resume_available=True,
-                last_checkpoint_at=checkpoint.get("created_at"),
+                resume_available=bool(load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("resume_available")),
+                last_checkpoint_at=load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("last_checkpoint_at"),
             ),
         )
-        bundle.update(
+        append_activity_event(
+            output_dir,
             {
-                "local_buffer": local_buffer,
-                "trigger_state": trigger_state,
-                "working_pressure": working_pressure,
-                "anchor_memory": anchor_memory,
-                "reflective_summaries": reflective_summaries,
-                "knowledge_activations": knowledge_activations,
-                "move_history": move_history,
-                "reaction_records": reaction_records,
-                "reconsolidation_records": reconsolidation_records,
-                "reader_policy": reader_policy,
-                "resume_metadata": resume_metadata,
-            }
-        )
-        _save_runtime_bundle(output_dir, bundle)
-
-    _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
-    _update_shell_phase(output_dir, status="completed", phase="idle")
-    write_run_state(
-        output_dir,
-        build_run_state(
-            book_title=provisioned.title,
-            stage="completed",
-            total_chapters=total_chapters,
-            completed_chapters=completed_chapters,
-            resume_available=bool(load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("resume_available")),
-            last_checkpoint_at=load_runtime_shell(runtime_artifacts.runtime_shell_file(output_dir)).get("last_checkpoint_at"),
-        ),
-    )
-    append_activity_event(
-        output_dir,
-        {
-            "type": "run_completed",
-            "message": "Attentional V2 sequential reading completed.",
-            "details": {
-                "started_at": run_started_at,
-                "finished_at": _timestamp(),
+                "type": "run_completed",
+                "message": "Attentional V2 sequential reading completed.",
+                "details": {
+                    "started_at": run_started_at,
+                    "finished_at": _timestamp(),
+                },
             },
-        },
-    )
+        )
 
-    normalized_eval_bundle = build_normalized_eval_bundle(
-        output_dir,
-        config_payload={
-            "task_mode": request.task_mode,
-            "mechanism_config": dict(request.mechanism_config),
-        },
-    )
-    if bool(dict(request.mechanism_config).get("persist_normalized_eval_bundle")):
-        persist_normalized_eval_bundle(
+        normalized_eval_bundle = build_normalized_eval_bundle(
             output_dir,
             config_payload={
                 "task_mode": request.task_mode,
                 "mechanism_config": dict(request.mechanism_config),
             },
         )
-    return ReadResult(
-        mechanism=mechanism,
-        book_document=provisioned.book_document,
-        output_dir=output_dir,
-        created=created,
-        mechanism_artifact=_artifact_summary(
-            provisioned,
-            provisioned.book_document,
-            artifact_tree=artifact_tree,
-            survey_summary=survey_summary,
-        ),
-        normalized_eval_bundle=normalized_eval_bundle,
-    )
+        if bool(dict(request.mechanism_config).get("persist_normalized_eval_bundle")):
+            persist_normalized_eval_bundle(
+                output_dir,
+                config_payload={
+                    "task_mode": request.task_mode,
+                    "mechanism_config": dict(request.mechanism_config),
+                },
+            )
+        return ReadResult(
+            mechanism=mechanism,
+            book_document=provisioned.book_document,
+            output_dir=output_dir,
+            created=created,
+            mechanism_artifact=_artifact_summary(
+                provisioned,
+                provisioned.book_document,
+                artifact_tree=artifact_tree,
+                survey_summary=survey_summary,
+            ),
+            normalized_eval_bundle=normalized_eval_bundle,
+        )

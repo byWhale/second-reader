@@ -36,15 +36,35 @@ The project is maintained as one product with two sub-applications:
 Backend environment lives in `reading-companion-backend/.env`.
 
 Important backend variables:
-- `LLM_BASE_URL`
-- `LLM_API_KEY`
-- `LLM_MODEL`
+- `LLM_REGISTRY_PATH`
+- provider secret env vars referenced by the registry, for example:
+  - `MINIMAX_API_KEY`
+  - `ANTHROPIC_API_KEY_PRIMARY`
+  - `ANTHROPIC_API_KEY_SECONDARY`
+  - `GOOGLE_GENAI_API_KEY`
+- legacy compatibility variables still work when a structured registry is not configured:
+  - `LLM_PROVIDER_CONTRACT`
+  - `LLM_BASE_URL`
+  - `LLM_API_KEY`
+  - `LLM_MODEL`
+  - optional `LLM_DATASET_REVIEW_MODEL`
+  - optional `LLM_EVAL_JUDGE_MODEL`
 - `TAVILY_API_KEY`
 - `UPLOAD_MAX_BYTES`
 - `BACKEND_RUNTIME_ROOT`
 - `BACKEND_CORS_ORIGINS`
 - `BACKEND_HOST`
 - `BACKEND_PORT`
+
+The backend ships a structured registry example at
+`reading-companion-backend/config/llm_registry.example.json`.
+Use that file to define:
+- provider contracts such as `anthropic`, `google_genai`, and `openai_compatible`
+- key pools for same-model failover
+- pinned task-level profiles:
+  - `runtime_reader_default`
+  - `dataset_review_high_trust`
+  - `eval_judge_high_trust`
 
 Frontend environment is optional for local development and can be set via `reading-companion-frontend/.env.local`.
 

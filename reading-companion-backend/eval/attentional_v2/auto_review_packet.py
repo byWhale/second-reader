@@ -11,7 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from .case_audit_runs import latest_case_audit_run as find_latest_case_audit_run
-from src.iterator_reader.llm_utils import ReaderLLMError, invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
+from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -170,16 +171,19 @@ def normalize_review(payload: Any) -> dict[str, Any]:
 
 def adjudicate(case: dict[str, Any], audit_row: dict[str, Any]) -> dict[str, Any]:
     try:
-        payload = invoke_json(
-            SYSTEM,
-            PROMPT.format(
-                case_json=json.dumps(case, ensure_ascii=False, indent=2),
-                factual_json=json.dumps(audit_row.get("factual_audit", {}), ensure_ascii=False, indent=2),
-                primary_json=json.dumps(audit_row.get("primary_review", {}), ensure_ascii=False, indent=2),
-                adversarial_json=json.dumps(audit_row.get("adversarial_review", {}), ensure_ascii=False, indent=2),
-            ),
-            default=default_review(),
-        )
+        with llm_invocation_scope(
+            trace_context=LLMTraceContext(stage="packet_adjudication", node="final_adjudication"),
+        ):
+            payload = invoke_json(
+                SYSTEM,
+                PROMPT.format(
+                    case_json=json.dumps(case, ensure_ascii=False, indent=2),
+                    factual_json=json.dumps(audit_row.get("factual_audit", {}), ensure_ascii=False, indent=2),
+                    primary_json=json.dumps(audit_row.get("primary_review", {}), ensure_ascii=False, indent=2),
+                    adversarial_json=json.dumps(audit_row.get("adversarial_review", {}), ensure_ascii=False, indent=2),
+                ),
+                default=default_review(),
+            )
     except ReaderLLMError:
         return default_review()
     except Exception:
@@ -236,24 +240,33 @@ def main() -> int:
     fieldnames, review_rows = parse_review_rows(packet_dir / "cases.review.csv")
     source_rows = {str(row.get("case_id", "")): row for row in load_jsonl(packet_dir / "cases.source.jsonl")}
 
+    run_id = f"{packet_id}__llm_review__{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    review_run_dir = packet_dir / "llm_review_runs" / run_id
+    trace_context = eval_trace_context(
+        review_run_dir,
+        eval_target=f"dataset_packet_adjudication:{packet_id}",
+    )
+
     adjudicated_rows: list[dict[str, Any]] = []
     action_counts: Counter[str] = Counter()
-    for row in review_rows:
-        case_id = str(row.get("case_id", "")).strip()
-        source_row = source_rows[case_id]
-        audit_row = load_json(audit_cases_dir / f"{case_id}.json")
-        llm_review = adjudicate(source_row, audit_row)
-        row["review__action"] = llm_review["review__action"]
-        row["review__confidence"] = llm_review["review__confidence"]
-        row["review__problem_types"] = "|".join(llm_review["review__problem_types"])
-        row["review__revised_bucket"] = llm_review["review__revised_bucket"]
-        row["review__revised_selection_reason"] = llm_review["review__revised_selection_reason"]
-        row["review__revised_judge_focus"] = llm_review["review__revised_judge_focus"]
-        row["review__notes"] = llm_review["review__notes"]
-        adjudicated_rows.append({"case_id": case_id, "llm_review": llm_review})
-        action_counts[llm_review["review__action"]] += 1
-
-    run_id = f"{packet_id}__llm_review__{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+    with llm_invocation_scope(
+        profile_id=DEFAULT_DATASET_REVIEW_PROFILE_ID,
+        trace_context=trace_context,
+    ):
+        for row in review_rows:
+            case_id = str(row.get("case_id", "")).strip()
+            source_row = source_rows[case_id]
+            audit_row = load_json(audit_cases_dir / f"{case_id}.json")
+            llm_review = adjudicate(source_row, audit_row)
+            row["review__action"] = llm_review["review__action"]
+            row["review__confidence"] = llm_review["review__confidence"]
+            row["review__problem_types"] = "|".join(llm_review["review__problem_types"])
+            row["review__revised_bucket"] = llm_review["review__revised_bucket"]
+            row["review__revised_selection_reason"] = llm_review["review__revised_selection_reason"]
+            row["review__revised_judge_focus"] = llm_review["review__revised_judge_focus"]
+            row["review__notes"] = llm_review["review__notes"]
+            adjudicated_rows.append({"case_id": case_id, "llm_review": llm_review})
+            action_counts[llm_review["review__action"]] += 1
     summary = {
         "packet_id": packet_id,
         "run_id": run_id,

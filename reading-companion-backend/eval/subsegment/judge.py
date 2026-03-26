@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from src.iterator_reader.llm_utils import ReaderLLMError, invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, invoke_json, llm_invocation_scope
+from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID
 
 
 PLAN_JUDGE_SYSTEM = """你在做离线 reader eval，不是运行时共读。
@@ -163,7 +164,11 @@ def _default_downstream_judgment(left_label: str, right_label: str) -> dict[str,
 
 def _invoke_or_default(system_prompt: str, user_prompt: str, default: dict[str, Any]) -> dict[str, Any]:
     try:
-        payload = invoke_json(system_prompt, user_prompt, default)
+        with llm_invocation_scope(
+            profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+            trace_context=LLMTraceContext(stage="subsegment_eval", node="judge"),
+        ):
+            payload = invoke_json(system_prompt, user_prompt, default)
     except ReaderLLMError:
         return default
     except Exception:

@@ -1,0 +1,65 @@
+{
+  "providers": [
+    {
+      "provider_id": "runtime_minimax",
+      "contract": "openai_compatible",
+      "base_url": "https://api.minimaxi.chat/v1",
+      "api_key_env": "MINIMAX_API_KEY",
+      "supported_models": ["MiniMax-M1-80k", "MiniMax-Text-01"],
+      "timeout_seconds": 120,
+      "retry_attempts": 2,
+      "max_concurrency": 4
+    },
+    {
+      "provider_id": "judge_claude_primary",
+      "contract": "anthropic",
+      "api_key_env": "ANTHROPIC_API_KEY_PRIMARY",
+      "key_pool_envs": ["ANTHROPIC_API_KEY_SECONDARY"],
+      "supported_models": ["claude-opus-4-6"],
+      "timeout_seconds": 120,
+      "retry_attempts": 2,
+      "max_concurrency": 2
+    },
+    {
+      "provider_id": "judge_gemini_primary",
+      "contract": "google_genai",
+      "api_key_env": "GOOGLE_GENAI_API_KEY",
+      "supported_models": ["gemini-3.1-pro"],
+      "timeout_seconds": 120,
+      "retry_attempts": 2,
+      "max_concurrency": 2
+    }
+  ],
+  "profiles": [
+    {
+      "profile_id": "runtime_reader_default",
+      "provider_id": "runtime_minimax",
+      "model": "MiniMax-M1-80k",
+      "temperature": 0.2,
+      "max_tokens": 4096,
+      "timeout_seconds": 120,
+      "retry_attempts": 2,
+      "max_concurrency": 4
+    },
+    {
+      "profile_id": "dataset_review_high_trust",
+      "provider_id": "judge_claude_primary",
+      "model": "claude-opus-4-6",
+      "temperature": 0.2,
+      "max_tokens": 4096,
+      "timeout_seconds": 120,
+      "retry_attempts": 2,
+      "max_concurrency": 2
+    },
+    {
+      "profile_id": "eval_judge_high_trust",
+      "provider_id": "judge_claude_primary",
+      "model": "claude-opus-4-6",
+      "temperature": 0.2,
+      "max_tokens": 4096,
+      "timeout_seconds": 120,
+      "retry_attempts": 2,
+      "max_concurrency": 2
+    }
+  ]
+}

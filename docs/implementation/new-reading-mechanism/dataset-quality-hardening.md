@@ -177,7 +177,7 @@ The review loop should stay intentionally simple and not require a frontend webs
       - primary decisions: `4 keep`, `2 revise`
       - adversarial risk counts: `4 medium`, `1 high`, `1 low`
   - immediate next hardening step:
-    - after the temporary universal shared LLM layer detour, run final LLM adjudication/import for this packet and then rerun `mechanism_integrity` on the reviewed slice
+    - run final LLM adjudication/import for this packet through the shared universal backend LLM layer and then rerun `mechanism_integrity` on the reviewed slice
 - archived round 1 packet results:
   - `attentional_v2_zh_weak_buckets_round1`
     - `0 keep`
@@ -233,6 +233,11 @@ Packet contents:
 - The packet-level case-audit runner may use bounded case-level parallelism.
   - primary and adversarial review still remain ordered within each case
   - packet-level concurrency should stay conservative enough that the provider path remains stable and traceable
+- Model policy for packet review:
+  - prefer one pinned high-trust judge model profile for the whole packet
+  - same-model key failover is acceptable when needed
+  - do not silently switch to a different model family in the middle of one packet review run
+  - if a second strong model family is used, treat it as explicit disagreement/adjudication work rather than routine hidden mixing
 
 ### What Codex does in the current operational mode
 1. Run factual audit.

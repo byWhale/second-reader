@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.iterator_reader.language import language_name
-from src.iterator_reader.llm_utils import invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, invoke_json, llm_invocation_scope
 from src.reading_core.book_document import BookChapter, ParagraphRecord
 
 from .knowledge import apply_activation_operations
@@ -537,7 +537,10 @@ def reflective_promotion(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.reflective_promotion_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase6", node="reflective_promotion")
+    ):
+        payload = invoke_json(prompts.reflective_promotion_system, user_prompt, default={})
     normalized = _normalize_reflective_promotion_result(payload)
     if normalized.get("reflective_item"):
         normalized["reflective_item"]["chapter_ref"] = chapter_ref
@@ -646,7 +649,10 @@ def reconsolidation(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.reconsolidation_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase6", node="reconsolidation")
+    ):
+        payload = invoke_json(prompts.reconsolidation_system, user_prompt, default={})
     if not isinstance(payload, dict):
         return {
             "decision": "keep_prior",
@@ -880,7 +886,10 @@ def chapter_consolidation(
         user_prompt=user_prompt,
         promptset_version=prompts.promptset_version,
     )
-    payload = invoke_json(prompts.chapter_consolidation_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase6", node="chapter_consolidation")
+    ):
+        payload = invoke_json(prompts.chapter_consolidation_system, user_prompt, default={})
     normalized = _normalize_chapter_consolidation_result(payload)
     if not normalized.get("chapter_ref"):
         normalized["chapter_ref"] = chapter_ref

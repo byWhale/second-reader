@@ -277,6 +277,18 @@ Purpose:
 
 Main work:
 - Extract the reusable provider invocation helper out of `src/iterator_reader/llm_utils.py` into shared backend infrastructure.
+- Define explicit provider-contract adapters rather than assuming one implicit contract.
+  - `anthropic`
+  - `google_genai`
+  - `openai_compatible`
+- Define provider/key-pool management separately from model selection.
+  - allow multiple keys for the same provider/model profile as operational failover
+  - do not treat cross-model fallback as equivalent to same-model key failover
+- Define task-level model profiles, at minimum:
+  - `runtime_reader_default`
+  - `dataset_review_high_trust`
+  - `eval_judge_high_trust`
+  - optional cheaper runtime fallback profiles if needed later
 - Define one shared trace contract for project-owned LLM calls, including:
   - call identity
   - provider/model
@@ -287,6 +299,10 @@ Main work:
 - Preserve the existing standard-vs-debug observability posture:
   - `standard` should keep lightweight call metadata and failure diagnosis
   - `debug` may add prompt/response diagnostics when explicitly enabled
+- Preserve per-run semantic consistency rules:
+  - same-model key failover is allowed automatically when policy permits
+  - cross-model fallback must be explicit, traced, and policy-controlled
+  - dataset-review packets and evaluation runs should keep one pinned primary model family rather than silently mixing multiple families
 - Migrate the main current callers onto the shared layer:
   - `iterator_v1`
   - `attentional_v2`
@@ -306,6 +322,10 @@ Return path:
 
 Exit criteria:
 - The project no longer relies on a review-runner-only tracing pattern for LLM visibility.
+- Shared provider contracts, key pools, and task-level model profiles are concrete enough to support:
+  - cheaper runtime reading
+  - stronger dataset review
+  - stronger evaluation judging
 - Shared project-owned LLM calls can be traced consistently across runtime and eval paths.
 - The active benchmark-hardening route is resumed explicitly after the shared layer lands.
 

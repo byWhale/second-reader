@@ -25,8 +25,8 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from src.config import get_llm_max_concurrency
-from src.iterator_reader.llm_utils import ReaderLLMError, invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
+from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID, get_llm_profile_max_concurrency
 
 from .case_audit_runs import (
     AGGREGATE_FILE,
@@ -312,7 +312,10 @@ def invoke_review_with_meta(
     error: Exception | None = None
     status = "ok"
     try:
-        payload = invoke_json(system_prompt, user_prompt, default=default_payload)
+        with llm_invocation_scope(
+            trace_context=LLMTraceContext(stage="case_design_audit", node=stage_name),
+        ):
+            payload = invoke_json(system_prompt, user_prompt, default=default_payload)
     except ReaderLLMError as exc:
         payload = default_payload
         error = exc
@@ -521,6 +524,7 @@ def process_case(
     packet_id: str,
     source_index: dict[str, dict[str, Any]],
     run_dir: Path,
+    trace_context: LLMTraceContext,
 ) -> dict[str, Any]:
     case_id = str(case.get("case_id", ""))
     state = make_case_state(packet_id, case_id)
@@ -533,53 +537,57 @@ def process_case(
 
     overall_started = time.perf_counter()
     try:
-        factual_started = time.perf_counter()
-        factual = factual_audit(case, source_index)
-        state["timing_ms"]["factual_audit"] = int((time.perf_counter() - factual_started) * 1000)
-        state["factual_ok"] = bool(factual.get("ok"))
-        state["stage_statuses"]["factual_audit"] = "completed"
-        state["current_stage"] = "primary_review"
-        state["stage_statuses"]["primary_review"] = "running"
-        state["updated_at"] = utc_now()
-        write_case_state(run_dir, case_id, state)
+        with llm_invocation_scope(
+            profile_id=DEFAULT_DATASET_REVIEW_PROFILE_ID,
+            trace_context=trace_context,
+        ):
+            factual_started = time.perf_counter()
+            factual = factual_audit(case, source_index)
+            state["timing_ms"]["factual_audit"] = int((time.perf_counter() - factual_started) * 1000)
+            state["factual_ok"] = bool(factual.get("ok"))
+            state["stage_statuses"]["factual_audit"] = "completed"
+            state["current_stage"] = "primary_review"
+            state["stage_statuses"]["primary_review"] = "running"
+            state["updated_at"] = utc_now()
+            write_case_state(run_dir, case_id, state)
 
-        context = default_context()
-        if factual.get("ok"):
-            _, context = find_span_and_context(case, source_index)
+            context = default_context()
+            if factual.get("ok"):
+                _, context = find_span_and_context(case, source_index)
 
-        primary, primary_meta = run_primary(case, context)
-        state["llm_calls"]["primary_review"] = primary_meta
-        state["timing_ms"]["primary_review"] = primary_meta["duration_ms"]
-        state["stage_statuses"]["primary_review"] = "completed"
-        state["current_stage"] = "adversarial_review"
-        state["stage_statuses"]["adversarial_review"] = "running"
-        state["updated_at"] = utc_now()
-        write_case_state(run_dir, case_id, state)
+            primary, primary_meta = run_primary(case, context)
+            state["llm_calls"]["primary_review"] = primary_meta
+            state["timing_ms"]["primary_review"] = primary_meta["duration_ms"]
+            state["stage_statuses"]["primary_review"] = "completed"
+            state["current_stage"] = "adversarial_review"
+            state["stage_statuses"]["adversarial_review"] = "running"
+            state["updated_at"] = utc_now()
+            write_case_state(run_dir, case_id, state)
 
-        adversarial, adversarial_meta = run_adversarial(case, context)
-        state["llm_calls"]["adversarial_review"] = adversarial_meta
-        state["timing_ms"]["adversarial_review"] = adversarial_meta["duration_ms"]
-        state["timing_ms"]["total"] = int((time.perf_counter() - overall_started) * 1000)
-        state["stage_statuses"]["adversarial_review"] = "completed"
-        state["status"] = "completed"
-        state["current_stage"] = "completed"
-        state["updated_at"] = utc_now()
-        state["completed_at"] = state["updated_at"]
-        write_case_state(run_dir, case_id, state)
+            adversarial, adversarial_meta = run_adversarial(case, context)
+            state["llm_calls"]["adversarial_review"] = adversarial_meta
+            state["timing_ms"]["adversarial_review"] = adversarial_meta["duration_ms"]
+            state["timing_ms"]["total"] = int((time.perf_counter() - overall_started) * 1000)
+            state["stage_statuses"]["adversarial_review"] = "completed"
+            state["status"] = "completed"
+            state["current_stage"] = "completed"
+            state["updated_at"] = utc_now()
+            state["completed_at"] = state["updated_at"]
+            write_case_state(run_dir, case_id, state)
 
-        return {
-            "case_id": case_id,
-            "case_title": case.get("case_title"),
-            "packet_id": packet_id,
-            "status": "completed",
-            "factual_audit": factual,
-            "primary_review": primary,
-            "adversarial_review": adversarial,
-            "audit_metadata": {
-                "timing_ms": dict(state["timing_ms"]),
-                "llm_calls": dict(state["llm_calls"]),
-            },
-        }
+            return {
+                "case_id": case_id,
+                "case_title": case.get("case_title"),
+                "packet_id": packet_id,
+                "status": "completed",
+                "factual_audit": factual,
+                "primary_review": primary,
+                "adversarial_review": adversarial,
+                "audit_metadata": {
+                    "timing_ms": dict(state["timing_ms"]),
+                    "llm_calls": dict(state["llm_calls"]),
+                },
+            }
     except Exception as exc:  # pragma: no cover - defensive fallback
         state["status"] = "failed"
         state["current_stage"] = "failed"
@@ -627,7 +635,7 @@ def main() -> int:
     if not case_order:
         raise ValueError("No cases selected for audit")
 
-    max_workers = max(1, min(args.max_workers, get_llm_max_concurrency(), len(cases)))
+    max_workers = max(1, min(args.max_workers, get_llm_profile_max_concurrency(DEFAULT_DATASET_REVIEW_PROFILE_ID), len(cases)))
     run_id = f"{packet_id}__{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     run_dir = RUNS_ROOT / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -682,6 +690,7 @@ def main() -> int:
             packet_id=packet_id,
             source_index=source_index,
             run_dir=run_dir,
+            trace_context=trace_context,
         )
         submitted[future] = case_id
         run_state["queued_case_ids"].remove(case_id)
@@ -777,3 +786,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+    trace_context = eval_trace_context(
+        run_dir,
+        eval_target=f"dataset_case_design_audit:{packet_id}",
+    )

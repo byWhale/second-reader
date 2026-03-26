@@ -35,6 +35,7 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 - Keep canonical book substrate, shared runtime contracts, and cross-mechanism normalized output types in `src/reading_core/`.
 - Put shared runtime/mechanism boundaries in backend-level infrastructure instead of burying them inside one mechanism package.
 - Keep shared canonical parse/provisioning and shared sequential manifest/run-state builders in `src/reading_runtime/`.
+- Keep the shared LLM provider registry, invocation gateway, and cross-runtime/eval trace contract in `src/reading_runtime/`.
 - Keep mechanism-internal ontology local to the mechanism that owns it; do not force future readers to reuse `section` / `subsegment` concepts unless they genuinely fit.
 - Prefer wrapping the current `iterator_reader` behind shared mechanism boundaries over copying API/job wiring into each new reader.
 - Backend-wide infrastructure must not depend on `src.iterator_reader.models`; shared code should import neutral types from `src.reading_core/`.

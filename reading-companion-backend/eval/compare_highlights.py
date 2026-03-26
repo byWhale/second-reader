@@ -16,11 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_anthropic import ChatAnthropic
-
-from src.config import get_llm_config
-from src.iterator_reader.llm_utils import parse_json_payload, response_text
+from src.iterator_reader.llm_utils import LLMInvocationOverrides, eval_trace_context, invoke_json, invoke_text, llm_invocation_scope
+from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID
 from src.iterator_reader.storage import display_segment_id
 
 
@@ -203,14 +200,11 @@ def _clean_quote_text(text: str) -> str:
 def safe_invoke_json(system_prompt: str, user_prompt: str, default: dict) -> dict:
     """Invoke the LLM for JSON output but fall back gracefully."""
     try:
-        llm = get_comparison_llm()
-        response = llm.invoke(
-            [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_prompt),
-            ]
-        )
-        payload = parse_json_payload(response_text(response), default)
+        with llm_invocation_scope(
+            profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+            overrides=LLMInvocationOverrides(temperature=0.1, max_tokens=1200, timeout_seconds=25),
+        ):
+            payload = invoke_json(system_prompt, user_prompt, default)
     except Exception:
         return default
     return payload if isinstance(payload, dict) else default
@@ -219,30 +213,14 @@ def safe_invoke_json(system_prompt: str, user_prompt: str, default: dict) -> dic
 def safe_invoke_text(system_prompt: str, user_prompt: str, default: str) -> str:
     """Invoke the LLM for text output but keep the script resilient."""
     try:
-        llm = get_comparison_llm()
-        response = llm.invoke(
-            [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=user_prompt),
-            ]
-        )
+        with llm_invocation_scope(
+            profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+            overrides=LLMInvocationOverrides(temperature=0.1, max_tokens=1200, timeout_seconds=25),
+        ):
+            text = invoke_text(system_prompt, user_prompt, default)
     except Exception:
         return default
-    text = response_text(response).strip()
     return text or default
-
-
-def get_comparison_llm() -> ChatAnthropic:
-    """Create a bounded-timeout model for highlight comparison."""
-    config = get_llm_config()
-    return ChatAnthropic(
-        base_url=config["base_url"],
-        api_key=config["api_key"],
-        model=config["model"],
-        temperature=0.1,
-        max_tokens=1200,
-        timeout=25,
-    )
 
 
 def _dedupe_human_highlights(items: Iterable[HumanHighlight]) -> list[HumanHighlight]:
@@ -878,11 +856,16 @@ def main() -> int:
         )
 
     segments = load_segment_contexts(structure_path, args.chapter)
-    results = compare_highlights(human_highlights, agent_reactions, segments)
-    report = render_report(args.chapter, human_highlights, agent_reactions, results)
-
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    with llm_invocation_scope(
+        trace_context=eval_trace_context(
+            output_path.parent / f"{output_path.stem}__compare_highlights_run",
+            eval_target=f"compare_highlights:chapter_{args.chapter}",
+        )
+    ):
+        results = compare_highlights(human_highlights, agent_reactions, segments)
+        report = render_report(args.chapter, human_highlights, agent_reactions, results)
     output_path.write_text(report, encoding="utf-8")
     print(f"已生成对比报告：{output_path}")
     return 0

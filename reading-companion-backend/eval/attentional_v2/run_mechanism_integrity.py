@@ -15,9 +15,10 @@ from eval.common.taxonomy import DETERMINISTIC_METRICS, DIRECT_QUALITY, RUBRIC_J
 from src.attentional_v2.nodes import run_phase4_local_cycle
 from src.attentional_v2.retrieval import generate_candidate_set
 from src.attentional_v2.schemas import build_default_reader_policy, build_empty_anchor_memory, build_empty_knowledge_activations, build_empty_working_pressure
-from src.iterator_reader.llm_utils import ReaderLLMError, invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
 from src.reading_core import BookDocument
 from src.reading_core.storage import existing_book_document_file, load_book_document
+from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID, DEFAULT_RUNTIME_PROFILE_ID
 from src.reading_runtime.provisioning import ProvisionedBook, ensure_canonical_parse
 
 
@@ -199,26 +200,30 @@ def _judge_case(case: ExcerptCase, evidence: dict[str, Any], *, judge_mode: str)
     if judge_mode == "none":
         return _default_judgment()
     try:
-        payload = invoke_json(
-            JUDGE_SYSTEM,
-            JUDGE_PROMPT.format(
-                case_json=json.dumps(
-                    {
-                        "case_id": case.case_id,
-                        "case_title": case.case_title,
-                        "judge_focus": case.judge_focus,
-                        "selection_reason": case.selection_reason,
-                        "question_ids": case.question_ids,
-                        "phenomena": case.phenomena,
-                        "excerpt_text": case.excerpt_text,
-                    },
-                    ensure_ascii=False,
-                    indent=2,
+        with llm_invocation_scope(
+            profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+            trace_context=LLMTraceContext(stage="mechanism_integrity", node="rubric_judge"),
+        ):
+            payload = invoke_json(
+                JUDGE_SYSTEM,
+                JUDGE_PROMPT.format(
+                    case_json=json.dumps(
+                        {
+                            "case_id": case.case_id,
+                            "case_title": case.case_title,
+                            "judge_focus": case.judge_focus,
+                            "selection_reason": case.selection_reason,
+                            "question_ids": case.question_ids,
+                            "phenomena": case.phenomena,
+                            "excerpt_text": case.excerpt_text,
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    ),
+                    evidence_json=json.dumps(evidence, ensure_ascii=False, indent=2),
                 ),
-                evidence_json=json.dumps(evidence, ensure_ascii=False, indent=2),
-            ),
-            default=_default_judgment(),
-        )
+                default=_default_judgment(),
+            )
     except ReaderLLMError:
         return _default_judgment()
     except Exception:
@@ -387,7 +392,14 @@ def _case_payload(case: ExcerptCase) -> dict[str, Any]:
     }
 
 
-def _run_case(case: ExcerptCase, source_index: dict[str, dict[str, Any]], cache: dict[str, ProvisionedBook], *, judge_mode: str) -> dict[str, Any]:
+def _run_case(
+    case: ExcerptCase,
+    source_index: dict[str, dict[str, Any]],
+    cache: dict[str, ProvisionedBook],
+    *,
+    judge_mode: str,
+    trace_context: LLMTraceContext,
+) -> dict[str, Any]:
     source = source_index[case.source_id]
     provisioned = cache.setdefault(case.source_id, _ensure_provisioned(source, language_mode=case.output_language))
     document = provisioned.book_document
@@ -395,27 +407,31 @@ def _run_case(case: ExcerptCase, source_index: dict[str, dict[str, Any]], cache:
         raise RuntimeError(f"Missing book_document for {case.source_id}")
     chapter, current_span, lookback = _find_span(document, case)
     bridge_candidates = _build_bridge_candidates(document, case, current_span)
-    phase4 = run_phase4_local_cycle(
-        focal_sentence=current_span[-1],
-        current_span_sentences=current_span,
-        trigger_state={"output": "zoom_now", "gate_state": "engaged"},
-        working_pressure=build_empty_working_pressure(mechanism_version="attentional_v2-phase8"),
-        anchor_memory=build_empty_anchor_memory(mechanism_version="attentional_v2-phase8"),
-        knowledge_activations=build_empty_knowledge_activations(mechanism_version="attentional_v2-phase8"),
-        reader_policy=build_default_reader_policy(mechanism_version="attentional_v2-phase8", policy_version="attentional_v2-phase8"),
-        bridge_candidates=bridge_candidates,
-        output_language=case.output_language,
-        output_dir=None,
-        book_title=case.book_title,
-        author=case.author,
-        chapter_title=str(chapter.get("title", case.chapter_title) or case.chapter_title),
-        boundary_context={
-            "span_sentence_count": len(current_span),
-            "lookback_sentence_count": len(lookback),
-            "start_sentence_id": case.start_sentence_id,
-            "end_sentence_id": case.end_sentence_id,
-        },
-    )
+    with llm_invocation_scope(
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        trace_context=trace_context,
+    ):
+        phase4 = run_phase4_local_cycle(
+            focal_sentence=current_span[-1],
+            current_span_sentences=current_span,
+            trigger_state={"output": "zoom_now", "gate_state": "engaged"},
+            working_pressure=build_empty_working_pressure(mechanism_version="attentional_v2-phase8"),
+            anchor_memory=build_empty_anchor_memory(mechanism_version="attentional_v2-phase8"),
+            knowledge_activations=build_empty_knowledge_activations(mechanism_version="attentional_v2-phase8"),
+            reader_policy=build_default_reader_policy(mechanism_version="attentional_v2-phase8", policy_version="attentional_v2-phase8"),
+            bridge_candidates=bridge_candidates,
+            output_language=case.output_language,
+            output_dir=None,
+            book_title=case.book_title,
+            author=case.author,
+            chapter_title=str(chapter.get("title", case.chapter_title) or case.chapter_title),
+            boundary_context={
+                "span_sentence_count": len(current_span),
+                "lookback_sentence_count": len(lookback),
+                "start_sentence_id": case.start_sentence_id,
+                "end_sentence_id": case.end_sentence_id,
+            },
+        )
     deterministic = _deterministic_metrics(case, current_span, lookback, bridge_candidates, phase4)
     evidence = {
         "focal_sentence": {
@@ -596,6 +612,10 @@ def run_benchmark(
     run_name = run_id or datetime.now(timezone.utc).strftime("attentional_v2_integrity_v2_%Y%m%d-%H%M%S")
     run_root = runs_root / run_name
     run_root.mkdir(parents=True, exist_ok=True)
+    trace_context = eval_trace_context(
+        run_root,
+        eval_target=DEFAULT_TARGET,
+    )
 
     _json_dump(
         run_root / "dataset_manifest.json",
@@ -614,7 +634,7 @@ def run_benchmark(
     case_results: list[dict[str, Any]] = []
     for index, case in enumerate(all_cases, start=1):
         print(f"[{index}/{len(all_cases)}] {case.case_id}", flush=True)
-        result = _run_case(case, source_index, cache, judge_mode=judge_mode)
+        result = _run_case(case, source_index, cache, judge_mode=judge_mode, trace_context=trace_context)
         case_results.append(result)
         _json_dump(run_root / "cases" / f"{case.case_id}.json", result)
 

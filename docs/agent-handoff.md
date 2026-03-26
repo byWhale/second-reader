@@ -16,7 +16,12 @@ Last updated: `2026-03-26`
   - finish benchmark hardening on the weak Chinese local slice
   - rerun `mechanism_integrity` on the reviewed slice
   - only then trust broader semantic comparison more strongly
-- land the temporary side branch for a universal shared LLM invocation/traceability layer, then return directly to the active benchmark-hardening route
+- the temporary side branch for a universal shared LLM invocation/traceability layer is now landed
+  - shared provider contracts, key-pool failover, task-level profiles, and standard/debug trace sinks now live in backend infrastructure
+  - the return path is direct:
+    - final LLM adjudication/import for `attentional_v2_zh_revision_replacement_round2`
+    - reviewed-slice rerun of `mechanism_integrity`
+    - only then broader semantic comparison
 - decide `Q10`: how much of the detailed working design should be promoted from temp docs into stable `attentional_v2` documentation
 - keep `iterator_reader` as the current default reader while `attentional_v2` matures as an experimental end-to-end runner
 - finish the later frontend/API migration away from section-first chapter/detail and marks surfaces
@@ -46,7 +51,7 @@ Last updated: `2026-03-26`
 - `attentional_v2` is now a live experimental mechanism under `_mechanisms/attentional_v2/` with real parse/read entrypoints, shared runtime-shell integration, and async job lifecycle support.
 - Internal job launchers, resume, and incompatible fresh rerun now preserve `mechanism_key` through shared runtime/job plumbing.
 - `attentional_v2` remains intentionally unsupported for legacy `book_analysis` mode in this slice.
-- Dataset hardening currently has one active Chinese round-2 revision/replacement packet. Its machine-side case audit is complete; the current next benchmark step after the temporary universal-LLM-layer side branch is final adjudication/import for that packet plus a reviewed-slice rerun of `mechanism_integrity`.
+- Dataset hardening currently has one active Chinese round-2 revision/replacement packet. Its machine-side case audit is complete, and the universal-LLM-layer detour is now landed; the current next benchmark step is final adjudication/import for that packet plus a reviewed-slice rerun of `mechanism_integrity`.
 - Stable mechanism docs are now split between the shared platform doc (`docs/backend-reading-mechanism.md`) and per-mechanism docs under `docs/backend-reading-mechanisms/`.
 - Storage helpers still read older shared-path and flat legacy artifacts for compatibility, but new writes should target the namespaced mechanism paths.
 - Normal reading runs do not persist normalized eval bundles; those exports are reserved for explicit eval-mode runs.

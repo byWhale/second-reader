@@ -133,6 +133,12 @@ def runtime_shell_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "runtime_shell.json"
 
 
+def llm_standard_trace_file(output_dir: Path) -> Path:
+    """Path to the shared standard LLM trace stream for runtime calls."""
+
+    return runtime_dir(output_dir) / "llm_standard.jsonl"
+
+
 def checkpoint_summaries_dir(output_dir: Path) -> Path:
     """Directory storing shared checkpoint summaries."""
 
@@ -258,6 +264,12 @@ def mechanism_internal_diagnostics_dir(output_dir: Path, mechanism_key: str) -> 
     """Directory storing one mechanism's diagnostics."""
 
     return mechanism_internal_dir(output_dir, mechanism_key) / "diagnostics"
+
+
+def llm_debug_trace_file(output_dir: Path, mechanism_key: str) -> Path:
+    """Path to one mechanism-owned debug LLM trace stream."""
+
+    return mechanism_internal_diagnostics_dir(output_dir, mechanism_key) / "llm_debug.jsonl"
 
 
 def mechanism_internal_analysis_dir(output_dir: Path, mechanism_key: str) -> Path:

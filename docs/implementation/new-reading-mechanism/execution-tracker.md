@@ -191,9 +191,21 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Make packet-level case audits traceable with run-state, per-case state, and partial-summary artifacts
 - [x] Add bounded case-level parallelism to the packet case-audit runner
 - [x] Complete the machine-side case audit on the Chinese round-2 revision/replacement packet
-- [ ] Extract a shared backend LLM invocation layer out of the iterator-specific helper path
-- [ ] Define shared standard/debug trace outputs for project-owned LLM calls
-- [ ] Migrate the main runtime and eval call sites onto the shared LLM layer
+- [x] Extract a shared backend LLM invocation layer out of the iterator-specific helper path
+- [x] Define shared provider-contract adapters:
+  - `anthropic`
+  - `google_genai`
+  - `openai_compatible`
+- [x] Define provider/key-pool management separately from model-profile policy
+- [x] Define pinned task-level model profiles:
+  - `runtime_reader_default`
+  - `dataset_review_high_trust`
+  - `eval_judge_high_trust`
+- [x] Define shared standard/debug trace outputs for project-owned LLM calls
+- [x] Preserve per-run semantic consistency:
+  - allow same-model key failover when policy permits
+  - do not silently switch model families inside one packet-review run or one evaluation run
+- [x] Migrate the main runtime and eval call sites onto the shared LLM layer
 - [ ] Return from the universal-LLM side branch to active benchmark hardening:
   - final adjudication/import for `attentional_v2_zh_revision_replacement_round2`
   - reviewed-slice rerun of `mechanism_integrity`

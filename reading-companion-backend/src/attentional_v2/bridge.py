@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.iterator_reader.language import language_name
-from src.iterator_reader.llm_utils import invoke_json
+from src.iterator_reader.llm_utils import LLMTraceContext, invoke_json, llm_invocation_scope
 
 from .knowledge import (
     apply_activation_operations,
@@ -347,7 +347,10 @@ def bridge_resolution(
         promptset_version=prompts.promptset_version,
     )
 
-    payload = invoke_json(prompts.bridge_resolution_system, user_prompt, default={})
+    with llm_invocation_scope(
+        trace_context=LLMTraceContext(stage="phase5", node="bridge_resolution")
+    ):
+        payload = invoke_json(prompts.bridge_resolution_system, user_prompt, default={})
     decision = _clean_text(payload.get("decision")).lower() if isinstance(payload, dict) else ""
     if decision not in {"bridge", "decline"}:
         decision = "decline"

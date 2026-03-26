@@ -19,6 +19,7 @@ from src.config import (
     get_pipeline_segment_workers_when_reader_blocked,
     get_reader_resume_compat_version,
 )
+from src.reading_runtime.llm_registry import DEFAULT_RUNTIME_PROFILE_ID
 from .frontend_artifacts import (
     append_activity_event,
     append_deduped_activity_event,
@@ -29,6 +30,7 @@ from .frontend_artifacts import (
     write_chapter_result,
     write_run_state,
 )
+from .llm_utils import llm_invocation_scope, runtime_trace_context
 from .markdown import render_chapter_markdown
 from .language import runtime_label
 from .models import (
@@ -1544,55 +1546,64 @@ def read_book(
         require_segments=False,
         prompt_set=prompt_set,
     )
-    selected_chapters = _chapter_selection(structure, chapter_number, continue_mode)
-    if read_mode == "sequential":
-        write_book_manifest(output_dir, structure)
-        write_run_state(
+    with llm_invocation_scope(
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        trace_context=runtime_trace_context(
             output_dir,
-            build_run_state(
-                structure,
-                stage="ready",
-                total_chapters=len(selected_chapters),
-                completed_chapters=0,
-                current_phase_step=None,
-                resume_available=continue_mode,
-                last_checkpoint_at=None,
-            ),
-        )
+            mechanism_key="iterator_v1",
+            stage="read",
+            extra={"read_mode": read_mode},
+        ),
+    ):
+        selected_chapters = _chapter_selection(structure, chapter_number, continue_mode)
+        if read_mode == "sequential":
+            write_book_manifest(output_dir, structure)
+            write_run_state(
+                output_dir,
+                build_run_state(
+                    structure,
+                    stage="ready",
+                    total_chapters=len(selected_chapters),
+                    completed_chapters=0,
+                    current_phase_step=None,
+                    resume_available=continue_mode,
+                    last_checkpoint_at=None,
+                ),
+            )
 
-    if not selected_chapters:
-        print("没有待处理章节。", flush=True)
+        if not selected_chapters:
+            print("没有待处理章节。", flush=True)
+            return structure, output_dir, created
+        policy = budget_policy or default_budget_policy()
+        analysis = analysis_policy or default_book_analysis_policy()
+        tuning = _default_pipeline_tuning()
+
+        if read_mode == "book_analysis":
+            structure, _analysis_state = run_book_analysis(
+                structure=structure,
+                output_dir=output_dir,
+                selected_chapters=selected_chapters,
+                user_intent=user_intent,
+                skill_profile=skill_profile,
+                budget_policy=policy,
+                analysis_policy=analysis,
+                prompt_set=book_analysis_prompt_set,
+                reader_prompt_set=prompt_set,
+            )
+        elif read_mode == "sequential":
+            structure = _read_book_sequential(
+                book_path=book_path,
+                structure=structure,
+                output_dir=output_dir,
+                selected_chapters=selected_chapters,
+                user_intent=user_intent,
+                skill_profile=skill_profile,
+                budget_policy=policy,
+                continue_mode=continue_mode,
+                tuning=tuning,
+                prompt_set=prompt_set,
+            )
+        else:
+            raise ValueError(f'Unsupported read mode: "{read_mode}"')
+
         return structure, output_dir, created
-    policy = budget_policy or default_budget_policy()
-    analysis = analysis_policy or default_book_analysis_policy()
-    tuning = _default_pipeline_tuning()
-
-    if read_mode == "book_analysis":
-        structure, _analysis_state = run_book_analysis(
-            structure=structure,
-            output_dir=output_dir,
-            selected_chapters=selected_chapters,
-            user_intent=user_intent,
-            skill_profile=skill_profile,
-            budget_policy=policy,
-            analysis_policy=analysis,
-            prompt_set=book_analysis_prompt_set,
-            reader_prompt_set=prompt_set,
-        )
-    elif read_mode == "sequential":
-        structure = _read_book_sequential(
-            book_path=book_path,
-            structure=structure,
-            output_dir=output_dir,
-            selected_chapters=selected_chapters,
-            user_intent=user_intent,
-            skill_profile=skill_profile,
-            budget_policy=policy,
-            continue_mode=continue_mode,
-            tuning=tuning,
-            prompt_set=prompt_set,
-        )
-    else:
-        raise ValueError(f'Unsupported read mode: "{read_mode}"')
-
-    return structure, output_dir, created

@@ -22,6 +22,8 @@ Use `docs/backend-sequential-lifecycle.md` for the job-level workflow over time.
 - Shared runtime shell
   - `src/reading_runtime/` owns mechanism registration, runtime routing, and shared artifact layout authority.
   - Shared canonical parse/provisioning helpers and shared sequential manifest/run-state builders also live under `src/reading_runtime/`.
+  - The shared backend LLM invocation gateway, provider registry, and standard/debug trace contract also live under `src/reading_runtime/`.
+  - Project-owned prompt-to-provider calls should use that shared gateway rather than instantiating provider clients inside one mechanism package or one-off eval code.
   - Top-level `public/` and `_runtime/` are shared cross-mechanism territory.
   - `_mechanisms/<mechanism_key>/` is mechanism-owned territory.
   - Internal mechanism selection may be carried through shared job/runtime plumbing by `mechanism_key`, even when the public HTTP contract still exposes only the current analysis routes.
