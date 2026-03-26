@@ -20,5 +20,10 @@
     "needs_revision": 4,
     "needs_replacement": 2
   },
-  "import_contract_version": "1"
+  "import_contract_version": "1",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "llm_review_run_id": "attentional_v2_zh_revision_replacement_round2__llm_review__20260326-022200",
+  "llm_review_generated_at": "2026-03-26T02:25:17.151534Z",
+  "source_case_audit_run_id": "attentional_v2_zh_revision_replacement_round2__20260325-143403"
 }

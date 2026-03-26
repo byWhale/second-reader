@@ -1,0 +1,14 @@
+{
+  "packet_id": "attentional_v2_zh_revision_replacement_round2",
+  "run_id": "attentional_v2_zh_revision_replacement_round2__llm_review__20260326-022200",
+  "generated_at": "2026-03-26T02:25:17.151534Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "case_count": 6,
+  "action_counts": {
+    "revise": 3,
+    "keep": 2,
+    "drop": 1
+  },
+  "source_case_audit_run_id": "attentional_v2_zh_revision_replacement_round2__20260325-143403"
+}

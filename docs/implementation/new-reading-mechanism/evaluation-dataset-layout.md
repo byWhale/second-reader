@@ -103,6 +103,21 @@ The benchmark family now has two tracked generations:
 
 The `v2` generation is the current serious public-first bilingual benchmark layer.
 
+## Current Reviewed-Slice Status
+The current reviewed excerpt slice is still much smaller than the full curated `v2` pack:
+- English reviewed-active excerpt cases:
+  - `3`
+- Chinese reviewed-active excerpt cases:
+  - `2`
+
+Current frozen reviewed round:
+- `attentional_v2_excerpt_en_curated_v2_llm_reviewed_round2`
+- `attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round2`
+
+Interpretation:
+- this reviewed slice is useful for signal-check reruns
+- it is not yet large enough to safely drive broad mechanism tuning or broader semantic comparison
+
 ## Package Contract
 Every concrete package should contain:
 - `manifest.json`
@@ -162,6 +177,9 @@ The following belong in `reading-companion-backend/eval/manifests/`, not inside 
 - English and Chinese stay in separate tracked packages.
 - Do not put both languages into the same package for the first benchmark generation.
 - If we later add multilingual comparative methodology, that should create new explicit packages rather than silently mixing these first-track datasets.
+- When expanding the reviewed excerpt benchmark, grow English and Chinese in balanced rounds.
+  - do not treat Chinese-only growth as a formal benchmark expansion round
+  - keep reviewed-case count and phenomenon coverage growth roughly aligned across both language tracks
 
 ## Folder Skeleton
 The project should have these family roots available now:
@@ -257,6 +275,17 @@ The current public-first large corpus expansion is now complete.
 Important build nuance:
 - weak public Chinese sources may be normalized into clean synthetic segmented EPUBs before screening when the underlying text is usable but the original public packaging is too structurally weak for fair chapter selection
 - this normalization is part of the tracked `v2` build process, not an ad hoc exception
+
+## Next Reviewed-Excerpt Targets
+Immediate next target:
+- reviewed-active excerpt slice of at least `8` cases per language
+
+Preferred next confidence target:
+- reviewed-active excerpt slice of `10-12` cases per language
+
+If the current tracked curated + seed `v2` pool is insufficient:
+- expand curated excerpt packs from `16` to `24` cases per language
+- keep the added bilingual coverage balanced instead of growing one language track alone
 
 ## Immediate Next Step
 - Treat the tracked `v2` public benchmark family as ready for real evaluation work.

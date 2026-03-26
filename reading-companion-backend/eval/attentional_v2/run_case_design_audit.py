@@ -673,6 +673,10 @@ def main() -> int:
         packet_id=packet_id,
         partial=True,
     )
+    trace_context = eval_trace_context(
+        run_dir,
+        eval_target=f"dataset_case_design_audit:{packet_id}",
+    )
 
     results_by_case_id: dict[str, dict[str, Any]] = {}
     submitted: dict[Future[dict[str, Any]], str] = {}
@@ -786,7 +790,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-    trace_context = eval_trace_context(
-        run_dir,
-        eval_target=f"dataset_case_design_audit:{packet_id}",
-    )

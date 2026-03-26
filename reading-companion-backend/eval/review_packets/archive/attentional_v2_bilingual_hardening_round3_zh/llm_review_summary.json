@@ -1,0 +1,14 @@
+{
+  "packet_id": "attentional_v2_bilingual_hardening_round3_zh",
+  "run_id": "attentional_v2_bilingual_hardening_round3_zh__llm_review__20260326-033311",
+  "generated_at": "2026-03-26T03:35:32.937451Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "case_count": 4,
+  "action_counts": {
+    "keep": 2,
+    "revise": 1,
+    "drop": 1
+  },
+  "source_case_audit_run_id": "attentional_v2_bilingual_hardening_round3_zh__20260326-033106"
+}

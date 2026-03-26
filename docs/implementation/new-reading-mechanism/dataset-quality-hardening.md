@@ -44,6 +44,9 @@ Authoritative first-pass evidence:
 - The current operational rule is now LLM-led review by default:
   - multi-prompt LLM adjudication replaces manual human packet review unless the user explicitly requests manual review
   - human review is now optional later escalation for higher-trust `gold` slices, not the default blocker for current hardening work
+- Do **not** broadly retune the mechanism against the current reviewed slice while it remains tiny and skewed.
+  - no-regret mechanism fixes are still allowed
+  - broad mechanism tuning should wait for a larger reviewed excerpt slice
 
 ## Truth Layers
 ### Strong factual truth
@@ -93,6 +96,94 @@ Also prioritize:
 - Chinese curated excerpt cases
 - any case where the current harness always yields `advance` and the case is supposed to test richer move pressure
 - any case where the judged failure might come from label ambiguity rather than obvious mechanism weakness
+
+## Balance Rule
+- Distinguish:
+  - targeted repair
+  - benchmark growth
+- Targeted repair may inspect the currently weakest language or bucket first.
+- Benchmark growth must stay balanced across English and Chinese.
+- For the excerpt benchmark family, do not run a formal expansion round that grows only one language track.
+- Keep both of these balanced whenever we expand:
+  - raw reviewed-case count
+  - phenomenon coverage across buckets
+
+## Next Planned Work
+The next work should happen in two lanes:
+
+### Lane A: Targeted hardening round
+Purpose:
+- repair the remaining explicitly flagged weak cases
+- remove or rewrite cases that are still distorting the benchmark
+
+Rule:
+- although the current weakness is stronger on Chinese, the next formal packet round should be bilingual rather than Chinese-only
+
+Round shape:
+- one bilingual hardening packet
+- target size:
+  - `4` English cases
+  - `4` Chinese cases
+
+Recommended selection policy:
+- English:
+  - the remaining `needs_revision` rows
+  - plus, if needed to reach `4`, one analogous builder-curated weak-family candidate
+- Chinese:
+  - the remaining `needs_revision` and `needs_replacement` rows
+
+Expected result:
+- convert the clearly salvageable rows into `reviewed_active`
+- retire the clearly bad rows
+- identify which weak-family gaps still need true replacement rather than relabeling
+
+### Lane B: Balanced reviewed-slice expansion
+Purpose:
+- make the reviewed excerpt slice large enough to guide mechanism work more safely
+- avoid tuning against a tiny, callback-heavy subset
+
+Round shape:
+- one bilingual reviewed-slice expansion packet after Lane A
+- target size:
+  - `6` English promotion candidates
+  - `6` Chinese promotion candidates
+
+Selection order:
+1. current tracked curated `v2` rows that are still `builder_curated`
+2. if that is not enough, promote from the tracked seed `v2` excerpt pool into the curated pack first
+3. only if the current tracked public pool cannot supply enough trustworthy candidates do we return to source-book/corpus expansion
+
+Per-language coverage target for this expansion packet:
+- `1` `distinction_definition`
+- `1` `tension_reversal`
+- `2` `callback_bridge`
+- `1` `anchored_reaction_selectivity`
+- `1` `reconsolidation_later_reinterpretation` or strongest available reserve replacement
+
+Immediate reviewed-slice gate after Lane A + Lane B:
+- aim for at least `8` `reviewed_active` excerpt cases per language before broader semantic comparison
+- do not trust broader semantic comparison if one language remains far below that floor
+
+Preferred next confidence gate after the following round:
+- `10-12` `reviewed_active` excerpt cases per language
+- at that point, broader mechanism tuning and comparison work becomes much safer
+
+## Later Dataset Expansion
+If the current tracked `v2` curated/seed pool still cannot support a trustworthy reviewed slice after the two lanes above, expand the bilingual excerpt benchmark itself.
+
+Balanced bilingual excerpt-growth target:
+- grow curated excerpt packs from `16` to `24` cases per language
+
+Recommended added coverage per language:
+- `+1` `distinction_definition`
+- `+1` `tension_reversal`
+- `+2` `callback_bridge`
+- `+2` `anchored_reaction_selectivity`
+- `+2` `reconsolidation_later_reinterpretation`
+
+Important scope rule:
+- this immediate hardening/expansion plan is excerpt-first because the current blocked decision is a local `mechanism_integrity` question
+- chapter/runtime/compatibility families should remain unchanged in this round unless the local excerpt evidence says a broader corpus change is actually needed
 
 ## Hardening Workflow
 ### Stage 1: Factual audit
@@ -162,22 +253,48 @@ The review loop should stay intentionally simple and not require a frontend webs
 
 ### Current packet status
 - active queue:
-  - currently `1` active packet
+  - currently `0` active packets
   - see `reading-companion-backend/eval/review_packets/review_queue_summary.md`
-  - active round 2 packet:
-    - `attentional_v2_zh_revision_replacement_round2`
-    - `4` `needs_revision`
-    - `2` `needs_replacement`
-    - source dataset: tracked `attentional_v2_excerpt_zh_curated_v2`
-    - purpose: run the next Chinese hardening pass directly on the status-marked weak cases
-    - completed machine-side case audit:
-      - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_revision_replacement_round2__20260325-143403/`
-      - `6` completed
-      - `0` factual failures
-      - primary decisions: `4 keep`, `2 revise`
-      - adversarial risk counts: `4 medium`, `1 high`, `1 low`
   - immediate next hardening step:
-    - run final LLM adjudication/import for this packet through the shared universal backend LLM layer and then rerun `mechanism_integrity` on the reviewed slice
+    - start the bilingual reviewed-slice expansion round
+  - most recent bilingual hardening round:
+    - implementation note:
+      - the current import path is dataset-local, so one balanced bilingual round is represented as a synchronized packet pair rather than one mixed packet
+    - English packet:
+      - `attentional_v2_bilingual_hardening_round3_en`
+      - `4` cases
+      - `3` remaining `needs_revision`
+      - `1` analogous builder-curated reconsolidation candidate
+      - machine-side case audit:
+        - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_bilingual_hardening_round3_en__20260326-033106/`
+        - `4` completed
+        - primary decisions: `3 keep`, `1 revise`
+        - adversarial risk counts: `4 medium`
+      - final adjudication/import:
+        - `2 keep`
+        - `2 revise`
+    - Chinese packet:
+      - `attentional_v2_bilingual_hardening_round3_zh`
+      - `4` cases
+      - `3` `needs_revision`
+      - `1` `needs_replacement`
+      - machine-side case audit:
+        - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_bilingual_hardening_round3_zh__20260326-033106/`
+        - `4` completed
+        - primary decisions: `3 keep`, `1 unclear`
+        - adversarial risk counts: `2 low`, `1 medium`, `1 high`
+      - final adjudication/import:
+        - `2 keep`
+        - `1 revise`
+        - `1 drop`
+    - imported status effect on tracked curated `v2` datasets:
+      - English:
+        - `5` `reviewed_active`
+        - `2` `needs_revision`
+      - Chinese:
+        - `4` `reviewed_active`
+        - `1` `needs_revision`
+        - `1` `needs_replacement`
 - archived round 1 packet results:
   - `attentional_v2_zh_weak_buckets_round1`
     - `0 keep`
@@ -187,6 +304,44 @@ The review loop should stay intentionally simple and not require a frontend webs
     - `3 keep`
     - `3 revise`
     - `0 drop`
+  - `attentional_v2_zh_revision_replacement_round2`
+    - source dataset: tracked `attentional_v2_excerpt_zh_curated_v2`
+    - purpose: run the next Chinese hardening pass directly on the status-marked weak cases
+    - completed machine-side case audit:
+      - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_revision_replacement_round2__20260325-143403/`
+      - `6` completed
+      - `0` factual failures
+      - primary decisions: `4 keep`, `2 revise`
+      - adversarial risk counts: `4 medium`, `1 high`, `1 low`
+    - completed final LLM adjudication/import through the shared universal backend LLM layer
+    - packet outcome:
+      - `2 keep`
+      - `3 revise`
+      - `1 drop`
+    - imported status effect on tracked `attentional_v2_excerpt_zh_curated_v2`:
+      - `2` `reviewed_active`
+      - `3` `needs_revision`
+      - `1` `needs_replacement`
+  - reviewed-slice rerun:
+    - frozen reviewed datasets:
+      - `reading-companion-backend/eval/datasets/excerpt_cases/attentional_v2_excerpt_en_curated_v2_llm_reviewed_round2/`
+      - `reading-companion-backend/eval/datasets/excerpt_cases/attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round2/`
+    - benchmark run:
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_integrity_reviewed_slice_round2_20260326/`
+    - result:
+      - `5` total cases
+      - `2 pass`
+      - `1 partial`
+      - `2 fail`
+      - `0` structural failures
+      - global averages: all `3.000`
+      - English: `2 pass`, `1 fail`, average `3.667`
+      - Chinese: `1 partial`, `1 fail`, average `2.000`
+    - interpretation:
+      - the reviewed slice is cleaner, but not yet broad enough for high-confidence comparison work
+      - Chinese callback handling still shows real mechanism weakness even after dataset cleanup
+      - broader semantic comparison should remain blocked until the next balanced bilingual reviewed-slice expansion round lands
+      - the later bilingual hardening round improved the reviewed-active counts, but the benchmark still remains below the `8`-per-language minimum trust floor for broader semantic comparison
 
 ### Export tool
 - `reading-companion-backend/eval/attentional_v2/export_dataset_review_packet.py`
@@ -245,6 +400,8 @@ Packet contents:
 3. Run adversarial disagreement audit.
 4. Run final LLM adjudication and fill the `review__...` columns automatically.
 5. Import the packet back into the dataset.
+6. Rebuild or reuse the reviewed slice and rerun `mechanism_integrity` before trusting broader semantic comparison.
+7. If the reviewed slice is still thin or still concentrated in one weak bucket, run another targeted hardening round before broader semantic comparison.
 
 ### Optional manual override mode
 If manual review is explicitly requested later:

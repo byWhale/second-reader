@@ -1,0 +1,42 @@
+{
+  "dataset_id": "attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round2",
+  "family": "excerpt_cases",
+  "language_track": "zh",
+  "version": "2",
+  "description": "Reviewed slice frozen from attentional_v2_excerpt_zh_curated_v2.",
+  "primary_file": "cases.jsonl",
+  "question_ids": [
+    "EQ-CM-002",
+    "EQ-AV2-001",
+    "EQ-AV2-002",
+    "EQ-AV2-003",
+    "EQ-AV2-004",
+    "EQ-AV2-005",
+    "EQ-AV2-006"
+  ],
+  "source_manifest_refs": [
+    "eval/manifests/source_books/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/local_refs/attentional_v2_public_benchmark_pool_v2.json",
+    "eval/manifests/corpora/attentional_v2_public_benchmark_pool_bilingual_v2.json"
+  ],
+  "split_refs": [
+    "eval/manifests/splits/attentional_v2_public_benchmark_pool_bilingual_v2_splits.json"
+  ],
+  "storage_mode": "tracked",
+  "derived_from_dataset_id": "attentional_v2_excerpt_zh_curated_v2",
+  "frozen_at": "2026-03-26T02:41:36.857654Z",
+  "freeze_criteria": {
+    "include_status": [
+      "reviewed_active"
+    ]
+  },
+  "review_queue_summary": {
+    "row_count": 2,
+    "review_status_counts": {
+      "llm_reviewed": 2
+    },
+    "benchmark_status_counts": {
+      "reviewed_active": 2
+    }
+  }
+}

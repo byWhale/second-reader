@@ -527,11 +527,11 @@ def _top_cases(case_results: list[dict[str, Any]], *, reverse: bool) -> list[dic
 
 def _build_markdown_report(*, run_id: str, aggregate: dict[str, Any], case_results: list[dict[str, Any]], datasets: list[dict[str, Any]]) -> str:
     lines: list[str] = []
-    lines.append("# Attentional V2 Mechanism Integrity: v2 First Pass")
+    lines.append("# Attentional V2 Mechanism Integrity")
     lines.append("")
     lines.append("## Summary")
     lines.append("")
-    lines.append("This report records the first local `mechanism_integrity` benchmark pass over the tracked curated `v2` excerpt datasets for `attentional_v2`.")
+    lines.append("This report records a local `mechanism_integrity` benchmark pass over the selected excerpt datasets for `attentional_v2`.")
     lines.append("")
     lines.append("## Run")
     lines.append("")
