@@ -1,0 +1,89 @@
+# LLM Packet Review: `attentional_v2_private_library_promotion_round1_excerpt_zh`
+
+- run_id: `attentional_v2_private_library_promotion_round1_excerpt_zh__llm_review__20260327-113602`
+- generated_at: `2026-03-27T11:40:28.188889Z`
+- case_count: `16`
+- action_counts: `{"drop": 1, "keep": 1, "revise": 14}`
+
+## Case Decisions
+
+- `biji_de_fangfa_private_zh__15__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus`
+  - notes: The excerpt content itself is strong and demonstrates a clear principle about learning from others' negative experiences. However, the case lacks all critical metadata fields (case_title, question_ids, phenomena, selection_reason, judge_focus), making it impossible to evaluate as a benchmark case. The content is promising enough to revise rather than drop - it needs proper metadata curation before it can enter the reviewed benchmark.
+- `biji_de_fangfa_private_zh__13__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `wrong_bucket|weak_excerpt|ambiguous_focus`
+  - notes: The excerpt has two critical issues: (1) severe bucket mismatch - content is about learning strategy/specialization, not note-taking methods despite the book title; (2) metadata is incomplete with empty question_ids, phenomena, and judge_focus fields. The seed status indicates this requires curation before promotion. Recommend either recategorizing to learning_strategy or sourcing a different excerpt that actually addresses note-taking methodology.
+- `fooled_by_randomness_private_zh__9__seed_1`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: The primary reviewer's concern about missing metadata (case_title, question_ids, etc.) is a data entry issue rather than a fundamental excerpt problem. The excerpt itself is coherent, argumentative, and well-suited for benchmark evaluation. The adversarial review confirms no significant issues. This case is ready for benchmark inclusion.
+- `fooled_by_randomness_private_zh__19__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `weak_excerpt|text_noise|ambiguous_focus`
+  - notes: This Taleb excerpt criticizing Markowitz has thematic relevance to decision-making psychology but lacks critical metadata (phenomena, selection_reason, judge_focus). The text is philosophical criticism without a clear demonstration of a specific linguistic or reasoning pattern. Needs curation to add phenomenon tags (e.g., 'expert_criticism', 'model_limitations') and define what reading-mechanism capability this case tests.
+- `kangxi_hongpiao_private_zh__12__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `wrong_bucket|too_easy`
+  - notes: The role tag should likely be 'reference_heavy' rather than 'argumentative' since the excerpt provides factual explanation without advancing a specific argument. The case is borderline too_easy but acceptable as an early-bucket vocabulary test if relabeled correctly.
+- `kangxi_hongpiao_private_zh__12__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus|text_noise|weak_excerpt`
+  - notes: All critical metadata (case_title, selection_reason, judge_focus, question_ids) is empty, making this case unjudgable for benchmark utility. The [97] reference artifact should be removed. The historical content about Qing missionary trajectories appears coherent but requires proper metadata to be assessable. Without relabeling, this case cannot enter the benchmark.
+- `kangxi_hongpiao_private_zh__27__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `too_easy|ambiguous_focus`
+  - notes: The excerpt is factually accurate but lacks a reading comprehension challenge. It's a straightforward historical description without a question, inference task, or ambiguity to resolve. To become a benchmark-quality case, it needs a specific query requiring reasoning about the provided information (e.g., analyzing Qing government policy toward missionary sympathizers, or evaluating the public vs. private dimensions of Tong Guoqi's support for missionaries).
+- `zhangzhongmou_zizhuan_private_zh__4__seed_1`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `weak_excerpt|ambiguous_focus`
+  - notes: Critical metadata gaps (question_ids, phenomena, selection_reason, judge_focus all empty). The excerpt is a straightforward autobiographical narrative about educational background and writing aspirations without any defined question, task, or phenomenon to evaluate. This seed case requires substantial curation before benchmark promotion.
+- `zhangzhongmou_zizhuan_private_zh__4__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus|source_parse_problem`
+  - notes: The excerpt text is coherent and describes 1950s US socioeconomic conditions, but critical metadata fields (question_ids, phenomena, selection_reason, judge_focus) are empty. The notes explicitly state this requires later curation before benchmark promotion. This seed case needs proper pedagogical framing before it can function as an evaluable benchmark case.
+- `zhangzhongmou_zizhuan_private_zh__10__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: This case lacks critical benchmark metadata (empty question_ids, phenomena, selection_reason, judge_focus). The excerpt itself is a coherent reflective narrative from Zhang Zhongmou's autobiography about romantic disappointment, but cannot function as a benchmark case without defined evaluation criteria. Requires metadata population before reconsideration.
+- `zhangzhongmou_zizhuan_private_zh__10__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem`
+  - notes: The excerpt content is strong - coherent, tests comparative/argumentative reasoning, and has clear thematic focus on university-industry linkage. However, critical metadata fields (selection_reason, judge_focus) are empty, making the case structurally incomplete for benchmark use. The bucket 'university_industry_linkage' is appropriate. Once metadata is populated, this case should be promoted to keep.
+- `canglang_zhishui_private_zh__16__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem`
+  - notes: Critical metadata fields are missing (case_title, question_ids, phenomena, selection_reason, judge_focus). The excerpt itself is coherent and demonstrates the private-vs-public speech tension well. Recommend populating metadata per the primary review's suggestions before final evaluation.
+- `meiguoren_de_xingge_private_zh__8__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: The excerpt content is substantive and coherent—presenting a legitimate cultural comparison from Fei Xiaotong's anthropological work. The adversarial review found no sensitive content issues. However, this seed excerpt requires metadata curation (case_title, question_ids, phenomena, selection_reason, judge_focus) before benchmark promotion. The revised bucket and focus guidance provided by the primary reviewer are appropriate and should be adopted.
+- `meiguoren_de_xingge_private_zh__19__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem|ambiguous_focus`
+  - notes: The core excerpt content is substantively coherent and culturally meaningful - it discusses a real phenomenon (American contradictory attitude toward Europe). However, critical metadata fields are missing (case_title, question_ids, phenomena, selection_reason, judge_focus), and the bucket 'middle' is uninformative. This needs metadata completion and proper bucket classification (cultural_analysis) before benchmark promotion. The adversarial concern about narrow scope has merit but the phenomenon described is still analyzable as cultural psychology.
+- `zouchu_weiyi_zhenliguan_private_zh__8__seed_1`
+  - action: `revise`
+  - confidence: `medium`
+  - problem_types: `ambiguous_focus|text_noise|source_parse_problem|weak_excerpt`
+  - notes: Case has promising content but structural issues: empty selection_reason/judge_focus fields need filling; speaker attribution appears fragmented (multiple questioners merged); the two topics (general advice vs. Bernard Williams question) need clearer separation or tighter integration.，建议分离为两个独立case或明确主次焦点。
+- `zouchu_weiyi_zhenliguan_private_zh__14__seed_1`
+  - action: `revise`
+  - confidence: `medium`
+  - problem_types: `ambiguous_focus|weak_excerpt`
+  - notes: The excerpt discusses a meaningful philosophical point but lacks clear analytical purpose - no specific question or phenomenon is identified for the model to analyze. The current bucket name doesn't align well with the content (skill differentiation vs. truth claims). Needs proper selection_reason and judge_focus metadata to be evaluable.

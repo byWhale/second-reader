@@ -24,6 +24,15 @@ Last updated: `2026-03-27`
   - `check_command`
   - `decision_if_success`
   - `decision_if_failure`
+- Current live job:
+  - `bgjob_en_chapter_core_rerun_20260327`
+  - purpose:
+    - full English chapter-core rerun after the local micro-selectivity repair
+  - current run:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_20260327/`
+  - current state:
+    - still running
+    - runtime trace confirms real progress inside `women_and_economics_public_en__9`
 
 ## Current Focus
 - Phase 9 preparation for the new reading mechanism project
@@ -221,8 +230,8 @@ Last updated: `2026-03-27`
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json`
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md`
   - materialized excerpt packets:
-    - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_en/`
-    - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_zh/`
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_promotion_round1_excerpt_en/`
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_promotion_round1_excerpt_zh/`
   - round-1 recommendation:
     - `6` English books
     - `6` Chinese books
@@ -243,9 +252,29 @@ Last updated: `2026-03-27`
       - `随机漫步的傻瓜`
       - `笔记的方法`
       - `走出唯一真理观`
-  - immediate next prep actions:
-    - run machine-side case audits on the two materialized excerpt packets
-    - complete the chapter-lane sanity pass using the new checklist before any round-1 chapter comparison lift
+  - excerpt-lane status:
+    - machine-side audits: done
+    - adjudication/import: done
+    - queue state: `active packets = 0`
+    - round-1 survivors:
+      - English:
+        - `good_strategy_bad_strategy_private_en__22__seed_2`
+      - Chinese:
+        - `fooled_by_randomness_private_zh__9__seed_1`
+    - next excerpt action:
+      - treat the remaining `29` revised cases as the next bilingual hardening pool
+  - chapter-lane status:
+    - sanity checklist: done
+    - results:
+      - English:
+        - `8/8` pass
+      - Chinese:
+        - `2` pass
+        - `3` revise
+        - `3` defer
+    - next chapter action:
+      - keep the English chapter lift as selected
+      - prune and recut the Chinese chapter lift before any full round-1 chapter comparison pack
 - A reusable mechanism-pattern capture rule is now part of the evaluation workflow:
   - stable rule:
     - `docs/backend-reader-evaluation.md`

@@ -211,14 +211,28 @@ Why:
 - weaker first-round value than the chosen lift set
 
 ## Materialized Packet Status
-The first round-1 excerpt review packets are now materialized and ready for audit/review preparation:
+The first round-1 excerpt review packets were materialized from the approved `excerpt_lift.selected_ids` in [private-library-promotion-round1-selection.json](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json), then fully processed through:
 
+- machine-side case audit
+- final LLM adjudication
+- dataset import
+- archive move
+
+Archived packet results:
 - English packet:
-  - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_en/`
+  - [attentional_v2_private_library_promotion_round1_excerpt_en](/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_promotion_round1_excerpt_en)
+  - outcome: `1 keep`, `15 revise`, `0 drop`
+  - reviewed dataset effect: `1 reviewed_active`, `15 needs_revision`
+  - round-1 survivor:
+    - `good_strategy_bad_strategy_private_en__22__seed_2`
 - Chinese packet:
-  - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_zh/`
-
-Both packets were exported directly from the approved `excerpt_lift.selected_ids` in [private-library-promotion-round1-selection.json](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json). They should be treated as the canonical excerpt-prep entrypoint for round 1.
+  - [attentional_v2_private_library_promotion_round1_excerpt_zh](/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_promotion_round1_excerpt_zh)
+  - outcome: `1 keep`, `14 revise`, `1 drop`
+  - reviewed dataset effect: `1 reviewed_active`, `14 needs_revision`, `1 needs_replacement`
+  - round-1 survivor:
+    - `fooled_by_randomness_private_zh__9__seed_1`
+  - round-1 drop:
+    - `zhangzhongmou_zizhuan_private_zh__4__seed_1`
 
 The chapter-lane sanity checklist now lives in:
 - [private-library-promotion-round1-chapter-sanity-checklist.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md)
@@ -237,18 +251,44 @@ The main agent should treat [private-library-promotion-round1-selection.json](/U
 
 2. Run machine-side case audits on those excerpt packets first.
   - status:
-    - pending
+    - done
+  - audit results:
+    - EN: `12 revise`, `2 unclear`, `1 drop`, `1 keep`
+    - ZH: `13 revise`, `1 unclear`, `1 keep`, `1 drop`
 
-3. In parallel, do chapter-lane sanity validation on the selected `8 + 8` chapter candidates.
+3. Run final packet adjudication/import and archive both excerpt packets.
+  - status:
+    - done
+  - final adjudication results:
+    - EN: `1 keep`, `15 revise`
+    - ZH: `1 keep`, `14 revise`, `1 drop`
+  - queue state:
+    - `active packets = 0`
+
+4. In parallel, do chapter-lane sanity validation on the selected `8 + 8` chapter candidates.
 - especially the items listed under `Review First`
   - status:
-    - checklist ready
-  - use:
+    - done
+  - checklist:
     - [private-library-promotion-round1-chapter-sanity-checklist.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md)
+  - results:
+    - [private-library-promotion-round1-chapter-sanity-results.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-results.md)
+    - [private-library-promotion-round1-chapter-sanity-results.json](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-results.json)
+  - sanity outcome:
+    - English:
+      - `8/8` pass
+    - Chinese:
+      - `2` pass
+      - `3` revise
+      - `3` defer
 
-4. Only after those two checks should round-1 survivors be promoted into:
-- the next curated excerpt review pass
-- the next chapter-comparison candidate pack
+5. For the excerpt lane specifically, do not promote the whole packet forward as-is.
+- promote only the two round-1 survivors into the next curated excerpt pass:
+  - `good_strategy_bad_strategy_private_en__22__seed_2`
+  - `fooled_by_randomness_private_zh__9__seed_1`
+- treat the `29` revised cases as the next bilingual hardening pool
+- treat `zhangzhongmou_zizhuan_private_zh__4__seed_1` as a replacement case, not as a revision target
+- only after survivor promotion plus revision hardening should the private-library excerpt lane feed broader benchmark growth
 
 Important rule:
 - do not reselect the round-1 candidates by hand from the raw supplement pool unless this execution file is explicitly revised

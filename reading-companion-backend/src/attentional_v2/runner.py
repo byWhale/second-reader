@@ -719,20 +719,21 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     )
 
                 emitted_reaction: AnchoredReactionRecord | None = None
+                reaction_payload = reaction_result.get("reaction") if isinstance(reaction_result.get("reaction"), dict) else {}
                 current_anchor = build_anchor_record(
                     sentence_start_id=_clean_text(current_span_sentences[0].get("sentence_id")) if current_span_sentences else sentence_id,
                     sentence_end_id=sentence_id,
-                    quote=_clean_text(reaction_result.get("reaction", {}).get("anchor_quote")) or _clean_text(sentence.get("text")),
+                    quote=_clean_text(reaction_payload.get("anchor_quote")) or _clean_text(sentence.get("text")),
                     locator=dict(sentence.get("locator", {})) if isinstance(sentence.get("locator"), dict) else {},
                     anchor_kind="visible_reaction",
                     why_it_mattered=_clean_text(reaction_result.get("reason")) or _clean_text(zoom_result.get("local_interpretation")) or _clean_text(closure_result.get("meaning_unit_summary")),
                 )
 
-                if reaction_result.get("decision") == "emit" and isinstance(reaction_result.get("reaction"), dict):
+                if reaction_result.get("decision") == "emit" and reaction_payload:
                     anchor_memory = upsert_anchor_record(anchor_memory, current_anchor)
                     chapter_reaction_count = len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))
                     emitted_reaction = build_reaction_record(
-                        reaction=reaction_result["reaction"],
+                        reaction=reaction_payload,
                         primary_anchor=current_anchor,
                         chapter_id=chapter_id,
                         chapter_ref=chapter_ref,

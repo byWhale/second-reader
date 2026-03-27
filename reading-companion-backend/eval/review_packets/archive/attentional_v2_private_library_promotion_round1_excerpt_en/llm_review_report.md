@@ -1,0 +1,89 @@
+# LLM Packet Review: `attentional_v2_private_library_promotion_round1_excerpt_en`
+
+- run_id: `attentional_v2_private_library_promotion_round1_excerpt_en__llm_review__20260327-113308`
+- generated_at: `2026-03-27T11:36:01.574664Z`
+- case_count: `16`
+- action_counts: `{"keep": 1, "revise": 15}`
+
+## Case Decisions
+
+- `fooled_by_randomness_private_en__14__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem|ambiguous_focus`
+  - notes: The excerpt content is philosophically sound and coherently discusses Popper's falsification, induction, and decision-making under uncertainty. However, the case has severe metadata deficiencies: case_title is null, question_ids is empty, phenomena is empty, selection_reason and judge_focus are empty strings. Without this metadata, the case cannot function as an evaluable benchmark item. The proposed bucket and focus are appropriate given the content.
+- `fooled_by_randomness_private_en__14__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem|ambiguous_focus`
+  - notes: This case has critical metadata gaps: missing case_title, question_ids, phenomena, selection_reason, and judge_focus fields needed for benchmark evaluation. The chapter_id (14) mismatches chapter_title (Chapter Seven), suggesting source parsing issues. The excerpt content about Popper/positivism appears disconnected from 'Fooled by Randomness' theme, raising source alignment concerns. Requires metadata completion and content validation before promotion.
+- `evicted_private_en__10__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus`
+  - notes: This excerpt has strong character development and relationship progression but lacks the metadata required for benchmark function—no selection_reason or judge_focus to indicate what phenomenon or question it illustrates. The content itself is solid but needs contextual framing before it can be evaluated as a benchmark case.
+- `evicted_private_en__17__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem|weak_excerpt|ambiguous_focus|text_noise`
+  - notes: This case has critical metadata gaps (empty case_title, question_ids, phenomena, selection_reason, judge_focus) making it unfit for benchmark inclusion in current form. The content is narrative journalism prose from Desmond's book, not structured legal case evidence. The excerpt mixes general debt collection critique with specific Arleen scene without coherent focus. Recommend either: (1) extracting only the systemic debt collection analysis with proper metadata, or (2) treating the Arleen scene as individual case study with focused legal analysis, not both conflated.
+- `evicted_private_en__29__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `text_noise|weak_excerpt|other`
+  - notes: The trailing '4' after the final quote is a footnote reference artifact that must be removed as text noise. The metadata is essentially empty (null title, empty selection_reason and judge_focus), making the case unusable in current form. Once cleaned and metadata filled, the excerpt content is rich and appropriate for testing understanding of poverty, dignity, and housing instability.
+- `good_strategy_bad_strategy_private_en__22__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `weak_excerpt|text_noise|ambiguous_focus|source_parse_problem`
+  - notes: The excerpt has text noise (footnote marker '4', incomplete quote at start) and ambiguous focus - it's unclear whether the judge should evaluate pattern recognition, causal reasoning, or scenario planning specifically. The excerpt asserts conclusions ('they predicted... they saw...') without fully demonstrating the analytical chain, making assessment of reasoning quality difficult. Requires cleaner text and clearer judgment criteria before benchmark entry.
+- `good_strategy_bad_strategy_private_en__22__seed_2`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: The excerpt is coherent and presents a clear strategic principle about concentration vs. diffusion of effort. While it cuts off somewhat awkwardly mid-sentence about Williams, the principle being illustrated is clear and the theoretical framing in the first three sentences is strong. The minor source parsing issue (J./Paul Getty split) does not impede comprehension. The case has sufficient focus and substance for benchmark inclusion.
+- `good_strategy_bad_strategy_private_en__55__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `text_noise`
+  - notes: The duplicate sentence ('Diamond should have made the deal with Nvidia...') appearing twice is a clear text noise issue that should be fixed by removing the repetition. Once the duplicate is removed, the case has coherent content about competitive strategy dynamics. The case content itself is valuable and the revised bucket (competitive_strategy) is appropriate.
+- `poor_charlies_almanack_private_en__10__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `text_noise`
+  - notes: The excerpt content is valid—clear argument about accounting limitations with concrete examples. However, critical metadata fields (case_title, question_ids, phenomena, selection_reason, judge_focus) are entirely empty, making bucket fit and focus clarity evaluation impossible. Additionally, text parsing artifacts ('C.'/'E Braun' split across lines) should be corrected. Requires metadata population and text cleaning before proper benchmark evaluation.
+- `poor_charlies_almanack_private_en__10__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `source_parse_problem`
+  - notes: The excerpt content is legitimate - Munger criticizing academic psychology's inadequacy is on-brand and meaningful. However, critical metadata is missing (selection_reason, judge_focus, question_ids, phenomena) and the extraction starts mid-sentence ('And, possibly') suggesting poor parsing. As a private_library_seed_v2 case already marked for curation, this should be revised with proper metadata and cleaned extraction before benchmark inclusion.
+- `steve_jobs_private_en__24__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: This is a seed excerpt (status: private_library_seed_v2) that explicitly requires later curation before benchmark promotion. The primary and adversarial reviews correctly note missing evaluation metadata (case_title, question_ids, judge_focus). However, the excerpt itself is coherent biographical content about the 1984 Apple commercial. This case should be returned to the curation pipeline to add the required metadata rather than rejected entirely, as the source material has potential.
+- `steve_jobs_private_en__24__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: The excerpt is coherent and historically accurate (Isaacson's biography), but essential evaluation metadata is entirely missing (no question_ids, no phenomena, no judge_focus, no selection_reason). This appears to be a data processing error where configuration was lost. The case needs proper metadata before it can be assessed as a benchmark entry. Without evaluation context, the case cannot be meaningfully judged for bucket fit or focus clarity.
+- `steve_jobs_private_en__43__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus|text_noise`
+  - notes: Critical metadata is entirely missing (case_title, question_ids, phenomena, selection_reason, judge_focus), making bucket fit impossible to evaluate. Additionally, the excerpt ends abruptly after mentioning Jobs went home to 'mull over the problem' without resolving the scene, creating text noise. The core content about design purity is strong but requires metadata completion and excerpt refinement before benchmark entry.
+- `steve_jobs_private_en__17__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus`
+  - notes: The excerpt content itself is coherent and historically meaningful, but the case is missing critical benchmark metadata (case_title, question_ids, phenomena, selection_reason, judge_focus). This appears to be a raw source excerpt that requires curation before it can function as a test case. The suggested revised bucket and focus provide a viable path forward for proper case configuration.
+- `steve_jobs_private_en__17__seed_2`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `weak_excerpt`
+  - notes: The core excerpt text is substantively strong with concrete numerical details (30k units, $16,595 price) and a clear causal lesson. However, the notes explicitly state this seed 'requires later curation before benchmark promotion' and metadata fields are incomplete. The bucket 'early' is clearly wrong - 'business_strategy' fits better. Needs proper metadata completion before benchmark entry.
+- `supremacy_private_en__13__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `wrong_bucket|weak_excerpt|text_noise`
+  - notes: The current 'supremacy' bucket is incorrect—this excerpt discusses corporate governance structures, not AI capability risks or superintelligence concerns. The content also relies on an unnamed source for key claims about who agreed to join the board, creating text noise. Additionally, the excerpt describes rather than evaluates whether these governance mechanisms actually constrain AI development, making it weak as an argumentative selection.

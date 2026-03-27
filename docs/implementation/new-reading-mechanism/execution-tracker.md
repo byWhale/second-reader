@@ -270,8 +270,70 @@ Update when: status changes, blockers appear, or phases complete.
 - [x] Prepare the execution-ready chapter sanity checklist for private-library promotion round1
   - checklist:
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md`
-- [ ] Run machine-side case audits on the private-library promotion round1 excerpt packets
-- [ ] Complete the first chapter-lane sanity validation pass on the private-library promotion round1 chapter candidates
+- [x] Run machine-side case audits on the private-library promotion round1 excerpt packets
+  - audit runs:
+    - English:
+      - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_promotion_round1_excerpt_en__20260327-041921/`
+    - Chinese:
+      - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_promotion_round1_excerpt_zh__20260327-043141/`
+  - machine-audit outcomes:
+    - English:
+      - `12 revise`
+      - `2 unclear`
+      - `1 drop`
+      - `1 keep`
+    - Chinese:
+      - `13 revise`
+      - `1 unclear`
+      - `1 keep`
+      - `1 drop`
+- [x] Complete the first private-library promotion round1 excerpt adjudication/import pass
+  - archived packet roots:
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_promotion_round1_excerpt_en/`
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_promotion_round1_excerpt_zh/`
+  - adjudication/import outcomes:
+    - English:
+      - `1 keep`
+      - `15 revise`
+      - survivor:
+        - `good_strategy_bad_strategy_private_en__22__seed_2`
+    - Chinese:
+      - `1 keep`
+      - `14 revise`
+      - `1 drop`
+      - survivor:
+        - `fooled_by_randomness_private_zh__9__seed_1`
+      - drop:
+        - `zhangzhongmou_zizhuan_private_zh__4__seed_1`
+  - queue state:
+    - `active packets = 0`
+- [x] Complete the first chapter-lane sanity validation pass on the private-library promotion round1 chapter candidates
+  - results:
+    - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-results.md`
+    - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-results.json`
+  - English chapter lane:
+    - `8/8` pass
+  - Chinese chapter lane:
+    - `2` pass
+    - `3` revise
+    - `3` defer
+  - immediate implication:
+    - English chapter lift can continue as selected
+    - Chinese chapter lift should be pruned and recut before a full `8`-pack promotion
+- [ ] Complete the full English chapter-core rerun after the local micro-selectivity repair
+  - active background job:
+    - `reading-companion-backend/state/job_registry/active_jobs.md`
+  - run id:
+    - `attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_20260327`
+  - current scope:
+    - `women_and_economics_public_en__9`
+    - `on_liberty_public_en__10`
+    - `up_from_slavery_public_en__10`
+    - `walden_205_en__10`
+  - current status:
+    - launched and actively progressing
+    - first visible case still `women_and_economics_public_en__9`
+    - runtime trace confirms real Phase 4 progress rather than a fake hang
   - first-pass result:
     - `local_impact` overall:
       - `attentional_v2`: `2` wins + `1` tie out of `8`

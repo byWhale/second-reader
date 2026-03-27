@@ -1,0 +1,452 @@
+{
+  "round_id": "private_library_promotion_round1_chapter_sanity",
+  "generated_at": "2026-03-27",
+  "checklist_path": "/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md",
+  "selection_path": "/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json",
+  "assumptions": [
+    "Used the selected chapter-corpora records and each source book's public/book_document.json as the grounding artifacts.",
+    "When chapter-corpora records lacked start/end CFIs, boundary judgment relied on chapter_id/title, href, and visible opening/closing text.",
+    "Status values mean chapter-sanity readiness for round-1 comparison prep, not final benchmark approval."
+  ],
+  "languages": {
+    "en": {
+      "summary": {
+        "pass": 8,
+        "revise": 0,
+        "defer": 0
+      },
+      "promote_next": [
+        "good_strategy_bad_strategy_private_en__22",
+        "good_strategy_bad_strategy_private_en__55",
+        "evicted_private_en__10",
+        "fooled_by_randomness_private_en__14",
+        "supremacy_private_en__13",
+        "supremacy_private_en__23",
+        "steve_jobs_private_en__17",
+        "steve_jobs_private_en__24"
+      ],
+      "wait": [],
+      "candidates": [
+        {
+          "id": "good_strategy_bad_strategy_private_en__22",
+          "source_id": "good_strategy_bad_strategy_private_en",
+          "book_title": "Good Strategy/Bad Strategy",
+          "chapter_title": "CHAPTER 6 USING LEVERAGE",
+          "selection_role": "expository",
+          "sentence_count": 166,
+          "paragraph_count": 39,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Clean leverage chapter with concrete pivot-point examples; size is moderate and the Getty ending closes the expository throughline.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/good-strategybad-strategy/public/book_document.json",
+            "href": "dummy_split_013.html"
+          },
+          "evidence": {
+            "chapter_heading": "CHAPTER SIXUSING LEVERAGE",
+            "opening_signal": "A good strategy draws power from focusing minds, energy, and action. That focus, channeled at the right moment onto a pivotal objective, can produce a cascade of favorable outcome…",
+            "closing_signal": "With $65 million to spend each year, Williams could have simply bought art or given money to schools and universities for their arts programs. But by aiming to transform the study…"
+          }
+        },
+        {
+          "id": "good_strategy_bad_strategy_private_en__55",
+          "source_id": "good_strategy_bad_strategy_private_en",
+          "book_title": "Good Strategy/Bad Strategy",
+          "chapter_title": "CHAPTER 15 PUTTING IT TOGETHER",
+          "selection_role": "expository",
+          "sentence_count": 286,
+          "paragraph_count": 71,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Late-book synthesis risk is real, but the artifact is anchored in a concrete Nvidia case study and closes on the Tesla/Tegra pincer rather than drifting into abstract recap.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/good-strategybad-strategy/public/book_document.json",
+            "href": "dummy_split_022.html"
+          },
+          "evidence": {
+            "chapter_heading": "CHAPTER FIFTEENPUTTING IT TOGETHER",
+            "opening_signal": "Nvidia, a designer of 3-D graphics chips, had a very rapid rise, shooting in a few short years past apparently stronger firms, including Intel, to dominate the high-performance 3-…",
+            "closing_signal": "This pincer movement offers two ways to succeed and makes trouble for competitors. But there are many difficulties on both paths, and both are far from sure things."
+          }
+        },
+        {
+          "id": "evicted_private_en__10",
+          "source_id": "evicted_private_en",
+          "book_title": "Evicted",
+          "chapter_title": "Chapter 1: The Business of Owning the City",
+          "selection_role": "expository",
+          "sentence_count": 250,
+          "paragraph_count": 71,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "True chapter content with a clean opening and a coherent landlord-to-Arleen handoff; strong expository grounding through scene-based nonfiction.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/evicted/public/book_document.json",
+            "href": "OEBPS/Desm_9780553447446_epub3_c001_r1.xhtml"
+          },
+          "evidence": {
+            "chapter_heading": "1. THE BUSINESS OF OWNING THE CITY",
+            "opening_signal": "THE BUSINESS OF OWNING THE CITY",
+            "closing_signal": "Days after the tenant left, Sherrena took a call from a caseworker at Wraparound, a local social services agency. The caseworker had a client who needed a place to live with her t…"
+          }
+        },
+        {
+          "id": "fooled_by_randomness_private_en__14",
+          "source_id": "fooled_by_randomness_private_en",
+          "book_title": "Fooled by Randomness",
+          "chapter_title": "Chapter Seven",
+          "selection_role": "argumentative",
+          "sentence_count": 259,
+          "paragraph_count": 60,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Coherent argumentative chapter on induction with a self-contained Pascal/stop-loss ending; no front-matter or appendix contamination.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/fooled-by-randomness-the-hidden-role-of-chance-in-life-and-in-the-markets-incerto/public/book_document.json",
+            "href": "text00013.html"
+          },
+          "evidence": {
+            "chapter_heading": "Seven • THE PROBLEM OF INDUCTION",
+            "opening_signal": "•",
+            "closing_signal": "Finally, I have to confess that upon finishing my writing of Part I, that writing about the genius of Solon’s insight has carried an extreme effect on both my thinking and my priv…"
+          }
+        },
+        {
+          "id": "supremacy_private_en__13",
+          "source_id": "supremacy_private_en",
+          "book_title": "Supremacy",
+          "chapter_title": "Chapter 7. Playing Games",
+          "selection_role": "argumentative",
+          "sentence_count": 232,
+          "paragraph_count": 50,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Distinct DeepMind spin-out/ethics pressure chapter; chapter-clean and not too close in argumentative function to the later AGI-race chapter.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/supremacy/public/book_document.json",
+            "href": "xhtml/chapter7.xhtml"
+          },
+          "evidence": {
+            "chapter_heading": "CHAPTER 7 Playing Games",
+            "opening_signal": "A short walk from London’s King Cross Station, where tourists flocked to see the magical train platform that Harry Potter took to Hogwarts, a different kind of magic was being cre…",
+            "closing_signal": "All of this raised a bigger question. Could you even do meaningful work on ethical AI from inside a large corporation? The answer came from inside Google itself. It was a resoundi…"
+          }
+        },
+        {
+          "id": "supremacy_private_en__23",
+          "source_id": "supremacy_private_en",
+          "book_title": "Supremacy",
+          "chapter_title": "Chapter 15. Checkmate",
+          "selection_role": "argumentative",
+          "sentence_count": 256,
+          "paragraph_count": 56,
+          "review_priority": "review_first",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Review-first item cleared: it is a late-book AGI race / monopoly argument, clearly distinct from chapter 13 and structurally chapter-clean.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/supremacy/public/book_document.json",
+            "href": "xhtml/chapter15.xhtml"
+          },
+          "evidence": {
+            "chapter_heading": "CHAPTER 15 Checkmate",
+            "opening_signal": "Ten years ago, telling someone that you were building human-level AI systems was on the same level of crazy as explaining your plans to be cryogenically frozen. But like so many d…",
+            "closing_signal": "There’s a famous saying in chess, that tactics win games and strategy wins tournaments. Both Altman and Hassabis had employed novel tactics on their quest to build AGI, and as tha…"
+          }
+        },
+        {
+          "id": "steve_jobs_private_en__17",
+          "source_id": "steve_jobs_private_en",
+          "book_title": "Steve Jobs",
+          "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces",
+          "selection_role": "narrative_reflective",
+          "sentence_count": 218,
+          "paragraph_count": 40,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Causal biographical chapter about Lisa/Xerox pressure and Jobs losing control; clean boundaries and distinct from the launch chapter.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/steve-jobs/public/book_document.json",
+            "href": "xhtml/ch08.html"
+          },
+          "evidence": {
+            "chapter_heading": "CHAPTER EIGHT XEROX AND LISA Graphical User Interfaces A New Baby",
+            "opening_signal": "XEROX AND LISA",
+            "closing_signal": "Both Mike Scott and Mike Markkula were intent on bringing some order to Apple and became increasingly concerned about Jobs’s disruptive behavior. So in September 1980, they secret…"
+          }
+        },
+        {
+          "id": "steve_jobs_private_en__24",
+          "source_id": "steve_jobs_private_en",
+          "book_title": "Steve Jobs",
+          "chapter_title": "Chapter Fifteen: The Launch: A Dent in the Universe",
+          "selection_role": "narrative_reflective",
+          "sentence_count": 264,
+          "paragraph_count": 46,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Launch chapter is chapter-clean, event-dense, and narratively distinct from the earlier Lisa chapter.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/steve-jobs/public/book_document.json",
+            "href": "xhtml/ch15.html"
+          },
+          "evidence": {
+            "chapter_heading": "CHAPTER FIFTEEN THE LAUNCH A Dent in the Universe The “1984” ad Real Artists Ship",
+            "opening_signal": "THE LAUNCH",
+            "closing_signal": "After the Macintosh team returned to Bandley 3 that afternoon, a truck pulled into the parking lot and Jobs had them all gather next to it. Inside were a hundred new Macintosh com…"
+          }
+        }
+      ]
+    },
+    "zh": {
+      "summary": {
+        "pass": 2,
+        "revise": 3,
+        "defer": 3
+      },
+      "promote_next": [
+        "biji_de_fangfa_private_zh__13",
+        "zouchu_weiyi_zhenliguan_private_zh__14"
+      ],
+      "wait": [
+        "kangxi_hongpiao_private_zh__12",
+        "kangxi_hongpiao_private_zh__27",
+        "fooled_by_randomness_private_zh__19",
+        "meiguoren_de_xingge_private_zh__8",
+        "zhangzhongmou_zizhuan_private_zh__10",
+        "zhangzhongmou_zizhuan_private_zh__11"
+      ],
+      "candidates": [
+        {
+          "id": "kangxi_hongpiao_private_zh__12",
+          "source_id": "kangxi_hongpiao_private_zh",
+          "book_title": "康熙的红票：全球化中的清朝",
+          "chapter_title": "消除奴籍",
+          "selection_role": "argumentative",
+          "sentence_count": 629,
+          "paragraph_count": 177,
+          "review_priority": "standard_pass",
+          "status": "revise",
+          "recommendation": "wait_for_recut",
+          "note": "Historically strong and aligned, but oversized for round 1 and ends in dense citation tail; should be recut or note-trimmed before chapter comparison.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/康熙的红票全球化中的清朝/public/book_document.json",
+            "href": "Text/ch005.xhtml"
+          },
+          "evidence": {
+            "chapter_heading": "第一章 佟家的奴才 顺治十二年二月二十七日（1655年4月3日），耶稣会传教士利类思和安文思给顺治皇帝呈上六件礼物外加一份中文写的奏本，感谢顺治皇帝以及清朝长期以来对他们的优容和恩养。在奏本中，他们简要介绍了他们一路走来的经历。奏本是这样写的： 大西洋耶稣会神父远臣利类思、安文思谨奏：",
+            "opening_signal": "顺治十二年二月二十七日（1655年4月3日），耶稣会传教士利类思和安文思给顺治皇帝呈上六件礼物外加一份中文写的奏本，感谢顺治皇帝以及清朝长期以来对他们的优容和恩养。在奏本中，他们简要介绍了他们一路走来的经历。奏本是这样写的：",
+            "closing_signal": "[97] Givon, \"Connecting Eurasia: Jesuit Experimentation with Overland Mobility Between China and Europe, 1656-1664\", 655-656."
+          }
+        },
+        {
+          "id": "kangxi_hongpiao_private_zh__27",
+          "source_id": "kangxi_hongpiao_private_zh",
+          "book_title": "康熙的红票：全球化中的清朝",
+          "chapter_title": "功不可没的南怀仁",
+          "selection_role": "argumentative",
+          "sentence_count": 924,
+          "paragraph_count": 197,
+          "review_priority": "review_first",
+          "status": "defer",
+          "recommendation": "wait_replace_or_split",
+          "note": "Real history argument, but at 924 sentences with a citation-heavy tail it is too traversal-heavy for round 1 as a full chapter candidate.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/康熙的红票全球化中的清朝/public/book_document.json",
+            "href": "Text/ch007.xhtml"
+          },
+          "evidence": {
+            "chapter_heading": "第三章 从铲除鳌拜到《尼布楚条约》谈判",
+            "opening_signal": "1669年6月14日，来上朝的鳌拜刚踏入乾清门，就被一群少年一拥而上按在了地上。征战一生勇猛过人的鳌拜就这样被康熙拿下了。[1]议政王大臣会议经过八天的快速审理，判了鳌拜三十条大罪。[2]康熙念在鳌拜以前的功绩，免了他的死罪。在清除鳌拜势力后，康熙坐稳了江山，开启了超过半个世纪的属于他的时代。生擒鳌拜的故事，在正史、野史，乃至后来的小说、影视剧中都有涉及，…",
+            "closing_signal": "[101] 陈复光，《十八世纪初叶清廷进攻准噶尔期间第一次到俄属及俄京的中国使节》；李齐芳，《清雍正皇帝两次遣使赴俄之谜》；Hsü，\"Russia's Special Position in China during the Early Ch'ing Period\"."
+          }
+        },
+        {
+          "id": "fooled_by_randomness_private_zh__19",
+          "source_id": "fooled_by_randomness_private_zh",
+          "book_title": "随机漫步的傻瓜",
+          "chapter_title": "第三篇 活在随机世界中",
+          "selection_role": "argumentative",
+          "sentence_count": 393,
+          "paragraph_count": 95,
+          "review_priority": "review_first",
+          "status": "revise",
+          "recommendation": "wait_for_boundary_cleanup",
+          "note": "The override avoided front matter, but the candidate is a part-level unit with a duplicated opening paragraph; keep only after boundary cleanup or a tighter child-chapter replacement.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/随机漫步的傻瓜/public/book_document.json",
+            "href": "Text/Part3.xhtml"
+          },
+          "evidence": {
+            "chapter_heading": "第三篇 活在随机世界中",
+            "opening_signal": "人们过去做出的选择决定了他们现在及未来可能的选择。索罗斯这类股市大鳄完全不受过去的行为束缚，摆脱了路径依赖，每一天对他来说都是一张白纸。",
+            "closing_signal": "祝你好运！"
+          }
+        },
+        {
+          "id": "meiguoren_de_xingge_private_zh__8",
+          "source_id": "meiguoren_de_xingge_private_zh",
+          "book_title": "美国人的性格",
+          "chapter_title": "4 不令人服输的成功",
+          "selection_role": "expository",
+          "sentence_count": 80,
+          "paragraph_count": 14,
+          "review_priority": "standard_pass",
+          "status": "revise",
+          "recommendation": "wait_for_recut",
+          "note": "Core argument fits the target role, but the artifact opens under the previous chapter heading and carries clear start-boundary contamination.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/美国人的性格费孝通先生经典作品-中国社会学人类学奠基人之一费孝通学术经典赢得纽约时报时代周刊赞誉探索美国人的性格特征及形成原因透视超级大国崛起背后的文化奥秘/public/book_document.json",
+            "href": "text00005.html"
+          },
+          "evidence": {
+            "chapter_heading": "3 有条件的父母之爱",
+            "opening_signal": "我们的星期日好像是特别为了社交所留下的日子。本来，我们脑子里一想到节日，必然是宾客满堂，没有半刻清闲的场面。在肉食是这样稀有和难得的社会里，靠了祭祖的名目，有这么一顿馂余可以大嚼，无怪他们得借题发挥，大大地请请客人，热闹热闹了。星期日剔去了宗教内容自然不可能是个安息日，进入了我们的传统体系，成了个十足的节日。一清早就有朋友们来找你，太太们得忙个整天，为了招…",
+            "closing_signal": "他们并不是为了竞争而竞争，为了出风头而出风头。在他们从小养成的意识里，这样深深地长着根，天下没有可以不必争而得到的收获，一切幸福，甚至父母的爱，都是有条件的。胜过别人才是自己的安全。"
+          }
+        },
+        {
+          "id": "biji_de_fangfa_private_zh__13",
+          "source_id": "biji_de_fangfa_private_zh",
+          "book_title": "笔记的方法",
+          "chapter_title": "# 三项原则，掌握获取信息的主动权",
+          "selection_role": "expository",
+          "sentence_count": 78,
+          "paragraph_count": 34,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Short but clean expository method chapter with explicit principle framing and a proper closing summary.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/笔记的方法/public/book_document.json",
+            "href": "xhtml/Chapter_6_2"
+          },
+          "evidence": {
+            "chapter_heading": "# 三项原则，掌握获取信息的主动权",
+            "opening_signal": "前文提到，面对“如何获取优质信息”这个问题，我们首先应该思考的是，如何夺取主动权，避免信息成瘾，跳出信息茧房。",
+            "closing_signal": "“不必成为全能专家”“以具体问题为牵引”“主动监控，保持质疑”——这三条原则的核心思路，都是帮你掌握获取信息的主动权，用来达成自己的目标，而不是把自己的大脑变成他人思维的跑马场。"
+          }
+        },
+        {
+          "id": "zouchu_weiyi_zhenliguan_private_zh__14",
+          "source_id": "zouchu_weiyi_zhenliguan_private_zh",
+          "book_title": "走出唯一真理观",
+          "chapter_title": "说理与对话",
+          "selection_role": "expository",
+          "sentence_count": 234,
+          "paragraph_count": 55,
+          "review_priority": "standard_pass",
+          "status": "pass",
+          "recommendation": "promote_next",
+          "note": "Interview-format exposition stays on one philosophical question and closes cleanly; role fit is still expository.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/走出唯一真理观豆瓣评分90中国最接近哲学家称呼的人十三邀嘉宾陈嘉映继何为良好生活后重磅新作我们之所求首先不是让别人明白而是求自己明白/public/book_document.json",
+            "href": "text/part0013.html"
+          },
+          "evidence": {
+            "chapter_heading": "说理与对话 （2008年12月华东师范大学刘晓丽教授采访）",
+            "opening_signal": "（2008年12月华东师范大学刘晓丽教授采访）",
+            "closing_signal": "中国的论理词绝大多数是移植词，它们的西方渊源很深，这给用汉语来论理带来很大的麻烦，而大多数人好像甚至没感觉到麻烦。不过，移植词也可能有它的好处——我们翻译西方哲学，我们用汉语论理，这个过程已经在展开中西方思想的对话了。的确，我们对西方思想的了解远远超过西方对我们的了解。"
+          }
+        },
+        {
+          "id": "zhangzhongmou_zizhuan_private_zh__10",
+          "source_id": "zhangzhongmou_zizhuan_private_zh",
+          "book_title": "张忠谋自传(1931-1964)",
+          "chapter_title": "伊莉莎伯",
+          "selection_role": "narrative_reflective",
+          "sentence_count": 500,
+          "paragraph_count": 224,
+          "review_priority": "review_first",
+          "status": "defer",
+          "recommendation": "wait_replace_or_reparse",
+          "note": "Not chapter-ready: the candidate collapses back into one appendix container with no finer CFI boundary and ends in appendix contents / chronology material.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/张忠谋自传1931-1964/public/book_document.json",
+            "href": "text00001.html"
+          },
+          "evidence": {
+            "chapter_heading": "附录",
+            "opening_signal": "下面五篇文章中,前面三篇是我少年时代的作品,不足登大雅之堂,只是作家梦的一些片段而巳,在此刊出,供读者一哂。第一篇《伊莉莎伯》是我20岁到美国后第二年所写。那时写中文似比现在熟练些,文中人物故事纯属虚构。第二、三篇:《胜利的前夕》和《杀臭虫》是我13岁时在重庆南开中学初中三年级的作文。",
+            "closing_signal": "张忠谋大事年表"
+          }
+        },
+        {
+          "id": "zhangzhongmou_zizhuan_private_zh__11",
+          "source_id": "zhangzhongmou_zizhuan_private_zh",
+          "book_title": "张忠谋自传(1931-1964)",
+          "chapter_title": "胜利的前夕",
+          "selection_role": "narrative_reflective",
+          "sentence_count": 500,
+          "paragraph_count": 224,
+          "review_priority": "review_first",
+          "status": "defer",
+          "recommendation": "wait_replace_or_reparse",
+          "note": "Same appendix-container problem as __10; not a distinct clean chapter artifact for round 1.",
+          "artifact_paths": {
+            "chapter_corpora_record": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/chapters.jsonl",
+            "book_document": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/output/张忠谋自传1931-1964/public/book_document.json",
+            "href": "text00001.html"
+          },
+          "evidence": {
+            "chapter_heading": "附录",
+            "opening_signal": "下面五篇文章中,前面三篇是我少年时代的作品,不足登大雅之堂,只是作家梦的一些片段而巳,在此刊出,供读者一哂。第一篇《伊莉莎伯》是我20岁到美国后第二年所写。那时写中文似比现在熟练些,文中人物故事纯属虚构。第二、三篇:《胜利的前夕》和《杀臭虫》是我13岁时在重庆南开中学初中三年级的作文。",
+            "closing_signal": "张忠谋大事年表"
+          }
+        }
+      ]
+    }
+  },
+  "overall_recommendation": {
+    "promote_next": {
+      "en": [
+        "good_strategy_bad_strategy_private_en__22",
+        "good_strategy_bad_strategy_private_en__55",
+        "evicted_private_en__10",
+        "fooled_by_randomness_private_en__14",
+        "supremacy_private_en__13",
+        "supremacy_private_en__23",
+        "steve_jobs_private_en__17",
+        "steve_jobs_private_en__24"
+      ],
+      "zh": [
+        "biji_de_fangfa_private_zh__13",
+        "zouchu_weiyi_zhenliguan_private_zh__14"
+      ]
+    },
+    "wait": {
+      "en": [],
+      "zh": [
+        "kangxi_hongpiao_private_zh__12",
+        "kangxi_hongpiao_private_zh__27",
+        "fooled_by_randomness_private_zh__19",
+        "meiguoren_de_xingge_private_zh__8",
+        "zhangzhongmou_zizhuan_private_zh__10",
+        "zhangzhongmou_zizhuan_private_zh__11"
+      ]
+    },
+    "lane_note": "English is sanity-cleared as selected. Chinese should not advance as a full 8-chapter pack yet; only 笔记的方法__13 and 走出唯一真理观__14 are ready immediately."
+  }
+}

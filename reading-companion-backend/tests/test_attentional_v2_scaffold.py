@@ -366,6 +366,111 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert shell["last_checkpoint_id"] == "chapter-001"
 
 
+def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, monkeypatch):
+    """The live runner should not crash when reaction_emission decides emit but returns no reaction payload."""
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
+
+    def fake_phase4_local_cycle(**kwargs):
+        focal_sentence = kwargs["focal_sentence"]
+        anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
+        return {
+            "zoom_result": None,
+            "closure_result": {
+                "closure_decision": "close",
+                "meaning_unit_summary": f"Meaning unit around {anchor_quote[:24]}",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            },
+            "controller_result": {
+                "chosen_move": "advance",
+                "reason": "keep reading",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            },
+            "reaction_result": {
+                "decision": "emit",
+                "reason": "surface the focal line",
+                "reaction": None,
+            },
+            "bridge_candidates": [],
+        }
+
+    def fake_phase6_chapter_cycle(**kwargs):
+        compatibility_payload = project_chapter_result_compatibility(
+            book_id=kwargs["book_id"],
+            chapter=kwargs["chapter"],
+            reaction_records=kwargs["reaction_records"],
+            output_language=kwargs["output_language"],
+            output_dir=kwargs["output_dir"],
+            persist=True,
+        )
+        return {
+            "chapter_consolidation": {"chapter_ref": kwargs["chapter"].get("reference", "")},
+            "promotion_results": [],
+            "working_pressure": kwargs["working_pressure"],
+            "anchor_memory": kwargs["anchor_memory"],
+            "reflective_summaries": kwargs["reflective_summaries"],
+            "knowledge_activations": kwargs["knowledge_activations"],
+            "reaction_records": kwargs["reaction_records"],
+            "compatibility_payload": compatibility_payload,
+        }
+
+    def fake_process_sentence_intake(sentence, *, local_buffer, working_pressure, anchor_memory, window_size=6, cadence_limit=4):
+        next_buffer = {
+            **local_buffer,
+            "current_sentence_id": sentence["sentence_id"],
+            "current_sentence_index": sentence["sentence_index"],
+            "recent_sentences": [*local_buffer.get("recent_sentences", []), dict(sentence)][-window_size:],
+            "open_meaning_unit_sentence_ids": [sentence["sentence_id"]],
+            "seen_sentence_ids": [*local_buffer.get("seen_sentence_ids", []), sentence["sentence_id"]],
+        }
+        return next_buffer, {
+            "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+            "mechanism_version": ATTENTIONAL_V2_MECHANISM_VERSION,
+            "current_sentence_id": sentence["sentence_id"],
+            "output": "zoom_now",
+            "gate_state": "hot",
+            "signals": [],
+            "cadence_counter": 1,
+            "callback_anchor_ids": [],
+        }
+
+    monkeypatch.setattr(
+        runner_module,
+        "generate_candidate_set",
+        lambda *args, **kwargs: {
+            "current_sentence_id": "c1-s2",
+            "memory_candidates": [],
+            "lookback_candidates": [],
+        },
+    )
+    monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
+    monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
+    monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
+
+    mechanism = AttentionalV2Mechanism()
+    result = mechanism.read_book(
+        ReadRequest(
+            book_path=_fixture_epub(),
+            mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
+            mechanism_config={},
+        )
+    )
+
+    assert result.normalized_eval_bundle is not None
+    chapter_payload = json.loads(chapter_result_compatibility_file(result.output_dir, 1).read_text(encoding="utf-8"))
+    assert chapter_payload["visible_reaction_count"] == 0
+    reaction_records = json.loads(reaction_records_file(result.output_dir).read_text(encoding="utf-8"))
+    assert reaction_records["records"] == []
+    shell = load_runtime_shell(runtime_shell_file(result.output_dir))
+    assert shell["status"] == "completed"
+
+
 def test_attentional_v2_rejects_book_analysis_mode(tmp_path, monkeypatch):
     """The live runner should fail fast on book_analysis mode in this slice."""
 

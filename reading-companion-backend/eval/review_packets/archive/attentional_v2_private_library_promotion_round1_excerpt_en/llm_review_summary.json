@@ -1,0 +1,13 @@
+{
+  "packet_id": "attentional_v2_private_library_promotion_round1_excerpt_en",
+  "run_id": "attentional_v2_private_library_promotion_round1_excerpt_en__llm_review__20260327-113308",
+  "generated_at": "2026-03-27T11:36:01.574664Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "case_count": 16,
+  "action_counts": {
+    "revise": 15,
+    "keep": 1
+  },
+  "source_case_audit_run_id": "attentional_v2_private_library_promotion_round1_excerpt_en__20260327-041921"
+}
