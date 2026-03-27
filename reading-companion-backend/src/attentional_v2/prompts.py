@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v3"
-ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v3"
-MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v3"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v4"
+ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v4"
+MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v4"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
-REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v1"
+REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v2"
 BRIDGE_RESOLUTION_PROMPT_VERSION = "attentional_v2.bridge_resolution.v1"
 REFLECTIVE_PROMOTION_PROMPT_VERSION = "attentional_v2.reflective_promotion.v1"
 RECONSOLIDATION_PROMPT_VERSION = "attentional_v2.reconsolidation.v1"
@@ -64,6 +64,7 @@ Rules:
 - Do not silently promote local observations into durable summaries.
 - If the sentence or nearby context contains an explicit recall cue, prior-time cue, or recognition gap, name that exact cue instead of paraphrasing the scene generically.
 - If the local pressure is a live distinction or contrast, state the exact distinction in text terms.
+- If a compact analogy, metaphor, marked phrase, or loaded local wording is doing real work, name that exact phrase and why it matters locally.
 - Only propose explicit state operations; do not assume hidden state mutation.
 - Return JSON only.""",
     zoom_read_prompt="""Structural frame:
@@ -128,6 +129,7 @@ Rules:
 - Preserve unresolved pressure when the text is still incomplete.
 - Close around the sharpest live distinction, callback cue, or explanatory pattern in the current span instead of flattening the span into generic scene summary.
 - When deterministic local cues show a callback, recognition gap, or durable pattern, address that cue directly in the summary or unresolved note.
+- When deterministic local cues show a compact analogy, marked phrase, or loaded wording, prefer a short locally earned reaction candidate over a broad paraphrase.
 - Only propose explicit state operations.
 - Do not use future unseen text.
 - Return JSON only.""",
@@ -166,14 +168,14 @@ Output language contract:
 Return JSON:
 {
   "closure_decision": "close",
-  "meaning_unit_summary": "<brief summary>",
+  "meaning_unit_summary": "<brief summary centered on the sharpest local phrase or turn>",
   "dominant_move": "advance",
   "proposed_state_operations": [],
   "bridge_candidates": [],
   "reaction_candidate": {
-    "type": "highlight",
+    "type": "discern",
     "anchor_quote": "<anchor quote or empty>",
-    "content": "<reaction content or empty>",
+    "content": "<concise anchored reaction or empty>",
     "related_anchor_quotes": [],
     "search_query": "",
     "search_results": []
@@ -222,16 +224,27 @@ Rules:
 - Do not emit on every meaning unit.
 - Do not emit unanchored commentary.
 - Output must stay legible and source-grounded.
+- When local cues show a compact analogy, marked phrase, loaded diction, or sharp distinction, prefer a short precise reaction that names the exact phrase instead of broad chapter summary.
+- Preserve a fitting suggested reaction type such as `discern` or `curious` when the local evidence supports it; do not collapse everything into `highlight`.
 - If the moment is not worth surfacing, withhold it.
 - Return JSON only.""",
     reaction_emission_prompt="""Current interpretation:
 {current_interpretation}
+
+Focal sentence:
+{focal_sentence}
 
 Primary anchor:
 {primary_anchor}
 
 Related anchors:
 {related_anchors}
+
+Suggested reaction:
+{suggested_reaction}
+
+Deterministic local textual cues:
+{local_textual_cues}
 
 Current state snapshot:
 {state_snapshot}

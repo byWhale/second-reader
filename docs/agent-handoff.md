@@ -22,6 +22,7 @@ Last updated: `2026-03-27`
   - the next real comparison follow-up is now:
     - explain and respond to the split result
     - not decide whether broader semantic comparison should start, because it already has
+    - default follow-up should now include a selective implementation strategy rather than result interpretation alone
   - preserve evaluation memory in two forms:
     - keep the raw run artifacts and reports
     - also keep a living pattern ledger of strengths worth adopting and failures worth avoiding later
@@ -153,6 +154,12 @@ Last updated: `2026-03-27`
         - split `2` / `2`
       - Chinese:
         - `attentional_v2` wins all `4`
+- The current selected implementation response to that split result is:
+  - raise local micro-selectivity inside `attentional_v2` without breaking gated closure
+  - preserve chapter-scale thematic threading as a protected invariant
+  - continue honest callback-anchor resolution
+  - deepen distinction / recognition-gap closure
+  - preserve target-alignment failure as a hard comparative anti-pattern
 - The next real decision point is now:
   - how to respond to the new split result:
     - chapter-local reading quality still needs English-side work
@@ -196,6 +203,10 @@ Last updated: `2026-03-27`
   - execution artifacts:
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-execution.md`
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json`
+    - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md`
+  - materialized excerpt packets:
+    - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_en/`
+    - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_zh/`
   - round-1 recommendation:
     - `6` English books
     - `6` Chinese books
@@ -216,6 +227,9 @@ Last updated: `2026-03-27`
       - `随机漫步的傻瓜`
       - `笔记的方法`
       - `走出唯一真理观`
+  - immediate next prep actions:
+    - run machine-side case audits on the two materialized excerpt packets
+    - complete the chapter-lane sanity pass using the new checklist before any round-1 chapter comparison lift
 - A reusable mechanism-pattern capture rule is now part of the evaluation workflow:
   - stable rule:
     - `docs/backend-reader-evaluation.md`

@@ -115,8 +115,65 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - pattern kind: `strength`, `adoption_candidate`, `failure_mode`, or `anti_pattern`
   - concise description
   - why it mattered
+  - likely contributing causes
   - evidence links
   - adoption status
+  - next action or explicit defer reason
+
+## Evaluation-To-Implementation Rule
+- A meaningful evaluation round is not complete once it only:
+  - produces scores
+  - names a winner
+  - writes findings into a ledger
+- After each meaningful evaluation, the project should also investigate:
+  - what specifically contributed to the result
+  - which factors are likely causal rather than decorative
+  - which findings deserve immediate mechanism action
+  - which findings should be explicitly deferred and why
+- The required closeout is:
+  - evaluation result
+  - causal interpretation
+  - selective implementation plan
+- The goal is not to let valuable findings accumulate as an unworked pile for a hypothetical later rewrite.
+- The goal is to keep evaluation and mechanism improvement in a live loop:
+  - evaluate
+  - explain the result
+  - choose a small number of high-value actions
+  - implement or explicitly defer them
+  - rerun to see whether the change really helped
+- A round may legitimately defer a finding, but deferment must be explicit.
+  - acceptable examples:
+    - benchmark still too small
+    - the finding conflicts with the approved mechanism framework
+    - another repair has higher priority
+    - the finding still lacks causal confidence
+- When presenting an evaluation result to the user, the default closeout should include:
+  - what the result was
+  - what likely contributed to it
+  - what selective improvement strategy follows from it
+- The only time to omit the strategy is when the user explicitly asks for interpretation only.
+
+## Selective Synthesis Rule
+- We should not combine mechanism strengths mechanically.
+- Good synthesis means:
+  - preserve the approved mechanism's overall framework and control shape
+  - import only the parts that genuinely improve the target behavior
+  - avoid copying surface reactions or prompt style without matching structural support
+- Positive findings should therefore be filtered into three buckets:
+  - `adopt_now`
+    - small, high-confidence improvements that fit the current approved mechanism cleanly
+  - `defer_for_later_synthesis`
+    - valuable ideas that need a broader redesign, more evidence, or a different mechanism phase
+  - `reject_as_misaligned`
+    - locally appealing behavior that would distort the approved mechanism's design or product target
+- The filter question is not:
+  - "can we copy this good-looking behavior?"
+- The filter question is:
+  - "does this behavior improve the approved mechanism while respecting its ontology, loop, memory shape, and control strategy?"
+- Negative findings should be handled with the same seriousness.
+  - preserve them as explicit anti-pattern memory
+  - check whether any proposed repair risks reintroducing them
+  - do not repeat a known failure just because it worked in a different local context
 
 ## North Star
 - Reader quality is a vector, not a single score.

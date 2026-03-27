@@ -236,6 +236,14 @@ Update when: document layering, reading order, task routing, or cross-project co
   - keep the stable requirement in `docs/backend-reader-evaluation.md`
   - keep the living implementation record in `docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
   - if the finding changes project direction or would be hard to reconstruct later, also update `docs/history/decision-log.md`
+- If the same evaluation/comparison pass produces meaningful findings, do not end the task at documentation alone.
+  - investigate what specifically contributed to the result
+  - convert high-confidence findings into selective implementation actions or explicit defer reasons
+  - avoid letting the ledger become a passive pile of unworked insights
+- When reporting a meaningful evaluation/comparison result back to the user, include the selective improvement strategy by default unless the user explicitly asks for result interpretation only.
+- When carrying strengths forward from one mechanism into another, preserve the currently approved mechanism's overall framework unless the task explicitly changes that framework.
+  - prefer selective adoption over mechanical feature merging
+  - defer or reject locally appealing behaviors that do not fit the approved mechanism's control shape, ontology, or memory model
 - If a backend change materially alters which artifacts feed public state surfaces, or where normalization between internal and public shapes happens, update `docs/backend-state-aggregation.md` in the same task.
 - If a major project change creates a decision, reversal, or design inflection point that would be hard to reconstruct later, update `docs/history/decision-log.md` in the same task.
 - Treat a change as decision-bearing when it introduces a new primary mechanism, changes the default product/runtime direction, establishes a new canonical control surface or route model, or promotes a stable doc to subsystem authority.

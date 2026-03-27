@@ -260,6 +260,18 @@ Update when: status changes, blockers appear, or phases complete.
       - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round1_20260326/`
     - Chinese:
       - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_zh_round1_20260326/`
+- [x] Materialize the first private-library promotion round1 excerpt review packets
+  - packet ids:
+    - `attentional_v2_private_library_promotion_round1_excerpt_en`
+    - `attentional_v2_private_library_promotion_round1_excerpt_zh`
+  - packet roots:
+    - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_en/`
+    - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_zh/`
+- [x] Prepare the execution-ready chapter sanity checklist for private-library promotion round1
+  - checklist:
+    - `docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md`
+- [ ] Run machine-side case audits on the private-library promotion round1 excerpt packets
+- [ ] Complete the first chapter-lane sanity validation pass on the private-library promotion round1 chapter candidates
   - first-pass result:
     - `local_impact` overall:
       - `attentional_v2`: `2` wins + `1` tie out of `8`
@@ -620,3 +632,14 @@ Update when: status changes, blockers appear, or phases complete.
     - packet case audits now support bounded case-level parallelism while preserving ordered primary/adversarial review inside each case
   - Completed the machine-side case audit on the active Chinese round-2 revision/replacement packet at `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_zh_revision_replacement_round2__20260325-143403/`. Result: `6` completed, `0` factual failures, primary decisions `4 keep` / `2 revise`, adversarial risk counts `4 medium` / `1 high` / `1 low`.
   - Recorded an additional Phase 9 reminder so the project does not forget the benchmark-size question: after the reviewed-slice rerun and first broader comparisons, we must explicitly decide whether the current `v2` benchmark family is still too small for high-confidence method judgment. If it is, the next expansion targets are roughly `25-30` curated excerpt cases per language and `24-30` chapter units per language before stronger promotion claims.
+- [ ] Convert the first broader comparison into a selective implementation queue
+  - required closeout:
+    - explain the split result
+    - record the likely contributing causes
+    - choose small high-confidence implementation moves
+  - current selected queue:
+    - raise local micro-selectivity inside `attentional_v2` without breaking gated closure
+    - preserve chapter-scale thematic threading as a protected invariant
+    - continue honest callback-anchor resolution
+    - deepen distinction / recognition-gap closure
+    - preserve target-alignment failure as a hard comparative anti-pattern

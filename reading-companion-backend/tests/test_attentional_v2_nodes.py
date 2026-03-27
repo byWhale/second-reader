@@ -82,8 +82,43 @@ def test_zoom_read_writes_prompt_manifest_and_normalizes_payload(tmp_path, monke
     assert result["pressure_updates"][0]["operation_type"] == "update"
     assert result["bridge_candidate"]["target_anchor_id"] == "a-1"
     assert result["consider_reaction_emission"] is True
-    assert manifest["prompt_version"] == "attentional_v2.zoom_read.v3"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v3"
+    assert manifest["prompt_version"] == "attentional_v2.zoom_read.v4"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v4"
+
+
+def test_zoom_read_prompt_includes_micro_selectivity_cues(tmp_path, monkeypatch):
+    """zoom_read should surface compact analogy/marked-phrase cues in the prompt context."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    captured: dict[str, str] = {}
+
+    def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
+        captured["prompt"] = prompt
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    zoom_read(
+        focal_sentence=_sentence(
+            "c1-s2",
+            'The public feast felt "simple" as if the phrase itself ended the argument.',
+            sentence_index=2,
+        ),
+        local_context_sentences=[_sentence("c1-s1", "The room kept praising the arrangement.", sentence_index=1)],
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        output_language="en",
+        output_dir=output_dir,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+    )
+
+    assert "analogy_image" in captured["prompt"]
+    assert "marked_phrase" in captured["prompt"]
 
 
 def test_controller_decision_refuses_bridge_without_candidates(monkeypatch):
@@ -249,6 +284,97 @@ def test_run_phase4_local_cycle_honors_node_handoff_and_reaction_gate(tmp_path, 
     assert emit_manifest.exists()
 
 
+def test_run_phase4_local_cycle_passes_local_cues_into_reaction_emission(tmp_path, monkeypatch):
+    """reaction_emission should receive local micro-selectivity context and the suggested reaction."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    seen_prompt: dict[str, str] = {}
+
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            return {
+                "local_interpretation": 'The phrase "simple" is doing suspiciously heavy local work.',
+                "anchor_quote": '"simple"',
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": True,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": 'The sentence uses a marked phrase to flatten a contested point.',
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": {
+                    "type": "discern",
+                    "anchor_quote": '"simple"',
+                    "content": 'The quoted word pretends to settle a harder argument than it actually does.',
+                    "related_anchor_quotes": [],
+                    "search_query": "",
+                    "search_results": [],
+                },
+                "unresolved_pressure_note": "",
+            }
+        if "controller-decision node" in system_prompt:
+            return {
+                "chosen_move": "advance",
+                "reason": "the local point can move forward after surfacing the phrase pressure",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            seen_prompt["prompt"] = prompt
+            return {
+                "decision": "emit",
+                "reason": "the marked phrase deserves a precise visible reaction",
+                "reaction": {
+                    "type": "discern",
+                    "anchor_quote": '"simple"',
+                    "content": 'The quoted word pretends to settle a harder argument than it actually does.',
+                    "related_anchor_quotes": [],
+                    "search_query": "",
+                    "search_results": [],
+                },
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence(
+            "c1-s2",
+            'The public feast felt "simple" as if the phrase itself ended the argument.',
+            sentence_index=2,
+        ),
+        current_span_sentences=[
+            _sentence("c1-s1", "The room kept praising the arrangement.", sentence_index=1),
+            _sentence("c1-s2", 'The public feast felt "simple" as if the phrase itself ended the argument.', sentence_index=2),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=output_dir,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True},
+    )
+
+    assert result["reaction_result"]["decision"] == "emit"
+    assert result["reaction_result"]["reaction"]["type"] == "discern"
+    assert "analogy_image" in seen_prompt["prompt"]
+    assert "marked_phrase" in seen_prompt["prompt"]
+    assert '"type": "discern"' in seen_prompt["prompt"]
+
+
 def test_run_phase4_local_cycle_keeps_zoom_bridge_hints(monkeypatch):
     """The Phase 4 bridge pool should keep a valid zoom-level bridge hint."""
 
@@ -346,3 +472,78 @@ def test_zoom_read_prompt_receives_local_textual_cues(monkeypatch):
     assert "Deterministic local textual cues" in prompt_text
     assert "recognition_gap" in prompt_text
     assert "distinction_cue" in prompt_text
+
+
+def test_run_phase4_local_cycle_considers_compact_local_anchor_for_reaction_emission(monkeypatch):
+    """A compact phrase-level anchor should trigger a bounded reaction-emission check."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The sentence turns on one compact principle phrase.",
+                "anchor_quote": "one very simple principle",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": False,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "Mill compresses the turn into one compact principle phrase.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "advance",
+                "reason": "the local phrase has been registered clearly enough",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            calls.append("emit")
+            assert "one very simple principle" in prompt
+            assert '"compact_local_anchor": true' in prompt.lower()
+            assert '"synthetic_local_candidate": true' in prompt.lower()
+            return {
+                "decision": "emit",
+                "reason": "the compact phrase deserves a visible local note",
+                "reaction": None,
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c1-s1", "This sentence turns on one very simple principle.", sentence_index=1),
+        current_span_sentences=[
+            _sentence("c1-s1", "This sentence turns on one very simple principle.", sentence_index=1),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=None,
+        book_title="On Liberty",
+        author="Mill",
+        chapter_title="Chapter 1",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True},
+    )
+
+    assert calls == ["zoom", "closure", "controller", "emit"]
+    assert result["reaction_result"]["decision"] == "emit"
+    assert result["reaction_result"]["reaction"]["anchor_quote"] == "one very simple principle"
+    assert result["reaction_result"]["reaction"]["type"] == "discern"

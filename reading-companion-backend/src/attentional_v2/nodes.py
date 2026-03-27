@@ -110,6 +110,28 @@ _DURABLE_PATTERN_MARKERS = (
     "心思太活",
     "不能按部就班",
 )
+_ANALOGY_IMAGE_MARKERS = (
+    "like",
+    "as if",
+    "as though",
+    "像",
+    "好像",
+    "仿佛",
+)
+_LOADED_LOCAL_WORDING_MARKERS = (
+    "bloodsucker",
+    "bar-room",
+    "delegate",
+    "delegates",
+    "tenant",
+    "tenants",
+    "paradox",
+    "simple principle",
+    "craze",
+    "反寫的s",
+    "反写的s",
+)
+_MARKED_PHRASE_RE = re.compile(r"[\"'“”‘’][^\"'“”‘’]{2,80}[\"'“”‘’]")
 
 
 def _timestamp() -> str:
@@ -197,7 +219,7 @@ def _local_textual_cues(
     *,
     limit: int = 6,
 ) -> list[dict[str, str]]:
-    """Extract small deterministic cue packets for callback/distinction/pattern pressure."""
+    """Extract small deterministic cue packets for callback/distinction/pattern/micro-selectivity pressure."""
 
     cues: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
@@ -230,7 +252,60 @@ def _local_textual_cues(
             add_cue("recognition_gap", "sentence contains an explicit failure-to-recognize cue")
         if any(marker in lowered for marker in _DURABLE_PATTERN_MARKERS):
             add_cue("durable_pattern", "sentence contains repeated-behavior or character-pattern evidence")
+        if any(marker in lowered for marker in _ANALOGY_IMAGE_MARKERS):
+            add_cue("analogy_image", "sentence uses a compact analogy, comparison, or image-bearing turn")
+        if _MARKED_PHRASE_RE.search(text):
+            add_cue("marked_phrase", "sentence contains a marked phrase or quoted term that may deserve exact local attention")
+        if any(marker in lowered for marker in _LOADED_LOCAL_WORDING_MARKERS):
+            add_cue("loaded_wording", "sentence contains unusually loaded or locally sharp wording that may deserve exact phrase-level attention")
     return cues
+
+
+def _has_compact_local_anchor(*, anchor_quote: str, focal_text: str) -> bool:
+    """Return whether a phrase-level anchor is compact enough to justify a bounded extra emission check."""
+
+    cleaned_anchor = _clean_text(anchor_quote)
+    cleaned_focal = _clean_text(focal_text)
+    if not cleaned_anchor or not cleaned_focal:
+        return False
+    if cleaned_anchor == cleaned_focal:
+        return False
+    if len(cleaned_anchor) >= len(cleaned_focal):
+        return False
+    return len(cleaned_anchor) <= max(18, int(len(cleaned_focal) * 0.75))
+
+
+def _micro_selective_reaction_candidate(
+    *,
+    zoom_result: ZoomReadResult | None,
+    closure_result: MeaningUnitClosureResult,
+    local_textual_cues: list[dict[str, str]],
+    compact_local_anchor: bool,
+) -> ReactionCandidate | None:
+    """Build one bounded synthetic local reaction candidate when the phrase-level pressure is clear."""
+
+    if not compact_local_anchor or zoom_result is None:
+        return None
+    anchor_quote = _clean_text((zoom_result or {}).get("anchor_quote"))
+    content = _clean_text((zoom_result or {}).get("local_interpretation")) or _clean_text(
+        closure_result.get("meaning_unit_summary")
+    )
+    if not anchor_quote or not content:
+        return None
+    cue_types = {str(item.get("cue_type", "") or "") for item in local_textual_cues if isinstance(item, dict)}
+    reaction_type: ReactionType = "highlight"
+    if cue_types & {"analogy_image", "marked_phrase", "loaded_wording", "distinction_cue"}:
+        reaction_type = "discern"
+    elif cue_types & {"callback_cue", "recognition_gap"}:
+        reaction_type = "curious"
+    return {
+        "type": reaction_type,
+        "anchor_quote": anchor_quote,
+        "content": content,
+        "related_anchor_quotes": [],
+        "search_query": "",
+        "search_results": [],
+    }
 
 
 def _write_prompt_manifest(
@@ -569,12 +644,14 @@ def controller_decision(
 def reaction_emission(
     *,
     current_interpretation: str,
+    focal_sentence: str,
     primary_anchor: str,
     related_anchors: list[str],
+    suggested_reaction: ReactionCandidate | None,
+    local_textual_cues: list[dict[str, str]],
     state_snapshot: dict[str, object],
     output_language: str,
     output_dir: Path | None = None,
-    suggested_reaction: ReactionCandidate | None = None,
 ) -> ReactionEmissionResult:
     """Run the reaction-emission gate."""
 
@@ -582,8 +659,11 @@ def reaction_emission(
     user_prompt = _render_prompt(
         prompts.reaction_emission_prompt,
         current_interpretation=current_interpretation,
+        focal_sentence=focal_sentence,
         primary_anchor=primary_anchor,
         related_anchors=_json_block(related_anchors),
+        suggested_reaction=_json_block(dict(suggested_reaction or {})),
+        local_textual_cues=_json_block(local_textual_cues),
         state_snapshot=_json_block(state_snapshot),
         output_language_name=language_name(output_language),
     )
@@ -684,24 +764,47 @@ def run_phase4_local_cycle(
 
     reaction_result: ReactionEmissionResult | None = None
     suggested_reaction = closure_result.get("reaction_candidate")
-    should_consider_reaction = bool(suggested_reaction) or bool(zoom_result and zoom_result.get("consider_reaction_emission"))
+    compact_local_anchor = bool(
+        zoom_result
+        and len(current_span_sentences) <= 2
+        and _has_compact_local_anchor(
+            anchor_quote=_clean_text((zoom_result or {}).get("anchor_quote")),
+            focal_text=_clean_text(focal_sentence.get("text")),
+        )
+    )
+    reaction_local_cues = _local_textual_cues(current_span_sentences)
+    effective_suggested_reaction = suggested_reaction or _micro_selective_reaction_candidate(
+        zoom_result=zoom_result,
+        closure_result=closure_result,
+        local_textual_cues=reaction_local_cues,
+        compact_local_anchor=compact_local_anchor,
+    )
+    should_consider_reaction = (
+        bool(effective_suggested_reaction)
+        or bool(zoom_result and zoom_result.get("consider_reaction_emission"))
+        or compact_local_anchor
+    )
     if should_consider_reaction:
         reaction_result = reaction_emission(
             current_interpretation=_clean_text(
                 (zoom_result or {}).get("local_interpretation") or closure_result.get("meaning_unit_summary")
             ),
+            focal_sentence=_clean_text(focal_sentence.get("text")),
             primary_anchor=_clean_text(
-                (suggested_reaction or {}).get("anchor_quote") or (zoom_result or {}).get("anchor_quote")
+                (effective_suggested_reaction or {}).get("anchor_quote") or (zoom_result or {}).get("anchor_quote")
             ),
-            related_anchors=list((suggested_reaction or {}).get("related_anchor_quotes", [])),
+            related_anchors=list((effective_suggested_reaction or {}).get("related_anchor_quotes", [])),
+            suggested_reaction=effective_suggested_reaction,
+            local_textual_cues=reaction_local_cues,
             state_snapshot={
                 "trigger_output": str(trigger_state.get("output", "no_zoom")),
                 "closure_decision": str(closure_result.get("closure_decision", "continue")),
                 "chosen_move": str(controller_result.get("chosen_move", "advance")),
+                "compact_local_anchor": compact_local_anchor,
+                "synthetic_local_candidate": bool(effective_suggested_reaction and not suggested_reaction),
             },
             output_language=output_language,
             output_dir=output_dir,
-            suggested_reaction=suggested_reaction,
         )
 
     return {

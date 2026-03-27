@@ -31,6 +31,16 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
   - the stable rule lives in `../docs/backend-reader-evaluation.md`
   - the living record lives in `../docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
   - if the finding changes project direction or would be hard to reconstruct later, also update `../docs/history/decision-log.md`
+- Do not stop at storing findings in docs.
+  - After each meaningful evaluation round, investigate what specifically contributed to the result and turn the highest-value findings into a selective implementation plan.
+  - Either implement a small number of fitting improvements in the current approved mechanism, or record an explicit defer reason.
+  - Do not let findings accumulate as a passive backlog with no disposition.
+- When explaining a meaningful evaluation result to the user, include the selective improvement strategy by default.
+  - State the result, the likely contributing causes, and the next implementation moves together unless the user explicitly asks for analysis only.
+- Do not synthesize mechanisms mechanically.
+  - Keep the approved mechanism's overall framework, ontology, loop, and control strategy intact unless the task explicitly changes them.
+  - Adopt only the strengths that fit that framework cleanly.
+  - Reject or defer locally attractive behaviors that would distort the approved mechanism or reintroduce known anti-patterns.
 - Current dataset-hardening rule:
   - use multi-prompt LLM adjudication as the default packet reviewer unless the user explicitly requests manual human review
   - treat manual human review as optional future escalation for higher-trust `gold` slices, not as the default blocker for current benchmark hardening

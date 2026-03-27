@@ -210,17 +210,41 @@ Why:
 - appendix / acknowledgement / front-matter contamination
 - weaker first-round value than the chosen lift set
 
+## Materialized Packet Status
+The first round-1 excerpt review packets are now materialized and ready for audit/review preparation:
+
+- English packet:
+  - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_en/`
+- Chinese packet:
+  - `reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_zh/`
+
+Both packets were exported directly from the approved `excerpt_lift.selected_ids` in [private-library-promotion-round1-selection.json](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json). They should be treated as the canonical excerpt-prep entrypoint for round 1.
+
+The chapter-lane sanity checklist now lives in:
+- [private-library-promotion-round1-chapter-sanity-checklist.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md)
+
 ## Next Workflow Step
 The main agent should treat [private-library-promotion-round1-selection.json](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-selection.json) as the source of truth, then run this workflow:
 
 1. Materialize two bilingual excerpt review packets from the selected excerpt ids:
 - one English packet
 - one Chinese packet
+  - status:
+    - done
+  - packet ids:
+    - `attentional_v2_private_library_promotion_round1_excerpt_en`
+    - `attentional_v2_private_library_promotion_round1_excerpt_zh`
 
 2. Run machine-side case audits on those excerpt packets first.
+  - status:
+    - pending
 
 3. In parallel, do chapter-lane sanity validation on the selected `8 + 8` chapter candidates.
 - especially the items listed under `Review First`
+  - status:
+    - checklist ready
+  - use:
+    - [private-library-promotion-round1-chapter-sanity-checklist.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round1-chapter-sanity-checklist.md)
 
 4. Only after those two checks should round-1 survivors be promoted into:
 - the next curated excerpt review pass

@@ -1,5 +1,74 @@
 {
-  "generated_at": "2026-03-26T04:10:30.007227Z",
-  "active_packet_count": 0,
-  "packets": []
+  "generated_at": "2026-03-27T04:12:48.930888Z",
+  "active_packet_count": 2,
+  "packets": [
+    {
+      "packet_id": "attentional_v2_private_library_promotion_round1_excerpt_en",
+      "packet_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_en",
+      "created_at": "2026-03-27T04:09:09.787740Z",
+      "dataset_id": "attentional_v2_private_library_excerpt_en_v2",
+      "family": "excerpt_cases",
+      "storage_mode": "local-only",
+      "case_count": 16,
+      "selection_filters": {
+        "buckets": [],
+        "limit": 0,
+        "only_unreviewed": false,
+        "case_ids": [
+          "good_strategy_bad_strategy_private_en__22__seed_1",
+          "good_strategy_bad_strategy_private_en__22__seed_2",
+          "good_strategy_bad_strategy_private_en__55__seed_2",
+          "evicted_private_en__10__seed_1",
+          "evicted_private_en__17__seed_2",
+          "evicted_private_en__29__seed_1",
+          "poor_charlies_almanack_private_en__10__seed_1",
+          "poor_charlies_almanack_private_en__10__seed_2",
+          "fooled_by_randomness_private_en__14__seed_1",
+          "fooled_by_randomness_private_en__14__seed_2",
+          "supremacy_private_en__13__seed_1",
+          "steve_jobs_private_en__17__seed_1",
+          "steve_jobs_private_en__17__seed_2",
+          "steve_jobs_private_en__24__seed_1",
+          "steve_jobs_private_en__24__seed_2",
+          "steve_jobs_private_en__43__seed_1"
+        ]
+      },
+      "latest_case_audit": null,
+      "latest_completed_case_audit": null
+    },
+    {
+      "packet_id": "attentional_v2_private_library_promotion_round1_excerpt_zh",
+      "packet_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/pending/attentional_v2_private_library_promotion_round1_excerpt_zh",
+      "created_at": "2026-03-27T04:09:09.786299Z",
+      "dataset_id": "attentional_v2_private_library_excerpt_zh_v2",
+      "family": "excerpt_cases",
+      "storage_mode": "local-only",
+      "case_count": 16,
+      "selection_filters": {
+        "buckets": [],
+        "limit": 0,
+        "only_unreviewed": false,
+        "case_ids": [
+          "kangxi_hongpiao_private_zh__12__seed_1",
+          "kangxi_hongpiao_private_zh__12__seed_2",
+          "kangxi_hongpiao_private_zh__27__seed_1",
+          "fooled_by_randomness_private_zh__9__seed_1",
+          "fooled_by_randomness_private_zh__19__seed_2",
+          "meiguoren_de_xingge_private_zh__8__seed_1",
+          "meiguoren_de_xingge_private_zh__19__seed_2",
+          "biji_de_fangfa_private_zh__13__seed_1",
+          "biji_de_fangfa_private_zh__15__seed_2",
+          "zouchu_weiyi_zhenliguan_private_zh__14__seed_1",
+          "zouchu_weiyi_zhenliguan_private_zh__8__seed_1",
+          "zhangzhongmou_zizhuan_private_zh__4__seed_1",
+          "zhangzhongmou_zizhuan_private_zh__4__seed_2",
+          "zhangzhongmou_zizhuan_private_zh__10__seed_1",
+          "zhangzhongmou_zizhuan_private_zh__10__seed_2",
+          "canglang_zhishui_private_zh__16__seed_2"
+        ]
+      },
+      "latest_case_audit": null,
+      "latest_completed_case_audit": null
+    }
+  ]
 }

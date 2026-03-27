@@ -24,9 +24,25 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
 - `Status`
   - `observed`
   - `candidate_for_adoption`
+  - `adopt_now`
+  - `defer_for_later_synthesis`
+  - `reject_as_misaligned`
   - `partially_adopted`
   - `adopted`
   - `avoid`
+- `Next action`
+  - the immediate implementation move, or the explicit reason this entry is deferred
+
+## Working Rule
+- This ledger is not a parking lot for insights.
+- After a meaningful evaluation round:
+  - keep only the findings that look causally useful or protective against repeated mistakes
+  - assign each kept finding a concrete disposition
+  - prefer a small number of real implementation moves over a large pile of vague "maybe later" notes
+- When a good behavior comes from another mechanism, do not copy it mechanically.
+  - keep the currently approved mechanism's overall framework intact
+  - adopt only the parts that fit that framework cleanly
+  - defer or reject ideas that would require an unapproved redesign or would reintroduce known anti-patterns
 
 ## Current High-Value Patterns
 
@@ -51,7 +67,9 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - iterator-style reactions:
       - `「反写的S」这个比喻是否当时旅欧文学中的常见套语？还是作者的原创观察？`
       - `作者用中国传统看戏经验来理解威尼斯建筑布局的视角——不对称本身就可以是美。`
-- Status: `candidate_for_adoption`
+- Status: `adopt_now`
+- Next action:
+  - trial a narrowly bounded increase in local micro-selectivity inside the approved `attentional_v2` framework without abandoning gated reaction emission or meaning-unit closure
 
 ### 2. Attentional V2 chapter-scale thematic threading
 - Pattern kind: `strength`
@@ -72,6 +90,8 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
   - Attentional V2 repeatedly lifted the same phrase across multiple chapter moments and then closed with:
     - `此八字在本章四度標記極端困境……形成情感共振，凝結為本章最核心的主題訊號。`
 - Status: `observed`
+- Next action:
+  - preserve as a protected design strength while borrowing local-reading improvements; do not sacrifice chapter-scale accumulation for denser surface reactions
 
 ### 3. Attentional V2 callback-cue and durable-pattern repair
 - Pattern kind: `partially_adopted`
@@ -98,6 +118,8 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - `recognition_gap`
     - `durable_pattern`
 - Status: `partially_adopted`
+- Next action:
+  - treat cue-packet support as part of the new baseline and continue narrow repairs on honest anchor resolution and distinction closure
 
 ## Current High-Value Failure Memory
 
@@ -118,6 +140,8 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
   - pattern seen in judge reasons:
     - V2 often read correctly but felt like retrospective summary rather than live local investigation.
 - Status: `avoid`
+- Next action:
+  - use this as a guardrail when testing local-reading improvements; reject repairs that only improve chapter summary polish without increasing earned local contact
 
 ### 5. Wrong-chapter or wrong-target traversal corrupts chapter-scale evaluation even if local reactions look rich
 - Pattern kind: `anti_pattern`
@@ -136,6 +160,8 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - `Iterator V1 ... never accesses Chapter IV at all`
     - `Iterator V1 ... only processed Chapter 1 (封面), completely missing the target chapter`
 - Status: `avoid`
+- Next action:
+  - preserve as a cross-mechanism negative gate; no mechanism should be treated as strong if target-chapter alignment is unstable
 
 ### 6. Callback cue without honest anchor resolution still causes false confidence
 - Pattern kind: `failure_mode`
@@ -155,6 +181,8 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - `attentional_v2_integrity_repair_pass2_targeted_20260326`
     - `attentional_v2_integrity_reviewed_slice_round3_repair_pass2_20260326`
 - Status: `observed`
+- Next action:
+  - prioritize a future narrow repair that teaches the mechanism to say "callback cue present but honest anchor unavailable" instead of forcing a weak bridge
 
 ### 7. Benchmark winner/loser language alone is insufficient memory
 - Pattern kind: `anti_pattern`
@@ -168,3 +196,51 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - `attentional_v2_vs_iterator_v1_chapter_core_en_round1_20260326`
     - `attentional_v2_vs_iterator_v1_chapter_core_zh_round1_20260326`
 - Status: `avoid`
+- Next action:
+  - require each meaningful evaluation closeout to include result, causal interpretation, and selective implementation disposition rather than winner/loser prose alone
+
+## Current Selective Implementation Queue
+
+### Priority 1. Increase local micro-selectivity inside `attentional_v2`
+- Why now:
+  - the last chapter-core comparison showed the clearest remaining weakness is chapter-local reading behavior, especially on the English pack
+  - this is also the cleanest high-confidence positive adoption candidate from `iterator_v1`
+- Boundaries:
+  - keep gated reaction emission
+  - keep meaning-unit closure as the controlling frame
+  - do not convert `attentional_v2` into a flat multi-reaction stream
+- Concrete implementation direction:
+  - let the local cycle surface one additional micro-observation when a compact phrase carries real local pressure
+  - improve explicit handling of analogy, unusual wording, and compact rhetorical turns
+  - prefer "small earned local contact" over broader retrospective summary in those moments
+
+### Priority 2. Preserve chapter-scale thematic threading as a protected invariant
+- Why now:
+  - the same comparison showed this is one of `attentional_v2`'s strongest differentiators in `system_regression`
+  - a local-reading repair that damages this strength would be a bad trade
+- Concrete implementation direction:
+  - treat chapter-scale accumulation as non-negotiable when testing local-reading improvements
+  - reject any local-reading change that increases surface activity but weakens motif threading, callback carryover, or chapter-arc closure
+
+### Priority 3. Continue honest callback resolution instead of forced bridging
+- Why now:
+  - one of the remaining narrow failures still comes from seeing callback pressure without handling missing anchors honestly
+- Concrete implementation direction:
+  - add a stronger explicit outcome for:
+    - callback cue present
+    - honest supporting anchor not available
+  - prefer unresolved-but-honest bridge state over a weak earlier echo
+
+### Priority 4. Deepen distinction / recognition-gap closure without broad redesign
+- Why now:
+  - the repair passes improved distinction handling, but some cases still become shallow rather than fully centered on the recognition gap
+- Concrete implementation direction:
+  - strengthen closure-time prioritization when the local cue packet marks a distinction or recognition gap
+  - keep this as a bounded prompt/controller refinement, not a mechanism rewrite
+
+### Priority 5. Keep target-alignment failure as a hard comparative anti-pattern
+- Why now:
+  - the broader comparison also showed that rich local behavior is worthless when the mechanism drifts off the target chapter
+- Concrete implementation direction:
+  - preserve this as a negative gate in future cross-mechanism evaluation and synthesis
+  - do not adopt any local-reading behavior from another mechanism without checking target-alignment reliability

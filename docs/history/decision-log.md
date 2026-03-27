@@ -773,3 +773,24 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
 - `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - `docs/agent-handoff.md`
+
+## Entry 33
+**Decision / Inflection**: Require each meaningful evaluation round to close the loop from result -> causal interpretation -> selective implementation or explicit deferment, instead of treating the ledger as a passive archive.
+
+**Period**: Late March 2026, after the first broader comparison had already produced usable causal findings and the project recognized the risk of letting them pile up faster than they were absorbed.
+
+**Problem**: The project had already created a stronger evaluation memory system by preserving strengths, anti-patterns, and causal findings. But that improvement carried a new risk: the ledger could become a large graveyard of good ideas and warnings that never shaped the active mechanism soon enough to matter. That would weaken context, delay learning, and make later synthesis feel like a one-time salvage exercise instead of a live engineering loop.
+
+**Alternatives considered**: Keep the ledger as a long-term reference only, rely on future ad hoc synthesis passes to decide what to implement, or immediately copy every attractive behavior from the winning mechanism into the approved one.
+
+**Why this path won**: The project needed a middle path between passive note-taking and mechanical feature-merging. The chosen rule is: every meaningful evaluation round should identify likely contributing causes, choose a small number of high-value actions that fit the currently approved mechanism, and either implement them promptly or record a concrete defer reason. This preserves context while avoiding two opposite mistakes: waiting too long to absorb real lessons, and copying behaviors without respecting the approved mechanism's framework.
+
+**What changed in the system**: Stable evaluation docs now define an evaluation-to-implementation rule plus a selective synthesis rule. Root and backend agent guides now require agents to go beyond storing findings in docs: they must investigate what contributed to the result, convert high-confidence findings into selective implementation actions or explicit defer reasons, and preserve the approved mechanism's framework when carrying strengths forward. The mechanism-pattern ledger now carries dispositions and next actions rather than only descriptive findings.
+
+**Why it matters later**: Future contributors need to know that evaluation memory is now operational, not archival. A later reader should be able to reconstruct not just what the project learned, but how those lessons were filtered, when they were acted on, and why some attractive ideas were deferred or rejected as misaligned.
+
+**Primary evidence**:
+- `docs/backend-reader-evaluation.md`
+- `reading-companion-backend/AGENTS.md`
+- `AGENTS.md`
+- `docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
