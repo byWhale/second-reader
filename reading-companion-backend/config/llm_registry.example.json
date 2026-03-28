@@ -8,7 +8,12 @@
       "supported_models": ["MiniMax-M1-80k", "MiniMax-Text-01"],
       "timeout_seconds": 120,
       "retry_attempts": 2,
-      "max_concurrency": 4
+      "max_concurrency": 12,
+      "initial_max_concurrency": 6,
+      "probe_max_concurrency": 12,
+      "min_stable_concurrency": 2,
+      "backoff_window_seconds": 10,
+      "recover_window_seconds": 20
     },
     {
       "provider_id": "judge_claude_primary",
@@ -18,7 +23,12 @@
       "supported_models": ["claude-opus-4-6"],
       "timeout_seconds": 120,
       "retry_attempts": 2,
-      "max_concurrency": 2
+      "max_concurrency": 12,
+      "initial_max_concurrency": 6,
+      "probe_max_concurrency": 12,
+      "min_stable_concurrency": 2,
+      "backoff_window_seconds": 10,
+      "recover_window_seconds": 20
     },
     {
       "provider_id": "judge_gemini_primary",
@@ -27,7 +37,12 @@
       "supported_models": ["gemini-3.1-pro"],
       "timeout_seconds": 120,
       "retry_attempts": 2,
-      "max_concurrency": 2
+      "max_concurrency": 12,
+      "initial_max_concurrency": 6,
+      "probe_max_concurrency": 12,
+      "min_stable_concurrency": 2,
+      "backoff_window_seconds": 10,
+      "recover_window_seconds": 20
     }
   ],
   "profiles": [
@@ -39,7 +54,8 @@
       "max_tokens": 4096,
       "timeout_seconds": 120,
       "retry_attempts": 2,
-      "max_concurrency": 4
+      "max_concurrency": 12,
+      "default_burst_concurrency": 12
     },
     {
       "profile_id": "dataset_review_high_trust",
@@ -49,7 +65,8 @@
       "max_tokens": 4096,
       "timeout_seconds": 120,
       "retry_attempts": 2,
-      "max_concurrency": 2
+      "max_concurrency": 12,
+      "default_burst_concurrency": 12
     },
     {
       "profile_id": "eval_judge_high_trust",
@@ -59,7 +76,8 @@
       "max_tokens": 4096,
       "timeout_seconds": 120,
       "retry_attempts": 2,
-      "max_concurrency": 2
+      "max_concurrency": 12,
+      "default_burst_concurrency": 12
     }
   ]
 }

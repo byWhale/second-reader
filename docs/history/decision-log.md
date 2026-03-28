@@ -818,3 +818,25 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/agent-handoff.md`
 - `AGENTS.md`
 - `reading-companion-backend/AGENTS.md`
+
+## Entry 35
+**Decision / Inflection**: Make new runtime and evaluation processes concurrency-adaptive by default instead of relying on fixed worker counts inside individual scripts.
+
+**Period**: Late March 2026, after the project had already introduced a structured LLM registry and identified case-level serial execution as a major source of wasted eval time.
+
+**Problem**: Independent cases, packet reviews, and benchmark comparisons were still leaving throughput on the table because worker widths were hardcoded per runner, while the shared LLM layer already had enough structure to manage concurrency centrally. This made speed tuning inconsistent and encouraged local flags instead of one coherent default policy.
+
+**Alternatives considered**: Keep adding runner-local `--max-workers` overrides while leaving defaults conservative, require multiple API keys before allowing real parallelism, or continue treating each script's fixed worker count as the main safety mechanism.
+
+**Why this path won**: The project needed one place to own same-key parallelism, adaptive backoff, and default worker sizing. A shared adaptive budget makes new jobs faster by default while still preserving one explicit safety boundary for rate limits, timeouts, and malformed responses.
+
+**What changed in the system**: Structured registry entries now carry explicit concurrency-policy fields, the shared gateway adapts provider-wide same-key concurrency for new processes, and major eval/review runners derive their default case fanout from a shared job-concurrency helper instead of fixed `1` or `2` worker defaults. `iterator_v1` background segmentation defaults are also now derived from the runtime budget unless explicit env overrides are present.
+
+**Why it matters later**: Future contributors will otherwise see higher default parallelism and multiple thread pools across the codebase without understanding that this was an intentional system-wide redesign, not a set of unrelated speed tweaks.
+
+**Primary evidence**:
+- `reading-companion-backend/src/reading_runtime/llm_gateway.py`
+- `reading-companion-backend/src/reading_runtime/llm_registry.py`
+- `reading-companion-backend/src/reading_runtime/job_concurrency.py`
+- `docs/backend-reader-evaluation.md`
+- `docs/runtime-modes.md`

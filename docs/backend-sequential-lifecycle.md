@@ -112,6 +112,10 @@ Promotion from user upload into the durable source library or evaluation corpus 
 - Startup recovery
   - Backend startup runs unfinished-job recovery by refreshing every active job record in `state/jobs/`.
   - Recovery decides whether the run should keep going, pause, resume, or restart from scratch.
+- Shared concurrency budget
+  - New backend processes inherit the structured LLM registry's adaptive concurrency budget when they start.
+  - Product reading, evaluation, review, and adjudication jobs now share one provider-level same-key budget per process instead of relying on fixed per-script worker defaults.
+  - This changes default throughput for future jobs, but it does not mutate already-running Python workers in place.
 - Development boot mismatch
   - Development mode treats unfinished jobs from an older backend `boot_id` as untrusted.
   - Those runs are abandoned, written into the internal system activity stream as `dev_run_abandoned`, and left for a fresh manual rerun instead of being auto-resumed.

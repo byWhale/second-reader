@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
 
 from eval.compare_highlights import (
+    AgentReaction,
+    HumanHighlight,
+    MatchResult,
+    SegmentContext,
+    compare_highlights,
     fuzzy_ratio,
     is_direct_match,
     parse_agent_reactions,
@@ -139,3 +145,36 @@ def test_direct_match_accepts_containment_and_fuzzy_overlap():
     assert contained[0] is True
     assert fuzzy[0] is True
     assert fuzzy_ratio("want has a double meaning", "to want has a double meaning") > 70
+
+
+def test_compare_highlights_preserves_input_order_under_parallel_completion(monkeypatch):
+    humans = [
+        HumanHighlight(highlight_id="h1", quote="Alpha", note="", source="manual", chapter=1),
+        HumanHighlight(highlight_id="h2", quote="Beta", note="", source="manual", chapter=1),
+    ]
+    reactions = [
+        AgentReaction(reaction_id="a1", section_ref="1.1", section_title="Opening", reaction_type="highlight", quote="Alpha", note=""),
+        AgentReaction(reaction_id="a2", section_ref="1.2", section_title="Middle", reaction_type="highlight", quote="Beta", note=""),
+    ]
+    segments = [
+        SegmentContext(section_ref="1.1", section_title="Opening", segment_text="Alpha", order=1),
+        SegmentContext(section_ref="1.2", section_title="Middle", segment_text="Beta", order=2),
+    ]
+
+    def fake_compare_single(human, *, agent_reactions, segments):  # noqa: ANN001
+        if human.highlight_id == "h1":
+            time.sleep(0.15)
+        return MatchResult(
+            human=human,
+            status="hit",
+            agent=agent_reactions[0],
+            match_reason="ok",
+            match_score=100.0,
+            section_hint=segments[0],
+        )
+
+    monkeypatch.setattr("eval.compare_highlights._compare_single_highlight", fake_compare_single)
+
+    results = compare_highlights(humans, reactions, segments)
+
+    assert [item.human.highlight_id for item in results] == ["h1", "h2"]

@@ -11,6 +11,7 @@ import re
 import threading
 import time
 import uuid
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -113,8 +114,8 @@ _CURRENT_SCOPE: contextvars.ContextVar[LLMInvocationScopeState | None] = context
     default=None,
 )
 _SEMAPHORES_LOCK = threading.Lock()
-_PROFILE_SEMAPHORES: dict[tuple[str, int], threading.BoundedSemaphore] = {}
-_PROVIDER_SEMAPHORES: dict[tuple[str, int], threading.BoundedSemaphore] = {}
+_PROFILE_GATES: dict[tuple[str, str, int], "_DynamicProfileGate"] = {}
+_PROVIDER_CONTROLLERS: dict[str, "_AdaptiveProviderController"] = {}
 
 
 def _utc_now() -> str:
@@ -288,6 +289,107 @@ CONTRACT_ADAPTERS: dict[str, LLMContractAdapter] = {
 }
 
 
+class _AdaptiveProviderController:
+    """Adaptive provider-wide concurrency controller for same-key parallelism."""
+
+    def __init__(self, provider: LLMProviderConfig):
+        self.provider = provider
+        self._condition = threading.Condition()
+        self._active = 0
+        self._current_limit = max(
+            provider.min_stable_concurrency,
+            min(provider.initial_max_concurrency, provider.probe_max_concurrency),
+        )
+        self._last_adjustment_at = 0.0
+        self._last_pressure_at = 0.0
+        self._pressure_events: deque[float] = deque()
+        self._key_cursor = 0
+
+    @property
+    def current_limit(self) -> int:
+        with self._condition:
+            return self._current_limit
+
+    def ordered_key_slots(self, key_slots: list[dict[str, str]]) -> list[dict[str, str]]:
+        if len(key_slots) <= 1:
+            return key_slots
+        with self._condition:
+            start = self._key_cursor % len(key_slots)
+            self._key_cursor += 1
+        return key_slots[start:] + key_slots[:start]
+
+    def acquire(self) -> None:
+        with self._condition:
+            while self._active >= self._current_limit:
+                self._condition.wait(timeout=0.25)
+            self._active += 1
+
+    def release(self) -> None:
+        with self._condition:
+            self._active = max(0, self._active - 1)
+            self._condition.notify_all()
+
+    def report_success(self) -> None:
+        now = time.monotonic()
+        with self._condition:
+            self._prune_pressure_locked(now)
+            if self._current_limit >= self.provider.probe_max_concurrency:
+                return
+            if now - max(self._last_pressure_at, self._last_adjustment_at) < self.provider.recover_window_seconds:
+                return
+            self._current_limit = min(self.provider.probe_max_concurrency, self._current_limit + 1)
+            self._last_adjustment_at = now
+            self._condition.notify_all()
+
+    def report_pressure(self) -> None:
+        now = time.monotonic()
+        with self._condition:
+            self._prune_pressure_locked(now)
+            self._pressure_events.append(now)
+            should_backoff = len(self._pressure_events) >= 2 or self._current_limit > self.provider.initial_max_concurrency
+            if not should_backoff:
+                return
+            new_limit = max(self.provider.min_stable_concurrency, self._current_limit - 1)
+            if new_limit == self._current_limit:
+                self._last_pressure_at = now
+                return
+            self._current_limit = new_limit
+            self._last_pressure_at = now
+            self._last_adjustment_at = now
+            self._pressure_events.clear()
+            self._condition.notify_all()
+
+    def _prune_pressure_locked(self, now: float) -> None:
+        window = float(self.provider.backoff_window_seconds)
+        while self._pressure_events and now - self._pressure_events[0] > window:
+            self._pressure_events.popleft()
+
+
+class _DynamicProfileGate:
+    """Profile-specific gate that follows the provider's adaptive stable limit."""
+
+    def __init__(self, profile: LLMProfileConfig, provider_controller: _AdaptiveProviderController):
+        self.profile = profile
+        self.provider_controller = provider_controller
+        self._condition = threading.Condition()
+        self._active = 0
+
+    @property
+    def current_limit(self) -> int:
+        return max(1, min(self.profile.max_concurrency, self.provider_controller.current_limit))
+
+    def acquire(self) -> None:
+        with self._condition:
+            while self._active >= self.current_limit:
+                self._condition.wait(timeout=0.25)
+            self._active += 1
+
+    def release(self) -> None:
+        with self._condition:
+            self._active = max(0, self._active - 1)
+            self._condition.notify_all()
+
+
 def _merge_trace_context(base: LLMTraceContext | None, overlay: LLMTraceContext | None) -> LLMTraceContext | None:
     if base is None:
         return overlay
@@ -409,6 +511,7 @@ def _effective_profile(scope: LLMInvocationScopeState | None, explicit_profile_i
         timeout_seconds=overrides.timeout_seconds if overrides.timeout_seconds is not None else profile.timeout_seconds,
         retry_attempts=overrides.retry_attempts if overrides.retry_attempts is not None else profile.retry_attempts,
         max_concurrency=overrides.max_concurrency if overrides.max_concurrency is not None else profile.max_concurrency,
+        default_burst_concurrency=profile.default_burst_concurrency,
     )
 
 
@@ -430,24 +533,47 @@ def _resolve_provider_sequence(profile: LLMProfileConfig) -> list[LLMProviderCon
     return providers
 
 
-def _semaphore_for(profile: LLMProfileConfig) -> threading.BoundedSemaphore:
-    key = (profile.profile_id, profile.max_concurrency)
+def _provider_controller_for(provider: LLMProviderConfig) -> _AdaptiveProviderController:
     with _SEMAPHORES_LOCK:
-        semaphore = _PROFILE_SEMAPHORES.get(key)
-        if semaphore is None:
-            semaphore = threading.BoundedSemaphore(profile.max_concurrency)
-            _PROFILE_SEMAPHORES[key] = semaphore
-        return semaphore
+        controller = _PROVIDER_CONTROLLERS.get(provider.provider_id)
+        if controller is None:
+            controller = _AdaptiveProviderController(provider)
+            _PROVIDER_CONTROLLERS[provider.provider_id] = controller
+        return controller
 
 
-def _provider_semaphore_for(provider: LLMProviderConfig) -> threading.BoundedSemaphore:
-    key = (provider.provider_id, provider.max_concurrency)
+def _profile_gate_for(profile: LLMProfileConfig, provider_controller: _AdaptiveProviderController) -> _DynamicProfileGate:
+    key = (profile.profile_id, provider_controller.provider.provider_id, profile.max_concurrency)
     with _SEMAPHORES_LOCK:
-        semaphore = _PROVIDER_SEMAPHORES.get(key)
-        if semaphore is None:
-            semaphore = threading.BoundedSemaphore(provider.max_concurrency)
-            _PROVIDER_SEMAPHORES[key] = semaphore
-        return semaphore
+        gate = _PROFILE_GATES.get(key)
+        if gate is None:
+            gate = _DynamicProfileGate(profile, provider_controller)
+            _PROFILE_GATES[key] = gate
+        return gate
+
+
+def get_llm_provider_stable_concurrency(provider_id: str) -> int:
+    """Return the current adaptive stable concurrency for one provider."""
+
+    provider = get_llm_registry().get_provider(provider_id)
+    return _provider_controller_for(provider).current_limit
+
+
+def get_llm_profile_stable_concurrency(profile_id: str = DEFAULT_RUNTIME_PROFILE_ID) -> int:
+    """Return the current effective stable concurrency for one profile."""
+
+    profile = get_llm_profile(profile_id)
+    provider = get_llm_registry().get_provider(profile.provider_id)
+    controller = _provider_controller_for(provider)
+    return max(1, min(profile.max_concurrency, controller.current_limit))
+
+
+def clear_llm_gateway_runtime_state() -> None:
+    """Clear adaptive concurrency runtime state for tests."""
+
+    with _SEMAPHORES_LOCK:
+        _PROFILE_GATES.clear()
+        _PROVIDER_CONTROLLERS.clear()
 
 
 def _write_standard_trace(
@@ -466,11 +592,15 @@ def _write_debug_trace(
         trace_context.debug_sink.write(payload)
 
 
+_JSON_MALFORMED = object()
+
+
 def _invoke_response(
     system_prompt: str,
     user_prompt: str,
     *,
     explicit_profile_id: str | None = None,
+    expect_json: bool = False,
 ) -> Any:
     scope = current_llm_scope()
     trace_context = scope.trace_context if scope else None
@@ -502,7 +632,10 @@ def _invoke_response(
                     f"Provider {provider.provider_id} has no resolved API keys.",
                     problem_code="llm_auth",
                 )
-            for key_index, key_slot in enumerate(key_slots, start=1):
+            provider_controller = _provider_controller_for(provider)
+            profile_gate = _profile_gate_for(profile, provider_controller)
+            ordered_key_slots = provider_controller.ordered_key_slots(key_slots)
+            for key_index, key_slot in enumerate(ordered_key_slots, start=1):
                 attempt_started = _utc_now()
                 attempt_perf = time.perf_counter()
                 final_provider_id = provider.provider_id
@@ -510,15 +643,24 @@ def _invoke_response(
                 final_slot_id = key_slot["slot_id"]
                 try:
                     adapter = CONTRACT_ADAPTERS[provider.contract]
-                    with _provider_semaphore_for(provider):
-                        with _semaphore_for(profile):
-                            response = adapter.invoke(
-                                messages,
-                                provider=provider,
-                                profile=profile,
-                                api_key=key_slot["api_key"],
+                    provider_controller.acquire()
+                    profile_gate.acquire()
+                    try:
+                        response = adapter.invoke(
+                            messages,
+                            provider=provider,
+                            profile=profile,
+                            api_key=key_slot["api_key"],
                             timeout_seconds=profile.timeout_seconds,
                         )
+                    finally:
+                        profile_gate.release()
+                        provider_controller.release()
+                    if expect_json:
+                        parsed = parse_json_payload(response_text(response), _JSON_MALFORMED)
+                        if parsed is _JSON_MALFORMED:
+                            raise RuntimeError("malformed json payload")
+                    provider_controller.report_success()
                     attempt = {
                         "attempt": len(attempts) + 1,
                         "round": round_index,
@@ -577,6 +719,9 @@ def _invoke_response(
                     classified = _classify_llm_problem(exc)
                     final_problem_code = classified
                     last_error = exc
+                    message = str(exc).lower()
+                    if classified in {"llm_timeout", "llm_quota"} or "malformed json payload" in message:
+                        provider_controller.report_pressure()
                     attempts.append(
                         {
                             "attempt": len(attempts) + 1,
@@ -645,7 +790,7 @@ def _invoke_response(
 def invoke_json(system_prompt: str, user_prompt: str, default: Any, *, profile_id: str | None = None) -> Any:
     """Invoke the configured LLM and parse a JSON payload."""
 
-    response = _invoke_response(system_prompt, user_prompt, explicit_profile_id=profile_id)
+    response = _invoke_response(system_prompt, user_prompt, explicit_profile_id=profile_id, expect_json=True)
     return parse_json_payload(response_text(response), default)
 
 
@@ -664,8 +809,11 @@ __all__ = [
     "LLMInvocationOverrides",
     "LLMTraceContext",
     "ReaderLLMError",
+    "clear_llm_gateway_runtime_state",
     "current_llm_scope",
     "eval_trace_context",
+    "get_llm_profile_stable_concurrency",
+    "get_llm_provider_stable_concurrency",
     "invoke_json",
     "invoke_text",
     "llm_invocation_scope",

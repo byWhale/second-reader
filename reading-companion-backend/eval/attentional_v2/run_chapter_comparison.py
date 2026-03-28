@@ -32,7 +32,8 @@ from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_
 from src.reading_core.runtime_contracts import ReadRequest
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
 from src.reading_mechanisms.iterator_v1 import IteratorV1Mechanism
-from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID
+from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
+from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID, DEFAULT_RUNTIME_PROFILE_ID
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -612,6 +613,49 @@ def _judge_scopes_for_case(
     return {scope: scope_results[scope] for scope in DEFAULT_SCOPES}
 
 
+def _evaluate_case(
+    case: ChapterCase,
+    *,
+    source: dict[str, Any],
+    run_root: Path,
+    judge_mode: str,
+    mechanism_execution_mode: str,
+    judge_execution_mode: str,
+) -> dict[str, Any]:
+    mechanism_results = _run_mechanisms_for_case(
+        case,
+        source,
+        run_root=run_root,
+        mechanism_execution_mode=mechanism_execution_mode,
+    )
+    scope_results = _judge_scopes_for_case(
+        case=case,
+        mechanism_results=mechanism_results,
+        run_root=run_root,
+        judge_mode=judge_mode,
+        judge_execution_mode=judge_execution_mode,
+    )
+    return {
+        "chapter_case_id": case.chapter_case_id,
+        "language_track": case.language_track,
+        "selection_role": case.selection_role,
+        "book_title": case.book_title,
+        "author": case.author,
+        "source_id": case.source_id,
+        "chapter_id": case.chapter_id,
+        "chapter_title": case.chapter_title,
+        "mechanisms": {
+            key: {
+                "mechanism_label": value["mechanism_label"],
+                "output_dir": value["output_dir"],
+                "bundle_summary": value["bundle_summary"],
+            }
+            for key, value in mechanism_results.items()
+        },
+        "scope_results": scope_results,
+    }
+
+
 def _aggregate(case_results: list[dict[str, Any]], scopes: list[str]) -> dict[str, Any]:
     aggregate: dict[str, Any] = {
         "case_count": len(case_results),
@@ -708,8 +752,9 @@ def run_benchmark(
     run_id: str | None = None,
     judge_mode: str = "llm",
     case_ids: list[str] | None = None,
-    mechanism_execution_mode: str = "serial",
-    judge_execution_mode: str = "serial",
+    mechanism_execution_mode: str = "parallel",
+    judge_execution_mode: str = "parallel",
+    case_workers: int | None = None,
 ) -> dict[str, Any]:
     manifests: list[dict[str, Any]] = []
     all_cases: list[ChapterCase] = []
@@ -746,44 +791,38 @@ def run_benchmark(
         },
     )
 
-    case_results: list[dict[str, Any]] = []
-    for index, case in enumerate(selected_cases, start=1):
-        print(f"[{index}/{len(selected_cases)}] {case.chapter_case_id}", flush=True)
-        source = source_index[case.source_id]
-        mechanism_results = _run_mechanisms_for_case(
-            case,
-            source,
-            run_root=run_root,
-            mechanism_execution_mode=mechanism_execution_mode,
-        )
-        scope_results = _judge_scopes_for_case(
-            case=case,
-            mechanism_results=mechanism_results,
-            run_root=run_root,
-            judge_mode=judge_mode,
-            judge_execution_mode=judge_execution_mode,
-        )
-        case_payload = {
-            "chapter_case_id": case.chapter_case_id,
-            "language_track": case.language_track,
-            "selection_role": case.selection_role,
-            "book_title": case.book_title,
-            "author": case.author,
-            "source_id": case.source_id,
-            "chapter_id": case.chapter_id,
-            "chapter_title": case.chapter_title,
-            "mechanisms": {
-                key: {
-                    "mechanism_label": value["mechanism_label"],
-                    "output_dir": value["output_dir"],
-                    "bundle_summary": value["bundle_summary"],
-                }
-                for key, value in mechanism_results.items()
-            },
-            "scope_results": scope_results,
-        }
-        case_results.append(case_payload)
-        _json_dump(run_root / "cases" / f"{case.chapter_case_id}.json", case_payload)
+    per_case_parallelism = 2 if (mechanism_execution_mode == "parallel" or (judge_mode != "none" and judge_execution_mode == "parallel")) else 1
+    worker_policy = resolve_worker_policy(
+        job_kind="chapter_case_comparison",
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        task_count=len(selected_cases),
+        per_worker_parallelism=per_case_parallelism,
+        explicit_max_workers=case_workers if case_workers and case_workers > 0 else None,
+    )
+    results_by_case_id: dict[str, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="chapter-case") as executor:
+        future_to_case = {}
+        for index, case in enumerate(selected_cases, start=1):
+            print(f"[submitted {index}/{len(selected_cases)}] {case.chapter_case_id}", flush=True)
+            future_to_case[
+                submit_inherited_context(
+                    executor,
+                    _evaluate_case,
+                    case,
+                    source=source_index[case.source_id],
+                    run_root=run_root,
+                    judge_mode=judge_mode,
+                    mechanism_execution_mode=mechanism_execution_mode,
+                    judge_execution_mode=judge_execution_mode,
+                )
+            ] = case
+        for future in as_completed(future_to_case):
+            case = future_to_case[future]
+            case_payload = future.result()
+            results_by_case_id[case.chapter_case_id] = case_payload
+            _json_dump(run_root / "cases" / f"{case.chapter_case_id}.json", case_payload)
+            print(f"[completed] {case.chapter_case_id}", flush=True)
+    case_results = [results_by_case_id[case.chapter_case_id] for case in selected_cases]
 
     aggregate = _aggregate(case_results, DEFAULT_SCOPES)
     _json_dump(run_root / "summary" / "aggregate.json", aggregate)
@@ -808,8 +847,9 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--runs-root", default=str(DEFAULT_RUNS_ROOT))
     parser.add_argument("--run-id", default="")
     parser.add_argument("--judge-mode", choices=["llm", "none"], default="llm")
-    parser.add_argument("--mechanism-execution-mode", choices=["serial", "parallel"], default="serial")
-    parser.add_argument("--judge-execution-mode", choices=["serial", "parallel"], default="serial")
+    parser.add_argument("--mechanism-execution-mode", choices=["serial", "parallel"], default="parallel")
+    parser.add_argument("--judge-execution-mode", choices=["serial", "parallel"], default="parallel")
+    parser.add_argument("--case-workers", type=int, default=0)
     parser.add_argument("--case-id", action="append", default=[])
     parser.add_argument("--case-ids", default="")
     parser.add_argument("--worker-payload", default="", help=argparse.SUPPRESS)
@@ -836,6 +876,7 @@ def main() -> int:
         case_ids=case_ids or None,
         mechanism_execution_mode=args.mechanism_execution_mode,
         judge_execution_mode=args.judge_execution_mode,
+        case_workers=args.case_workers or None,
     )
     print(json.dumps(summary["aggregate"], ensure_ascii=False, indent=2))
     print(f"run_root={summary['run_root']}")

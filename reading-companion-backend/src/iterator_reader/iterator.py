@@ -5,6 +5,7 @@ from __future__ import annotations
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from contextlib import nullcontext
 from dataclasses import dataclass
+import os
 import re
 import threading
 import time
@@ -14,11 +15,9 @@ from typing import Callable
 
 from src.config import (
     get_backend_version,
-    get_pipeline_prefetch_window,
-    get_pipeline_segment_workers,
-    get_pipeline_segment_workers_when_reader_blocked,
     get_reader_resume_compat_version,
 )
+from src.reading_runtime.job_concurrency import resolve_runtime_tuning_defaults
 from src.reading_runtime.llm_registry import DEFAULT_RUNTIME_PROFILE_ID
 from .frontend_artifacts import (
     append_activity_event,
@@ -97,12 +96,22 @@ class SequentialPipelineTuning:
 
 def _default_pipeline_tuning() -> SequentialPipelineTuning:
     """Resolve the default runtime tuning from config."""
-    segment_workers = max(1, get_pipeline_segment_workers())
-    blocked_workers = max(segment_workers, get_pipeline_segment_workers_when_reader_blocked())
+    default_segment_workers, default_blocked_workers, default_prefetch_window = resolve_runtime_tuning_defaults()
+    raw_segment_workers = os.getenv("PIPELINE_SEGMENT_WORKERS", "").strip()
+    raw_blocked_workers = os.getenv("PIPELINE_SEGMENT_WORKERS_WHEN_READER_BLOCKED", "").strip()
+    raw_prefetch_window = os.getenv("PIPELINE_PREFETCH_WINDOW", "").strip()
+
+    segment_workers = max(1, int(raw_segment_workers)) if raw_segment_workers.isdigit() else default_segment_workers
+    blocked_workers = (
+        max(segment_workers, int(raw_blocked_workers))
+        if raw_blocked_workers.isdigit()
+        else max(segment_workers, default_blocked_workers)
+    )
+    prefetch_window = max(1, int(raw_prefetch_window)) if raw_prefetch_window.isdigit() else default_prefetch_window
     return SequentialPipelineTuning(
         segment_workers=segment_workers,
         segment_workers_when_reader_blocked=blocked_workers,
-        prefetch_window=max(1, get_pipeline_prefetch_window()),
+        prefetch_window=max(1, prefetch_window),
     )
 
 

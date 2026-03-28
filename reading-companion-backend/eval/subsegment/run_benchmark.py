@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -25,6 +26,8 @@ from eval.subsegment.report import build_markdown_report
 from src.iterator_reader.llm_utils import eval_trace_context, llm_invocation_scope
 from src.iterator_reader.policy import chapter_budget, default_budget_policy, resolve_skill_policy, segment_budget
 from src.iterator_reader.reader import _estimate_tokens, create_reader_state, plan_reader_subsegments, run_reader_segment
+from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
+from src.reading_runtime.llm_registry import DEFAULT_RUNTIME_PROFILE_ID
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -226,10 +229,15 @@ def _scope_result(
     direct_judge: JudgeFn,
     local_impact_judge: JudgeFn,
     segment_timeout_seconds: int | None,
+    strategy_execution_mode: str,
 ) -> dict[str, Any]:
-    if scope == DIRECT_QUALITY:
+    strategy_builder = _strategy_direct_result if scope == DIRECT_QUALITY else _strategy_local_impact_result
+    if strategy_execution_mode not in {"serial", "parallel"}:
+        raise ValueError(f"unsupported strategy execution mode: {strategy_execution_mode}")
+
+    if strategy_execution_mode == "serial" or len(STRATEGIES) <= 1:
         strategies = {
-            strategy: _strategy_direct_result(
+            strategy: strategy_builder(
                 case,
                 dataset,
                 strategy,
@@ -237,6 +245,25 @@ def _scope_result(
             )
             for strategy in STRATEGIES
         }
+    else:
+        strategies_by_name: dict[str, dict[str, Any]] = {}
+        with ThreadPoolExecutor(max_workers=len(STRATEGIES), thread_name_prefix="subsegment-strategy") as executor:
+            future_to_strategy = {
+                submit_inherited_context(
+                    executor,
+                    strategy_builder,
+                    case,
+                    dataset,
+                    strategy,
+                    segment_timeout_seconds=segment_timeout_seconds,
+                ): strategy
+                for strategy in STRATEGIES
+            }
+            for future in as_completed(future_to_strategy):
+                strategies_by_name[future_to_strategy[future]] = future.result()
+        strategies = {strategy: strategies_by_name[strategy] for strategy in STRATEGIES}
+
+    if scope == DIRECT_QUALITY:
         judgment = (
             {"winner": "tie", "reason": "judge_disabled"}
             if judge_mode == "none"
@@ -250,15 +277,6 @@ def _scope_result(
             )
         )
     else:
-        strategies = {
-            strategy: _strategy_local_impact_result(
-                case,
-                dataset,
-                strategy,
-                segment_timeout_seconds=segment_timeout_seconds,
-            )
-            for strategy in STRATEGIES
-        }
         judgment = (
             {"winner": "tie", "reason": "judge_disabled"}
             if judge_mode == "none"
@@ -277,6 +295,38 @@ def _scope_result(
         "strategies": strategies,
         "judgment": judgment,
         "rubric_summary": list(RUBRIC_SUMMARY_BY_SCOPE.get(scope, [])),
+    }
+
+
+def _evaluate_case(
+    case: BenchmarkCase,
+    *,
+    dataset: BenchmarkDataset,
+    effective_scopes: list[str],
+    judge_mode: str,
+    direct_judge: JudgeFn,
+    local_impact_judge: JudgeFn,
+    segment_timeout_seconds: int | None,
+    strategy_execution_mode: str,
+) -> dict[str, Any]:
+    scope_results: dict[str, Any] = {}
+    for scope in effective_scopes:
+        scope_results[scope] = _scope_result(
+            scope,
+            case=case,
+            dataset=dataset,
+            judge_mode=judge_mode,
+            direct_judge=direct_judge,
+            local_impact_judge=local_impact_judge,
+            segment_timeout_seconds=segment_timeout_seconds,
+            strategy_execution_mode=strategy_execution_mode,
+        )
+    return {
+        "case_id": case.case_id,
+        "split": case.split,
+        "segment_ref": case.segment_ref,
+        "tags": list(case.tags),
+        "scope_results": scope_results,
     }
 
 
@@ -354,6 +404,8 @@ def run_benchmark(
     segment_timeout_seconds: int | None = None,
     direct_judge: JudgeFn | None = None,
     local_impact_judge: JudgeFn | None = None,
+    max_workers: int | None = None,
+    strategy_execution_mode: str = "parallel",
 ) -> dict[str, Any]:
     """Execute the offline benchmark and return the aggregate summary."""
     dataset = load_benchmark_dataset(dataset_dir)
@@ -395,6 +447,13 @@ def run_benchmark(
     effective_local_impact_judge = (
         local_impact_judge if local_impact_judge is not None else judge_downstream_pairwise
     )
+    worker_policy = resolve_worker_policy(
+        job_kind="subsegment_case",
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        task_count=len(cases),
+        per_worker_parallelism=2 if strategy_execution_mode == "parallel" else 1,
+        explicit_max_workers=max_workers if max_workers and max_workers > 0 else None,
+    )
 
     with llm_invocation_scope(
         trace_context=eval_trace_context(
@@ -402,54 +461,53 @@ def run_benchmark(
             eval_target=f"subsegment_benchmark:{run_name}",
         )
     ):
-        case_results: list[dict[str, Any]] = []
+        case_results_by_id: dict[str, dict[str, Any]] = {}
         for case in cases:
             _json_dump(run_root / "inputs" / f"{case.case_id}.json", _case_to_dict(case))
-            scope_results: dict[str, Any] = {}
-            for scope in effective_scopes:
-                scoped = _scope_result(
-                    scope,
-                    case=case,
+        with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="subsegment-case") as executor:
+            future_to_case = {
+                submit_inherited_context(
+                    executor,
+                    _evaluate_case,
+                    case,
                     dataset=dataset,
+                    effective_scopes=effective_scopes,
                     judge_mode=judge_mode,
                     direct_judge=effective_direct_judge,
                     local_impact_judge=effective_local_impact_judge,
                     segment_timeout_seconds=segment_timeout_seconds,
-                )
-                scope_results[scope] = scoped
-                for strategy, payload in scoped["strategies"].items():
-                    _json_dump(
-                        run_root / scope / "plans" / f"{case.case_id}.{strategy}.json",
-                        {
-                            "target": target,
-                            "scope": scope,
-                            "methods": methods,
-                            "case_id": case.case_id,
-                            "strategy": strategy,
-                            "planner_source": payload.get("planner_source", ""),
-                            "diagnostics": payload.get("diagnostics", {}),
-                            "subsegments": payload.get("subsegments", []),
-                            "metrics": payload.get("metrics", {}),
-                            "runtime_root": str(runtime_root),
-                        },
-                    )
-                    if scope == LOCAL_IMPACT:
+                    strategy_execution_mode=strategy_execution_mode,
+                ): case
+                for case in cases
+            }
+            for future in as_completed(future_to_case):
+                case = future_to_case[future]
+                case_result = future.result()
+                case_results_by_id[case.case_id] = case_result
+                for scope, scoped in case_result["scope_results"].items():
+                    for strategy, payload in scoped["strategies"].items():
                         _json_dump(
-                            run_root / scope / "sections" / f"{case.case_id}.{strategy}.json",
-                            payload.get("rendered", {}),
+                            run_root / scope / "plans" / f"{case.case_id}.{strategy}.json",
+                            {
+                                "target": target,
+                                "scope": scope,
+                                "methods": methods,
+                                "case_id": case.case_id,
+                                "strategy": strategy,
+                                "planner_source": payload.get("planner_source", ""),
+                                "diagnostics": payload.get("diagnostics", {}),
+                                "subsegments": payload.get("subsegments", []),
+                                "metrics": payload.get("metrics", {}),
+                                "runtime_root": str(runtime_root),
+                            },
                         )
-
-                _json_dump(run_root / scope / "judge" / f"{case.case_id}.json", scoped["judgment"])
-
-            case_results.append(
-                {
-                    "case_id": case.case_id,
-                    "split": case.split,
-                    "segment_ref": case.segment_ref,
-                    "tags": list(case.tags),
-                    "scope_results": scope_results,
-                }
-            )
+                        if scope == LOCAL_IMPACT:
+                            _json_dump(
+                                run_root / scope / "sections" / f"{case.case_id}.{strategy}.json",
+                                payload.get("rendered", {}),
+                            )
+                    _json_dump(run_root / scope / "judge" / f"{case.case_id}.json", scoped["judgment"])
+        case_results = [case_results_by_id[case.case_id] for case in cases]
 
         aggregate = _aggregate(
             target=target,
@@ -502,6 +560,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--core-only", action="store_true")
     parser.add_argument("--include-local-impact", action="store_true")
+    parser.add_argument("--max-workers", type=int, default=0)
+    parser.add_argument("--strategy-execution-mode", choices=["serial", "parallel"], default="parallel")
     return parser.parse_args()
 
 
@@ -523,6 +583,8 @@ def main() -> int:
         judge_mode=args.judge_mode,
         include_local_impact=bool(args.include_local_impact),
         segment_timeout_seconds=args.segment_timeout_seconds or None,
+        max_workers=args.max_workers or None,
+        strategy_execution_mode=args.strategy_execution_mode,
     )
     print(json.dumps(summary["aggregate"], ensure_ascii=False, indent=2))
     print(f"run_root={summary['run_root']}")

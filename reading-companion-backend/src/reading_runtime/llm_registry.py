@@ -45,6 +45,11 @@ class LLMProviderConfig:
     timeout_seconds: int
     retry_attempts: int
     max_concurrency: int
+    initial_max_concurrency: int
+    probe_max_concurrency: int
+    min_stable_concurrency: int
+    backoff_window_seconds: int
+    recover_window_seconds: int
 
     def resolved_key_pool(self) -> list[dict[str, str]]:
         """Return the configured key slots that currently resolve to non-empty env values."""
@@ -75,6 +80,7 @@ class LLMProfileConfig:
     timeout_seconds: int
     retry_attempts: int
     max_concurrency: int
+    default_burst_concurrency: int
 
 
 @dataclass(frozen=True)
@@ -169,6 +175,11 @@ def _legacy_registry_payload() -> dict[str, Any]:
         "timeout_seconds": 120,
         "retry_attempts": get_llm_retry_attempts(),
         "max_concurrency": get_llm_max_concurrency(),
+        "initial_max_concurrency": _env_int("LLM_INITIAL_MAX_CONCURRENCY", 6),
+        "probe_max_concurrency": _env_int("LLM_PROBE_MAX_CONCURRENCY", get_llm_max_concurrency()),
+        "min_stable_concurrency": _env_int("LLM_MIN_STABLE_CONCURRENCY", 2),
+        "backoff_window_seconds": _env_int("LLM_BACKOFF_WINDOW_SECONDS", 10),
+        "recover_window_seconds": _env_int("LLM_RECOVER_WINDOW_SECONDS", 20),
     }
     return {
         "providers": [provider],
@@ -182,6 +193,7 @@ def _legacy_registry_payload() -> dict[str, Any]:
                 "timeout_seconds": _env_int("LLM_RUNTIME_TIMEOUT_SECONDS", 120),
                 "retry_attempts": get_llm_retry_attempts(),
                 "max_concurrency": get_llm_max_concurrency(),
+                "default_burst_concurrency": _env_int("LLM_RUNTIME_DEFAULT_BURST_CONCURRENCY", 6),
             },
             {
                 "profile_id": DEFAULT_DATASET_REVIEW_PROFILE_ID,
@@ -192,6 +204,7 @@ def _legacy_registry_payload() -> dict[str, Any]:
                 "timeout_seconds": _env_int("LLM_DATASET_REVIEW_TIMEOUT_SECONDS", 120),
                 "retry_attempts": _env_int("LLM_DATASET_REVIEW_RETRY_ATTEMPTS", get_llm_retry_attempts()),
                 "max_concurrency": _env_int("LLM_DATASET_REVIEW_MAX_CONCURRENCY", get_llm_max_concurrency()),
+                "default_burst_concurrency": _env_int("LLM_DATASET_REVIEW_DEFAULT_BURST_CONCURRENCY", 6),
             },
             {
                 "profile_id": DEFAULT_EVAL_JUDGE_PROFILE_ID,
@@ -202,6 +215,7 @@ def _legacy_registry_payload() -> dict[str, Any]:
                 "timeout_seconds": _env_int("LLM_EVAL_JUDGE_TIMEOUT_SECONDS", 120),
                 "retry_attempts": _env_int("LLM_EVAL_JUDGE_RETRY_ATTEMPTS", get_llm_retry_attempts()),
                 "max_concurrency": _env_int("LLM_EVAL_JUDGE_MAX_CONCURRENCY", get_llm_max_concurrency()),
+                "default_burst_concurrency": _env_int("LLM_EVAL_JUDGE_DEFAULT_BURST_CONCURRENCY", 6),
             },
         ],
     }
@@ -224,6 +238,20 @@ def _parse_provider(entry: Any) -> LLMProviderConfig:
     supported_models = tuple(
         item for item in (_clean_str(item) for item in entry.get("supported_models", [])) if item
     ) or ("*",)
+    max_concurrency = max(1, int(entry.get("max_concurrency", get_llm_max_concurrency()) or get_llm_max_concurrency()))
+    probe_max_concurrency = max(
+        1,
+        int(entry.get("probe_max_concurrency", max_concurrency) or max_concurrency),
+    )
+    min_stable_concurrency = max(1, int(entry.get("min_stable_concurrency", 2) or 2))
+    initial_default = min(6, probe_max_concurrency)
+    initial_max_concurrency = max(
+        min_stable_concurrency,
+        min(
+            probe_max_concurrency,
+            int(entry.get("initial_max_concurrency", initial_default) or initial_default),
+        ),
+    )
     return LLMProviderConfig(
         provider_id=provider_id,
         contract=contract,  # type: ignore[arg-type]
@@ -233,7 +261,12 @@ def _parse_provider(entry: Any) -> LLMProviderConfig:
         supported_models=supported_models,
         timeout_seconds=max(1, int(entry.get("timeout_seconds", 120) or 120)),
         retry_attempts=max(1, int(entry.get("retry_attempts", get_llm_retry_attempts()) or get_llm_retry_attempts())),
-        max_concurrency=max(1, int(entry.get("max_concurrency", get_llm_max_concurrency()) or get_llm_max_concurrency())),
+        max_concurrency=max(max_concurrency, probe_max_concurrency),
+        initial_max_concurrency=initial_max_concurrency,
+        probe_max_concurrency=max(probe_max_concurrency, min_stable_concurrency),
+        min_stable_concurrency=min_stable_concurrency,
+        backoff_window_seconds=max(1, int(entry.get("backoff_window_seconds", 10) or 10)),
+        recover_window_seconds=max(1, int(entry.get("recover_window_seconds", 20) or 20)),
     )
 
 
@@ -284,6 +317,16 @@ def _parse_profile(entry: Any, providers: dict[str, LLMProviderConfig]) -> LLMPr
         timeout_seconds=max(1, int(entry.get("timeout_seconds", provider.timeout_seconds) or provider.timeout_seconds)),
         retry_attempts=max(1, int(entry.get("retry_attempts", provider.retry_attempts) or provider.retry_attempts)),
         max_concurrency=max(1, int(entry.get("max_concurrency", provider.max_concurrency) or provider.max_concurrency)),
+        default_burst_concurrency=max(
+            1,
+            int(
+                entry.get(
+                    "default_burst_concurrency",
+                    min(provider.initial_max_concurrency, provider.max_concurrency),
+                )
+                or min(provider.initial_max_concurrency, provider.max_concurrency)
+            ),
+        ),
     )
 
 
@@ -334,6 +377,12 @@ def get_llm_profile_max_concurrency(profile_id: str = DEFAULT_RUNTIME_PROFILE_ID
     return get_llm_profile(profile_id).max_concurrency
 
 
+def get_llm_profile_default_burst_concurrency(profile_id: str = DEFAULT_RUNTIME_PROFILE_ID) -> int:
+    """Return the preferred default burst width for one profile."""
+
+    return get_llm_profile(profile_id).default_burst_concurrency
+
+
 def clear_llm_registry_cache() -> None:
     """Clear cached registry state for tests or dynamic env reloading."""
 
@@ -351,6 +400,7 @@ __all__ = [
     "LLMRegistryError",
     "clear_llm_registry_cache",
     "get_llm_profile",
+    "get_llm_profile_default_burst_concurrency",
     "get_llm_profile_max_concurrency",
     "get_llm_registry",
 ]

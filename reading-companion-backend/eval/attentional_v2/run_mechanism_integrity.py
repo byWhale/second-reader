@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +20,7 @@ from src.attentional_v2.schemas import build_default_reader_policy, build_empty_
 from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
 from src.reading_core import BookDocument
 from src.reading_core.storage import existing_book_document_file, load_book_document
+from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
 from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID, DEFAULT_RUNTIME_PROFILE_ID
 from src.reading_runtime.provisioning import ProvisionedBook, ensure_canonical_parse
 
@@ -582,6 +584,7 @@ def run_benchmark(
     case_ids: list[str] | None = None,
     judge_mode: str = "llm",
     limit: int | None = None,
+    max_workers: int | None = None,
 ) -> dict[str, Any]:
     datasets: list[dict[str, Any]] = []
     all_cases: list[ExcerptCase] = []
@@ -598,7 +601,14 @@ def run_benchmark(
         raise ValueError("no excerpt cases selected")
 
     source_index = _load_source_index(source_manifest_path)
-    cache: dict[str, ProvisionedBook] = {}
+    language_by_source_id = {
+        case.source_id: case.output_language
+        for case in all_cases
+    }
+    cache = {
+        source_id: _ensure_provisioned(source_index[source_id], language_mode=language_by_source_id[source_id])
+        for source_id in {case.source_id for case in all_cases}
+    }
     run_name = run_id or datetime.now(timezone.utc).strftime("attentional_v2_integrity_v2_%Y%m%d-%H%M%S")
     run_root = runs_root / run_name
     run_root.mkdir(parents=True, exist_ok=True)
@@ -621,12 +631,35 @@ def run_benchmark(
         },
     )
 
-    case_results: list[dict[str, Any]] = []
-    for index, case in enumerate(all_cases, start=1):
-        print(f"[{index}/{len(all_cases)}] {case.case_id}", flush=True)
-        result = _run_case(case, source_index, cache, judge_mode=judge_mode, trace_context=trace_context)
-        case_results.append(result)
-        _json_dump(run_root / "cases" / f"{case.case_id}.json", result)
+    worker_policy = resolve_worker_policy(
+        job_kind="mechanism_integrity",
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        task_count=len(all_cases),
+        explicit_max_workers=max_workers if max_workers and max_workers > 0 else None,
+    )
+    results_by_case_id: dict[str, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="integrity-case") as executor:
+        future_to_case = {}
+        for index, case in enumerate(all_cases, start=1):
+            print(f"[submitted {index}/{len(all_cases)}] {case.case_id}", flush=True)
+            future_to_case[
+                submit_inherited_context(
+                    executor,
+                    _run_case,
+                    case,
+                    source_index,
+                    cache,
+                    judge_mode=judge_mode,
+                    trace_context=trace_context,
+                )
+            ] = case
+        for future in as_completed(future_to_case):
+            case = future_to_case[future]
+            result = future.result()
+            results_by_case_id[case.case_id] = result
+            _json_dump(run_root / "cases" / f"{case.case_id}.json", result)
+            print(f"[completed] {case.case_id}", flush=True)
+    case_results = [results_by_case_id[case.case_id] for case in all_cases]
 
     aggregate = _aggregate(case_results)
     _json_dump(run_root / "summary" / "aggregate.json", aggregate)
@@ -659,6 +692,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--case-ids", default="")
     parser.add_argument("--judge-mode", choices=["llm", "none"], default="llm")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--max-workers", type=int, default=0)
     return parser.parse_args()
 
 
@@ -676,6 +710,7 @@ def main() -> int:
         case_ids=case_ids or None,
         judge_mode=args.judge_mode,
         limit=args.limit or None,
+        max_workers=args.max_workers or None,
     )
     print(json.dumps(summary["aggregate"], ensure_ascii=False, indent=2))
     print(f"run_root={summary['run_root']}")

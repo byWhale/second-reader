@@ -87,6 +87,12 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - extra keys mainly help with throughput headroom, failover, or rate-limit resilience
 - New scaling work should target the shared `src/reading_runtime/` LLM registry and gateway layer rather than adding new mechanism-local provider clients.
 - Structured registry configuration is preferred over legacy environment compatibility when tuning concurrency, key pools, or failover because it makes those choices explicit and reviewable.
+- New eval/review runners should default to shared-policy worker counts instead of hardcoded local worker limits.
+  - case-level fanout is preferred when cases are independent
+  - deterministic artifact ordering must still be preserved in final summaries and reports
+- The shared gateway now owns adaptive same-key concurrency for new processes.
+  - the provider-wide gate starts from a configured initial limit, backs off on sustained timeout/rate-limit or malformed-response pressure, and recovers slowly after clean windows
+  - profile-level default worker sizing should follow the current stable shared budget rather than guessing a fixed number like `1` or `2`
 
 ## Why Reader Evaluation Exists
 - Reader evaluation exists to guide optimization first and preserve evidence second.

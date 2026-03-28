@@ -754,3 +754,16 @@ Update when: status changes, blockers appear, or phases complete.
     - continue honest callback-anchor resolution
     - deepen distinction / recognition-gap closure
     - preserve target-alignment failure as a hard comparative anti-pattern
+<!-- BEGIN private_library_cleanup_round3_20260328 -->
+## `2026-03-28` Private-Library Cleanup Round3
+- Waited for Lane A completion at `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328` before starting any LLM-heavy dataset work.
+- Completed the ready-subset cleanup pipelines serially:
+  - EN packet: `attentional_v2_private_library_cleanup_round3_en_ready` (`keep 0`)
+  - ZH packet: `attentional_v2_private_library_cleanup_round3_zh_ready` (`keep 3`)
+- Post-cleanup reviewed-active excerpt counts now stand at EN `6` and ZH `11` in the live local-only datasets.
+- Applied the post-cleanup promotion gate and recorded decision `hold_for_backlog_rescue`.
+- Wrote the decision-bearing round-2 promotion draft artifacts:
+  - `/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
+  - `/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round2.json`
+- Chapter constraint remains EN `8` vs ZH `2` eligible chapter candidates.
+<!-- END private_library_cleanup_round3_20260328 -->

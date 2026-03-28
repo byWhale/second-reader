@@ -70,10 +70,22 @@ It also ships a Minimax-compatible structured registry for the current local run
 Use that file to define:
 - provider contracts such as `anthropic`, `google_genai`, and `openai_compatible`
 - key pools for same-model failover
+- adaptive same-key concurrency policy:
+  - `initial_max_concurrency`
+  - `probe_max_concurrency`
+  - `min_stable_concurrency`
+  - `backoff_window_seconds`
+  - `recover_window_seconds`
 - pinned task-level profiles:
   - `runtime_reader_default`
   - `dataset_review_high_trust`
   - `eval_judge_high_trust`
+  - each profile may also set `default_burst_concurrency`
+
+Current backend defaults are now throughput-oriented for new Python processes:
+- same-key parallelism is enabled by default
+- provider concurrency starts at `6`, can probe up to `12`, and backs off automatically on sustained timeout/rate-limit pressure
+- eval/review worker counts derive from the shared concurrency policy rather than fixed script-local defaults
 
 Frontend environment is optional for local development and can be set via `reading-companion-frontend/.env.local`.
 

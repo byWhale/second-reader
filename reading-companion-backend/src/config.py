@@ -62,7 +62,7 @@ def _env_int(name: str, default: int, *, minimum: int = 1) -> int:
 
 def get_llm_max_concurrency() -> int:
     """Return the global in-flight LLM call limit."""
-    return _env_int("LLM_MAX_CONCURRENCY", 4)
+    return _env_int("LLM_MAX_CONCURRENCY", 12)
 
 
 def get_llm_retry_attempts() -> int:

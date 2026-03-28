@@ -349,3 +349,12 @@ When that job completes:
 
 Important rule:
 - do not reselect the round-1 candidates by hand from the raw supplement pool unless this execution file is explicitly revised
+<!-- BEGIN private_library_cleanup_round3_20260328 -->
+## Round-3 Cleanup And Round-2 Draft
+- The ready-subset cleanup packets are now completed and archived:
+  - EN: `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_round3_en_ready`
+  - ZH: `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_round3_zh_ready`
+- Correction to the earlier round-1 interpretation: `zhangzhongmou_zizhuan_private_zh__4__seed_1` is now `reviewed_active` in the live local-only excerpt dataset, so the old round-1 drop note remains historical packet output only and is no longer the current survivor truth.
+- The policy-bearing round-2 decision artifact is now `/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round2.md` with decision `hold_for_backlog_rescue`.
+- Do not materialize a new curated promotion packet in this slice; use the round-2 draft plus the parked backlog list for the next decision point.
+<!-- END private_library_cleanup_round3_20260328 -->

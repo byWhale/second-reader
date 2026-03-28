@@ -126,6 +126,10 @@ then update this document in the same task.
 - Background jobs inherit the backend interpreter. If the backend is started under an unsupported Python runtime, job launch is rejected and the affected book writes a `runtime_environment_error` event into the internal system activity stream.
 - When a job process stays alive but runtime state stops updating, the backend pauses the job and emits system-side activity events such as `runtime_stalled` and `job_paused_by_runtime_guard`.
 - Raw stack traces remain in the internal technical diagnostic log; operator-facing summaries belong in the internal system activity stream.
+- New backend Python processes also inherit the structured LLM registry and its adaptive concurrency policy at startup.
+  - same-key parallelism is enabled by default for configured providers
+  - the current local default starts at `6` in-flight calls, can probe upward to `12`, and backs off automatically under sustained provider pressure
+  - already-running Python processes keep the code and env they started with; changing the registry or concurrency code on disk does not mutate an in-flight run until restart
 
 ## Resume And Recovery
 

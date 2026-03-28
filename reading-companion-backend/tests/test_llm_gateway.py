@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -15,7 +17,10 @@ from src.reading_runtime.llm_gateway import (
     CONTRACT_ADAPTERS,
     JsonlTraceSink,
     ReaderLLMError,
+    clear_llm_gateway_runtime_state,
     eval_trace_context,
+    get_llm_profile_stable_concurrency,
+    get_llm_provider_stable_concurrency,
     invoke_json,
     llm_invocation_scope,
     runtime_trace_context,
@@ -70,6 +75,40 @@ class _RecordingAdapter:
         return _FakeResponse(payload)
 
 
+class _SleepingRecordingAdapter(_RecordingAdapter):
+    def __init__(self, delay_seconds: float):
+        super().__init__()
+        self.delay_seconds = delay_seconds
+        self._lock = threading.Lock()
+        self.active_calls = 0
+        self.max_active_calls = 0
+
+    def invoke(
+        self,
+        messages: list[Any],
+        *,
+        provider: Any,
+        profile: Any,
+        api_key: str,
+        timeout_seconds: int,
+    ) -> Any:
+        with self._lock:
+            self.active_calls += 1
+            self.max_active_calls = max(self.max_active_calls, self.active_calls)
+        try:
+            time.sleep(self.delay_seconds)
+            return super().invoke(
+                messages,
+                provider=provider,
+                profile=profile,
+                api_key=api_key,
+                timeout_seconds=timeout_seconds,
+            )
+        finally:
+            with self._lock:
+                self.active_calls -= 1
+
+
 @pytest.fixture(autouse=True)
 def _clear_registry_and_env(monkeypatch: pytest.MonkeyPatch):
     for key in [
@@ -87,8 +126,10 @@ def _clear_registry_and_env(monkeypatch: pytest.MonkeyPatch):
         "ANTHROPIC_KEY",
     ]:
         monkeypatch.delenv(key, raising=False)
+    clear_llm_gateway_runtime_state()
     clear_llm_registry_cache()
     yield
+    clear_llm_gateway_runtime_state()
     clear_llm_registry_cache()
 
 
@@ -496,3 +537,129 @@ def test_iterator_parse_node_uses_shared_runtime_trace(tmp_path: Path, monkeypat
     assert standard_rows[-1]["mechanism_key"] == "iterator_v1"
     assert standard_rows[-1]["stage"] == "parse"
     assert standard_rows[-1]["node"] == "semantic_segmentation"
+
+
+def test_same_key_parallelism_allows_multiple_inflight_calls(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("PRIMARY_KEY", "same-key")
+    _set_registry(
+        monkeypatch,
+        {
+            "providers": [
+                {
+                    "provider_id": "anthropic_primary",
+                    "contract": "anthropic",
+                    "api_key_env": "PRIMARY_KEY",
+                    "supported_models": ["claude-opus-4-6"],
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "initial_max_concurrency": 6,
+                    "probe_max_concurrency": 12,
+                }
+            ],
+            "profiles": [
+                {
+                    "profile_id": DEFAULT_RUNTIME_PROFILE_ID,
+                    "provider_id": "anthropic_primary",
+                    "model": "claude-opus-4-6",
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "default_burst_concurrency": 12,
+                },
+                {
+                    "profile_id": DEFAULT_DATASET_REVIEW_PROFILE_ID,
+                    "provider_id": "anthropic_primary",
+                    "model": "claude-opus-4-6",
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "default_burst_concurrency": 12,
+                },
+                {
+                    "profile_id": DEFAULT_EVAL_JUDGE_PROFILE_ID,
+                    "provider_id": "anthropic_primary",
+                    "model": "claude-opus-4-6",
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "default_burst_concurrency": 12,
+                },
+            ],
+        },
+    )
+    adapter = _SleepingRecordingAdapter(delay_seconds=0.1)
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    results: list[dict[str, Any]] = []
+
+    def _invoke() -> None:
+        with llm_invocation_scope(profile_id=DEFAULT_RUNTIME_PROFILE_ID):
+            results.append(invoke_json("system", "user", {}))
+
+    first = threading.Thread(target=_invoke)
+    second = threading.Thread(target=_invoke)
+    first.start()
+    second.start()
+    first.join()
+    second.join()
+
+    assert len(results) == 2
+    assert adapter.max_active_calls >= 2
+
+
+def test_provider_backoff_reduces_stable_limit_after_timeout_pressure(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("PRIMARY_KEY", "timing-key")
+    _set_registry(
+        monkeypatch,
+        {
+            "providers": [
+                {
+                    "provider_id": "anthropic_primary",
+                    "contract": "anthropic",
+                    "api_key_env": "PRIMARY_KEY",
+                    "supported_models": ["claude-opus-4-6"],
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "initial_max_concurrency": 6,
+                    "probe_max_concurrency": 12,
+                    "min_stable_concurrency": 2,
+                    "backoff_window_seconds": 30,
+                    "recover_window_seconds": 30,
+                }
+            ],
+            "profiles": [
+                {
+                    "profile_id": DEFAULT_RUNTIME_PROFILE_ID,
+                    "provider_id": "anthropic_primary",
+                    "model": "claude-opus-4-6",
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "default_burst_concurrency": 12,
+                },
+                {
+                    "profile_id": DEFAULT_DATASET_REVIEW_PROFILE_ID,
+                    "provider_id": "anthropic_primary",
+                    "model": "claude-opus-4-6",
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "default_burst_concurrency": 12,
+                },
+                {
+                    "profile_id": DEFAULT_EVAL_JUDGE_PROFILE_ID,
+                    "provider_id": "anthropic_primary",
+                    "model": "claude-opus-4-6",
+                    "retry_attempts": 1,
+                    "max_concurrency": 12,
+                    "default_burst_concurrency": 12,
+                },
+            ],
+        },
+    )
+    adapter = _RecordingAdapter({"timing-key": "timeout"})
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    with llm_invocation_scope(profile_id=DEFAULT_RUNTIME_PROFILE_ID):
+        with pytest.raises(ReaderLLMError):
+            invoke_json("system", "user", {})
+        with pytest.raises(ReaderLLMError):
+            invoke_json("system", "user", {})
+
+    assert get_llm_provider_stable_concurrency("anthropic_primary") == 5
+    assert get_llm_profile_stable_concurrency(DEFAULT_RUNTIME_PROFILE_ID) == 5

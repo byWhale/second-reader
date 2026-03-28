@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import re
 import sys
@@ -17,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.iterator_reader.llm_utils import LLMInvocationOverrides, eval_trace_context, invoke_json, invoke_text, llm_invocation_scope
+from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
 from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID
 from src.iterator_reader.storage import display_segment_id
 
@@ -666,77 +668,100 @@ def summarize_omissions(omissions: list[MatchResult], chapter_number: int) -> st
     return "\n\n".join(lines)
 
 
+def _compare_single_highlight(
+    human: HumanHighlight,
+    *,
+    agent_reactions: list[AgentReaction],
+    segments: list[SegmentContext],
+) -> MatchResult:
+    section_hint = locate_highlight_segment(human.quote, segments)
+
+    best_direct: tuple[AgentReaction | None, float, str] = (None, 0.0, "")
+    for reaction in agent_reactions:
+        matched, score, reason = is_direct_match(human.quote, reaction.quote)
+        if matched and score > best_direct[1]:
+            best_direct = (reaction, score, reason)
+
+    if best_direct[0] is not None:
+        return MatchResult(
+            human=human,
+            status="hit",
+            agent=best_direct[0],
+            match_reason=best_direct[2],
+            match_score=best_direct[1],
+            section_hint=section_hint,
+        )
+
+    preferred_refs = _neighbor_section_refs(section_hint, segments)
+    ranked_candidates = sorted(
+        agent_reactions,
+        key=lambda item: (
+            item.section_ref in preferred_refs,
+            fuzzy_ratio(human.quote, item.quote),
+        ),
+        reverse=True,
+    )[:6]
+    semantic_hit, semantic_reason = semantic_match(human, ranked_candidates, section_hint)
+    if semantic_hit is not None:
+        return MatchResult(
+            human=human,
+            status="hit",
+            agent=semantic_hit,
+            match_reason=semantic_reason or "LLM 概念匹配",
+            match_score=fuzzy_ratio(human.quote, semantic_hit.quote),
+            section_hint=section_hint,
+        )
+
+    local_refs = preferred_refs or {reaction.section_ref for reaction in ranked_candidates[:3]}
+    local_reactions = [reaction for reaction in agent_reactions if reaction.section_ref in local_refs]
+    category, analysis = diagnose_omission(human, section_hint, local_reactions)
+    return MatchResult(
+        human=human,
+        status="miss",
+        agent=None,
+        match_reason=semantic_reason or "未命中",
+        match_score=0.0,
+        section_hint=section_hint,
+        diagnosis_category=category,
+        diagnosis_analysis=analysis,
+    )
+
+
 def compare_highlights(
     human_highlights: list[HumanHighlight],
     agent_reactions: list[AgentReaction],
     segments: list[SegmentContext],
+    *,
+    max_workers: int | None = None,
 ) -> list[MatchResult]:
     """Compare human highlights against agent reactions."""
-    results: list[MatchResult] = []
     total = len(human_highlights)
-    for index, human in enumerate(human_highlights, start=1):
-        print(f"[{index}/{total}] 对比 {human.highlight_id}", flush=True)
-        section_hint = locate_highlight_segment(human.quote, segments)
-
-        best_direct: tuple[AgentReaction | None, float, str] = (None, 0.0, "")
-        for reaction in agent_reactions:
-            matched, score, reason = is_direct_match(human.quote, reaction.quote)
-            if matched and score > best_direct[1]:
-                best_direct = (reaction, score, reason)
-
-        if best_direct[0] is not None:
-            results.append(
-                MatchResult(
-                    human=human,
-                    status="hit",
-                    agent=best_direct[0],
-                    match_reason=best_direct[2],
-                    match_score=best_direct[1],
-                    section_hint=section_hint,
+    worker_policy = resolve_worker_policy(
+        job_kind="highlight_comparison",
+        profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+        task_count=total,
+        explicit_max_workers=max_workers if max_workers and max_workers > 0 else None,
+    )
+    results_by_index: dict[int, MatchResult] = {}
+    with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="highlight-compare") as executor:
+        future_to_index = {}
+        for index, human in enumerate(human_highlights, start=1):
+            print(f"[submitted {index}/{total}] 对比 {human.highlight_id}", flush=True)
+            future_to_index[
+                submit_inherited_context(
+                    executor,
+                    _compare_single_highlight,
+                    human,
+                    agent_reactions=agent_reactions,
+                    segments=segments,
                 )
-            )
-            continue
-
-        preferred_refs = _neighbor_section_refs(section_hint, segments)
-        ranked_candidates = sorted(
-            agent_reactions,
-            key=lambda item: (
-                item.section_ref in preferred_refs,
-                fuzzy_ratio(human.quote, item.quote),
-            ),
-            reverse=True,
-        )[:6]
-        semantic_hit, semantic_reason = semantic_match(human, ranked_candidates, section_hint)
-        if semantic_hit is not None:
-            results.append(
-                MatchResult(
-                    human=human,
-                    status="hit",
-                    agent=semantic_hit,
-                    match_reason=semantic_reason or "LLM 概念匹配",
-                    match_score=fuzzy_ratio(human.quote, semantic_hit.quote),
-                    section_hint=section_hint,
-                )
-            )
-            continue
-
-        local_refs = preferred_refs or {reaction.section_ref for reaction in ranked_candidates[:3]}
-        local_reactions = [reaction for reaction in agent_reactions if reaction.section_ref in local_refs]
-        print(f"  -> 遗漏诊断 {human.highlight_id}", flush=True)
-        category, analysis = diagnose_omission(human, section_hint, local_reactions)
-        results.append(
-            MatchResult(
-                human=human,
-                status="miss",
-                agent=None,
-                match_reason=semantic_reason or "未命中",
-                match_score=0.0,
-                section_hint=section_hint,
-                diagnosis_category=category,
-                diagnosis_analysis=analysis,
-            )
-        )
-    return results
+            ] = index - 1
+        for future in as_completed(future_to_index):
+            result = future.result()
+            results_by_index[future_to_index[future]] = result
+            if result.status == "miss":
+                print(f"  -> 遗漏诊断 {result.human.highlight_id}", flush=True)
+    return [results_by_index[index] for index in range(total)]
 
 
 def render_report(
@@ -825,6 +850,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", required=True, help="Where to write the markdown comparison report")
     parser.add_argument("--chapter", required=True, type=int, help="Chapter number to compare")
     parser.add_argument("--structure", help="Optional explicit path to structure.json")
+    parser.add_argument("--max-workers", type=int, default=0, help="Override the default parallel highlight worker count.")
     return parser
 
 
@@ -864,7 +890,12 @@ def main() -> int:
             eval_target=f"compare_highlights:chapter_{args.chapter}",
         )
     ):
-        results = compare_highlights(human_highlights, agent_reactions, segments)
+        results = compare_highlights(
+            human_highlights,
+            agent_reactions,
+            segments,
+            max_workers=args.max_workers or None,
+        )
         report = render_report(args.chapter, human_highlights, agent_reactions, results)
     output_path.write_text(report, encoding="utf-8")
     print(f"已生成对比报告：{output_path}")

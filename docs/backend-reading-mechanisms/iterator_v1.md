@@ -114,6 +114,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - `chapter_heading`, `section_heading`, and `auxiliary` content may remain context-only or be excluded from deep-reading body coverage altogether.
 - Heading and auxiliary detection are heuristic.
   - Books with unusual formatting, title-like prose, dense metadata, or design-heavy layouts can still be misclassified at this parse-side stage.
+- Background segmentation worker defaults are now budget-aware for new processes.
+  - if `PIPELINE_SEGMENT_WORKERS`, `PIPELINE_SEGMENT_WORKERS_WHEN_READER_BLOCKED`, or `PIPELINE_PREFETCH_WINDOW` are not explicitly set, `iterator_v1` derives them from the current stable runtime LLM budget instead of fixed `3/4/3`
+  - explicit env vars still override the derived defaults when an operator needs a narrower or wider local setting
 
 ## LLM Call Schedule
 - The main inner loop is:

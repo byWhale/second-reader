@@ -6,12 +6,14 @@ import argparse
 import csv
 import json
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .case_audit_runs import latest_case_audit_run as find_latest_case_audit_run
 from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
+from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
 from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID
 
 
@@ -191,6 +193,24 @@ def adjudicate(case: dict[str, Any], audit_row: dict[str, Any]) -> dict[str, Any
     return normalize_review(payload)
 
 
+def adjudicate_review_row(
+    row: dict[str, str],
+    *,
+    source_rows: dict[str, dict[str, Any]],
+    audit_cases_dir: Path,
+) -> dict[str, Any]:
+    """Adjudicate one packet review row in isolation."""
+
+    case_id = str(row.get("case_id", "")).strip()
+    source_row = source_rows[case_id]
+    audit_row = load_json(audit_cases_dir / f"{case_id}.json")
+    llm_review = adjudicate(source_row, audit_row)
+    return {
+        "case_id": case_id,
+        "llm_review": llm_review,
+    }
+
+
 def render_report(packet_id: str, run_id: str, rows: list[dict[str, Any]], summary: dict[str, Any]) -> str:
     lines = [
         f"# LLM Packet Review: `{packet_id}`",
@@ -222,6 +242,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--packet-id")
     parser.add_argument("--packet-dir")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--max-workers", type=int, default=0)
     return parser.parse_args()
 
 
@@ -249,15 +270,43 @@ def main() -> int:
 
     adjudicated_rows: list[dict[str, Any]] = []
     action_counts: Counter[str] = Counter()
+    worker_policy = resolve_worker_policy(
+        job_kind="packet_adjudication",
+        profile_id=DEFAULT_DATASET_REVIEW_PROFILE_ID,
+        task_count=len(review_rows),
+        explicit_max_workers=args.max_workers if args.max_workers > 0 else None,
+    )
+    reviews_by_case_id: dict[str, dict[str, Any]] = {}
     with llm_invocation_scope(
         profile_id=DEFAULT_DATASET_REVIEW_PROFILE_ID,
         trace_context=trace_context,
     ):
+        if worker_policy.worker_count <= 1:
+            for row in review_rows:
+                result = adjudicate_review_row(
+                    row,
+                    source_rows=source_rows,
+                    audit_cases_dir=audit_cases_dir,
+                )
+                reviews_by_case_id[result["case_id"]] = result["llm_review"]
+        else:
+            with ThreadPoolExecutor(max_workers=worker_policy.worker_count, thread_name_prefix="packet-adjudication") as executor:
+                future_to_case_id = {
+                    submit_inherited_context(
+                        executor,
+                        adjudicate_review_row,
+                        row,
+                        source_rows=source_rows,
+                        audit_cases_dir=audit_cases_dir,
+                    ): str(row.get("case_id", "")).strip()
+                    for row in review_rows
+                }
+                for future in as_completed(future_to_case_id):
+                    result = future.result()
+                    reviews_by_case_id[result["case_id"]] = result["llm_review"]
         for row in review_rows:
             case_id = str(row.get("case_id", "")).strip()
-            source_row = source_rows[case_id]
-            audit_row = load_json(audit_cases_dir / f"{case_id}.json")
-            llm_review = adjudicate(source_row, audit_row)
+            llm_review = reviews_by_case_id[case_id]
             row["review__action"] = llm_review["review__action"]
             row["review__confidence"] = llm_review["review__confidence"]
             row["review__problem_types"] = "|".join(llm_review["review__problem_types"])

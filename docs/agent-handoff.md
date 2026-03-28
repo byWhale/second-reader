@@ -327,3 +327,11 @@ Last updated: `2026-03-28`
 - If a note here becomes repeated guidance across tasks, promote it into `AGENTS.md` or the relevant stable doc.
 - Do not use this file as the first stop for setup, runtime, contract, or product-flow questions; route those back to the control layer and stable docs.
 - If a task still treats `docs/backend-reading-mechanism.md` as the sole authority for `iterator_v1` internals, update the task's doc routing assumptions before changing reader internals.
+<!-- BEGIN private_library_cleanup_round3_20260328 -->
+## `2026-03-28` Private-Library Cleanup Round3 Update
+- Lane A is no longer the blocker for private-library cleanup; the gated cleanup pass waited for `attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328` to finish first.
+- The ready-subset bilingual cleanup packets are now fully processed and archived.
+- Live local-only excerpt survivors now stand at EN `6` and ZH `11`.
+- The next benchmark-growth decision should start from `/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/private-library-promotion-round2.md` with gate decision `hold_for_backlog_rescue` rather than from the older round-1 execution note.
+- The parked backlog remains explicitly deferred for a later deterministic/manual fix pass.
+<!-- END private_library_cleanup_round3_20260328 -->

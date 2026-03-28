@@ -26,7 +26,8 @@ from statistics import mean
 from typing import Any
 
 from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
-from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID, get_llm_profile_max_concurrency
+from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
+from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID
 
 from .case_audit_runs import (
     AGGREGATE_FILE,
@@ -617,7 +618,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--packet-id")
     parser.add_argument("--packet-dir")
     parser.add_argument("--limit", type=int, default=0)
-    parser.add_argument("--max-workers", type=int, default=2)
+    parser.add_argument("--max-workers", type=int, default=0)
     return parser.parse_args()
 
 
@@ -635,7 +636,13 @@ def main() -> int:
     if not case_order:
         raise ValueError("No cases selected for audit")
 
-    max_workers = max(1, min(args.max_workers, get_llm_profile_max_concurrency(DEFAULT_DATASET_REVIEW_PROFILE_ID), len(cases)))
+    worker_policy = resolve_worker_policy(
+        job_kind="dataset_case_audit",
+        profile_id=DEFAULT_DATASET_REVIEW_PROFILE_ID,
+        task_count=len(cases),
+        explicit_max_workers=args.max_workers if args.max_workers > 0 else None,
+    )
+    max_workers = worker_policy.worker_count
     run_id = f"{packet_id}__{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     run_dir = RUNS_ROOT / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -688,7 +695,8 @@ def main() -> int:
         except StopIteration:
             return False
         case_id = str(case.get("case_id", ""))
-        future = executor.submit(
+        future = submit_inherited_context(
+            executor,
             process_case,
             case,
             packet_id=packet_id,

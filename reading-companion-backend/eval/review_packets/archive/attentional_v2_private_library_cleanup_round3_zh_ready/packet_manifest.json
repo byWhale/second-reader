@@ -24,5 +24,10 @@
   "status_counts": {
     "needs_revision": 4
   },
-  "import_contract_version": "1"
+  "import_contract_version": "1",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "llm_review_run_id": "attentional_v2_private_library_cleanup_round3_zh_ready__llm_review__20260328-024256",
+  "llm_review_generated_at": "2026-03-28T02:43:22.992134Z",
+  "source_case_audit_run_id": "attentional_v2_private_library_cleanup_round3_zh_ready__20260328-024157"
 }

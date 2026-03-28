@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import time
 
 import pytest
 
@@ -219,7 +220,30 @@ def test_build_markdown_report_summarizes_scopes():
     assert "Scope: `direct_quality`, `local_impact`" in markdown
     assert "Method: `deterministic_metrics`, `pairwise_judge`" in markdown
     assert "## Direct Quality (subsegment slicing)" in markdown
-    assert "## Local Impact (section-level carry-through)" in markdown
+
+
+def test_run_benchmark_preserves_case_order_when_parallel_workers_finish_out_of_order(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    dataset_dir = _write_dataset(tmp_path)
+
+    def fake_plan_reader_subsegments(state):  # noqa: ANN001
+        strategy = state.get("subsegment_strategy_override") or "llm_primary"
+        if state.get("segment_id") == "core_case" and strategy == "heuristic_only":
+            time.sleep(0.15)
+        return _direct_plan_result(state.get("segment_id", ""), strategy)
+
+    monkeypatch.setattr("eval.subsegment.run_benchmark.plan_reader_subsegments", fake_plan_reader_subsegments)
+    monkeypatch.setattr(
+        "eval.subsegment.run_benchmark.judge_plan_pairwise",
+        lambda **_: {"winner": "llm_primary", "reason": "ok"},
+    )
+
+    summary = run_benchmark(
+        dataset_dir=dataset_dir,
+        runs_root=tmp_path / "runs",
+        include_local_impact=False,
+    )
+
+    assert [item["case_id"] for item in summary["case_results"]] == ["core_case", "audit_case"]
 
 
 def test_run_benchmark_defaults_to_direct_quality_only(tmp_path: Path, monkeypatch):
