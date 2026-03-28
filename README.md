@@ -38,10 +38,17 @@ Backend environment lives in `reading-companion-backend/.env`.
 Important backend variables:
 - `LLM_REGISTRY_PATH`
 - provider secret env vars referenced by the registry, for example:
-  - `MINIMAX_API_KEY`
-  - `ANTHROPIC_API_KEY_PRIMARY`
-  - `ANTHROPIC_API_KEY_SECONDARY`
-  - `GOOGLE_GENAI_API_KEY`
+  - default local compat registry:
+    - `LLM_API_KEY`
+    - optional `LLM_API_KEY_SECONDARY`
+    - `LLM_MODEL`
+    - optional `LLM_DATASET_REVIEW_MODEL`
+    - optional `LLM_EVAL_JUDGE_MODEL`
+  - richer multi-provider example:
+    - `MINIMAX_API_KEY`
+    - `ANTHROPIC_API_KEY_PRIMARY`
+    - `ANTHROPIC_API_KEY_SECONDARY`
+    - `GOOGLE_GENAI_API_KEY`
 - legacy compatibility variables still work when a structured registry is not configured:
   - `LLM_PROVIDER_CONTRACT`
   - `LLM_BASE_URL`
@@ -58,6 +65,8 @@ Important backend variables:
 
 The backend ships a structured registry example at
 `reading-companion-backend/config/llm_registry.example.json`.
+It also ships a Minimax-compatible structured registry for the current local runtime at
+`reading-companion-backend/config/llm_registry.minimax_legacy_compatible.json`.
 Use that file to define:
 - provider contracts such as `anthropic`, `google_genai`, and `openai_compatible`
 - key pools for same-model failover

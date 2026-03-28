@@ -114,6 +114,7 @@ _CURRENT_SCOPE: contextvars.ContextVar[LLMInvocationScopeState | None] = context
 )
 _SEMAPHORES_LOCK = threading.Lock()
 _PROFILE_SEMAPHORES: dict[tuple[str, int], threading.BoundedSemaphore] = {}
+_PROVIDER_SEMAPHORES: dict[tuple[str, int], threading.BoundedSemaphore] = {}
 
 
 def _utc_now() -> str:
@@ -439,6 +440,16 @@ def _semaphore_for(profile: LLMProfileConfig) -> threading.BoundedSemaphore:
         return semaphore
 
 
+def _provider_semaphore_for(provider: LLMProviderConfig) -> threading.BoundedSemaphore:
+    key = (provider.provider_id, provider.max_concurrency)
+    with _SEMAPHORES_LOCK:
+        semaphore = _PROVIDER_SEMAPHORES.get(key)
+        if semaphore is None:
+            semaphore = threading.BoundedSemaphore(provider.max_concurrency)
+            _PROVIDER_SEMAPHORES[key] = semaphore
+        return semaphore
+
+
 def _write_standard_trace(
     trace_context: LLMTraceContext | None,
     payload: Mapping[str, Any],
@@ -499,12 +510,13 @@ def _invoke_response(
                 final_slot_id = key_slot["slot_id"]
                 try:
                     adapter = CONTRACT_ADAPTERS[provider.contract]
-                    with _semaphore_for(profile):
-                        response = adapter.invoke(
-                            messages,
-                            provider=provider,
-                            profile=profile,
-                            api_key=key_slot["api_key"],
+                    with _provider_semaphore_for(provider):
+                        with _semaphore_for(profile):
+                            response = adapter.invoke(
+                                messages,
+                                provider=provider,
+                                profile=profile,
+                                api_key=key_slot["api_key"],
                             timeout_seconds=profile.timeout_seconds,
                         )
                     attempt = {
