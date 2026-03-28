@@ -74,6 +74,20 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the benchmark is good enough for early diagnosis
   - but not yet large enough for high-confidence cross-mechanism or default-cutover decisions
 
+## Parallel Eval Execution Rule
+- Evaluation throughput may improve by parallelizing independent work, but parallelism must not change what is being judged.
+- Safe parallel evaluation examples include:
+  - running different mechanisms for the same case in isolated processes and isolated output directories
+  - running independent judge scopes over the same completed artifacts
+- Unsafe parallel evaluation includes:
+  - shared mutable artifact paths between concurrently running mechanisms
+  - parallel execution that changes prompt content, evidence packaging, or judgment order in a way that affects the meaning of the result
+- Same-key parallel LLM usage is allowed when the configured provider and profile concurrency support it.
+  - multiple API keys are not required for basic parallelism
+  - extra keys mainly help with throughput headroom, failover, or rate-limit resilience
+- New scaling work should target the shared `src/reading_runtime/` LLM registry and gateway layer rather than adding new mechanism-local provider clients.
+- Structured registry configuration is preferred over legacy environment compatibility when tuning concurrency, key pools, or failover because it makes those choices explicit and reviewable.
+
 ## Why Reader Evaluation Exists
 - Reader evaluation exists to guide optimization first and preserve evidence second.
 - Its first job is to make mechanism work legible:

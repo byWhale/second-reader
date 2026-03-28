@@ -42,9 +42,14 @@ class ReaderLLMError(RuntimeError):
 class JsonlTraceSink:
     """Append-only JSONL sink used by runtime and eval traces."""
 
+    _LOCKS_GUARD = threading.Lock()
+    _PATH_LOCKS: dict[str, threading.Lock] = {}
+
     def __init__(self, path: Path):
         self.path = path
-        self._lock = threading.Lock()
+        key = str(path.resolve())
+        with self._LOCKS_GUARD:
+            self._lock = self._PATH_LOCKS.setdefault(key, threading.Lock())
 
     def write(self, payload: Mapping[str, Any]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
