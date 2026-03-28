@@ -29,6 +29,7 @@ Update when: status changes, blockers appear, or phases complete.
       - retry-2 improved the English split materially but did not fully close it:
         - `local_impact` moved from `0/4` win-or-tie to `2/4` win-or-tie
         - `system_regression` moved from `2/4` wins to `3/4` wins
+      - the next bounded narrative/reference-heavy Phase 4 repair is now landed in code and unit-tested, but the focused round-3 two-case rerun is still waiting on provider quota headroom after March 28 smoke attempts hit `429` rate limits before producing trustworthy comparison evidence
     - balanced benchmark promotion from the modern private-library `v2` supplement remains mid-hardening rather than ready for formal benchmark promotion:
       - the cleanup orchestrator is now completed, the round-2 promotion draft is landed, and the first narrow English rescue pass is archived
       - the explicit decision was `hold_for_backlog_rescue`, and the rescue pass moved the English excerpt lane to `7` `reviewed_active`
@@ -804,3 +805,51 @@ Update when: status changes, blockers appear, or phases complete.
 - Immediate next move:
   - keep the Chinese lane unchanged
   - decide whether the English lane is now ready to reopen formal curated promotion or whether the metadata-only English cases should get one more cleanup pass first
+## `2026-03-28` English Cleanup Pipeline And Narrative/Reference Repair
+- Completed the reusable mechanical English cleanup pipeline over the live private-library review backlog:
+  - packet id: `attentional_v2_private_library_cleanup_en_round_next`
+  - archive: `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_round_next/`
+  - executed stages:
+    - `generate_packet`
+    - `audit_packet`
+    - `adjudicate_packet`
+    - `import_packet`
+    - `refresh_queue_summary`
+    - `final_summary`
+  - import result:
+    - `0 keep`
+    - `3 revise`
+    - `6 drop`
+  - important operator nuance:
+    - although the dry-run was invoked with `--status needs_revision`, the generated packet expanded to the full open English revision/replacement backlog
+    - archived manifest result:
+      - `9` reviewed cases total
+      - `5` `needs_revision`
+      - `4` `needs_replacement`
+- Live private-library excerpt counts after the cleanup pipeline now stand at:
+  - English: `7` `reviewed_active`, `3` `needs_revision`, `6` `needs_replacement`, `154` `unset`
+  - Chinese: `11` `reviewed_active`, `4` `needs_revision`, `1` `needs_replacement`
+- The review queue summary is now empty again after import/archive:
+  - `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/review_queue_summary.json`
+  - `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/review_queue_summary.md`
+- Landed the next bounded English local-reading repair in code rather than reopening mechanism design:
+  - Phase 4 deterministic local cue packets now include:
+    - `actor_intention`
+    - `social_pressure`
+    - `causal_stakes`
+  - short spans may now synthesize one bounded local reaction candidate from those cues when the local gate is genuinely open
+  - pressure-only cues remain bounded and do not force visible reactions when the gate stays closed
+  - prompt versions now explicitly push zoom/closure/emission to prefer one grounded why-now observation or question over retrospective summary in narrative/reference-heavy English cases
+- Verified the repair slice locally with focused node tests and compile checks:
+  - `cd /Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend && .venv/bin/python -m pytest tests/test_attentional_v2_nodes.py -q`
+  - `cd /Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend && python3 -m py_compile src/attentional_v2/nodes.py src/attentional_v2/prompts.py`
+- Attempted the focused round-3 two-case rerun, but do not treat the new smoke run directories as authoritative benchmark evidence:
+  - attempted run ids:
+    - `attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_smoke`
+    - `attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_smoke_serial`
+  - stop reason:
+    - provider `429` / quota pressure during mechanism execution
+    - the retry produced partial artifacts and fallback events instead of a trustworthy completed comparison
+- Immediate next move:
+  - retry the focused two-case comparison once provider quota headroom is available again
+  - keep the dataset-growth decision human-owned; do not treat the bounded repair as automatic permission to reopen promotion

@@ -7,12 +7,12 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-28T08:18:41Z`
+Last verified: `2026-03-28T12:49:23Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
-  - carry forward the bounded English local-reading repair queue that came out of the landed retry-2 comparison
-  - resolve the post-rescue private-library promotion gate without reopening the whole English backlog blindly
+  - carry forward the landed bounded English local-reading repair for the remaining narrative/reference-heavy chapter cases
+  - resolve the post-cleanup private-library promotion gate without reopening the whole English backlog blindly
   - preserve later migration and doc-promotion work without letting it disappear into chat memory
 
 ## Now
@@ -29,34 +29,55 @@ Last verified: `2026-03-28T08:18:41Z`
   - live queue record:
     - `docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
     - `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- The private-library cleanup orchestrator and first narrow English rescue are both landed and archived:
+- The bounded narrative/reference-heavy Phase 4 repair is now landed in code for:
+  - `up_from_slavery_public_en__10`
+  - `walden_205_en__10`
+  - landed mechanism change:
+    - deterministic local cue packets now include `actor_intention`, `social_pressure`, and `causal_stakes`
+    - short spans may synthesize one bounded local candidate from those cues when the local gate is genuinely open
+    - zoom/closure/emission prompts now prefer one grounded why-now observation or question over retrospective summary in those moments
+  - local verification:
+    - `reading-companion-backend/tests/test_attentional_v2_nodes.py`
+    - `13` node tests passed on `2026-03-28`
+  - current blocker on the focused rerun:
+    - March 28 smoke attempts for the two-case round-3 comparison hit provider `429` quota pressure before producing a trustworthy completed comparison
+- The private-library cleanup orchestrator, first narrow English rescue, and the next full English cleanup packet are all landed and archived:
   - decision artifact:
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
     - `docs/implementation/new-reading-mechanism/private-library-promotion-round2.json`
   - rescue packet:
     - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_backlog_rescue_en_round1/`
-  - current dataset-growth result after the rescue:
+  - cleanup packet:
+    - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_round_next/`
+  - current dataset-growth result after the cleanup:
     - the recorded round-2 decision remains `hold_for_backlog_rescue`
-    - English private-library excerpt lane now sits at `7` `reviewed_active` against threshold `7`
+    - English private-library excerpt lane now sits at:
+      - `7` `reviewed_active`
+      - `3` `needs_revision`
+      - `6` `needs_replacement`
+      - `154` `unset`
     - Chinese private-library excerpt lane remains preserved at `11` `reviewed_active` against threshold `9`
+    - the active packet queue is empty again after the cleanup import/archive
 - There are no active long-running background jobs in the registry right now.
 - Use the task registry plus the execution tracker as the route back into detailed mechanism work.
 
 ## Next
-- Make the post-rescue benchmark gate decision:
-  - decide whether crossing the English threshold through the narrow bucket-only rescue is enough to reopen formal curated promotion
-  - or require one more metadata-only English cleanup pass first
+- Retry the focused `up_from_slavery_public_en__10` / `walden_205_en__10` chapter comparison once provider quota headroom is available.
+- Make the post-cleanup benchmark gate decision:
+  - decide whether crossing the English threshold and clearing the full open revision/replacement backlog mechanically is enough to reopen formal curated promotion
+  - or keep promotion paused until the remaining English `3 / 6` open cases are intentionally dispositioned
 - Keep the Chinese gains unchanged while that decision is made.
 - After the post-rescue benchmark gate is fixed, run durable-trace, re-entry, and runtime-viability evaluation.
 
 ## Blocked
 - Formal curated promotion from the modern private-library supplement remains paused until the post-rescue English gate decision is explicit.
+- The focused round-3 English mechanism comparison remains waiting on provider quota headroom after March 28 smoke attempts failed with `429` rate limits.
 - The later frontend/API retirement of section-first chapter/detail and marks surfaces remains blocked on benchmark stabilization plus stable doc promotion timing.
 - `Q10` remains open: when the detailed `attentional_v2` working design should be promoted from temp docs into stable mechanism docs.
 
 ## Open Decisions
 - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE`
-  - With the English lane now at `7` `reviewed_active`, should formal curated promotion reopen immediately, or should the metadata-only English cases get one more cleanup pass first?
+  - With the English lane now at `7` `reviewed_active` and the mechanical cleanup packet imported, should formal curated promotion reopen immediately, or should the remaining English `3` `needs_revision` and `6` `needs_replacement` cases keep promotion paused?
 - `OD-BENCHMARK-SIZE`
   - Is the current benchmark family already large enough for high-confidence cross-mechanism judgment, or should the benchmark expand before any default-cutover decision?
 - `Q10`
@@ -90,7 +111,7 @@ Last verified: `2026-03-28T08:18:41Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-28T08:18:41Z",
+  "updated_at": "2026-03-28T12:49:23Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE"

@@ -110,6 +110,50 @@ _DURABLE_PATTERN_MARKERS = (
     "心思太活",
     "不能按部就班",
 )
+_ACTOR_INTENTION_MARKERS = (
+    "prepared to",
+    "wished",
+    "have often wished",
+    "hope of securing",
+    "decided to",
+    "ready enough to",
+    "came very near",
+    "i often thought",
+    "wanted the",
+    "felt that he could not",
+    "love society",
+    "my business called me thither",
+)
+_SOCIAL_PRESSURE_MARKERS = (
+    "preference of a majority",
+    "majority of his patrons",
+    "majority of their patrons",
+    "protection of the law",
+    "federal officials",
+    "government",
+    "master",
+    "patrons",
+    "o christian",
+    "send me back",
+    "not possible to do so much good in my position",
+    "follow the beaten track",
+)
+_CAUSAL_STAKES_MARKERS = (
+    "the result of this was",
+    "went to the bad",
+    "would be the one to suffer",
+    "kept from doing so",
+    "must come through",
+    "single channel",
+    "single choice",
+    "permitted to",
+    "debt",
+    "obligation",
+    "could not enjoy",
+    "fulfilled his promise",
+    "solid and never deceptive foundation",
+    "send me back",
+)
 _ANALOGY_IMAGE_MARKERS = (
     "like",
     "as if",
@@ -150,6 +194,12 @@ def _json_block(value: object) -> str:
     """Render one prompt context block as stable JSON."""
 
     return json.dumps(value, ensure_ascii=False, indent=2)
+
+
+def _contains_any(text: str, markers: tuple[str, ...]) -> bool:
+    """Return whether any deterministic marker appears in the normalized text."""
+
+    return any(marker in text for marker in markers)
 
 
 def _render_prompt(template: str, **replacements: str) -> str:
@@ -252,6 +302,12 @@ def _local_textual_cues(
             add_cue("recognition_gap", "sentence contains an explicit failure-to-recognize cue")
         if any(marker in lowered for marker in _DURABLE_PATTERN_MARKERS):
             add_cue("durable_pattern", "sentence contains repeated-behavior or character-pattern evidence")
+        if _contains_any(lowered, _ACTOR_INTENTION_MARKERS):
+            add_cue("actor_intention", "sentence contains an explicit wish, motive, or stated intention")
+        if _contains_any(lowered, _SOCIAL_PRESSURE_MARKERS):
+            add_cue("social_pressure", "sentence contains approval, authority, or plea pressure from other people")
+        if _contains_any(lowered, _CAUSAL_STAKES_MARKERS):
+            add_cue("causal_stakes", "sentence contains concrete dependency, obligation, or consequence language")
         if any(marker in lowered for marker in _ANALOGY_IMAGE_MARKERS):
             add_cue("analogy_image", "sentence uses a compact analogy, comparison, or image-bearing turn")
         if _MARKED_PHRASE_RE.search(text):
@@ -259,6 +315,18 @@ def _local_textual_cues(
         if any(marker in lowered for marker in _LOADED_LOCAL_WORDING_MARKERS):
             add_cue("loaded_wording", "sentence contains unusually loaded or locally sharp wording that may deserve exact phrase-level attention")
     return cues
+
+
+def _cue_anchor_quote(local_textual_cues: list[dict[str, str]], *, focal_text: str) -> str:
+    """Choose one bounded fallback anchor when local pressure is clear but zoom returned no compact phrase."""
+
+    for cue in local_textual_cues:
+        if not isinstance(cue, dict):
+            continue
+        evidence = _clean_text(cue.get("evidence"))
+        if evidence and len(evidence) <= 180:
+            return evidence
+    return _clean_text(focal_text)[:180]
 
 
 def _has_compact_local_anchor(*, anchor_quote: str, focal_text: str) -> bool:
@@ -281,23 +349,34 @@ def _micro_selective_reaction_candidate(
     closure_result: MeaningUnitClosureResult,
     local_textual_cues: list[dict[str, str]],
     compact_local_anchor: bool,
+    focal_text: str,
+    short_span: bool,
 ) -> ReactionCandidate | None:
     """Build one bounded synthetic local reaction candidate when the phrase-level pressure is clear."""
 
-    if not compact_local_anchor or zoom_result is None:
-        return None
-    anchor_quote = _clean_text((zoom_result or {}).get("anchor_quote"))
-    content = _clean_text((zoom_result or {}).get("local_interpretation")) or _clean_text(
-        closure_result.get("meaning_unit_summary")
-    )
-    if not anchor_quote or not content:
+    if not short_span:
         return None
     cue_types = {str(item.get("cue_type", "") or "") for item in local_textual_cues if isinstance(item, dict)}
+    pressure_cues = cue_types & {"actor_intention", "social_pressure", "causal_stakes"}
+    pressure_gate_open = zoom_result is None or bool((zoom_result or {}).get("consider_reaction_emission"))
+    if not compact_local_anchor and not (pressure_cues and pressure_gate_open):
+        return None
+    anchor_quote = _clean_text((zoom_result or {}).get("anchor_quote"))
+    if not anchor_quote and pressure_cues:
+        anchor_quote = _cue_anchor_quote(local_textual_cues, focal_text=focal_text)
+    content = _clean_text((zoom_result or {}).get("local_interpretation")) or _clean_text(closure_result.get("meaning_unit_summary"))
+    if not anchor_quote or not content:
+        return None
     reaction_type: ReactionType = "highlight"
-    if cue_types & {"analogy_image", "marked_phrase", "loaded_wording", "distinction_cue"}:
-        reaction_type = "discern"
-    elif cue_types & {"callback_cue", "recognition_gap"}:
+    if cue_types & {"callback_cue", "recognition_gap", "actor_intention", "social_pressure"}:
         reaction_type = "curious"
+        content = (
+            _clean_text(closure_result.get("unresolved_pressure_note"))
+            or _clean_text((zoom_result or {}).get("uncertainty_note"))
+            or content
+        )
+    elif cue_types & {"analogy_image", "marked_phrase", "loaded_wording", "distinction_cue", "causal_stakes"}:
+        reaction_type = "discern"
     return {
         "type": reaction_type,
         "anchor_quote": anchor_quote,
@@ -804,6 +883,8 @@ def run_phase4_local_cycle(
         closure_result=closure_result,
         local_textual_cues=reaction_local_cues,
         compact_local_anchor=compact_local_anchor,
+        focal_text=_clean_text(focal_sentence.get("text")),
+        short_span=len(current_span_sentences) <= 2,
     )
     should_consider_reaction = (
         bool(effective_suggested_reaction)

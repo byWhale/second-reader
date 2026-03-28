@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-28T08:18:41Z`
+Last updated: `2026-03-28T12:49:23Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-03-28T08:18:41Z`
 - Lane: `dataset_growth`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
-- Next: use the landed one-case English rescue to decide whether formal curated promotion can reopen now or whether the metadata-only English cases should get one more cleanup pass first
+- Next: use the archived full English cleanup packet and the live English `7 reviewed_active / 3 needs_revision / 6 needs_replacement` counts to decide whether formal curated promotion can reopen now or should stay paused
 - Jobs: none
 
 ## Queued
@@ -61,7 +61,7 @@ Last updated: `2026-03-28T08:18:41Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: use the recorded narrative/reference-heavy local-reading queue as the source of the next bounded `attentional_v2` repair
+- Next: retry the focused round-3 `up_from_slavery_public_en__10` / `walden_205_en__10` comparison when provider quota headroom returns; the bounded Phase-4 repair is already landed in code and unit-tested
 - Jobs: none
 
 ### `TASK-BENCH-ROUND3-CLEANUP` — Finish private-library cleanup and write the round-2 promotion draft

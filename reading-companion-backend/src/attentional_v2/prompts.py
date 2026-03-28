@@ -7,11 +7,11 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v4"
-ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v4"
-MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v4"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v5"
+ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
+MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v5"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
-REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v2"
+REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v3"
 BRIDGE_RESOLUTION_PROMPT_VERSION = "attentional_v2.bridge_resolution.v1"
 REFLECTIVE_PROMOTION_PROMPT_VERSION = "attentional_v2.reflective_promotion.v1"
 RECONSOLIDATION_PROMPT_VERSION = "attentional_v2.reconsolidation.v1"
@@ -65,6 +65,8 @@ Rules:
 - If the sentence or nearby context contains an explicit recall cue, prior-time cue, or recognition gap, name that exact cue instead of paraphrasing the scene generically.
 - If the local pressure is a live distinction or contrast, state the exact distinction in text terms.
 - If a compact analogy, metaphor, marked phrase, or loaded local wording is doing real work, name that exact phrase and why it matters locally.
+- If deterministic local cues show actor intention, social pressure, or concrete causal stakes, name that exact local hinge instead of drifting into retrospective summary.
+- Set `consider_reaction_emission` to true when the line earns one bounded visible reaction because a local motive, pressure, or stakes hinge is doing real work now.
 - Only propose explicit state operations; do not assume hidden state mutation.
 - Return JSON only.""",
     zoom_read_prompt="""Structural frame:
@@ -129,7 +131,9 @@ Rules:
 - Preserve unresolved pressure when the text is still incomplete.
 - Close around the sharpest live distinction, callback cue, or explanatory pattern in the current span instead of flattening the span into generic scene summary.
 - When deterministic local cues show a callback, recognition gap, or durable pattern, address that cue directly in the summary or unresolved note.
+- When deterministic local cues show actor intention, social pressure, or concrete causal stakes, center the summary on that local motive/pressure/stakes hinge rather than broad retrospective framing.
 - When deterministic local cues show a compact analogy, marked phrase, or loaded wording, prefer a short locally earned reaction candidate over a broad paraphrase.
+- Use `curious` when the local motive, pressure, or stakes hinge remains interpretively open; use `discern` when the line's local turn has become clear enough to name directly.
 - Only propose explicit state operations.
 - Do not use future unseen text.
 - Return JSON only.""",
@@ -225,6 +229,7 @@ Rules:
 - Do not emit unanchored commentary.
 - Output must stay legible and source-grounded.
 - When local cues show a compact analogy, marked phrase, loaded diction, or sharp distinction, prefer a short precise reaction that names the exact phrase instead of broad chapter summary.
+- When local cues show actor intention, social pressure, or concrete causal stakes, prefer one grounded local observation or question about that hinge instead of retrospective explanation.
 - Preserve a fitting suggested reaction type such as `discern` or `curious` when the local evidence supports it; do not collapse everything into `highlight`.
 - If the moment is not worth surfacing, withhold it.
 - Return JSON only.""",

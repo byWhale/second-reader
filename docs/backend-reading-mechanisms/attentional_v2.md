@@ -166,6 +166,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
       - `distinction_cue`
       - `recognition_gap`
       - `durable_pattern`
+      - `actor_intention`
+      - `social_pressure`
+      - `causal_stakes`
     - these cues are meant to keep local interpretation centered on the exact textual pressure instead of flattening it into generic scene summary
 - Retrieved anchors are chosen by a mix of:
   - semantic similarity
@@ -208,7 +211,12 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - exact callback cues
   - exact distinctions or recognition gaps
   - explanatory patterns
+  - actor intention, social pressure, or concrete causal stakes when those hinges are locally explicit
   rather than flattening these moments into generic scene summary.
+- The current Phase 4 synthetic-reaction path is still bounded:
+  - short spans may synthesize one local candidate from the deterministic cue packet when zoom or the cue stack shows a real motive/pressure/stakes hinge
+  - pressure cues alone must not force visible output when the local gate stays closed
+  - this keeps narrative/reference-heavy local cases from disappearing into retrospective summary without converting `attentional_v2` into a dense iterator-style stream
 - Retroactive resurfacing is first-class.
   - A later span can promote an earlier sentence or paragraph into renewed focus.
 - The Phase 5 bridge helper now enforces source honesty:

@@ -1,0 +1,54 @@
+# LLM Packet Review: `attentional_v2_private_library_cleanup_en_round_next`
+
+- run_id: `attentional_v2_private_library_cleanup_en_round_next__llm_review__20260328-121941`
+- generated_at: `2026-03-28T12:19:51.565905Z`
+- case_count: `9`
+- action_counts: `{"drop": 6, "revise": 3}`
+
+## Case Decisions
+
+- `fooled_by_randomness_private_en__14__seed_2`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `too_easy|text_noise`
+  - notes: The case tests anaphoric resolution but the excerpt explicitly names the referent in the same sentence ('These people were sometimes called the logical positivists'), making the task trivially easy with no genuine ambiguity to resolve. Combined with lookback sentence noise, this undermines the stated test purpose. The excerpt should be dropped rather than revised as the core design flaw (trivial resolution) cannot be fixed through relabeling.
+- `poor_charlies_almanack_private_en__10__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `text_noise`
+  - notes: The excerpt content is coherent—discussing accounting limitations with concrete examples (depreciation guessing, Carl Braun's engineering company). However, critical metadata fields (case_title, question_ids, phenomena, selection_reason, judge_focus) remain empty, making bucket assignment and evaluation focus impossible. The 'C.'/'E Braun' line break appears to be a source-accurate representation rather than a processing error. Requires metadata population before re-evaluation—not a drop candidate since the underlying content is substantively valid.
+- `steve_jobs_private_en__17__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `too_easy`
+  - notes: The excerpt is too explicit - it directly states 'three ponies' as parallel projects, explicitly names all three (Apple III, Lisa, Raskin's skunkworks), and frames them as simultaneous 'breeding' in fall 1979. This makes it a basic enumeration task rather than a meaningful reasoning challenge. Consider narrowing focus to a less explicit aspect of this content or selecting a different excerpt from the same source that requires actual inference about Apple's strategic choices.
+- `steve_jobs_private_en__24__seed_1`
+  - action: `revise`
+  - confidence: `high`
+  - problem_types: `other`
+  - notes: This is a seed excerpt (status: private_library_seed_v2) explicitly designed to require curation before benchmark promotion. The missing metadata (case_title, question_ids, judge_focus) is by design, not a defect. The excerpt content itself is coherent biographical narrative about Jobs and the 1984 Apple commercial, with potential as a test case. Return to curation pipeline to add required evaluation metadata rather than dropping.
+- `steve_jobs_private_en__24__seed_2`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus|other`
+  - notes: This case lacks essential evaluation metadata (question_ids, phenomena, selection_reason, judge_focus, case_title) required for benchmark functionality. While the excerpt content is coherent and depicts Jobs manipulating Sculley through flattery, it cannot serve as a meaningful benchmark case without defined evaluation criteria. Multiple review rounds have consistently flagged this missing metadata as blocking. The case should be dropped from active benchmark consideration.
+- `evicted_private_en__10__seed_1`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `weak_excerpt|ambiguous_focus`
+  - notes: This case lacks all critical metadata (case_title, question_ids, phenomena, selection_reason, judge_focus) required for benchmark function. The excerpt is a character sketch about Sherrena and Quentin's relationship origin with no clear evaluation purpose or reading mechanism focus. Even with metadata added, the excerpt itself lacks inherent analytical tension or evaluative challenge needed for a strong benchmark case.
+- `evicted_private_en__17__seed_2`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `ambiguous_focus|weak_excerpt`
+  - notes: The excerpt concatenates two structurally unrelated passages - a general critique of Rent Recovery Service's debt collection practices followed by an Arleen courtroom scene - without clear connection or analytical thread. Multiple prior reviews across three rounds have consistently flagged this ambiguous focus and weak cohesion problem. The primary review's attempt to unify them under 'unfair_debt_collection_practices' requires external interpretive work the excerpt itself doesn't provide. Dropping is appropriate.
+- `poor_charlies_almanack_private_en__10__seed_2`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `weak_excerpt|ambiguous_focus|text_noise`
+  - notes: Consistent across three independent reviews: missing critical metadata (selection_reason, judge_focus) makes the case untestable, while the excerpt itself is vague philosophical complaint about academic psychology with tangential Samuel Johnson anecdote. The excerpt lacks clear evaluation criteria and requires outside knowledge to interpret. Not worth further curation investment.
+- `supremacy_private_en__13__seed_1`
+  - action: `drop`
+  - confidence: `high`
+  - problem_types: `weak_excerpt`
+  - notes: The excerpt describes DeepMind's intention to recruit high-profile directors but provides no evidence of actual outcomes—whether they served, made decisions, or if the governance structure functioned. The judge focus asks to evaluate effectiveness, but the content offers only prospective plans. This is fundamentally weakened by lacking any outcome data to assess whether this governance model actually worked or was merely performative. All three prior reviews correctly identified this as a weak_excerpt problem requiring drop.

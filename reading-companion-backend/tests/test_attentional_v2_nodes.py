@@ -83,8 +83,8 @@ def test_zoom_read_writes_prompt_manifest_and_normalizes_payload(tmp_path, monke
     assert result["pressure_updates"][0]["operation_type"] == "update"
     assert result["bridge_candidate"]["target_anchor_id"] == "a-1"
     assert result["consider_reaction_emission"] is True
-    assert manifest["prompt_version"] == "attentional_v2.zoom_read.v4"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v4"
+    assert manifest["prompt_version"] == "attentional_v2.zoom_read.v5"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v5"
 
 
 def test_zoom_read_prompt_includes_micro_selectivity_cues(tmp_path, monkeypatch):
@@ -120,6 +120,48 @@ def test_zoom_read_prompt_includes_micro_selectivity_cues(tmp_path, monkeypatch)
 
     assert "analogy_image" in captured["prompt"]
     assert "marked_phrase" in captured["prompt"]
+
+
+def test_zoom_read_prompt_includes_narrative_pressure_cues(tmp_path, monkeypatch):
+    """zoom_read should surface actor-intention, social-pressure, and stakes cues in the prompt context."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    captured: dict[str, str] = {}
+
+    def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
+        captured["prompt"] = prompt
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    zoom_read(
+        focal_sentence=_sentence(
+            "c1-s2",
+            '"O Christian, will you send me back?" All that she may wish to have must come through a single channel and a single choice.',
+            sentence_index=2,
+        ),
+        local_context_sentences=[
+            _sentence(
+                "c1-s1",
+                "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+                sentence_index=1,
+            )
+        ],
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        output_language="en",
+        output_dir=output_dir,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+    )
+
+    assert "actor_intention" in captured["prompt"]
+    assert "social_pressure" in captured["prompt"]
+    assert "causal_stakes" in captured["prompt"]
 
 
 def test_controller_decision_refuses_bridge_without_candidates(monkeypatch):
@@ -548,6 +590,226 @@ def test_run_phase4_local_cycle_considers_compact_local_anchor_for_reaction_emis
     assert result["reaction_result"]["decision"] == "emit"
     assert result["reaction_result"]["reaction"]["anchor_quote"] == "one very simple principle"
     assert result["reaction_result"]["reaction"]["type"] == "discern"
+
+
+def test_run_phase4_local_cycle_uses_pressure_cues_for_bounded_synthetic_candidate(monkeypatch):
+    """Narrative pressure cues may synthesize one bounded reaction candidate when zoom explicitly opens the gate."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The plea turns the moment on another person's authority over whether the speaker stays or is returned.",
+                "anchor_quote": '"O Christian, will you send me back?"',
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": True,
+                "uncertainty_note": "The power relation is explicit but the outcome remains open.",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The question compresses dependence and vulnerability into one direct appeal.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "The local pressure stays open because the addressee's answer determines whether the speaker is sent back.",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "advance",
+                "reason": "the local hinge has been registered clearly enough to move on",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            calls.append("emit")
+            assert '"compact_local_anchor": false' in prompt.lower()
+            assert '"synthetic_local_candidate": true' in prompt.lower()
+            assert '"type": "curious"' in prompt
+            return {
+                "decision": "emit",
+                "reason": "one bounded visible question is warranted",
+                "reaction": None,
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c1-s1", '"O Christian, will you send me back?"', sentence_index=1),
+        current_span_sentences=[_sentence("c1-s1", '"O Christian, will you send me back?"', sentence_index=1)],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=None,
+        book_title="Walden",
+        author="Thoreau",
+        chapter_title="Visitors",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True},
+    )
+
+    assert calls == ["zoom", "closure", "controller", "emit"]
+    assert result["reaction_result"]["decision"] == "emit"
+    assert result["reaction_result"]["reaction"]["type"] == "curious"
+    assert result["reaction_result"]["reaction"]["anchor_quote"] == '"O Christian, will you send me back?"'
+
+
+def test_run_phase4_local_cycle_keeps_pressure_cues_bounded_without_zoom_gate(monkeypatch):
+    """Pressure cues alone should not force reaction emission when zoom keeps the gate closed."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The sentence frames truth as subordinate to audience demand.",
+                "anchor_quote": "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": False,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The line satirizes a teacher whose content bends to patron preference.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "advance",
+                "reason": "move forward after recording the local satire",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            raise AssertionError("reaction_emission should stay gated off")
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence(
+            "c1-s1",
+            "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+            sentence_index=1,
+        ),
+        current_span_sentences=[
+            _sentence(
+                "c1-s1",
+                "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+                sentence_index=1,
+            )
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=None,
+        book_title="Up from Slavery",
+        author="Booker T. Washington",
+        chapter_title="The Reconstruction Period",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True},
+    )
+
+    assert calls == ["zoom", "closure", "controller"]
+    assert result["reaction_result"] is None
+
+
+def test_run_phase4_local_cycle_uses_pressure_cues_without_zoom_for_short_stakes_span(monkeypatch):
+    """A short no-zoom span may still synthesize one bounded reaction when the local consequence is explicit."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The sentence turns a schooling mismatch into a concrete social consequence.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "advance",
+                "reason": "the consequence has been registered clearly enough",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            calls.append("emit")
+            assert '"trigger_output": "monitor"' in prompt
+            assert '"synthetic_local_candidate": true' in prompt.lower()
+            assert '"type": "discern"' in prompt
+            assert "went to the bad" in prompt
+            return {
+                "decision": "emit",
+                "reason": "the consequence is concrete enough to surface once",
+                "reaction": None,
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence(
+            "c1-s1",
+            "The result of this was in too many cases that the girls went to the bad.",
+            sentence_index=1,
+        ),
+        current_span_sentences=[
+            _sentence(
+                "c1-s1",
+                "The result of this was in too many cases that the girls went to the bad.",
+                sentence_index=1,
+            )
+        ],
+        trigger_state={"output": "monitor", "gate_state": "watch"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=None,
+        book_title="Up from Slavery",
+        author="Booker T. Washington",
+        chapter_title="The Reconstruction Period",
+        boundary_context={"gate_state": "watch", "candidate_boundary": True},
+    )
+
+    assert calls == ["closure", "controller", "emit"]
+    assert result["zoom_result"] is None
+    assert result["reaction_result"]["decision"] == "emit"
+    assert result["reaction_result"]["reaction"]["type"] == "discern"
+    assert result["reaction_result"]["reaction"]["anchor_quote"] == "The result of this was in too many cases that the girls went to the bad."
 
 
 def test_run_phase4_local_cycle_degrades_zoom_llm_error(monkeypatch):

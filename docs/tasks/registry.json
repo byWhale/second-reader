@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-28T08:18:41Z",
+  "updated_at": "2026-03-28T12:49:23Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -21,14 +21,14 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Use the recorded narrative/reference-heavy local-reading queue as the source of the next bounded attentional_v2 repair.",
+      "next_action": "Retry the focused round-3 up_from_slavery_public_en__10 / walden_205_en__10 comparison when provider quota headroom returns; the bounded Phase-4 repair is already landed in code and unit-tested.",
       "blocked_by": [],
       "evidence_refs": [
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round1_20260326/"
       ],
-      "last_updated": "2026-03-28T08:18:41Z",
+      "last_updated": "2026-03-28T12:49:23Z",
       "last_updated_by": "codex"
     },
     {
@@ -49,17 +49,19 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
-      "next_action": "Use the landed one-case English rescue to decide whether formal curated promotion can reopen now or whether the metadata-only English cases should get one more cleanup pass first.",
+      "next_action": "Use the archived full English cleanup packet and the live English 7 reviewed_active / 3 needs_revision / 6 needs_replacement counts to decide whether formal curated promotion can reopen now or should stay paused.",
       "blocked_by": [
       ],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
         "docs/implementation/new-reading-mechanism/private-library-promotion-round2.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_backlog_rescue_en_round1/",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_round_next/",
+        "reading-companion-backend/eval/review_packets/review_queue_summary.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_round3_en_ready/",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_round3_zh_ready/"
       ],
-      "last_updated": "2026-03-28T08:18:41Z",
+      "last_updated": "2026-03-28T12:49:23Z",
       "last_updated_by": "codex"
     },
     {

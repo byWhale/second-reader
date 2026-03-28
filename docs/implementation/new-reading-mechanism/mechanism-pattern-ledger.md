@@ -74,7 +74,8 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
 - Status: `partially_adopted`
 - Next action:
   - treat the landed phrase-level cue and prompt repair as the new baseline inside the approved `attentional_v2` framework
-  - extend it next into narrative / reference-heavy local investigation without abandoning gated reaction emission or meaning-unit closure
+  - treat the landed actor-intention / social-pressure / causal-stakes Phase-4 repair as the next bounded extension of that baseline
+  - retry the two-case narrative/reference-heavy English comparison once provider quota headroom is available
 
 ### 2. Attentional V2 chapter-scale thematic threading
 - Pattern kind: `strength`
@@ -220,9 +221,14 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
   - do not convert `attentional_v2` into a flat multi-reaction stream
 - Concrete implementation direction:
   - keep the new phrase-level cue stack as baseline rather than reopening the earlier micro-selectivity debate
-  - strengthen Phase-4 handling of actor intention, social pressure, and concrete causal stakes when the chapter is narrative / reference-heavy
-  - prefer one grounded local why-now observation over a broader retrospective restatement in those moments
-  - do not add generic reaction density just to make the local layer look busier
+  - landed in code on `2026-03-28`:
+    - Phase 4 deterministic local cue packets now include `actor_intention`, `social_pressure`, and `causal_stakes`
+    - short spans may synthesize one bounded local candidate from those cues when the local gate is genuinely open
+    - prompt wording now prefers one grounded local why-now observation or question over broader retrospective restatement
+  - next verification move:
+    - rerun `up_from_slavery_public_en__10` and `walden_205_en__10` once provider quota headroom is available
+  - keep the boundedness rule:
+    - do not add generic reaction density just to make the local layer look busier
 
 ### Priority 2. Preserve chapter-scale thematic threading as a protected invariant
 - Why now:
