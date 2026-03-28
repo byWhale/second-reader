@@ -13,8 +13,11 @@ from src.reading_runtime.background_job_registry import (
     archive_background_job,
     get_active_job,
     history_jobs_file,
+    import_product_shadow_job,
     job_registry_dir,
+    job_record_file,
     load_active_registry,
+    load_job_record,
     refresh_background_jobs,
     upsert_background_job,
 )
@@ -53,6 +56,7 @@ def test_background_job_registry_tracks_completed_job_and_writes_summary(tmp_pat
     assert observation["status_file_status"] == "completed"
     assert observation["check_result"]["ok"] is True
     assert observation["expected_outputs"][0]["exists"] is True
+    assert job_record_file("bgjob_test_completed", tmp_path).exists()
 
     summary_text = active_jobs_summary_file(tmp_path).read_text(encoding="utf-8")
     assert "bgjob_test_completed" in summary_text
@@ -88,3 +92,59 @@ def test_background_job_registry_marks_dead_running_job_abandoned(tmp_path: Path
     assert registry["jobs"][0]["status"] == "abandoned"
     assert active_jobs_file(tmp_path).exists()
     assert job_registry_dir(tmp_path).exists()
+
+
+def test_background_job_registry_infers_completed_without_status_file_when_outputs_and_check_pass(tmp_path: Path) -> None:
+    expected_output = tmp_path / "summary" / "report.md"
+    expected_output.parent.mkdir(parents=True, exist_ok=True)
+    expected_output.write_text("ok", encoding="utf-8")
+
+    upsert_background_job(
+        root=tmp_path,
+        job_id="bgjob_test_inferred_complete",
+        task_ref="execution-tracker#chapter-rerun",
+        lane="mechanism_eval",
+        purpose="Legacy lane-a style eval run",
+        command="python eval/attentional_v2/run_chapter_comparison.py --pack en",
+        cwd=str(tmp_path),
+        status="running",
+        pid=999999,
+        expected_outputs=[str(expected_output)],
+        check_command=f"{sys.executable} -c \"print('ok')\"",
+    )
+
+    refreshed = refresh_background_jobs(root=tmp_path, run_check_commands=True)
+
+    assert refreshed[0]["status"] == "completed"
+    assert refreshed[0]["latest_observation"]["expected_outputs"][0]["exists"] is True
+    assert refreshed[0]["latest_observation"]["check_result"]["ok"] is True
+
+
+def test_background_job_registry_imports_product_shadow_into_canonical_store(tmp_path: Path) -> None:
+    shadow_path = tmp_path / "state" / "jobs" / "job-shadow.json"
+    shadow_path.parent.mkdir(parents=True, exist_ok=True)
+    shadow_path.write_text(
+        json.dumps(
+            {
+                "job_id": "job-shadow",
+                "status": "queued",
+                "job_kind": "read",
+                "upload_path": str(tmp_path / "state" / "uploads" / "job-shadow.epub"),
+                "book_id": "demo-book",
+                "created_at": "2026-03-07T00:00:00Z",
+                "updated_at": "2026-03-07T00:00:00Z",
+                "error": None,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    imported = import_product_shadow_job("job-shadow", root=tmp_path, sync_views=False)
+    loaded = load_job_record("job-shadow", root=tmp_path)
+
+    assert imported["domain"] == "product_runtime"
+    assert imported["show_in_active_views"] is False
+    assert loaded["book_id"] == "demo-book"
+    assert job_record_file("job-shadow", tmp_path).exists()

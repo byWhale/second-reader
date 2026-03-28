@@ -342,34 +342,42 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 
 ### Background Eval Job Tracking
 - Long-running offline evaluation and dataset jobs should be tracked durably instead of relying on one agent's chat memory.
-- The operational source of truth is:
+- The canonical source of truth is:
+  - `reading-companion-backend/state/job_registry/jobs/<job_id>.json`
+- The operator-facing mirrors are:
   - `reading-companion-backend/state/job_registry/active_jobs.json`
-- The human-readable mirror is:
   - `reading-companion-backend/state/job_registry/active_jobs.md`
 - Terminal jobs should be archived into:
   - `reading-companion-backend/state/job_registry/history_jobs.jsonl`
 - Register a job when:
   - the run is expected to last longer than roughly `10-15` minutes
   - the output matters enough that another agent may need to resume, inspect, or avoid duplicating it later
+- Default generic launch path:
+  - use `reading-companion-backend/scripts/run_registered_job.py` so plain eval/dataset commands can stay registry-agnostic
+  - keep explicit status-file updates only for custom orchestrators that need richer multi-phase control
 - Each registered job should record at least:
   - `job_id`
+  - `domain`
   - `task_ref`
   - `lane`
   - `purpose`
   - `command`
   - `cwd`
   - `pid`
-  - `run_dir`
-  - `status_file`
   - `log_file`
-  - `expected_outputs`
-  - `check_command`
+  - `run_dir` when the job owns a primary output directory
+  - `status_file` when the job exposes richer phase detail
+  - `expected_outputs` and/or `check_command` so completion can be inferred without a status file
   - `next_check_hint`
   - `decision_if_success`
   - `decision_if_failure`
   - `status`
 - Before starting a new long-running evaluation or dataset task, refresh the registry first so overlapping work does not silently duplicate or overwrite in-flight runs.
-- This registry supplements product runtime jobs in `state/jobs/`; it does not replace them.
+- `abandoned` should now be rare.
+  - use it only when a job is genuinely orphaned or ambiguous
+  - if the process is gone but outputs/checks show success, infer `completed` even without a status file
+- Product reading jobs now share the same canonical registry.
+  - `state/jobs/<job_id>.json` remains a compatibility shadow during the migration window rather than the primary source of truth
 
 ## Observability Posture For Evaluation
 - Default evaluation should rely on `standard` observability first.

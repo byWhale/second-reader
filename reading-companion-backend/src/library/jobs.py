@@ -15,7 +15,6 @@ from .catalog import find_book_id_by_source, source_asset_path
 from .storage import (
     job_file,
     job_log_file,
-    jobs_dir,
     load_json as load_job_json,
     save_json as save_job_json,
     timestamp,
@@ -23,13 +22,19 @@ from .storage import (
 )
 from src.config import (
     get_backend_boot_id,
-    get_backend_reading_mechanism_key,
     get_backend_run_mode,
     get_backend_version,
     get_reader_resume_compat_version,
 )
 from src.reading_runtime import default_mechanism_key
 from src.reading_runtime.artifacts import existing_runtime_shell_file
+from src.reading_runtime.background_job_registry import (
+    PRODUCT_RUNTIME_DOMAIN,
+    list_job_records,
+    load_job_record,
+    migrate_product_shadow_jobs,
+    save_job_record,
+)
 from src.reading_runtime.provisioning import ensure_book_assets, ensure_output_dir, inspect_book
 from src.reading_runtime.sequential_state import (
     append_activity_event,
@@ -39,7 +44,6 @@ from src.reading_runtime.sequential_state import (
     reset_activity,
     write_book_manifest,
     write_run_state,
-    write_parse_progress,
 )
 from src.iterator_reader.storage import (
     clear_iterator_private_artifacts,
@@ -282,12 +286,32 @@ def save_job(record: dict, root: Path | None = None) -> dict:
     normalized = _normalize_record(record)
     normalized["updated_at"] = timestamp()
     save_job_json(job_file(str(normalized["job_id"]), root), normalized)
+    canonical_payload = {
+        **normalized,
+        "domain": PRODUCT_RUNTIME_DOMAIN,
+        "lane": "product_runtime",
+        "phase": str(normalized.get("status", "")),
+        "show_in_active_views": False,
+        "log_file": str(job_log_file(str(normalized["job_id"]), root)),
+        "purpose": str(
+            normalized.get("purpose")
+            or ("Sequential deep reading job" if str(normalized.get("job_kind", "read")) == "read" else "Structure parse job")
+        ),
+        "cwd": str(root or Path.cwd()),
+    }
+    book_id = str(normalized.get("book_id", "") or "").strip()
+    if book_id:
+        canonical_payload["run_dir"] = str(_book_output_dir(book_id, root))
+    save_job_record(canonical_payload, root=root)
     return normalized
 
 
 def load_job(job_id: str, root: Path | None = None) -> dict:
     """Load one job record."""
-    return _normalize_record(load_job_json(job_file(job_id, root)))
+    try:
+        return _normalize_record(load_job_record(job_id, root=root))
+    except FileNotFoundError:
+        return _normalize_record(load_job_json(job_file(job_id, root)))
 
 
 def _normalized_mechanism_key(value: object) -> str | None:
@@ -377,6 +401,8 @@ def _launch_subprocess_job(
         resume_count=resume_count,
         error=runtime_issue,
     )
+    record["command"] = " ".join(command)
+    record["cwd"] = str(root or Path.cwd())
     saved_record = save_job(record, root)
     if runtime_issue:
         if book_id:
@@ -404,22 +430,22 @@ def _launch_subprocess_job(
             stderr=subprocess.STDOUT,
         )
 
-    return save_job(
-        _job_record(
-            job_id=resolved_job_id,
-            status=initial_status,
-            upload_path=upload_path,
-            job_kind=job_kind,
-            mechanism_key=mechanism_key,
-            language=language,
-            intent=intent,
-            book_id=book_id,
-            resume_count=resume_count,
-            pid=process.pid,
-            created_at=str(record["created_at"]),
-        ),
-        root,
+    launched_record = _job_record(
+        job_id=resolved_job_id,
+        status=initial_status,
+        upload_path=upload_path,
+        job_kind=job_kind,
+        mechanism_key=mechanism_key,
+        language=language,
+        intent=intent,
+        book_id=book_id,
+        resume_count=resume_count,
+        pid=process.pid,
+        created_at=str(record["created_at"]),
     )
+    launched_record["command"] = " ".join(command)
+    launched_record["cwd"] = str(root or Path.cwd())
+    return save_job(launched_record, root)
 
 
 def launch_sequential_job(
@@ -899,11 +925,10 @@ def _can_auto_resume(record: dict) -> bool:
 
 def latest_job_for_book(book_id: str, root: Path | None = None) -> dict | None:
     """Return the latest persisted job for one book."""
+    migrate_product_shadow_jobs(root)
     matches: list[dict] = []
-    for path in sorted(jobs_dir(root).glob("*.json")):
-        try:
-            record = _normalize_record(load_job_json(path))
-        except (FileNotFoundError, OSError, ValueError):
+    for record in list_job_records(root, include_archived=True):
+        if str(record.get("domain", "") or PRODUCT_RUNTIME_DOMAIN) != PRODUCT_RUNTIME_DOMAIN:
             continue
         if str(record.get("book_id", "") or "") != book_id:
             continue
@@ -965,10 +990,9 @@ def resume_job_for_book(book_id: str, root: Path | None = None) -> dict:
 
 def recover_unfinished_jobs(root: Path | None = None) -> None:
     """Refresh unfinished jobs on startup so resumable work is relaunched."""
-    for path in sorted(jobs_dir(root).glob("*.json")):
-        try:
-            record = _normalize_record(load_job_json(path))
-        except (FileNotFoundError, OSError, ValueError):
+    migrate_product_shadow_jobs(root)
+    for record in list_job_records(root, include_archived=True):
+        if str(record.get("domain", "") or PRODUCT_RUNTIME_DOMAIN) != PRODUCT_RUNTIME_DOMAIN:
             continue
         status = str(record.get("status", "queued") or "queued")
         if status in ACTIVE_JOB_STATUSES:

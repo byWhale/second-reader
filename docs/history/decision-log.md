@@ -834,6 +834,29 @@ Update when: a major product or engineering decision is made, reversed, or becom
 
 **Why it matters later**: Future contributors will otherwise see higher default parallelism and multiple thread pools across the codebase without understanding that this was an intentional system-wide redesign, not a set of unrelated speed tweaks.
 
+## Entry 36
+**Decision / Inflection**: Unify product and offline long-running jobs under one canonical registry while keeping public product job/status behavior stable.
+
+**Period**: Late March 2026, after a completed English chapter-core eval run was misclassified as `abandoned` because the registry relied too heavily on optional status files.
+
+**Problem**: The project had two separate job systems: product reading jobs under `state/jobs/` and offline eval/dataset jobs under `state/job_registry/active_jobs.json`. That split made storage authority ambiguous, forced some jobs to “serve the registry” by writing explicit completion markers, and let successful offline runs fall through to `abandoned` when they exited cleanly without a status file.
+
+**Alternatives considered**: Keep the split system and only tighten the `abandoned` heuristic, push all lifecycle responsibility into individual job scripts, or expose a brand-new public API job model in the same pass.
+
+**Why this path won**: The project needed one canonical job ledger that could observe both product and offline work, infer terminal state from objective evidence, and still leave public product routes untouched. A unified per-job registry under `state/job_registry/jobs/` keeps one source of truth for pid, exit code, runtime state, logs, and success evidence, while compatibility shadows and API mapping avoid a disruptive frontend change.
+
+**What changed in the system**: Canonical job records now live under `reading-companion-backend/state/job_registry/jobs/<job_id>.json` for both product reading jobs and offline eval/dataset jobs. `active_jobs.json` and `active_jobs.md` became derived operator-facing mirrors rather than the primary store. Product `state/jobs/<job_id>.json` remains a compatibility shadow during the migration window. The registry now infers `completed` from successful outputs/checks even without a status file, narrows `abandoned` to genuinely orphaned cases, and adds a wrapper-first launcher for generic offline jobs.
+
+**Why it matters later**: Future contributors will otherwise see both `state/jobs/` and `state/job_registry/` and assume the split is still intentional. This entry records that the system has one canonical job store now, that `abandoned` is intentionally rare, and that wrapper-based observation should be the default for generic long-running jobs.
+
+**Primary evidence**:
+- `reading-companion-backend/src/reading_runtime/background_job_registry.py`
+- `reading-companion-backend/src/library/jobs.py`
+- `reading-companion-backend/scripts/run_registered_job.py`
+- `docs/runtime-modes.md`
+- `docs/backend-sequential-lifecycle.md`
+- `docs/backend-reader-evaluation.md`
+
 **Primary evidence**:
 - `reading-companion-backend/src/reading_runtime/llm_gateway.py`
 - `reading-companion-backend/src/reading_runtime/llm_registry.py`

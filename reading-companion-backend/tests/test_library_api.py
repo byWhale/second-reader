@@ -23,6 +23,7 @@ from src.library.jobs import refresh_job, save_job
 from src.library.storage import upload_file
 from src.library.user_marks import delete_mark, list_book_marks, load_marks_state, put_mark
 from src.reading_runtime.artifacts import runtime_shell_file
+from src.reading_runtime.background_job_registry import job_record_file
 
 
 api_module = importlib.import_module("src.api.app")
@@ -540,6 +541,7 @@ def test_launch_sequential_job_persists_non_default_mechanism_key(tmp_path, monk
     assert "attentional_v2" in launched[0]
     assert persisted["mechanism_key"] == "attentional_v2"
     assert persisted["job_kind"] == "read"
+    assert job_record_file(str(record["job_id"]), tmp_path).exists()
 
 
 def test_launch_book_analysis_job_rejects_attentional_v2(tmp_path):

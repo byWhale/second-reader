@@ -112,13 +112,16 @@ Use the backend background-job registry for evaluation, packet review, or datase
 
 - Register or update one job:
   - `cd reading-companion-backend && .venv/bin/python scripts/register_background_job.py --task-ref "execution-tracker#example" --lane mechanism_eval --purpose "English chapter-core rerun" --command ".venv/bin/python eval/attentional_v2/run_chapter_comparison.py --help" --cwd "$PWD"`
+- Launch one generic job through the registry wrapper:
+  - `cd reading-companion-backend && .venv/bin/python scripts/run_registered_job.py --task-ref "execution-tracker#example" --lane mechanism_eval --purpose "English chapter-core rerun" --cwd "$PWD" -- .venv/bin/python eval/attentional_v2/run_chapter_comparison.py --help`
 - Refresh active jobs:
   - `cd reading-companion-backend && .venv/bin/python scripts/check_background_jobs.py`
 - Refresh and also execute stored `check_command` probes:
   - `cd reading-companion-backend && .venv/bin/python scripts/check_background_jobs.py --run-check-commands`
 
 Registry files live under `reading-companion-backend/state/job_registry/`:
-- `active_jobs.json`: source of truth for active background jobs
+- `jobs/<job_id>.json`: canonical per-job source of truth for product and offline jobs
+- `active_jobs.json`: derived active-job view for operator-facing long-running offline work
 - `active_jobs.md`: human-readable mirror for handoff and agent recovery
 - `history_jobs.jsonl`: archived terminal jobs
 

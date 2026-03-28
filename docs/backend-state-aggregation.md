@@ -66,7 +66,8 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 ## Surface Mapping
 - `GET /api/books`
   - Built from `book_manifest` plus `run_state`.
-  - Uses `state/jobs/*.json` as a guard so the shelf can still show `analyzing` while live runtime files are catching up.
+  - Uses the canonical product job records in `state/job_registry/jobs/*.json` as a guard so the shelf can still show `analyzing` while live runtime files are catching up.
+  - `state/jobs/*.json` remains a compatibility shadow during the current migration window.
   - Adds per-book mark counts from `state/user_marks.json`.
 - `GET /api/books/{book_id}`
   - Uses `book_manifest` for metadata and chapter tree.
@@ -91,7 +92,7 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `GET /api/books/{book_id}/analysis-log`
   - Is the main exception to the catalog-driven view model.
   - It remains an internal diagnostic endpoint and is no longer part of the user-facing overview.
-  - It comes from the latest job record plus `state/jobs/<job_id>.log` via `jobs.py`, not from `catalog.py`.
+  - It comes from the latest canonical product job record plus `state/jobs/<job_id>.log` via `jobs.py`, not from `catalog.py`.
 - `GET /api/books/{book_id}/chapters/{chapter_id}`
   - Uses the chapter result file for structured sections, featured reactions, and chapter-level summaries.
   - Uses `user_marks` to attach the current mark state to each returned reaction card.

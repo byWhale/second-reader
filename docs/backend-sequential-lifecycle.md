@@ -38,8 +38,9 @@ Use `docs/backend-reading-mechanism.md` when the question is about shared mechan
 
 ## Main Lifecycle
 1. Upload accepts an EPUB and writes a provisional manifest plus an initial run-state shell so the book exists immediately.
-2. A background job record is created in `state/jobs/` with `job_kind=parse` or `job_kind=read`.
+2. A canonical background job record is created in `state/job_registry/jobs/<job_id>.json` with `job_kind=parse` or `job_kind=read`.
   - When backend-internal rollout selected a non-default mechanism, the job record also carries `mechanism_key`.
+  - `state/jobs/<job_id>.json` remains a compatibility shadow during the current migration window; it is no longer the primary store.
 3. The job enters `queued`, then begins structure preparation under `parsing_structure`.
 4. Parse preparation now has two layers:
   - canonical parse writes `public/book_document.json` as the mechanism-neutral book substrate
@@ -110,7 +111,8 @@ Promotion from user upload into the durable source library or evaluation corpus 
 
 ## Runtime Mode Differences
 - Startup recovery
-  - Backend startup runs unfinished-job recovery by refreshing every active job record in `state/jobs/`.
+  - Backend startup runs unfinished-job recovery by refreshing canonical product job records in `state/job_registry/jobs/`.
+  - The legacy `state/jobs/` files are treated as compatibility shadows and are imported into the canonical registry on read when needed.
   - Recovery decides whether the run should keep going, pause, resume, or restart from scratch.
 - Shared concurrency budget
   - New backend processes inherit the structured LLM registry's adaptive concurrency budget when they start.

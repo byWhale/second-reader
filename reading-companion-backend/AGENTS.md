@@ -32,8 +32,8 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
   - the living record lives in `../docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
   - if the finding changes project direction or would be hard to reconstruct later, also update `../docs/history/decision-log.md`
 - Long-running eval or dataset-creation work must be registered durably instead of being tracked only in chat.
-  - Use `state/job_registry/active_jobs.json` as the source of truth for active agent/eval background work.
-  - Use `state/job_registry/active_jobs.md` as the human-readable mirror when handing off work.
+  - Use `state/job_registry/jobs/<job_id>.json` as the canonical source of truth for registered product and offline jobs.
+  - Use `state/job_registry/active_jobs.json` and `state/job_registry/active_jobs.md` as the derived operator-facing views for offline long-running work.
   - Register jobs that are expected to run longer than roughly `10-15` minutes.
   - Before starting overlapping long-running work, refresh the registry first with the checker script.
 - Do not stop at storing findings in docs.

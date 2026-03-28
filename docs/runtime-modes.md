@@ -124,6 +124,9 @@ then update this document in the same task.
 
 - Backend CLI and stable-server entrypoints require Python 3.11+ and should fail fast under older interpreters.
 - Background jobs inherit the backend interpreter. If the backend is started under an unsupported Python runtime, job launch is rejected and the affected book writes a `runtime_environment_error` event into the internal system activity stream.
+- The canonical source of truth for long-running jobs now lives under `reading-companion-backend/state/job_registry/jobs/<job_id>.json`.
+  - generic offline jobs should prefer the registry wrapper launcher so the registry can record pid, exit code, logs, and success/failure evidence without custom status-file code
+  - `active_jobs.json` and `active_jobs.md` are derived operator views, not the primary store
 - When a job process stays alive but runtime state stops updating, the backend pauses the job and emits system-side activity events such as `runtime_stalled` and `job_paused_by_runtime_guard`.
 - Raw stack traces remain in the internal technical diagnostic log; operator-facing summaries belong in the internal system activity stream.
 - New backend Python processes also inherit the structured LLM registry and its adaptive concurrency policy at startup.
@@ -135,7 +138,10 @@ then update this document in the same task.
 
 - Sequential deep-reading checkpoints are segment-based. `last_checkpoint_at` now advances during deep reading, not only during structure parse.
 - Resume safety is governed by `resume_compat_version`, not by deploy version or git state. Only changes to persisted recovery semantics should bump it.
-- Development mode treats cross-boot unfinished jobs as untrusted. If an active job record carries an older `boot_id`, the backend abandons that run, writes `dev_run_abandoned` to the internal system activity stream, and expects a fresh rerun.
+- Development mode treats cross-boot unfinished product jobs as untrusted. If a canonical product job record carries an older `boot_id`, the backend abandons that run, writes `dev_run_abandoned` to the internal system activity stream, and expects a fresh rerun.
 - Demo/prod mode resumes only when the job record and persisted runtime artifacts all match the current `resume_compat_version`.
 - If demo/prod detects an incompatible live checkpoint, it archives the current run under `_history/runs/<job_id>/`, clears live runtime artifacts, writes `resume_incompatible` plus `fresh_rerun_started`, and launches a fresh run without `--continue`.
 - Stalled demo/prod runtimes may auto-resume once from the latest checkpoint. A second stall leaves the run in `paused` for operator review instead of retrying indefinitely.
+- Registry status meaning:
+  - `abandoned` no longer means “process exited without a status file”
+  - use it only when the process is gone and the registry cannot infer either trustworthy success or trustworthy failure from runtime state, exit code, outputs, or check probes
