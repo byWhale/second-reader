@@ -33,6 +33,7 @@ This directory is for historical context, not current authority. Facts about the
 - Prefer entries that answer "why did we end up here?" over entries that merely describe what exists now.
 - Use theme-based entries, not a commit-by-commit timeline.
 - If a point can be reconstructed later from stable docs and code with low effort, do not store it here.
+- Give every entry a stable `ID` plus a short lifecycle `Status` such as `active`, `superseded`, or `reversed`.
 - Every entry should include a small `Primary evidence` list that starts with representative commit hashes.
 
 ## Maintenance Defaults

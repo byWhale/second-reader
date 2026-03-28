@@ -37,6 +37,11 @@ Update when: document layering, reading order, task routing, or cross-project co
 - Child `AGENTS.md`: subproject-local engineering constraints
 - Root `README.md`: setup, run commands, env vars, local URLs, and verification commands
 
+### Agent-Memory Layer
+- `docs/source-of-truth-map.md`: canonical storage map for durable project information and validation commands
+- `docs/current-state.md`: canonical repo-local current objective, active tasks/jobs, blockers, and recommended reading path
+- `docs/tasks/registry.md` and `docs/tasks/registry.json`: canonical workspace task router, traceability index, and evidence links
+
 ### Stable Facts Layer
 - `docs/workspace-overview.md`: workspace structure, ownership boundaries, and shared entrypoints
 - `docs/product-overview.md`: product essence, value channels, guardrails, and canonical-vs-emerging territory
@@ -58,8 +63,8 @@ Update when: document layering, reading order, task routing, or cross-project co
 - `docs/history/decision-log.md`: key decisions, rejected alternatives, and major design inflection points
 
 ### Temporary Working Layer
-- `docs/agent-handoff.md`: current focus, active risks, migration status, and temporary warnings
-- `docs/agent-handoff.md` is not a source-of-truth doc. Promote repeated guidance into `AGENTS.md` or a stable doc.
+- `docs/agent-handoff.md`: session-only scratch notes that have not yet been canonicalized elsewhere
+- `docs/agent-handoff.md` is a session-only scratchpad, not a source-of-truth doc. Promote durable current-state information into `docs/current-state.md` or `docs/tasks/registry.*`.
 
 ### Archive / Reference Layer
 - `reading-companion-backend/docs/research/`: historical analysis and planning notes
@@ -69,10 +74,13 @@ Update when: document layering, reading order, task routing, or cross-project co
 ## Load Matrix
 ### Always Load
 - Root `AGENTS.md`
-- Relevant child `AGENTS.md`
 - Root `README.md`
+- `docs/current-state.md`
+- Relevant child `AGENTS.md`
+- `docs/tasks/registry.md`
 
 ### Task-Gated Stable Docs
+- canonical storage/update location for durable information: `docs/source-of-truth-map.md`
 - workspace ownership, file placement, shared entrypoints: `docs/workspace-overview.md`
 - product essence, value channels, and canonical-vs-emerging territory: `docs/product-overview.md`
 - product flow, canonical routes, page responsibilities: `docs/product-interaction-model.md`
@@ -92,7 +100,7 @@ Update when: document layering, reading order, task routing, or cross-project co
 - design evolution, rejected alternatives, key decision history: `docs/history/README.md`
 
 ### Temporary Only
-- `docs/agent-handoff.md`: read only when the task needs current focus, open risks, or active migration notes
+- `docs/agent-handoff.md`: read only for session scratch notes that have not yet been promoted into canonical current-state/task files
 
 ### Archive / Reference Only
 - `reading-companion-backend/docs/research/`
@@ -100,6 +108,9 @@ Update when: document layering, reading order, task routing, or cross-project co
 - `reading-companion-frontend/ATTRIBUTIONS.md`
 
 ## Task Routing
+- canonical storage/update location for durable information -> `docs/source-of-truth-map.md`
+- current project status, active jobs, blockers, recommended reading path -> `docs/current-state.md`
+- workspace task routing, blockers, decision refs, evidence refs -> `docs/tasks/registry.md`, `docs/tasks/registry.json`
 - workspace ownership boundaries or shared entrypoints -> `docs/workspace-overview.md`
 - product essence, value channels, guardrails, canonical-now vs emerging territory -> `docs/product-overview.md`
 - product journey, page responsibilities, canonical user path -> `docs/product-interaction-model.md`
@@ -115,7 +126,7 @@ Update when: document layering, reading order, task routing, or cross-project co
 - backend one-mechanism internals such as ontology, reading loop, prompt assembly, or memory -> `docs/backend-reading-mechanisms/<mechanism>.md`
 - backend reader quality goals, evaluation methodology, LLM-as-judge usage, and local-vs-broad eval planning -> `docs/backend-reader-evaluation.md`
 - backend artifact aggregation, analysis-state sourcing, normalization boundary -> `docs/backend-state-aggregation.md`
-- current focus, temporary risks, active migration notes -> `docs/agent-handoff.md`
+- session-only scratch notes that have not yet been promoted -> `docs/agent-handoff.md`
 - design evolution, rejected alternatives, key decision history -> `docs/history/README.md`
 
 ## Documentation Maintenance
@@ -133,6 +144,24 @@ Update when: document layering, reading order, task routing, or cross-project co
   - environment variables
   - default local URLs
   - quick-start or operator-facing verification commands
+- `docs/source-of-truth-map.md`
+  - canonical storage locations for durable project information
+  - machine-readable companions for agent switching
+  - validation commands for the switching system
+  - update triggers for current-state/task history
+- `docs/current-state.md`
+  - current objective
+  - now / next / blocked state
+  - active task ids
+  - active job ids
+  - open decisions
+  - recommended reading path
+- `docs/tasks/registry.md` and `docs/tasks/registry.json`
+  - task ids
+  - task status, lane, and priority
+  - blockers
+  - decision refs and job refs
+  - evidence refs and next actions
 - `docs/workspace-overview.md`
   - workspace structure
   - backend/frontend ownership boundaries
@@ -250,7 +279,8 @@ Update when: document layering, reading order, task routing, or cross-project co
 - If a backend change materially alters which artifacts feed public state surfaces, or where normalization between internal and public shapes happens, update `docs/backend-state-aggregation.md` in the same task.
 - If a major project change creates a decision, reversal, or design inflection point that would be hard to reconstruct later, update `docs/history/decision-log.md` in the same task.
 - Treat a change as decision-bearing when it introduces a new primary mechanism, changes the default product/runtime direction, establishes a new canonical control surface or route model, or promotes a stable doc to subsystem authority.
-- If a temporary handoff note repeats across tasks, promote it into the relevant `AGENTS.md` or stable doc.
+- If active task status, blockers, active jobs, or the recommended next move change, update `docs/current-state.md` and `docs/tasks/registry.*` in the same task.
+- If a temporary handoff note contains durable current-state information, promote it into `docs/current-state.md` or `docs/tasks/registry.*` before closing the task.
 - If a new key document becomes part of the standard reading path, add it to the load matrix here before linking it elsewhere.
 
 ### History Maintenance Rules
@@ -267,7 +297,11 @@ Update when: document layering, reading order, task routing, or cross-project co
 ## First Files To Read
 - `AGENTS.md`
 - `README.md`
+- `docs/current-state.md`
+- the relevant child `AGENTS.md`
+- `docs/tasks/registry.md`
 - `docs/product-overview.md` when the task touches product purpose, experience framing, or current-vs-emerging product territory
+- `docs/source-of-truth-map.md` when the task is about where durable information should live
 - `reading-companion-backend/AGENTS.md` when the task touches backend code, prompts, runtime, or API shaping
 - `reading-companion-frontend/AGENTS.md` when the task touches frontend routes, API adapters, UI copy, or generated structure
 - `docs/backend-reading-mechanism.md` when the task touches shared backend mechanism boundaries or mechanism doc routing

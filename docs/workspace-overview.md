@@ -10,6 +10,7 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - one place to understand backend/frontend ownership boundaries
 - one place to find shared entrypoints before diving into subproject-local code
 - one place to find the top-level product-purpose doc before diving into journey or subsystem details
+- one place to recover current repo-local status and task routing without chat history
 
 ## Subprojects
 
@@ -58,6 +59,9 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
   - locale-driven interface copy
 
 ## Shared Entry Points
+- Canonical storage/update map for durable project information: `docs/source-of-truth-map.md`
+- Canonical live project status: `docs/current-state.md`
+- Canonical workspace task index: `docs/tasks/registry.md`, `docs/tasks/registry.json`
 - Product-purpose authority: `docs/product-overview.md`
 - Product journey and surface authority: `docs/product-interaction-model.md`
 - Shared backend mechanism-platform authority: `docs/backend-reading-mechanism.md`
@@ -75,12 +79,14 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 ## Workflow Notes
 - Use the workspace root for shared commands and cross-project work.
 - Use child directories when a task is clearly isolated.
+- Use `docs/current-state.md` plus `docs/tasks/registry.*` as the durable workspace handoff layer for active work.
 - Keep runtime data in `reading-companion-backend/`.
 - Keep shared runtime/mechanism boundaries in backend-owned infrastructure, and keep reader-internal ontology inside the specific mechanism that owns it.
 - Treat `reading-companion-backend/state/uploads/` as transient intake, not as the durable source library or benchmark corpus.
 - Treat `reading-companion-backend/state/library_sources/` as the local manually curated source-book territory for repeated backend and evaluation use.
 - Treat `reading-companion-backend/state/eval_local_datasets/` as the local-only mirror for evaluation packages that should not be checked into the repo because they contain copyrighted or otherwise private source text.
 - Treat `reading-companion-backend/state/job_registry/` as the durable state for long-running agent/eval jobs whose status must survive agent changes or handoffs.
+- Treat `reading-companion-backend/state/job_registry/active_jobs.json` as the only canonical source for mutable long-running job state.
 - Treat `reading-companion-backend/eval/datasets/` and `reading-companion-backend/eval/manifests/` as evaluation-package territory rather than as product runtime state.
 - Use `docs/backend-reading-mechanism.md` for shared mechanism boundaries and `docs/backend-reading-mechanisms/<mechanism>.md` for mechanism-private reading logic.
 - Treat `reading-companion-backend/output/<book_id>/public/` and `reading-companion-backend/output/<book_id>/_runtime/` as shared cross-mechanism territory.

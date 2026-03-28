@@ -6,6 +6,9 @@ Not for: routine change logs, source-of-truth engineering definitions, or interv
 Update when: a major product or engineering decision is made, reversed, or becomes historically important to future contributors.
 
 ## Entry 1
+**ID**: DEC-001
+**Status**: active
+
 **Decision / Inflection**: Converge on `sequential` as the primary product and engineering path.
 
 **Period**: Early workspace baseline through the March 2026 cleanup period.
@@ -26,6 +29,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/product-interaction-model.md`
 
 ## Entry 2
+**ID**: DEC-002
+**Status**: active
+
 **Decision / Inflection**: Shape the current long-task model around upload, deferred parse, and explicit `analysis/start` / `analysis/resume`.
 
 **Period**: March 2026, especially the book-overview consolidation work.
@@ -46,6 +52,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-sequential-lifecycle.md`
 
 ## Entry 3
+**ID**: DEC-003
+**Status**: active
+
 **Decision / Inflection**: Treat runtime recovery, checkpointing, and resume as product behavior rather than hidden operations.
 
 **Period**: March 2026, first with stable runtime work and then with minimal resume recovery.
@@ -67,6 +76,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-sequential-lifecycle.md`
 
 ## Entry 4
+**ID**: DEC-004
+**Status**: active
+
 **Decision / Inflection**: Make the API layer the normalization boundary for public routes, IDs, and taxonomy.
 
 **Period**: Early March 2026 contract hardening.
@@ -88,6 +100,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/api/contract.py`
 
 ## Entry 5
+**ID**: DEC-005
+**Status**: active
+
 **Decision / Inflection**: Productize Reading Mindstream so "the reader is thinking now" becomes part of the main experience.
 
 **Period**: March 2026.
@@ -109,6 +124,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/api/realtime.py`
 
 ## Entry 6
+**ID**: DEC-006
+**Status**: active
+
 **Decision / Inflection**: Converge frontend routes and the book overview into the canonical control surface.
 
 **Period**: March 2026, especially around the overview unification and chapter drawer work.
@@ -130,6 +148,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-frontend/src/app/routes.tsx`
 
 ## Entry 7
+**ID**: DEC-007
+**Status**: active
+
 **Decision / Inflection**: Stabilize local demo and deployment runtime instead of treating development mode as the only supported way to run.
 
 **Period**: March 2026.
@@ -151,6 +172,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `scripts/run-backend-stable.sh`
 
 ## Entry 8
+**ID**: DEC-008
+**Status**: active
+
 **Decision / Inflection**: Split documentation into stable facts, temporary handoff, archive material, and history instead of keeping mixed-purpose notes.
 
 **Period**: Mid-March 2026.
@@ -172,6 +196,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `AGENTS.md`
 
 ## Entry 9
+**ID**: DEC-009
+**Status**: active
+
 **Decision / Inflection**: Introduce a frontend visual-system document and separate core UI typography from reader-content scaling.
 
 **Period**: Mid-March 2026.
@@ -193,6 +220,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-frontend/src/styles/theme.css`
 
 ## Entry 10
+**ID**: DEC-010
+**Status**: active
+
 **Decision / Inflection**: Move runtime subsegment selection from heuristic-first slicing to LLM-primary planning with deterministic validation and heuristic fallback.
 
 **Period**: Mid-March 2026.
@@ -214,6 +244,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/iterator_reader/policy.py`
 
 ## Entry 11
+**ID**: DEC-011
+**Status**: active
+
 **Decision / Inflection**: Freeze the evaluation frame as product-first and mechanism-agnostic.
 
 **Period**: March 2026, after the first stable subsegment benchmark baselines and benchmark taxonomy cleanup.
@@ -236,6 +269,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/subsegment/run_benchmark.py`
 
 ## Entry 12
+**ID**: DEC-012
+**Status**: active
+
 **Decision / Inflection**: Reframe the product purpose around a living co-reader mind rather than a narrower outcome-led promise.
 
 **Period**: March 2026, after the evaluation constitution was stabilized.
@@ -257,6 +293,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-frontend/src/app/config/product-lexicon.ts`
 
 ## Entry 13
+**ID**: DEC-013
+**Status**: active
+
 **Decision / Inflection**: Promote product purpose into its own stable authority document and separate it from interaction-flow authority.
 
 **Period**: March 2026, immediately after the living co-reader reframing.
@@ -278,6 +317,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `AGENTS.md`
 
 ## Entry 14
+**ID**: DEC-014
+**Status**: active
+
 **Decision / Inflection**: Make the reader evaluation constitution decision-complete around reader character, reader value, and runtime viability.
 
 **Period**: Late March 2026, after product-purpose authority moved into `docs/product-overview.md`.
@@ -298,6 +340,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/docs/evaluation/subsegment/subsegment_benchmark_v1_baseline.md`
 
 ## Entry 15
+**ID**: DEC-015
+**Status**: active
+
 **Decision / Inflection**: Introduce a shared backend runtime shell for multiple reader mechanisms while freezing `iterator_reader` as the current default implementation.
 
 **Period**: Late March 2026.
@@ -319,6 +364,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/iterator_reader/`
 
 ## Entry 16
+**ID**: DEC-016
+**Status**: active
+
 **Decision / Inflection**: Make `book_document.json` the canonical parsed-book substrate and treat `structure.json` as a current-mechanism derived artifact.
 
 **Period**: Late March 2026, immediately after the first shared runtime/mechanism scaffold landed.
@@ -340,6 +388,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-state-aggregation.md`
 
 ## Entry 17
+**ID**: DEC-017
+**Status**: active
+
 **Decision / Inflection**: Separate transient uploads, durable source-library books, runtime book copies, and evaluation packages into distinct source-asset territories.
 
 **Period**: March 2026, during the first serious `attentional_v2` evaluation-corpus planning pass.
@@ -365,6 +416,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/AGENTS.md`
 
 ## Entry 18
+**ID**: DEC-018
+**Status**: active
+
 **Decision / Inflection**: Organize benchmark inputs by evidence family and language track instead of by one active mechanism's folder tree.
 
 **Period**: March 2026, during the first bilingual `attentional_v2` benchmark preparation pass.
@@ -386,6 +440,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md`
 
 ## Entry 19
+**ID**: DEC-019
+**Status**: active
+
 **Decision / Inflection**: Mirror the family-first evaluation dataset layout under a local-only package territory for private books instead of forcing copyrighted inputs into tracked benchmark packages.
 
 **Period**: Late March 2026, when the first serious private-book supplement from the user's local Downloads corpus entered `attentional_v2` evaluation planning.
@@ -408,6 +465,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md`
 
 ## Entry 17
+**ID**: DEC-020
+**Status**: active
+
 **Decision / Inflection**: Move mechanism-private reading artifacts under `_mechanisms/<mechanism_key>/` and reserve top-level `public/` plus `_runtime/` for shared cross-mechanism state.
 
 **Period**: Late March 2026, immediately after the shared substrate extraction.
@@ -431,6 +491,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-state-aggregation.md`
 
 ## Entry 18
+**ID**: DEC-021
+**Status**: active
+
 **Decision / Inflection**: Split backend reading documentation into a shared mechanism-platform doc plus per-mechanism docs.
 
 **Period**: Late March 2026, after the shared runtime, substrate, and artifact boundaries were already established.
@@ -454,6 +517,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/AGENTS.md`
 
 ## Entry 19
+**ID**: DEC-022
+**Status**: active
+
 **Decision / Inflection**: Split prompt ownership by boundary instead of keeping one global live prompt bank.
 
 **Period**: Late March 2026, after the shared mechanism/runtime boundaries and the multi-mechanism doc split were already in place.
@@ -477,6 +543,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/src/prompts/templates.py`
 
 ## Entry 20
+**ID**: DEC-023
+**Status**: active
+
 **Decision / Inflection**: Expand `book_document.json` from paragraph-only shared truth into a paragraph-plus-sentence canonical substrate.
 
 **Period**: March 2026, during the first `attentional_v2` implementation phases.
@@ -499,6 +568,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-state-aggregation.md`
 
 ## Entry 21
+**ID**: DEC-024
+**Status**: active
+
 **Decision / Inflection**: Keep `attentional_v2`'s v1 search design fully represented, but make search a rare escape hatch instead of a normal reading behavior.
 
 **Period**: March 2026, during Phase 5 of the first `attentional_v2` implementation push.
@@ -521,6 +593,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/open-questions.md`
 
 ## Entry 22
+**ID**: DEC-025
+**Status**: active
+
 **Decision / Inflection**: Make mechanism-authored anchored reactions the durable Phase 6 source of truth, and treat current chapter/API shapes as compatibility projections.
 
 **Period**: March 2026, during Phase 6 of the first `attentional_v2` implementation push.
@@ -544,6 +619,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/open-questions.md`
 
 ## Entry 23
+**ID**: DEC-026
+**Status**: active
+
 **Decision / Inflection**: Make `attentional_v2` resume bounded, chapter-local, and explicitly reconstructive instead of silently restoring large hidden hot-state windows.
 
 **Period**: March 2026, during Phase 7 of the first `attentional_v2` implementation push.
@@ -566,6 +644,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/open-questions.md`
 
 ## Entry 24
+**ID**: DEC-027
+**Status**: active
+
 **Decision / Inflection**: Treat section-era public fields as temporary compatibility sidecars and begin the public migration toward locus- and anchor-native `attentional_v2` surfaces.
 
 **Period**: March 2026, during the first Phase 8 shared-surface integration pass.
@@ -589,6 +670,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-reading-mechanisms/attentional_v2.md`
 
 ## Entry 25
+**ID**: DEC-028
+**Status**: active
+
 **Decision / Inflection**: Split `attentional_v2` observability into thin standard runtime history and optional debug-only diagnostics.
 
 **Period**: March 2026, during the later Phase 8 observability pass.
@@ -613,6 +697,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-reading-mechanisms/attentional_v2.md`
 
 ## Entry 26
+**ID**: DEC-029
+**Status**: active
+
 **Decision / Inflection**: Promote `attentional_v2` from a design-only scaffold to an experimental end-to-end mechanism behind the shared runtime shell.
 
 **Period**: March 2026, during the Phase 8.5 live-runner integration pass.
@@ -638,6 +725,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-reading-mechanisms/attentional_v2.md`
 
 ## Entry 27
+**ID**: DEC-030
+**Status**: active
+
 **Decision / Inflection**: Treat benchmark quality as a first-class evaluation concern and require dual diagnosis plus packet-based human review for high-impact case hardening.
 
 **Period**: March 2026, immediately after the first corrected `attentional_v2` `mechanism_integrity` run on the tracked curated `v2` excerpt family.
@@ -661,6 +751,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/review_packets/README.md`
 
 ## Entry 28
+**ID**: DEC-031
+**Status**: active
+
 **Decision / Inflection**: Replace manual packet review with multi-prompt LLM adjudication as the operational default for current benchmark hardening.
 
 **Period**: March 2026, during the first dataset-hardening loop after the initial weak-case packets were created.
@@ -684,6 +777,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/review_packets/README.md`
 
 ## Entry 29
+**ID**: DEC-032
+**Status**: active
+
 **Decision / Inflection**: Promote project-owned LLM invocation, provider/profile policy, and trace emission into one shared backend layer.
 
 **Period**: March 2026, during the benchmark-hardening side branch for universal LLM invocation and traceability.
@@ -707,6 +803,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `README.md`
 
 ## Entry 30
+**ID**: DEC-033
+**Status**: active
+
 **Decision / Inflection**: Treat reviewed-slice hardening plus mechanism repair as the gate for broader semantic comparison, then explicitly unblock chapter-scale comparison once the repaired reviewed slice generalized.
 
 **Period**: Late March 2026, after the bilingual hardening and reviewed-slice expansion rounds, through repair pass 2.
@@ -730,6 +829,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_zh_round1_20260326/summary/report.md`
 
 ## Entry 31
+**ID**: DEC-034
+**Status**: active
+
 **Decision / Inflection**: Turn the modern private-library supplement into the formal benchmark-diversification and growth lane, instead of leaving copyright-restricted nonfiction as an ad hoc local side pool.
 
 **Period**: Late March 2026, after the `/Users/baiweijiang/Documents/BOOK` batch was merged with the earlier private local books.
@@ -753,6 +855,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_library_v2.json`
 
 ## Entry 32
+**ID**: DEC-035
+**Status**: active
+
 **Decision / Inflection**: Make evaluation preserve portable strengths and repeatable failures, not only winner/loser conclusions.
 
 **Period**: Late March 2026, after the first broader chapter-core comparison made the split result concrete.
@@ -775,6 +880,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/agent-handoff.md`
 
 ## Entry 33
+**ID**: DEC-036
+**Status**: active
+
 **Decision / Inflection**: Require each meaningful evaluation round to close the loop from result -> causal interpretation -> selective implementation or explicit deferment, instead of treating the ledger as a passive archive.
 
 **Period**: Late March 2026, after the first broader comparison had already produced usable causal findings and the project recognized the risk of letting them pile up faster than they were absorbed.
@@ -796,6 +904,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
 
 ## Entry 34
+**ID**: DEC-037
+**Status**: active
+
 **Decision / Inflection**: Add a durable registry for long-running eval and dataset background jobs so agent handoffs no longer depend on chat memory.
 
 **Period**: Late March 2026, after repeated multi-minute and multi-hour evaluation runs made agent changes and overlapping reruns harder to manage safely.
@@ -820,6 +931,9 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/AGENTS.md`
 
 ## Entry 35
+**ID**: DEC-038
+**Status**: active
+
 **Decision / Inflection**: Make new runtime and evaluation processes concurrency-adaptive by default instead of relying on fixed worker counts inside individual scripts.
 
 **Period**: Late March 2026, after the project had already introduced a structured LLM registry and identified case-level serial execution as a major source of wasted eval time.
@@ -834,7 +948,17 @@ Update when: a major product or engineering decision is made, reversed, or becom
 
 **Why it matters later**: Future contributors will otherwise see higher default parallelism and multiple thread pools across the codebase without understanding that this was an intentional system-wide redesign, not a set of unrelated speed tweaks.
 
+**Primary evidence**:
+- `reading-companion-backend/src/reading_runtime/llm_gateway.py`
+- `reading-companion-backend/src/reading_runtime/llm_registry.py`
+- `reading-companion-backend/src/reading_runtime/job_concurrency.py`
+- `docs/backend-reader-evaluation.md`
+- `docs/runtime-modes.md`
+
 ## Entry 36
+**ID**: DEC-039
+**Status**: active
+
 **Decision / Inflection**: Unify product and offline long-running jobs under one canonical registry while keeping public product job/status behavior stable.
 
 **Period**: Late March 2026, after a completed English chapter-core eval run was misclassified as `abandoned` because the registry relied too heavily on optional status files.
@@ -857,9 +981,29 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/backend-sequential-lifecycle.md`
 - `docs/backend-reader-evaluation.md`
 
+## Entry 37
+**ID**: DEC-040
+**Status**: active
+
+**Decision / Inflection**: Establish a repo-first agent-switching memory system with canonical current-state and task-router docs.
+
+**Period**: Late March 2026, after the workspace had already accumulated strong stable docs, a detailed initiative tracker, and a durable job registry but still lacked one canonical repo-local switching surface.
+
+**Problem**: The project was already fairly handoff-friendly, but live status still had to be reconstructed from several places: stable docs for rules, `docs/agent-handoff.md` for temporary summaries, initiative trackers for detailed progress, and the job registry for mutable runtime truth. That made agent switching possible, but slower and more drift-prone than it needed to be.
+
+**Alternatives considered**: Keep relying on the existing handoff note plus initiative trackers, move current state authority into an external tool such as Notion, or let each coding agent invent its own working-memory convention.
+
+**Why this path won**: A repo-first switching system keeps the workflow tool-agnostic and Git-traceable. Markdown remains the human-facing layer, JSON remains the machine-facing layer, and shell commands remain the common interface across Codex, Claude Code, Gemini CLI, and other agents. Adding canonical current-state and task-router docs closes the gap between stable truths and live work without replacing the detailed tracker or job-registry infrastructure that already holds the evidence.
+
+**What changed in the system**: The workspace now has a source-of-truth map, a canonical `docs/current-state.md` with a machine-readable appendix, a workspace task registry in Markdown plus JSON, and two new commands: `make agent-context` and `make agent-check`. Root onboarding docs now route active work through the current-state/task layer, and `docs/agent-handoff.md` is reduced to session-only scratch space. Decision-log entries now also carry stable IDs plus lifecycle status so live task records can point to historical decisions directly.
+
+**Why it matters later**: Future contributors and agents should now be able to switch in without chat history, recover the current objective quickly, trace any task to its detailed tracker and evidence, and trust that mutable job status still lives only in the job registry. This is the point where agent switching becomes an explicitly designed repo capability rather than a side effect of good documentation habits.
+
 **Primary evidence**:
-- `reading-companion-backend/src/reading_runtime/llm_gateway.py`
-- `reading-companion-backend/src/reading_runtime/llm_registry.py`
-- `reading-companion-backend/src/reading_runtime/job_concurrency.py`
-- `docs/backend-reader-evaluation.md`
-- `docs/runtime-modes.md`
+- `docs/source-of-truth-map.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `scripts/print-agent-context.py`
+- `scripts/check-agent-traceability.py`
+- `AGENTS.md`

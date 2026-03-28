@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: doctor setup dev-backend dev-frontend dev run-demo test build contract-check e2e preview-reactions backfill-covers
+.PHONY: doctor setup dev-backend dev-frontend dev run-demo test build contract-check agent-check agent-context e2e preview-reactions backfill-covers
 
 doctor:
 	./scripts/doctor.sh
@@ -28,6 +28,12 @@ build:
 
 contract-check:
 	./scripts/contract-check.sh
+
+agent-check:
+	./scripts/agent-check.sh
+
+agent-context:
+	./scripts/agent-context.sh
 
 e2e:
 	./scripts/e2e.sh

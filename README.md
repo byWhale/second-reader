@@ -15,6 +15,7 @@ The project is maintained as one product with two sub-applications:
 - `reading-companion-backend/`: backend code, runtime artifacts, tests, `.env`
 - `reading-companion-frontend/`: frontend code, Vite app, `.env.example`
 - `docs/`: workspace-level stable docs and temporary handoff notes
+- `docs/tasks/`: workspace task index for agent switching
 - `scripts/`: root task wrappers used by the `Makefile`
 
 ## Quick Start
@@ -104,6 +105,8 @@ Important frontend variables:
 - `make contract-check`: verify docs appendix, backend OpenAPI snapshot, and frontend contract guards
 - `make e2e`: run the fixture-backed upload -> analysis -> book -> chapter -> marks Playwright flow
 - `make build`: build the frontend bundle
+- `make agent-context`: print the canonical agent-switching brief from current state, tasks, jobs, and git status
+- `make agent-check`: run contract/doc checks plus switching-memory traceability warnings
 - `make backfill-covers`: scan existing backend outputs, extract missing EPUB covers, and refresh manifests
 - `cd reading-companion-frontend && npm run generate-api-types`: refresh generated frontend API types after the backend OpenAPI snapshot changes
 
@@ -127,8 +130,12 @@ Registry files live under `reading-companion-backend/state/job_registry/`:
 
 ## Validation
 - `make contract-check` is the first guard for public contract drift.
+- `make agent-check` is the canonical switching-memory guard for current state, task routing, and handoff hygiene.
 - `make e2e` is the canonical upload -> analysis -> book -> chapter -> marks regression.
 
 ## Next Docs
 - Start with `AGENTS.md` for workspace rules and document routing.
+- Read `docs/current-state.md` for canonical live project status.
 - Read the relevant child `AGENTS.md` before making subproject-local changes.
+- Read `docs/tasks/registry.md` for the active task router and evidence chain.
+- Read `docs/source-of-truth-map.md` when deciding where durable information belongs.

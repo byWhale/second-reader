@@ -22,5 +22,5 @@ echo "Running frontend typecheck..."
 echo "Running frontend smoke build..."
 (cd "$FRONTEND_DIR" && npm run build)
 
-echo "Running contract checks..."
-"$ROOT_DIR/scripts/contract-check.sh"
+echo "Running agent-switching and contract checks..."
+"$ROOT_DIR/scripts/agent-check.sh"
