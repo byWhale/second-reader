@@ -1,10 +1,10 @@
 {
   "targets": [
     {
-      "target_id": "minimax_m25_highspeed",
+      "target_id": "M2.7",
       "contract": "anthropic",
       "base_url": "https://api.minimaxi.com/anthropic",
-      "model": "MiniMax-M2.5-highspeed",
+      "model": "MiniMax-M2.7-highspeed",
       "credentials": [
         {
           "credential_id": "primary",
