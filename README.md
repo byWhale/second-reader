@@ -188,13 +188,12 @@ Important frontend variables:
 ## Dataset Source Intake
 Use the managed library inbox for future private/public source additions.
 
-Drop books into:
-- `reading-companion-backend/state/library_inbox/en/public/`
-- `reading-companion-backend/state/library_inbox/en/private/`
-- `reading-companion-backend/state/library_inbox/zh/public/`
-- `reading-companion-backend/state/library_inbox/zh/private/`
+`reading-companion-backend/state/` is repo-local mutable operational data. The inbox is meant to stay simple for operators; the system does the classification and canonical copying.
 
-Nested batch directories are allowed under those roots.
+Drop books into:
+- `reading-companion-backend/state/library_inbox/`
+
+Nested batch directories are allowed under that root for your own organization.
 
 Optional sidecar metadata:
 - place `<book>.source.json` next to the source file
@@ -203,18 +202,26 @@ Optional sidecar metadata:
   - `title`
   - `author`
   - `canonical_filename`
+  - `language`
+  - `visibility`
   - `type_tags`
   - `role_tags`
   - `selection_priority`
   - `notes`
+- normal use does not require a sidecar
+- `language` is optional and is auto-detected when omitted
+- `visibility` is optional and defaults to `private`
+- set `visibility: "public"` only when you intentionally want the source stored under the public-compatible path
 
 Run intake:
 - dry-run:
   - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--dry-run"`
 - ingest everything currently in the inbox:
   - `make library-source-intake`
-- ingest only private English sources:
-  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en --visibility private"`
+- ingest only English sources after automatic language resolution:
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en"`
+- optional compatibility filter if you need to inspect only explicitly public or private records:
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--visibility public"`
 
 Intake outputs:
 - canonical copied books under `reading-companion-backend/state/library_sources/`

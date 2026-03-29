@@ -215,7 +215,8 @@ Last verified: `2026-03-29T10:25:32Z`
   - the extra cleanup pass did not produce any `keep` decisions
   - the English `9` and Chinese `3` open cases were reaffirmed as `revise` / `drop` rather than promoted into `reviewed_active`
 - Use the new managed intake layer for any future book additions instead of external `/BOOK` or `Downloads` roots:
-  - drop books into `reading-companion-backend/state/library_inbox/<language>/<visibility>/`
+  - drop books into `reading-companion-backend/state/library_inbox/`
+  - use nested folders only for optional batch organization
   - run `make library-source-intake`
 - Connect the current private-library builder inputs to the managed source catalog before starting smart target-case mining, so later automation loops consume one durable source of truth.
 - Prepare the next dataset-platform design while the judged rerun is still in flight, but design it as one closed build-review-refine loop and implement it in phases:

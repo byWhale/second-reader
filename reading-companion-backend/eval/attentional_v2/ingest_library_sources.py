@@ -1,7 +1,7 @@
 """Ingest manually provided source books into the managed local source library.
 
 Phase 1 of the dataset-platform work is a managed source intake layer:
-- operator drops books into `state/library_inbox/<language>/<visibility>/...`
+- operator drops books into `state/library_inbox/`
 - this CLI copies them into canonical paths under `state/library_sources/`
 - lightweight source records are persisted in `state/dataset_build/source_catalog.json`
 - per-run summaries are written under `state/dataset_build/source_intake_runs/`
@@ -23,6 +23,10 @@ import re
 import shutil
 from pathlib import Path
 from typing import Any
+
+from src.iterator_reader.language import detect_book_language
+from src.iterator_reader.parse import extract_plain_text
+from src.parsers import parse_ebook
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -73,8 +77,6 @@ class SourceIntakePaths:
 class InboxSource:
     source_path: Path
     relative_path: Path
-    language: str
-    visibility: str
     batch_id: str
     metadata_path: Path | None
 
@@ -161,9 +163,9 @@ def _guess_title_from_filename(path: Path) -> str:
 
 
 def _batch_id_for(relative_path: Path) -> str:
-    if len(relative_path.parts) <= 3:
+    if len(relative_path.parts) <= 1:
         return ""
-    return "/".join(relative_path.parts[2:-1])
+    return "/".join(relative_path.parts[:-1])
 
 
 def _existing_record_by_sha(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -206,6 +208,58 @@ def _read_source_metadata(source: InboxSource) -> tuple[dict[str, Any], str]:
     return (payload, "sidecar")
 
 
+def _normalize_language(value: Any) -> str:
+    lowered = _clean_text(value).lower()
+    if lowered.startswith("zh"):
+        return "zh"
+    if lowered.startswith("en"):
+        return "en"
+    raise ValueError(f"Unsupported language override for {value!r}; expected en or zh")
+
+
+def _normalize_visibility(value: Any) -> str:
+    lowered = _clean_text(value).lower()
+    if not lowered:
+        return "private"
+    if lowered in VISIBILITY_CHOICES:
+        return lowered
+    raise ValueError(f"Unsupported visibility override for {value!r}; expected public or private")
+
+
+def _sample_source_text(path: Path) -> str:
+    if path.suffix.lower() == ".epub":
+        try:
+            chapters = parse_ebook(str(path))
+        except Exception:
+            return ""
+        samples: list[str] = []
+        total_chars = 0
+        for chapter in chapters[:3]:
+            text = extract_plain_text(str(chapter.get("content", "")))
+            if not text:
+                continue
+            clipped = text[:600]
+            samples.append(clipped)
+            total_chars += len(clipped)
+            if total_chars >= 1500:
+                break
+        return "\n".join(samples)
+    try:
+        return path.read_text(encoding="utf-8", errors="ignore")[:1500]
+    except Exception:
+        return ""
+
+
+def _resolve_source_language(source_path: Path, metadata: dict[str, Any]) -> str:
+    override = metadata.get("language")
+    if _clean_text(override):
+        return _normalize_language(override)
+    detected = detect_book_language(source_path, sample_text=_sample_source_text(source_path))
+    if detected in LANGUAGE_CHOICES:
+        return detected
+    raise ValueError(f"Could not resolve supported language for {source_path}")
+
+
 def _normalize_metadata(source: InboxSource) -> dict[str, Any]:
     payload, metadata_source = _read_source_metadata(source)
     title = _clean_text(payload.get("title")) or _guess_title_from_filename(source.source_path)
@@ -214,13 +268,17 @@ def _normalize_metadata(source: InboxSource) -> dict[str, Any]:
     if not preferred_stem:
         preferred_stem = _sanitize_filename_stem(source.source_path.stem) or f"source_{sha256_file(source.source_path)[:8]}"
     preferred_suffix = Path(canonical_filename).suffix.lower() if canonical_filename else source.source_path.suffix.lower()
+    language = _resolve_source_language(source.source_path, payload)
+    visibility = _normalize_visibility(payload.get("visibility"))
     source_id = _clean_text(payload.get("source_id"))
     if not source_id:
-        source_id = f"{_sanitize_identifier(preferred_stem) or 'source'}_{source.visibility}_{source.language}"
+        source_id = f"{_sanitize_identifier(preferred_stem) or 'source'}_{visibility}_{language}"
     return {
         "source_id": source_id,
         "title": title,
         "author": _clean_text(payload.get("author")),
+        "language": language,
+        "visibility": visibility,
         "canonical_stem": preferred_stem,
         "canonical_suffix": preferred_suffix or source.source_path.suffix.lower(),
         "type_tags": _normalize_list(payload.get("type_tags")),
@@ -235,8 +293,6 @@ def _normalize_metadata(source: InboxSource) -> dict[str, Any]:
 def discover_inbox_sources(
     paths: SourceIntakePaths,
     *,
-    language: str | None = None,
-    visibility: str | None = None,
     limit: int = 0,
 ) -> tuple[list[InboxSource], list[dict[str, Any]]]:
     discovered: list[InboxSource] = []
@@ -248,30 +304,6 @@ def discover_inbox_sources(
         if candidate.name.endswith(SOURCE_METADATA_SUFFIX):
             continue
         relative_path = candidate.relative_to(paths.library_inbox_root)
-        if len(relative_path.parts) < 3:
-            skipped.append(
-                {
-                    "status": "skipped_invalid_layout",
-                    "source_path": str(candidate),
-                    "reason": "expected path under state/library_inbox/<language>/<visibility>/...",
-                }
-            )
-            continue
-        candidate_language = relative_path.parts[0]
-        candidate_visibility = relative_path.parts[1]
-        if candidate_language not in LANGUAGE_CHOICES or candidate_visibility not in VISIBILITY_CHOICES:
-            skipped.append(
-                {
-                    "status": "skipped_invalid_layout",
-                    "source_path": str(candidate),
-                    "reason": "language must be en|zh and visibility must be public|private",
-                }
-            )
-            continue
-        if language and candidate_language != language:
-            continue
-        if visibility and candidate_visibility != visibility:
-            continue
         if candidate.suffix.lower() not in SUPPORTED_SOURCE_SUFFIXES:
             skipped.append(
                 {
@@ -286,8 +318,6 @@ def discover_inbox_sources(
             InboxSource(
                 source_path=candidate,
                 relative_path=relative_path,
-                language=candidate_language,
-                visibility=candidate_visibility,
                 batch_id=_batch_id_for(relative_path),
                 metadata_path=metadata_path if metadata_path.exists() else None,
             )
@@ -440,16 +470,26 @@ def run_source_intake(
     records = list(catalog.get("records") or [])
     by_sha = _existing_record_by_sha(records)
 
-    discovered, skipped = discover_inbox_sources(paths, language=language, visibility=visibility, limit=limit)
+    discovered, skipped = discover_inbox_sources(paths)
     generated_at = utc_now()
     run_id = run_id or default_run_id()
 
     results: list[dict[str, Any]] = []
     ingested_count = 0
     existing_count = 0
+    candidate_count = 0
 
     for source in discovered:
         metadata = _normalize_metadata(source)
+        resolved_language = str(metadata["language"])
+        resolved_visibility = str(metadata["visibility"])
+        if language and resolved_language != language:
+            continue
+        if visibility and resolved_visibility != visibility:
+            continue
+        if limit > 0 and candidate_count >= limit:
+            break
+        candidate_count += 1
         source_sha = sha256_file(source.source_path)
         inbox_relative_path = str(source.relative_path)
         existing = by_sha.get(source_sha)
@@ -474,8 +514,8 @@ def run_source_intake(
             continue
 
         relative_destination = _destination_relative_path(
-            language=source.language,
-            visibility=source.visibility,
+            language=resolved_language,
+            visibility=resolved_visibility,
             canonical_stem=metadata["canonical_stem"],
             suffix=metadata["canonical_suffix"],
         )
@@ -486,8 +526,8 @@ def run_source_intake(
             "source_id": metadata["source_id"],
             "title": metadata["title"],
             "author": metadata["author"],
-            "language": source.language,
-            "visibility": source.visibility,
+            "language": resolved_language,
+            "visibility": resolved_visibility,
             "origin": metadata["origin"],
             "relative_local_path": relative_local_path,
             "original_filename": source.source_path.name,
@@ -537,7 +577,7 @@ def run_source_intake(
         "run_id": run_id,
         "generated_at": generated_at,
         "dry_run": dry_run,
-        "candidate_count": len(discovered),
+        "candidate_count": candidate_count,
         "ingested_count": ingested_count,
         "existing_count": existing_count,
         "skipped_count": len(skipped),
@@ -562,7 +602,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--language", choices=LANGUAGE_CHOICES)
-    parser.add_argument("--visibility", choices=VISIBILITY_CHOICES)
+    parser.add_argument(
+        "--visibility",
+        choices=VISIBILITY_CHOICES,
+        help="Optional compatibility filter over resolved visibility.",
+    )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--run-id")

@@ -439,8 +439,9 @@ The current active `storage_mode = local-only` supplement is now the combined pr
 The earlier Downloads-only `v1` supplement still exists as historical seed infrastructure, but the combined private-library `v2` build is now the operative local-only source pool for later benchmark promotion work.
 
 For future additions, new local books should enter through the managed inbox first:
-- `reading-companion-backend/state/library_inbox/en/private/`
-- `reading-companion-backend/state/library_inbox/zh/private/`
+- `reading-companion-backend/state/library_inbox/`
+
+Nested folders below that root are only for operator batch organization. New intake defaults to local-only/private storage unless sidecar metadata explicitly marks a source as public.
 
 The managed intake layer then copies them into:
 - `reading-companion-backend/state/library_sources/`

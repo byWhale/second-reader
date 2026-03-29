@@ -111,16 +111,13 @@ Goal:
 ## Phase 1 Contract
 ### Drop-folder workflow
 Operators should add new books under:
-- `reading-companion-backend/state/library_inbox/en/public/`
-- `reading-companion-backend/state/library_inbox/en/private/`
-- `reading-companion-backend/state/library_inbox/zh/public/`
-- `reading-companion-backend/state/library_inbox/zh/private/`
+- `reading-companion-backend/state/library_inbox/`
 
-Nested batch directories are allowed below those roots.
+Nested batch directories are allowed below that root for batch organization only. They are not semantic language or visibility folders.
 
 Examples:
-- `reading-companion-backend/state/library_inbox/en/private/2026-03-29/steve_jobs.epub`
-- `reading-companion-backend/state/library_inbox/zh/private/2026-03-29/走出唯一真理观.epub`
+- `reading-companion-backend/state/library_inbox/2026-03-29/steve_jobs.epub`
+- `reading-companion-backend/state/library_inbox/2026-03-29/走出唯一真理观.epub`
 
 ### Optional sidecar metadata
 Each source file may have a sidecar JSON with the same stem:
@@ -131,6 +128,8 @@ Supported fields:
 - `title`
 - `author`
 - `canonical_filename`
+- `language`
+- `visibility`
 - `type_tags`
 - `role_tags`
 - `selection_priority`
@@ -138,6 +137,9 @@ Supported fields:
 - `origin`
 
 This is the preferred place to refine title/author/tags without editing code.
+- `language` is optional and overrides automatic language detection when needed.
+- `visibility` is optional and defaults to `private`.
+- Most normal drops should not need a sidecar unless the operator wants to override metadata or explicitly mark a source as `public`.
 
 ### Ingest command
 - root command:
@@ -145,15 +147,15 @@ This is the preferred place to refine title/author/tags without editing code.
 - dry-run:
   - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--dry-run"`
 - filtered example:
-  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en --visibility private"`
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en"`
 
 ### Output locations
 Canonical copied sources:
 - `reading-companion-backend/state/library_sources/`
-  - public keeps the existing language-root convention:
+  - explicit `public` sources keep the existing language-root convention:
     - `state/library_sources/en/<file>.epub`
     - `state/library_sources/zh/<file>.epub`
-  - private keeps the existing private subfolders:
+  - default `private` sources keep the existing private subfolders:
     - `state/library_sources/en/private/<file>.epub`
     - `state/library_sources/zh/private/<file>.epub`
 
