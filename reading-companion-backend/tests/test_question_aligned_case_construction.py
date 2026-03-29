@@ -1,0 +1,190 @@
+"""Tests for question-aligned case construction helpers."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from eval.attentional_v2.question_aligned_case_construction import (
+    TARGET_PROFILE_ORDER,
+    build_question_aligned_excerpt_scope,
+    target_profile_id_for_case_row,
+)
+
+
+def _chapter_row(
+    *,
+    source_id: str,
+    language: str,
+    output_dir: str,
+    chapter_id: str,
+    chapter_title: str,
+    role: str,
+) -> dict[str, object]:
+    return {
+        "chapter_case_id": f"{source_id}__{chapter_id}",
+        "source_id": source_id,
+        "book_title": f"Book {source_id}",
+        "author": f"Author {source_id}",
+        "language_track": language,
+        "type_tags": ["essay"],
+        "role_tags": [role],
+        "output_dir": output_dir,
+        "chapter_id": chapter_id,
+        "chapter_number": 1,
+        "chapter_title": chapter_title,
+        "sentence_count": 6,
+        "paragraph_count": 3,
+        "candidate_position_bucket": "middle",
+        "candidate_score": 4.5,
+        "selection_status": "private_library_candidate_v2",
+        "selected_for_public_benchmark": False,
+        "selection_priority": 1,
+        "selection_role": role,
+    }
+
+
+def _sentences_en() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c1-s1",
+            "text": "Rather than celebrating applause, the author defines freedom as the discipline to refuse easier comfort when the room expects surrender.",
+        },
+        {
+            "sentence_id": "c1-s2",
+            "text": "But that confidence turns out fragile, and the paragraph suddenly asks why the speaker wanted public praise at all after claiming independence.",
+        },
+        {
+            "sentence_id": "c1-s3",
+            "text": "Again the writer returns to the same promise from earlier, comparing the present hesitation with the first vow to stay intellectually solitary.",
+        },
+        {
+            "sentence_id": "c1-s4",
+            "text": "Only then does the chapter admit that the proud decision would matter differently later, after the public failure exposed its hidden need.",
+        },
+    ]
+
+
+def _sentences_zh() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c2-s1",
+            "text": "作者不是在夸耀勇气，而是在定义一种更困难的自持：明知会失去认同，也要守住自己的判断。",
+        },
+        {
+            "sentence_id": "c2-s2",
+            "text": "但接下来的转折却很尖锐，他忽然追问自己为什么一直想得到掌声，这个问题把前面的坚定都重新压紧了。",
+        },
+        {
+            "sentence_id": "c2-s3",
+            "text": "前面那句关于独立的宣言在这里再次回来，同样的词被放进新的语境里，形成明显的回扣。",
+        },
+        {
+            "sentence_id": "c2-s4",
+            "text": "直到后来失败真正发生，这句话才显出另一层意义，原来它一直在为更晚的重新理解埋伏笔。",
+        },
+    ]
+
+
+def test_target_profile_id_for_case_row_supports_explicit_case_id_and_legacy_phenomena() -> None:
+    assert (
+        target_profile_id_for_case_row({"target_profile_id": "callback_bridge"})
+        == "callback_bridge"
+    )
+    assert (
+        target_profile_id_for_case_row(
+            {"case_id": "demo__reconsolidation_later_reinterpretation__seed_v1"}
+        )
+        == "reconsolidation_later_reinterpretation"
+    )
+    assert (
+        target_profile_id_for_case_row({"phenomena": ["definition_pressure"]})
+        == "distinction_definition"
+    )
+
+
+def test_build_question_aligned_excerpt_scope_generates_cases_reserves_and_review_first_adequacy(
+    tmp_path: Path,
+) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            _chapter_row(
+                source_id="book_en",
+                language="en",
+                output_dir="outputs/book_en",
+                chapter_id="1",
+                chapter_title="Chapter One",
+                role="argumentative",
+            )
+        ],
+        "zh": [
+            _chapter_row(
+                source_id="book_zh",
+                language="zh",
+                output_dir="outputs/book_zh",
+                chapter_id="2",
+                chapter_title="第二章",
+                role="expository",
+            )
+        ],
+    }
+    source_index = {
+        "book_en": {"source_id": "book_en", "type_tags": ["essay"], "role_tags": ["argumentative"]},
+        "book_zh": {"source_id": "book_zh", "type_tags": ["essay"], "role_tags": ["expository"]},
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en"): {
+            "chapters": [{"id": "1", "sentences": _sentences_en()}]
+        },
+        str(tmp_path / "outputs" / "book_zh"): {
+            "chapters": [{"id": "2", "sentences": _sentences_zh()}]
+        },
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        existing_rows_by_language={
+            "en": [
+                {
+                    "case_id": "legacy_en_case",
+                    "target_profile_id": "distinction_definition",
+                    "benchmark_status": "needs_revision",
+                }
+            ],
+            "zh": [],
+        },
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="demo_scope",
+    )
+
+    assert [profile["target_profile_id"] for profile in scope["target_profiles"]] == list(
+        TARGET_PROFILE_ORDER
+    )
+    assert scope["adequacy_report"]["recommended_next_action"] == "review_existing_cases"
+    assert scope["adequacy_report"]["status"] == "needs_action"
+
+    en_cases = scope["cases_by_language"]["en"]
+    zh_cases = scope["cases_by_language"]["zh"]
+    en_reserves = scope["reserve_cases_by_language"]["en"]
+    zh_reserves = scope["reserve_cases_by_language"]["zh"]
+
+    assert len(en_cases) == 1
+    assert len(zh_cases) == 1
+    assert len(en_reserves) == 1
+    assert len(zh_reserves) == 1
+    assert any(card["language_track"] == "en" for card in scope["opportunity_cards"])
+    assert any(card["language_track"] == "zh" for card in scope["opportunity_cards"])
+
+    case = en_cases[0]
+    reserve = en_reserves[0]
+    assert case["target_profile_id"] in TARGET_PROFILE_ORDER
+    assert case["opportunity_id"].startswith("book_en__1__")
+    assert case["replacement_family_id"] == f"book_en::1::{case['target_profile_id']}"
+    assert case["reserve_group_id"] == "book_en::1"
+    assert case["benchmark_status"] == "unset"
+    assert reserve["reserve_rank"] == 1
+    assert reserve["target_profile_id"] in TARGET_PROFILE_ORDER

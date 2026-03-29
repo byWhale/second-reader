@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-29T13:51:50Z`
+Last updated: `2026-03-29T16:35:43Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-03-29T13:51:50Z`
 - Lane: `dataset_growth`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
-- Next: use the completed English and Chinese follow-up packet summaries as the new benchmark-hardening truth, then prepare a human-owned post-cleanup gate review without reopening promotion or freezing a reviewed slice automatically
+- Next: keep the post-cleanup gate on `hold`, treat the `0`-new-keep follow-up result as the new benchmark-hardening truth, and only reopen promotion after a human explicitly chooses that route or a more substantive backlog-clearing move lands
 - Jobs: none
 
 ### `TASK-MECH-EN-RERUN` — Run the focused English round-3 narrative/reference rerun
@@ -33,15 +33,15 @@ Last updated: `2026-03-29T13:51:50Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: inspect the completed judged two-case rerun as real mechanism evidence, preserve the `walden` win, and diagnose the `up_from_slavery` chapter mismatch before deciding what to repair next
+- Next: convert the completed judged two-case rerun into one bounded repair plan, preserve the `walden` one-axis threading win, and inspect `up_from_slavery` for sparse chapter presence plus chapter-label trust issues before changing the mechanism again
 - Jobs: none
 
-### `TASK-DATASET-SMART-BUILDER` — Make dataset case mining question-first, smarter, and more effective
+### `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION` — Build question-aligned case construction for evaluation datasets
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: teach the smart builder to consume the managed source catalog and existing curated/reviewed case signals, then replace fixed excerpt windows and role-and-position proxy buckets with target-case mining
+- Next: validate the first private-library question-aligned build on real inputs, then decide whether to widen the same target-profile / opportunity / adequacy artifact model to the public builder before the unattended controller lands
 - Jobs: none
 
 ## Queued
@@ -51,8 +51,8 @@ Last updated: `2026-03-29T13:51:50Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Blocked by: `TASK-DATASET-SMART-BUILDER`
-- Next: design one reusable orchestration flow that can run intake, screening, target-case generation, dataset packaging, weak-case review, mechanical adjudication/import, adequacy scoring, and targeted regeneration until thresholds are met, the source pool is exhausted, or an explicit human-owned policy stop is reached
+- Blocked by: `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION`
+- Next: keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned private-library build is validated strongly enough to automate safely
 - Jobs: none
 
 ### `TASK-RUNTIME-VIABILITY-GATES` — Run durable-trace, re-entry, and runtime-viability evaluation

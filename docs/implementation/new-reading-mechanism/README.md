@@ -61,6 +61,9 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
   - the current design target for the full dataset automation loop
   - defines how source intake, target-case mining, packet review, refinement, and stop conditions should fit together
   - pins the Phase 1 managed source-intake contract and operator workflow
+- `question-aligned-case-construction.md`
+  - the concrete Phase 2 design for building evaluation cases from managed books
+  - defines target profiles, opportunity cards, case assembly, adequacy reporting, and the boundary with the later unattended loop
 - `dataset-quality-hardening.md`
   - explicit plan for strengthening semantic case trust before broader semantic comparison work
   - defines the review-status ladder, the weak-bucket hardening workflow, and the LLM-plus-human review split
@@ -101,7 +104,8 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 9. `modern-nonfiction-expansion-booklist.md`
 10. `evaluation-dataset-layout.md`
 11. `dataset-platform-closed-loop.md`
-12. `dataset-quality-hardening.md`
-13. `mechanism-pattern-ledger.md`
-14. `runtime-artifact-map.md`
-15. Stable docs listed above, as required by the task at hand
+12. `question-aligned-case-construction.md`
+13. `dataset-quality-hardening.md`
+14. `mechanism-pattern-ledger.md`
+15. `runtime-artifact-map.md`
+16. Stable docs listed above, as required by the task at hand

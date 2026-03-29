@@ -1088,3 +1088,28 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/workspace-overview.md`
 - `docs/source-of-truth-map.md`
 - `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
+
+## Entry 41
+**ID**: DEC-044
+**Status**: active
+
+**Decision / Inflection**: Make Phase 2 of the dataset platform explicitly question-aligned case construction, and postpone the full unattended controller until those construction artifacts stabilize.
+
+**Period**: Late March 2026, after managed source intake and catalog wiring had already landed and the next dataset-platform question became how to build stronger evaluation cases instead of merely automating the old heuristic builder.
+
+**Problem**: The project already had strong source intake, parsing, screening, packaging, and packet-review machinery, but its weakest layer was still semantic case construction. The current excerpt path in `corpus_builder.py` was still heavily shaped by fixed windows, role tags, and chapter-position heuristics. At the same time, the phrase "smart builder" was too vague to guide implementation well. If the project jumped directly into an unattended loop, it would risk automating today's weaker heuristics instead of automating a genuinely stronger benchmark-construction method.
+
+**Alternatives considered**: Keep the vague "smart builder" label and continue iterating heuristics informally, jump directly to the full unattended dataset loop before the new construction artifacts existed, or replace the current builder with a single monolithic LLM pass that handled source mining and dataset packaging together.
+
+**Why this path won**: The project needed a clearer Phase 2 contract before more automation. `Question-Aligned Case Construction` names the real job: build cases because they answer explicit evaluation questions under judgeable conditions. It preserves the current deterministic strengths, introduces semantic intermediate artifacts such as target profiles and opportunity cards, and gives the future unattended loop a stable contract to orchestrate. Designing the loop boundary now is enough to avoid rework; fully designing the controller later avoids hardening the wrong semantics too early.
+
+**What changed in the system**: The implementation workspace now treats Phase 2 as `Question-Aligned Case Construction` instead of `smart target-case mining`. The new design doc defines target profiles, opportunity cards, case assembly, adequacy reporting, and the deterministic-vs-LLM ownership split. The active dataset-platform task was renamed to match that design direction. The unattended loop remains a Phase 3 concern, but its artifact boundary is now explicitly defined: Phase 2 must emit stable target-profile, opportunity-card, reserve/replacement, and adequacy-report artifacts before the full unattended controller is finalized.
+
+**Why it matters later**: Future contributors will otherwise see the automation goal and assume the next step was simply "make the builder autonomous." This entry records that the intended sequence is more deliberate: first build a stronger question-aligned semantic construction layer, then automate that stronger layer. It also records that Phase 3 should orchestrate stable construction artifacts instead of implicitly defining them.
+
+**Primary evidence**:
+- `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+- `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`

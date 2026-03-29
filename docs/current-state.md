@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-29T14:26:06Z`
+Last verified: `2026-03-29T16:35:43Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -181,7 +181,10 @@ Last verified: `2026-03-29T14:26:06Z`
     - `system_regression`: split `1-1`, `attentional_v2` win-or-tie rate `0.5`, average scores `2.6` vs `3.0` in favor of `iterator_v1`
   - current interpretation to carry forward:
     - `walden_205_en__10` is a real narrative/reference-heavy win for `attentional_v2`
-    - `up_from_slavery_public_en__10` still favors `iterator_v1`, and the judge report explicitly calls out an `attentional_v2` chapter-level mismatch that must be investigated before treating the repair as stable
+      - the win came from keeping one live interpretive axis active across the chapter instead of restarting from scratch on each local moment
+    - `up_from_slavery_public_en__10` still favors `iterator_v1`
+      - `attentional_v2` under-covered the chapter too sparsely and too late for a long narrative/reference-heavy case
+      - the judge also distrusted the chapter targeting because the displayed chapter numbering is ambiguous, even though the underlying corpus row appears internally consistent
 - The earlier "10 more books" note now appears to have been a misunderstanding rather than a separate visible intake wave:
   - the repo-visible private-library source pool still matches the tracked `29`-book supplement
   - that supplement already includes the known `16`-book `/Users/baiweijiang/Documents/BOOK/` batch plus the earlier `13` private Downloads books
@@ -203,15 +206,31 @@ Last verified: `2026-03-29T14:26:06Z`
     - the current private-library supplement builder now consumes that managed source catalog and canonical local source copies instead of external `/BOOK` or `Downloads` roots
   - build the next dataset platform as one closed loop:
     - managed source intake and project-owned artifact layout
-    - question-first candidate mining and case construction
+    - question-aligned case construction
     - packetized audit, adjudication, import, and archive
     - adequacy checks plus targeted rebuild/replacement until the dataset is strong enough or the source pool is exhausted
+  - the concrete Phase 2 design now lives in:
+    - `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+  - the first live Phase 2 landing is now in code:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+    - the private-library supplement builder now writes question-aligned excerpt candidate datasets to:
+      - `state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_en_question_aligned_v1/`
+      - `state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_zh_question_aligned_v1/`
+    - the builder also emits durable intermediate artifacts under:
+      - `state/dataset_build/target_profiles/`
+      - `state/dataset_build/opportunity_maps/`
+      - `state/dataset_build/candidate_cases/`
+      - `state/dataset_build/reserve_cases/`
+      - `state/dataset_build/adequacy_reports/`
+    - the existing live `attentional_v2_private_library_excerpt_en_v2` and `attentional_v2_private_library_excerpt_zh_v2` datasets are now used as feedback inputs for adequacy and replacement pressure instead of being overwritten by this new construction path
+  - the unattended loop boundary should be defined now, but the full unattended controller should wait until target profiles, opportunity cards, and adequacy reports are implemented as stable artifacts
 - Use the task registry plus the execution tracker as the route back into detailed mechanism work.
 
 ## Next
-- Inspect the completed judged rerun as real mechanism evidence:
-  - extract the selective wins worth preserving from `walden_205_en__10`
-  - diagnose the `up_from_slavery_public_en__10` chapter mismatch before deciding whether the loss is primarily mechanism-side, harness-side, or dataset-side
+- Convert the completed judged rerun into one bounded mechanism repair plan:
+  - preserve the `walden_205_en__10` single-axis threading behavior as a protected strength
+  - inspect `up_from_slavery_public_en__10` for sparse chapter presence and ambiguous chapter-label trust rather than treating it as a generic local-density problem
 - Use the cleanup follow-up summaries as the new benchmark-hardening truth:
   - the extra cleanup pass did not produce any `keep` decisions
   - the English `9` and Chinese `3` open cases were reaffirmed as `revise` / `drop` rather than promoted into `reviewed_active`
@@ -219,11 +238,14 @@ Last verified: `2026-03-29T14:26:06Z`
   - drop books into `reading-companion-backend/state/library_inbox/`
   - use nested folders only for optional batch organization
   - run `make library-source-intake`
-- Start the smart-builder phase on top of the managed source catalog, the current private-library supplement manifests, and the existing reviewed/curated case signals.
+- Validate the first Question-Aligned Case Construction landing on a real private-library supplement build:
+  - confirm the new question-aligned candidate datasets and intermediate artifacts look strong enough to use as the next replacement-construction base
+  - then decide whether to extend the same artifact model to the public builder or keep the next step private-library-only
 - Prepare the next dataset-platform design on top of the now-completed judged rerun and the landed source-governance work, and design it as one closed build-review-refine loop implemented in phases:
   - source-book intake and intermediate-artifact governance is now landed
-  - smarter question-first case mining on top of the current corpus/review schema is next
-  - closed-loop automation that reuses packet audit/adjudication/import plus adequacy checks remains after that
+  - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
+  - the unattended loop contract should be kept explicit now so Phase 2 emits the right artifacts
+  - full closed-loop automation that reuses packet audit/adjudication/import plus adequacy checks remains after that
 - Keep the prior failed `bgjob_en_chapter_core_rerun_round3_parallel_20260329` artifacts as debugging evidence:
   - treat `up_from_slavery_public_en__10` as packaging-corrupted because the `attentional_v2` case entry points at `walden` outputs
   - treat `walden_205_en__10` as incomplete because no case artifact or summary artifacts were written
@@ -249,13 +271,13 @@ Last verified: `2026-03-29T14:26:06Z`
   - When should the detailed `attentional_v2` working design be promoted from temporary implementation docs into stable mechanism docs?
 
 ## Active Risks
-- Re-running `build_private_library_supplement.py` without explicit intent to rebuild seed datasets can wipe live private-library review status again.
+- The new question-aligned private-library builder now keeps the live `v2` review-truth datasets as feedback input instead of overwriting them, but the new question-aligned outputs are still seed candidates rather than reviewed benchmark truth.
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
-- The managed source catalog now drives both intake and the current private-library supplement build, but semantic case mining still depends too much on fixed-window and role/position heuristics.
+- The managed source catalog now drives both intake and the current private-library supplement build, and the first question-aligned replacement for fixed-window excerpt mining is landed, but it still needs real-build validation before it becomes the unquestioned base for later automation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
 - Route mismatches between frontend routes and backend-returned targets can still regress the canonical product path.
 - Resume behavior remains sensitive to artifact placement under `reading-companion-backend/output/` and `reading-companion-backend/state/`.
@@ -264,7 +286,7 @@ Last verified: `2026-03-29T14:26:06Z`
 ## Active Task IDs
 - `TASK-BENCH-BACKLOG-RESCUE`
 - `TASK-MECH-EN-RERUN`
-- `TASK-DATASET-SMART-BUILDER`
+- `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION`
 
 ## Active Job IDs
 - none
@@ -288,17 +310,18 @@ Last verified: `2026-03-29T14:26:06Z`
 16. `docs/implementation/new-reading-mechanism/evaluation-question-map.md`
 17. `docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md`
 18. `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
-19. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
+19. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+20. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-29T14:26:06Z",
+  "updated_at": "2026-03-29T15:05:19Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
     "TASK-MECH-EN-RERUN",
-    "TASK-DATASET-SMART-BUILDER"
+    "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION"
   ],
   "blocked_task_ids": [],
   "active_job_ids": [],
@@ -313,6 +336,7 @@ Last verified: `2026-03-29T14:26:06Z`
     "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
     "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
     "docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md",
+    "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
     "reading-companion-backend/eval/attentional_v2/ingest_library_sources.py",
     "reading-companion-backend/tests/test_source_intake.py",
     "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",

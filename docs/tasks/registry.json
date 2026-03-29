@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-29T13:51:50Z",
+  "updated_at": "2026-03-29T16:35:43Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -21,7 +21,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Inspect the completed judged two-case rerun as real mechanism evidence, preserve the walden win, and diagnose the up_from_slavery chapter mismatch before deciding what to repair next.",
+      "next_action": "Convert the completed judged two-case rerun into one bounded repair plan, preserve the walden one-axis threading win, and inspect up_from_slavery for sparse chapter presence plus chapter-label trust issues before changing the mechanism again.",
       "blocked_by": [],
       "evidence_refs": [
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/summary/report.md",
@@ -40,7 +40,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/outputs/walden_205_en__10/iterator_v1/_runtime/activity.jsonl",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/bundles/attentional_v2/walden_205_en__10.json"
       ],
-      "last_updated": "2026-03-29T09:55:55Z",
+      "last_updated": "2026-03-29T16:35:43Z",
       "last_updated_by": "codex"
     },
     {
@@ -61,18 +61,20 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
-      "next_action": "Use the completed English and Chinese follow-up packet summaries as the new benchmark-hardening truth, then prepare a human-owned post-cleanup gate review without reopening promotion or freezing a reviewed slice automatically.",
+      "next_action": "Keep the post-cleanup gate on hold, treat the 0-new-keep follow-up result as the new benchmark-hardening truth, and only reopen promotion after a human explicitly chooses that route or a more substantive backlog-clearing move lands.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
         "docs/implementation/new-reading-mechanism/private-library-promotion-round2.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_recovery_20260329/dataset_review_pipeline_summary.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_followup_after_recovery_20260329/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_followup_after_recovery_20260329/dataset_review_pipeline_summary.json",
         "reading-companion-backend/eval/review_packets/review_queue_summary.json",
         "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_en_v2/cases.jsonl",
         "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_zh_v2/cases.jsonl"
       ],
-      "last_updated": "2026-03-29T08:01:32Z",
+      "last_updated": "2026-03-29T16:35:43Z",
       "last_updated_by": "codex"
     },
     {
@@ -134,8 +136,8 @@
       "last_updated_by": "codex"
     },
     {
-      "id": "TASK-DATASET-SMART-BUILDER",
-      "title": "Make dataset case mining question-first, smarter, and more effective",
+      "id": "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION",
+      "title": "Build question-aligned case construction for evaluation datasets",
       "status": "active",
       "lane": "dataset_platform",
       "priority": "high",
@@ -144,21 +146,25 @@
         "docs/backend-reader-evaluation.md",
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
         "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
-        "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md"
+        "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md",
+        "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md"
       ],
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Teach the smart builder to consume the managed source catalog and existing curated/reviewed case signals, then replace fixed excerpt windows and role-and-position proxy buckets with target-case mining.",
+      "next_action": "Validate the first private-library question-aligned build on real inputs, then decide whether to widen the same target-profile, opportunity, and adequacy artifact model to the public builder before the unattended controller lands.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
         "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
+        "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+        "reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py",
         "reading-companion-backend/eval/attentional_v2/corpus_builder.py",
         "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
+        "reading-companion-backend/tests/test_question_aligned_case_construction.py",
         "reading-companion-backend/tests/test_private_library_supplement.py"
       ],
-      "last_updated": "2026-03-29T13:51:50Z",
+      "last_updated": "2026-03-29T16:35:43Z",
       "last_updated_by": "codex"
     },
     {
@@ -177,16 +183,17 @@
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Design one reusable orchestration flow that can run intake, screening, target-case generation, dataset packaging, weak-case review, mechanical adjudication/import, adequacy scoring, and targeted regeneration until thresholds are met, the source pool is exhausted, or an explicit human-owned policy stop is reached.",
+      "next_action": "Keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned private-library build is validated strongly enough to automate safely.",
       "blocked_by": [
-        "TASK-DATASET-SMART-BUILDER"
+        "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION"
       ],
       "evidence_refs": [
+        "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
         "reading-companion-backend/eval/attentional_v2/run_dataset_review_pipeline.py",
         "reading-companion-backend/eval/attentional_v2/generate_revision_replacement_packet.py",
         "reading-companion-backend/eval/attentional_v2/auto_review_packet.py"
       ],
-      "last_updated": "2026-03-29T09:49:09Z",
+      "last_updated": "2026-03-29T16:35:43Z",
       "last_updated_by": "codex"
     },
     {

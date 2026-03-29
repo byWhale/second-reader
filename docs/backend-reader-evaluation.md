@@ -74,6 +74,16 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the benchmark is good enough for early diagnosis
   - but not yet large enough for high-confidence cross-mechanism or default-cutover decisions
 
+## Chapter-Presence Interpretation Rule
+- Judged chapter-core comparisons should separate:
+  - lower-volume but cumulative interpretive threading
+  - sparse late cherry-picking
+- A mechanism should not be penalized merely for producing fewer reactions if those reactions stay on one live interpretive axis and compound honestly across the chapter.
+- A mechanism also should not be credited for a few plausible late reactions when it misses the opening pressure, never establishes chapter presence, or leaves the judge doubting chapter alignment.
+- When a judged result turns on this distinction, the closeout should record both:
+  - whether the mechanism sustained one coherent chapter-level thread
+  - whether it maintained enough early and mid-chapter contact to make that thread trustworthy
+
 ## Parallel Eval Execution Rule
 - Evaluation throughput may improve by parallelizing independent work, but parallelism must not change what is being judged.
 - When offline lanes are isolated and parallelism does not change the judgment semantics, prefer running them in parallel rather than serializing them by habit.

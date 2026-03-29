@@ -6,6 +6,67 @@
   - EN: `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_en_v2/cases.jsonl`
   - ZH: `/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_zh_v2/cases.jsonl`
 
+## `2026-03-29` Post-Cleanup Gate Update
+- gate posture remains: `hold`
+- review queue state:
+  - `reading-companion-backend/eval/review_packets/review_queue_summary.json`
+  - `active_packet_count = 0`
+- both follow-up cleanup packet summaries explicitly recorded:
+  - `decision_bearing_followup_launched: false`
+
+### Follow-Up Cleanup Results
+- EN follow-up:
+  - packet id: `attentional_v2_private_library_cleanup_en_followup_after_recovery_20260329`
+  - action counts: `{"drop": 6, "revise": 3, "keep": 0}`
+- ZH follow-up:
+  - packet id: `attentional_v2_private_library_cleanup_zh_followup_after_recovery_20260329`
+  - action counts: `{"drop": 2, "revise": 1, "keep": 0}`
+- practical interpretation:
+  - the extra cleanup pass hardened the backlog mechanically
+  - it did not produce any new `keep` decisions
+  - so it did not strengthen the promotion gate by itself
+
+### Current Local-Only Excerpt State
+- EN:
+  - total rows: `170`
+  - `reviewed_active`: `7`
+  - `needs_revision`: `3`
+  - `needs_replacement`: `6`
+  - `unset`: `154`
+  - open backlog: `9`
+- ZH:
+  - total rows: `56`
+  - `reviewed_active`: `13`
+  - `needs_revision`: `1`
+  - `needs_replacement`: `2`
+  - `unset`: `40`
+  - open backlog: `3`
+- combined:
+  - `reviewed_active`: `20`
+  - open backlog: `12`
+  - `unset`: `194`
+
+### Gate Interpretation
+- English remains the constraining lane:
+  - only `7` `reviewed_active`
+  - follow-up cleanup added `0` new keeps
+- Chinese is healthier, but the gate is bilingual, so English still limits confidence.
+- `needs_revision` and `needs_replacement` remain benchmark-hardening statuses, not promotion-ready statuses.
+- the raw `unset` volume is not benchmark-ready size; it is only remaining mining headroom.
+- the human-owned decisions still open are:
+  - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE`
+  - `OD-BENCHMARK-SIZE`
+- safe mechanical work may continue:
+  - build better replacement candidates
+  - generate new revision/replacement packets
+  - run audit, adjudication, import, and archive
+  - refresh shared queue summaries after those jobs finish
+- work still stops before:
+  - promotion reopening
+  - reviewed-slice freezing
+  - durable-trace / re-entry / runtime-viability
+  - default-cutover decisions
+
 ## Policy
 - mode: `hold_if_thin`
 - source cap: `2`

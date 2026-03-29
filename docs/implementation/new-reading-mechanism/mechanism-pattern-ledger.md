@@ -75,7 +75,9 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
 - Next action:
   - treat the landed phrase-level cue and prompt repair as the new baseline inside the approved `attentional_v2` framework
   - treat the landed actor-intention / social-pressure / causal-stakes Phase-4 repair as the next bounded extension of that baseline
-  - retry the two-case narrative/reference-heavy English comparison once provider quota headroom is available
+  - use the completed judged two-case rerun as the new bounded evidence source:
+    - keep the `walden_205_en__10` win as proof that denser local coverage is not the only success pattern
+    - diagnose why `up_from_slavery_public_en__10` still under-covers the chapter before widening the repair again
 
 ### 2. Attentional V2 chapter-scale thematic threading
 - Pattern kind: `strength`
@@ -91,13 +93,18 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
 - Evidence:
   - `attentional_v2_vs_iterator_v1_chapter_core_zh_round1_20260326`
   - `jinghua_yuan_25377_zh__34`
+  - `attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329`
+  - `walden_205_en__10`
   - Example original signals:
     - `屢次要尋自盡，無奈眾人日夜提防，真是求生不能，求死不得。`
   - Attentional V2 repeatedly lifted the same phrase across multiple chapter moments and then closed with:
     - `此八字在本章四度標記極端困境……形成情感共振，凝結為本章最核心的主題訊號。`
+  - `walden` judged lesson:
+    - a lower-volume but disciplined chain of reactions can still beat broader local coverage when every move advances one live interpretive axis instead of restarting from scratch
 - Status: `observed`
 - Next action:
   - preserve as a protected design strength while borrowing local-reading improvements; do not sacrifice chapter-scale accumulation for denser surface reactions
+  - treat `walden_205_en__10` as the concrete reference case for one-axis narrative/reference-heavy threading inside `attentional_v2`
 
 ### 3. Attentional V2 callback-cue and durable-pattern repair
 - Pattern kind: `partially_adopted`
@@ -135,23 +142,30 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
 - Potential destination: avoid in future merged mechanism
 - Why it matters:
   - A mechanism can be globally coherent yet still lose passage-level comparison if it reacts too sparsely and skips the tiny local expressions that make the reading feel earned.
+  - On long chapters, a few plausible late reactions are not enough if the mechanism never establishes chapter presence from the opening pressure onward.
 - Contributing causes:
   - `reaction_emission` is intentionally gated and often withholds visible output
   - closure pressure encourages one distilled meaning-unit reading rather than multiple local observations
   - this can produce correct chapter sense while still missing the small local expression that the judge rewards in `local_impact`
+  - ambiguous chapter metadata can make that sparse pattern look even less trustworthy because the judge starts doubting whether the mechanism stayed on the intended chapter at all
 - Evidence:
   - `attentional_v2_vs_iterator_v1_chapter_core_en_round1_20260326`
   - `attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328`
+  - `attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329`
   - `women_and_economics_public_en__9`
   - `on_liberty_public_en__10`
   - `up_from_slavery_public_en__10`
   - `walden_205_en__10`
   - pattern seen in judge reasons:
     - V2 often read correctly but felt like retrospective summary rather than live local investigation.
+    - `up_from_slavery_public_en__10` is the cleanest recent example:
+      - only a few late reactions over a long chapter
+      - missed the opening cues the judge treated as decisive
+      - judge trust was worsened by ambiguous chapter numbering metadata even though the underlying chapter row appears internally consistent
 - Status: `avoid`
 - Next action:
   - use this as a guardrail when testing local-reading improvements; reject repairs that only improve chapter summary polish without increasing earned local contact
-  - the next repair should target narrative / reference-heavy local pressure and concrete actor / causal stakes, not more summary polish
+  - the next repair should target sustained chapter presence, earlier cue uptake, and metadata clarity on long narrative / reference-heavy chapters instead of just adding more summary polish
 
 ### 5. Wrong-chapter or wrong-target traversal corrupts chapter-scale evaluation even if local reactions look rich
 - Pattern kind: `anti_pattern`
@@ -226,7 +240,9 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - short spans may synthesize one bounded local candidate from those cues when the local gate is genuinely open
     - prompt wording now prefers one grounded local why-now observation or question over broader retrospective restatement
   - next verification move:
-    - rerun `up_from_slavery_public_en__10` and `walden_205_en__10` once provider quota headroom is available
+    - use the completed judged rerun as the repair discriminator:
+      - preserve the `walden_205_en__10` single-axis threading behavior
+      - focus the next narrow repair on `up_from_slavery_public_en__10` chapter presence and early-cue uptake
   - keep the boundedness rule:
     - do not add generic reaction density just to make the local layer look busier
 

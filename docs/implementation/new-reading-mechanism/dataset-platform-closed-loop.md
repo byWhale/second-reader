@@ -99,14 +99,35 @@ Goal:
 - remove dependence on ad hoc external paths
 - create a stable source catalog and artifact chain for later automation
 
-### Phase 2: Smart Target-Case Mining
+### Phase 2: Question-Aligned Case Construction
 Goal:
-- replace coarse heuristic excerpt generation with target-first case mining
+- replace coarse heuristic excerpt generation with question-aligned case construction
+- introduce target profiles, opportunity cards, case assembly, and adequacy reporting as the stable semantic layer that later automation will orchestrate
 - learn from existing curated cases and review outcomes instead of ignoring them
 
 ### Phase 3: Closed-Loop Orchestration
 Goal:
 - connect source intake, mining, packaging, review, adequacy scoring, and regeneration into one automatic loop
+
+## Phase Boundary Rule
+We should design the unattended-loop boundary now, but not finalize or implement the full unattended controller until Phase 2 artifacts are real and stable.
+
+Design now:
+- target-profile contract
+- opportunity-card contract
+- case-construction outputs
+- adequacy-report outputs
+- reserve/replacement lineage
+- stop-condition inputs
+
+Design later, after Phase 2 lands in code:
+- long-running unattended scheduling behavior
+- retry/resume behavior across repeated construction/review waves
+- regeneration budgeting and fanout policy
+- loop-level recovery after partial failures
+
+Reason:
+- otherwise we would risk automating today's heuristic excerpt builder instead of automating a stronger semantic construction layer
 
 ## Phase 1 Contract
 ### Drop-folder workflow
@@ -204,6 +225,10 @@ It gives them a better upstream source territory:
 - later builders should do the same instead of reaching back to ad hoc external roots
 
 ## Immediate Next Work After Phase 1
-1. Teach the smart builder to read from the managed source catalog.
-2. Reuse current curated cases and review outcomes as training-by-example signals for target-case mining.
-3. Define adequacy scoring before writing the full orchestrator, so the loop has a real stop condition.
+1. Land the Question-Aligned Case Construction design:
+   - target profiles
+   - opportunity cards
+   - case assembly
+   - adequacy reporting
+2. Reuse current curated cases and review outcomes as feedback signals for question-aligned construction and later replacement.
+3. Define the unattended-loop contract now, but wait to finalize the full controller until the Phase 2 artifacts above are stable enough to orchestrate safely.

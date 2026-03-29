@@ -15,6 +15,7 @@ or copyrighted source text.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+import json
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +35,7 @@ try:
         write_json,
         write_jsonl,
     )
+    from .question_aligned_case_construction import build_question_aligned_excerpt_scope
 except ImportError:  # pragma: no cover - script execution path
     from corpus_builder import (
         ROOT,
@@ -50,6 +52,7 @@ except ImportError:  # pragma: no cover - script execution path
         write_json,
         write_jsonl,
     )
+    from question_aligned_case_construction import build_question_aligned_excerpt_scope
 
 SOURCE_MANIFEST_ID = "attentional_v2_private_library_screen_v2"
 LOCAL_REFS_MANIFEST_ID = "attentional_v2_private_library_v2_local_refs"
@@ -59,9 +62,17 @@ SOURCE_CATALOG_PATH = ROOT / "state" / "dataset_build" / "source_catalog.json"
 TRACKED_SOURCE_MANIFEST_PATH = MANIFEST_ROOT / "source_books" / f"{SOURCE_MANIFEST_ID}.json"
 
 PRIMARY_ROLE_ORDER = ("expository", "argumentative", "narrative_reflective", "reference_heavy")
-EXCERPT_FRACTIONS = (0.24, 0.72)
 MAX_CHAPTERS_PER_SOURCE = 4
 MIN_RUNTIME_SENTENCE_COUNT = 18
+QUESTION_ALIGNED_SCOPE_ID = "attentional_v2_private_library_excerpt_question_aligned_v1"
+QUESTION_ALIGNED_EXCERPT_DATASET_IDS = {
+    "en": "attentional_v2_private_library_excerpt_en_question_aligned_v1",
+    "zh": "attentional_v2_private_library_excerpt_zh_question_aligned_v1",
+}
+LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS = {
+    "en": "attentional_v2_private_library_excerpt_en_v2",
+    "zh": "attentional_v2_private_library_excerpt_zh_v2",
+}
 
 
 def _clean_text(value: Any) -> str:
@@ -292,60 +303,101 @@ def _choose_runtime_seed_rows(chapter_rows: list[dict[str, Any]]) -> list[dict[s
     return chosen
 
 
-def _excerpt_window(sentences: list[dict[str, Any]], center_fraction: float, *, radius: int) -> tuple[int, int]:
-    if not sentences:
-        return (0, 0)
-    center = max(0, min(len(sentences) - 1, int(len(sentences) * center_fraction)))
-    start = max(0, center - radius)
-    end = min(len(sentences), center + radius + 1)
-    if end <= start:
-        end = min(len(sentences), start + 1)
-    return start, end
+def _load_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        payload = json.loads(text)
+        if isinstance(payload, dict):
+            rows.append(payload)
+    return rows
 
 
-def _excerpt_seed_cases(chapter_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    cases: list[dict[str, Any]] = []
-    for row in chapter_rows:
-        document = load_book_document(ROOT / str(row["output_dir"]))
-        chapter = next(
-            (candidate for candidate in document.get("chapters", []) if str(candidate.get("id")) == str(row["chapter_id"])),
-            None,
+def load_existing_private_library_excerpt_feedback(
+    *,
+    root: Path | None = None,
+) -> dict[str, list[dict[str, Any]]]:
+    resolved_root = root or ROOT
+    rows_by_language: dict[str, list[dict[str, Any]]] = {}
+    for language, dataset_id in LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS.items():
+        dataset_path = resolved_root / "state" / "eval_local_datasets" / "excerpt_cases" / dataset_id / "cases.jsonl"
+        rows_by_language[language] = _load_jsonl(dataset_path)
+    return rows_by_language
+
+
+def question_aligned_artifact_paths(*, root: Path | None = None) -> dict[str, Any]:
+    resolved_root = root or ROOT
+    return {
+        "target_profiles": resolved_root / "state" / "dataset_build" / "target_profiles" / f"{QUESTION_ALIGNED_SCOPE_ID}.json",
+        "opportunity_maps": {
+            language: resolved_root / "state" / "dataset_build" / "opportunity_maps" / f"{dataset_id}.jsonl"
+            for language, dataset_id in QUESTION_ALIGNED_EXCERPT_DATASET_IDS.items()
+        },
+        "candidate_cases": {
+            language: resolved_root / "state" / "dataset_build" / "candidate_cases" / f"{dataset_id}.jsonl"
+            for language, dataset_id in QUESTION_ALIGNED_EXCERPT_DATASET_IDS.items()
+        },
+        "reserve_cases": {
+            language: resolved_root / "state" / "dataset_build" / "reserve_cases" / f"{dataset_id}.jsonl"
+            for language, dataset_id in QUESTION_ALIGNED_EXCERPT_DATASET_IDS.items()
+        },
+        "adequacy_report": resolved_root / "state" / "dataset_build" / "adequacy_reports" / f"{QUESTION_ALIGNED_SCOPE_ID}.json",
+    }
+
+
+def write_question_aligned_artifacts(
+    question_aligned_scope: dict[str, Any],
+    *,
+    root: Path | None = None,
+) -> dict[str, Any]:
+    resolved_root = root or ROOT
+    paths = question_aligned_artifact_paths(root=resolved_root)
+    write_json(
+        paths["target_profiles"],
+        {
+            "scope_id": question_aligned_scope["scope_id"],
+            "profiles": question_aligned_scope["target_profiles"],
+        },
+    )
+    write_json(paths["adequacy_report"], question_aligned_scope["adequacy_report"])
+    opportunity_cards = list(question_aligned_scope.get("opportunity_cards") or [])
+    for language in ("en", "zh"):
+        write_jsonl(
+            paths["opportunity_maps"][language],
+            [
+                row
+                for row in opportunity_cards
+                if str(row.get("language_track", "")).strip() == language
+            ],
         )
-        if not chapter:
-            continue
-        sentences = list(chapter.get("sentences") or [])
-        if len(sentences) < 6:
-            continue
-        radius = 3 if row["language_track"] == "en" else 2
-        for index, fraction in enumerate(EXCERPT_FRACTIONS, start=1):
-            start, end = _excerpt_window(sentences, fraction, radius=radius)
-            window = sentences[start:end]
-            excerpt_text = "\n".join(str(sentence.get("text") or "") for sentence in window).strip()
-            if len(excerpt_text) < 80:
-                continue
-            cases.append(
-                {
-                    "case_id": f"{row['chapter_case_id']}__seed_{index}",
-                    "split": "private_library_seed_v2",
-                    "source_id": row["source_id"],
-                    "book_title": row["book_title"],
-                    "author": row["author"],
-                    "output_language": row["language_track"],
-                    "chapter_id": str(row["chapter_id"]),
-                    "chapter_number": int(row["chapter_number"]),
-                    "chapter_title": row["chapter_title"],
-                    "start_sentence_id": window[0]["sentence_id"],
-                    "end_sentence_id": window[-1]["sentence_id"],
-                    "excerpt_text": excerpt_text,
-                    "selection_role": row["selection_role"],
-                    "type_tags": list(row.get("type_tags") or []),
-                    "role_tags": list(row.get("role_tags") or []),
-                    "candidate_position_bucket": row.get("candidate_position_bucket"),
-                    "excerpt_seed_status": "private_library_seed_v2",
-                    "notes": "Auto-extracted seed excerpt from the combined local private-library supplement. Requires later curation before benchmark promotion.",
-                }
-            )
-    return cases
+        write_jsonl(
+            paths["candidate_cases"][language],
+            question_aligned_scope["cases_by_language"].get(language, []),
+        )
+        write_jsonl(
+            paths["reserve_cases"][language],
+            question_aligned_scope["reserve_cases_by_language"].get(language, []),
+        )
+    return {
+        "target_profiles": str(paths["target_profiles"].relative_to(resolved_root)),
+        "adequacy_report": str(paths["adequacy_report"].relative_to(resolved_root)),
+        "opportunity_maps": {
+            language: str(path.relative_to(resolved_root))
+            for language, path in paths["opportunity_maps"].items()
+        },
+        "candidate_cases": {
+            language: str(path.relative_to(resolved_root))
+            for language, path in paths["candidate_cases"].items()
+        },
+        "reserve_cases": {
+            language: str(path.relative_to(resolved_root))
+            for language, path in paths["reserve_cases"].items()
+        },
+    }
 
 
 def _summary_counts(source_records: list[dict[str, Any]]) -> dict[str, Any]:
@@ -423,9 +475,18 @@ def main() -> None:
     runtime_rows_by_language = {
         language: _choose_runtime_seed_rows(rows) for language, rows in chapter_rows_by_language.items()
     }
-    excerpt_rows_by_language = {
-        language: _excerpt_seed_cases(rows) for language, rows in chapter_rows_by_language.items()
-    }
+    existing_excerpt_feedback = load_existing_private_library_excerpt_feedback()
+    question_aligned_scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index={str(record["source_id"]): record for record in source_records},
+        existing_rows_by_language=existing_excerpt_feedback,
+        root=ROOT,
+        document_loader=load_book_document,
+        scope_id=QUESTION_ALIGNED_SCOPE_ID,
+    )
+    excerpt_rows_by_language = question_aligned_scope["cases_by_language"]
+    reserve_rows_by_language = question_aligned_scope["reserve_cases_by_language"]
+    question_aligned_artifact_refs = write_question_aligned_artifacts(question_aligned_scope)
     compat_rows = make_compatibility_fixtures(runtime_rows_by_language.get("en", []) + runtime_rows_by_language.get("zh", []))
 
     source_manifest_path = MANIFEST_ROOT / "source_books" / f"{SOURCE_MANIFEST_ID}.json"
@@ -443,8 +504,8 @@ def main() -> None:
             "zh": "attentional_v2_private_library_runtime_zh_v2",
         },
         "excerpt_cases": {
-            "en": "attentional_v2_private_library_excerpt_en_v2",
-            "zh": "attentional_v2_private_library_excerpt_zh_v2",
+            "en": QUESTION_ALIGNED_EXCERPT_DATASET_IDS["en"],
+            "zh": QUESTION_ALIGNED_EXCERPT_DATASET_IDS["zh"],
         },
         "compatibility_fixtures": {
             "shared": "attentional_v2_private_library_compat_shared_v2",
@@ -594,16 +655,26 @@ def main() -> None:
 
     write_json(
         package_root("excerpt_cases", en_excerpt_dataset_id) / "manifest.json",
-        dataset_manifest(
-            dataset_id=en_excerpt_dataset_id,
-            family="excerpt_cases",
-            language_track="en",
-            description="English excerpt seed candidates derived from the combined private-library supplement.",
-            primary_file="cases.jsonl",
-            source_manifest_refs=source_manifest_refs,
-            split_refs=split_refs,
-            storage_mode="local-only",
-        ),
+        {
+            **dataset_manifest(
+                dataset_id=en_excerpt_dataset_id,
+                family="excerpt_cases",
+                language_track="en",
+                description="English question-aligned excerpt seed candidates derived from the combined private-library supplement and current review feedback.",
+                primary_file="cases.jsonl",
+                source_manifest_refs=source_manifest_refs,
+                split_refs=split_refs,
+                storage_mode="local-only",
+            ),
+            "feedback_source_dataset_id": LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS["en"],
+            "dataset_build_artifact_refs": [
+                question_aligned_artifact_refs["target_profiles"],
+                question_aligned_artifact_refs["adequacy_report"],
+                question_aligned_artifact_refs["opportunity_maps"]["en"],
+                question_aligned_artifact_refs["candidate_cases"]["en"],
+                question_aligned_artifact_refs["reserve_cases"]["en"],
+            ],
+        },
     )
     write_jsonl(
         package_root("excerpt_cases", en_excerpt_dataset_id) / "cases.jsonl",
@@ -611,16 +682,26 @@ def main() -> None:
     )
     write_json(
         package_root("excerpt_cases", zh_excerpt_dataset_id) / "manifest.json",
-        dataset_manifest(
-            dataset_id=zh_excerpt_dataset_id,
-            family="excerpt_cases",
-            language_track="zh",
-            description="Chinese excerpt seed candidates derived from the combined private-library supplement.",
-            primary_file="cases.jsonl",
-            source_manifest_refs=source_manifest_refs,
-            split_refs=split_refs,
-            storage_mode="local-only",
-        ),
+        {
+            **dataset_manifest(
+                dataset_id=zh_excerpt_dataset_id,
+                family="excerpt_cases",
+                language_track="zh",
+                description="Chinese question-aligned excerpt seed candidates derived from the combined private-library supplement and current review feedback.",
+                primary_file="cases.jsonl",
+                source_manifest_refs=source_manifest_refs,
+                split_refs=split_refs,
+                storage_mode="local-only",
+            ),
+            "feedback_source_dataset_id": LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS["zh"],
+            "dataset_build_artifact_refs": [
+                question_aligned_artifact_refs["target_profiles"],
+                question_aligned_artifact_refs["adequacy_report"],
+                question_aligned_artifact_refs["opportunity_maps"]["zh"],
+                question_aligned_artifact_refs["candidate_cases"]["zh"],
+                question_aligned_artifact_refs["reserve_cases"]["zh"],
+            ],
+        },
     )
     write_jsonl(
         package_root("excerpt_cases", zh_excerpt_dataset_id) / "cases.jsonl",
@@ -651,8 +732,27 @@ def main() -> None:
         "books_zh": sum(1 for record in source_records if record["language"] == "zh"),
         "chapter_candidates_en": len(chapter_rows_by_language.get("en", [])),
         "chapter_candidates_zh": len(chapter_rows_by_language.get("zh", [])),
-        "excerpt_seeds_en": len(excerpt_rows_by_language.get("en", [])),
-        "excerpt_seeds_zh": len(excerpt_rows_by_language.get("zh", [])),
+        "question_aligned_excerpt_cases_en": len(excerpt_rows_by_language.get("en", [])),
+        "question_aligned_excerpt_cases_zh": len(excerpt_rows_by_language.get("zh", [])),
+        "question_aligned_reserves_en": len(reserve_rows_by_language.get("en", [])),
+        "question_aligned_reserves_zh": len(reserve_rows_by_language.get("zh", [])),
+        "question_aligned_opportunities_en": len(
+            [
+                row
+                for row in question_aligned_scope["opportunity_cards"]
+                if str(row.get("language_track", "")).strip() == "en"
+            ]
+        ),
+        "question_aligned_opportunities_zh": len(
+            [
+                row
+                for row in question_aligned_scope["opportunity_cards"]
+                if str(row.get("language_track", "")).strip() == "zh"
+            ]
+        ),
+        "question_aligned_feedback_rows_en": len(existing_excerpt_feedback.get("en", [])),
+        "question_aligned_feedback_rows_zh": len(existing_excerpt_feedback.get("zh", [])),
+        "question_aligned_recommended_next_action": question_aligned_scope["adequacy_report"]["recommended_next_action"],
         "runtime_fixtures_en": len(make_runtime_fixtures(runtime_rows_by_language.get("en", []))),
         "runtime_fixtures_zh": len(make_runtime_fixtures(runtime_rows_by_language.get("zh", []))),
         "compatibility_fixtures_shared": len(compat_rows),

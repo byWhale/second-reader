@@ -29,14 +29,22 @@ Update when: status changes, blockers appear, or phases complete.
       - retry-2 improved the English split materially but did not fully close it:
         - `local_impact` moved from `0/4` win-or-tie to `2/4` win-or-tie
         - `system_regression` moved from `2/4` wins to `3/4` wins
-      - the next bounded narrative/reference-heavy Phase 4 repair is now landed in code and unit-tested, and the detached two-case rerun completed after the malformed-JSON recovery patch, case-isolation repair, and launcher hardening
-      - that detached rerun was launched in evidence mode with `--judge-mode none` to validate harness stability rather than to produce final judged comparison evidence
-      - a judged rerun over the same two cases remains optional follow-up if we want decision-usable mechanism comparison evidence after the cleanup passes
+      - the next bounded narrative/reference-heavy Phase 4 repair is now landed in code and unit-tested
+      - the detached two-case rerun completed after the malformed-JSON recovery patch, case-isolation repair, and launcher hardening, but that run used `--judge-mode none` and therefore only validated harness stability
+      - the judged rerun over the same two cases is now complete:
+        - `walden_205_en__10` is a real `attentional_v2` win driven by one disciplined interpretive thread carried across the chapter
+        - `up_from_slavery_public_en__10` still loses because `attentional_v2` under-covered the long chapter too sparsely and too late, with ambiguous chapter numbering metadata further weakening judge trust
     - balanced benchmark promotion from the modern private-library `v2` supplement remains mid-hardening rather than ready for formal benchmark promotion:
-      - the cleanup orchestrator is now completed, the round-2 promotion draft is landed, and the first narrow English rescue pass is archived
-      - the explicit decision was `hold_for_backlog_rescue`, and the rescue pass moved the English excerpt lane to `7` `reviewed_active`
-      - Chinese excerpt promotion remains preserved at `11` `reviewed_active` against threshold `9`
-      - formal bilingual promotion is still paused until we decide whether threshold-crossing alone is enough or whether the remaining English metadata-only cases deserve one more cleanup pass first
+      - the cleanup orchestrator is now completed, the round-2 promotion draft is landed, and the English and Chinese follow-up cleanup packets are archived
+      - the explicit decision remains `hold_for_backlog_rescue`
+      - the follow-up cleanup pass produced no new `keep` decisions:
+        - English remains at `7` `reviewed_active`
+        - Chinese remains healthy at `13` `reviewed_active`
+      - formal bilingual promotion is still paused until a human decides whether to reopen the gate or wait for a more substantive backlog-clearing move
+    - Question-Aligned Case Construction is now in first live landing rather than pure design:
+      - helper module landed at `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+      - the private-library supplement builder now emits target profiles, opportunity maps, candidate cases, reserve cases, and adequacy reports under `state/dataset_build/`
+      - the builder now writes separate question-aligned excerpt candidate datasets instead of overwriting the live `v2` review-truth datasets
     - later frontend/API retirement of section-first chapter/detail and marks surfaces
     - later stable-doc promotion timing under `Q10`
 
@@ -266,14 +274,32 @@ Update when: status changes, blockers appear, or phases complete.
     - unblock broader semantic comparison now
 - [ ] Reach the preferred reviewed-slice confidence target before broad mechanism tuning:
   - `10-12` `reviewed_active` excerpt cases per language
-- [ ] Make the dataset-build method smarter, more effective, and more efficient.
+- [ ] Build Question-Aligned Case Construction for evaluation datasets.
   - reuse the current strengths instead of discarding them:
     - source screening and candidate-chapter scoring in `corpus_builder.py`
     - explicit case metadata fields such as `question_ids`, `phenomena`, `selection_reason`, and `judge_focus`
     - review outcomes already stored through `benchmark_status`, `review_status`, `review_history`, and `review_latest`
-  - move from coarse fixed-window excerpt sampling toward question-first, target-case mining
-  - make excerpt selection answer explicit evaluation buckets such as local reading, bridge, anchored reaction, reconsolidation, and future target families without redesigning the whole builder
-  - use the current curated cases and later keep/revise/drop review results as feedback signals for proposing better next candidates
+  - first live landing is now complete on the private-library supplement path:
+    - new helper module:
+      - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - new artifacts:
+      - target profiles
+      - opportunity-card maps
+      - candidate cases
+      - reserve cases
+      - adequacy reports
+    - the private-library supplement builder now uses the live `attentional_v2_private_library_excerpt_{en,zh}_v2` datasets as review-feedback input instead of overwriting them
+    - the new candidate outputs are written to:
+      - `attentional_v2_private_library_excerpt_en_question_aligned_v1`
+      - `attentional_v2_private_library_excerpt_zh_question_aligned_v1`
+  - next:
+    - validate one real private-library build with the new outputs
+    - then decide whether to widen the same artifact model to the public builder before the unattended controller lands
+  - the loop boundary is now defined and partially materialized:
+    - target-profile contract
+    - opportunity-card contract
+    - adequacy-report contract
+  - wait to finalize the full unattended controller until those Phase 2 artifacts are stable enough to automate safely
 - [ ] Make dataset building fully automated end to end, with LLM replacing remaining non-decision curation where policy allows.
   - do not separate dataset growth from dataset review/refinement:
     - one automation loop should run source intake -> screening -> target-case generation -> dataset packaging -> weak-case review packet generation -> audit -> adjudication/import -> adequacy scoring -> targeted rebuild
@@ -306,7 +332,7 @@ Update when: status changes, blockers appear, or phases complete.
     - parse / packaging status
   - recommended strategy: design these three items as one unified dataset-platform lane with one closed build-review-refine loop, then implement in phases:
     - source/artifact governance first
-    - smarter question-first case mining second
+    - Question-Aligned Case Construction second
     - closed-loop automation/orchestration third
 - [x] Run local-reading and span-trajectory evaluation
   - landed as two parallel balanced chapter-core packs:
