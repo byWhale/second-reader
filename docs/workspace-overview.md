@@ -27,7 +27,9 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
   - `output/`
   - `state/`
     - `state/uploads/` is transient user-upload intake
+    - `state/library_inbox/` is the managed operator drop-zone for future source-book additions before canonical ingestion
     - `state/library_sources/` is the durable local source-library territory for manually curated books
+    - `state/dataset_build/` stores source catalogs, intake summaries, and later dataset-platform control artifacts
     - `state/eval_local_datasets/` is the local-only evaluation-package mirror for copyrighted or otherwise private benchmark inputs
     - `state/job_registry/` is the durable registry for long-running agent/eval background jobs
   - `eval/`
@@ -83,7 +85,9 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - Keep runtime data in `reading-companion-backend/`.
 - Keep shared runtime/mechanism boundaries in backend-owned infrastructure, and keep reader-internal ontology inside the specific mechanism that owns it.
 - Treat `reading-companion-backend/state/uploads/` as transient intake, not as the durable source library or benchmark corpus.
+- Treat `reading-companion-backend/state/library_inbox/` as the operator-facing drop-folder territory for future source books before they are canonically ingested.
 - Treat `reading-companion-backend/state/library_sources/` as the local manually curated source-book territory for repeated backend and evaluation use.
+- Treat `reading-companion-backend/state/dataset_build/` as the durable dataset-platform territory for source catalogs, intake runs, and later build-loop orchestration state.
 - Treat `reading-companion-backend/state/eval_local_datasets/` as the local-only mirror for evaluation packages that should not be checked into the repo because they contain copyrighted or otherwise private source text.
 - Treat `reading-companion-backend/state/job_registry/` as the durable state for long-running agent/eval jobs whose status must survive agent changes or handoffs.
 - Treat `reading-companion-backend/state/job_registry/active_jobs.json` as the only canonical source for mutable long-running job state.

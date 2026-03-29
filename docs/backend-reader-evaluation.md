@@ -541,7 +541,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - Excerpt-case datasets may carry the excerpt text they need directly.
   - End-to-end chapter/book comparisons should use an intentional evaluation corpus rather than ad hoc runtime `output/` or `state/uploads/` files.
   - User uploads and runtime book copies should only enter the benchmark corpus after explicit promotion and screening.
+  - The operator-facing intake territory for future benchmark-source additions is `reading-companion-backend/state/library_inbox/`.
   - The durable local source-library territory for that screening flow is `reading-companion-backend/state/library_sources/`.
+  - The durable dataset-platform catalog / run-summary territory for that flow is `reading-companion-backend/state/dataset_build/`.
   - When the source books are private or copyrighted, keep the text-bearing package in `reading-companion-backend/state/eval_local_datasets/` and point to it through tracked manifests instead of checking that package into the repo.
 
 ## Dataset Organization Rules

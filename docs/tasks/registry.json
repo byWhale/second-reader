@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-29T09:12:56Z",
+  "updated_at": "2026-03-29T10:25:32Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -19,11 +19,9 @@
         "DEC-015",
         "DEC-021"
       ],
-      "job_refs": [
-        "bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329"
-      ],
+      "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the active judged two-case rerun in place, because the apparent stall was parent-log sparsity rather than another early launcher failure; confirm health from the live per-case runtime files and llm_standard.jsonl traces, then inspect the judged summary outputs as real mechanism evidence while keeping the earlier detached --judge-mode none rerun as harness-only evidence.",
+      "next_action": "Inspect the completed judged two-case rerun as real mechanism evidence, preserve the walden win, and diagnose the up_from_slavery chapter mismatch before deciding what to repair next.",
       "blocked_by": [],
       "evidence_refs": [
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/summary/report.md",
@@ -34,11 +32,15 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_detached_20260329_125043/summary/aggregate.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_20260329.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_20260329.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.log",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/cases/up_from_slavery_public_en__10.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/outputs/walden_205_en__10/iterator_v1/_runtime/activity.jsonl",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/bundles/attentional_v2/walden_205_en__10.json"
       ],
-      "last_updated": "2026-03-29T08:10:22Z",
+      "last_updated": "2026-03-29T09:55:55Z",
       "last_updated_by": "codex"
     },
     {
@@ -102,7 +104,7 @@
     {
       "id": "TASK-DATASET-SOURCE-GOVERNANCE",
       "title": "Make source-book intake and intermediate artifacts clear and durable",
-      "status": "queued",
+      "status": "active",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
@@ -112,22 +114,27 @@
         "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
         "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md"
       ],
-      "decision_refs": [],
+      "decision_refs": [
+        "DEC-043"
+      ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Replace indirect external-root references with a managed source catalog, canonical project-owned copies of original books, and one documented drop-folder workflow for future book additions.",
+      "next_action": "Use the landed managed intake layer as the new source of truth for future book additions, then connect the current private-library builder inputs to the managed source catalog instead of hard-coded external roots.",
       "blocked_by": [],
       "evidence_refs": [
+        "docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md",
+        "reading-companion-backend/eval/attentional_v2/ingest_library_sources.py",
+        "reading-companion-backend/tests/test_source_intake.py",
         "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
         "reading-companion-backend/eval/manifests/source_books/attentional_v2_private_library_screen_v2.json",
         "reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_library_v2.json"
       ],
-      "last_updated": "2026-03-29T09:12:56Z",
+      "last_updated": "2026-03-29T10:25:32Z",
       "last_updated_by": "codex"
     },
     {
       "id": "TASK-DATASET-SMART-BUILDER",
-      "title": "Make dataset building question-first, smarter, and more effective",
+      "title": "Make dataset case mining question-first, smarter, and more effective",
       "status": "queued",
       "lane": "dataset_platform",
       "priority": "high",
@@ -141,7 +148,7 @@
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Design a phenomenon-aware case-mining layer that starts from evaluation questions and bucket requirements instead of fixed excerpt windows and broad role heuristics.",
+      "next_action": "Teach the smart builder to consume the managed source catalog and existing curated/reviewed case signals, then replace fixed excerpt windows and role-and-position proxy buckets with target-case mining.",
       "blocked_by": [
         "TASK-DATASET-SOURCE-GOVERNANCE"
       ],
@@ -150,12 +157,12 @@
         "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
         "reading-companion-backend/eval/attentional_v2/corpus_builder.py"
       ],
-      "last_updated": "2026-03-29T09:12:56Z",
+      "last_updated": "2026-03-29T10:25:32Z",
       "last_updated_by": "codex"
     },
     {
       "id": "TASK-DATASET-FULL-AUTOMATION",
-      "title": "Make dataset building fully automated end to end",
+      "title": "Make dataset building fully automated as one closed build-review-refine loop",
       "status": "queued",
       "lane": "dataset_platform",
       "priority": "high",
@@ -169,7 +176,7 @@
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Design one reusable orchestration flow that can run intake, screening, dataset packaging, weak-case review, mechanical adjudication/import, and adequacy reporting with LLM replacing remaining non-decision curation where policy allows.",
+      "next_action": "Design one reusable orchestration flow that can run intake, screening, target-case generation, dataset packaging, weak-case review, mechanical adjudication/import, adequacy scoring, and targeted regeneration until thresholds are met, the source pool is exhausted, or an explicit human-owned policy stop is reached.",
       "blocked_by": [
         "TASK-DATASET-SOURCE-GOVERNANCE",
         "TASK-DATASET-SMART-BUILDER"
@@ -179,7 +186,7 @@
         "reading-companion-backend/eval/attentional_v2/generate_revision_replacement_packet.py",
         "reading-companion-backend/eval/attentional_v2/auto_review_packet.py"
       ],
-      "last_updated": "2026-03-29T09:12:56Z",
+      "last_updated": "2026-03-29T09:49:09Z",
       "last_updated_by": "codex"
     },
     {

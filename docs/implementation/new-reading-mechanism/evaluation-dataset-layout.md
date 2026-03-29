@@ -438,6 +438,17 @@ The current active `storage_mode = local-only` supplement is now the combined pr
 
 The earlier Downloads-only `v1` supplement still exists as historical seed infrastructure, but the combined private-library `v2` build is now the operative local-only source pool for later benchmark promotion work.
 
+For future additions, new local books should enter through the managed inbox first:
+- `reading-companion-backend/state/library_inbox/en/private/`
+- `reading-companion-backend/state/library_inbox/zh/private/`
+
+The managed intake layer then copies them into:
+- `reading-companion-backend/state/library_sources/`
+
+And records them in:
+- `reading-companion-backend/state/dataset_build/source_catalog.json`
+- `reading-companion-backend/state/dataset_build/source_intake_runs/`
+
 - tracked manifests:
   - `reading-companion-backend/eval/manifests/source_books/attentional_v2_private_library_screen_v2.json`
   - `reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_library_v2.json`

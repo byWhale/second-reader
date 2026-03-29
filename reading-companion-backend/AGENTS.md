@@ -67,7 +67,9 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 - Prefer wrapping the current `iterator_reader` behind shared mechanism boundaries over copying API/job wiring into each new reader.
 - Backend-wide infrastructure must not depend on `src.iterator_reader.models`; shared code should import neutral types from `src.reading_core/`.
 - Treat `state/uploads/` as transient user-upload intake, not as the durable source library for manually curated books.
+- Treat `state/library_inbox/` as the operator drop-zone for future source-book additions before they are canonically ingested.
 - Treat `state/library_sources/` as the local durable source-library territory for repeated backend imports, demos, and evaluation preparation.
+- Treat `state/dataset_build/` as the durable dataset-platform coordination territory for source catalogs, intake summaries, and later build-loop control artifacts.
 - Treat `state/eval_local_datasets/` as the local-only mirror for evaluation packages derived from private books; use it when excerpt/chapter packages should not be checked into the repo.
 - Treat `state/job_registry/` as durable agent/eval background-job tracking territory for long-running offline work such as evaluation, packet audits, and dataset creation.
 - Treat `eval/datasets/` and `eval/manifests/` as evaluation-package territory; do not use transient uploads as the benchmark corpus by default.

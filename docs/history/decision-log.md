@@ -1060,3 +1060,31 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `reading-companion-backend/config/llm_profile_bindings.local.example.json`
 - `README.md`
 - `docs/backend-reader-evaluation.md`
+
+## Entry 40
+**ID**: DEC-043
+**Status**: active
+
+**Decision / Inflection**: Introduce a managed library-inbox plus source-catalog layer as the default operator path for future dataset-source additions.
+
+**Period**: Late March 2026, after the dataset platform was re-scoped from one-pass corpus building toward a full closed build-review-refine loop.
+
+**Problem**: The project already had a durable source library under `state/library_sources/` and strong parse/package/review machinery, but future private-library growth still depended too much on hard-coded external roots such as `/Users/.../BOOK` and `~/Downloads`. That made book addition workable for one-off rescue passes, but too brittle for the closed-loop automation target where future case mining, review, and regeneration should all consume one project-owned source of truth.
+
+**Alternatives considered**: Keep relying on the existing hard-coded external roots, store future books only in chat or ad hoc local paths until the smart builder was ready, or jump directly to a full dataset orchestrator before defining a stable source-intake surface.
+
+**Why this path won**: The shortest safe path was to land the source-governance foundation first. A managed inbox plus source catalog gives operators one simple workflow for future book additions while preserving the existing durable source-library convention. It also keeps provenance lightweight: filename, hash, batch, canonical path, and status are enough for repeatable automation without turning dataset work into paperwork.
+
+**What changed in the system**: The backend now recognizes `state/library_inbox/` as the operator drop-zone for future books, `state/library_sources/` remains the canonical managed copy territory, and `state/dataset_build/` now stores the durable source catalog and intake-run summaries. A new CLI at `reading-companion-backend/eval/attentional_v2/ingest_library_sources.py` plus the root `make library-source-intake` command copies inbox books into canonical paths, reads optional sidecar metadata, writes `source_catalog.json` / `source_catalog.md`, and records per-run summaries. This is intentionally Phase 1 only: it does not replace screening, smart case mining, or packet review, but it gives those later phases a stable source-input layer.
+
+**Why it matters later**: Future contributors will otherwise see `state/library_inbox/`, `state/dataset_build/`, and the new intake CLI as incidental clutter. This entry records that they are part of the deliberate dataset-platform direction: the project now expects future source additions to enter through a managed intake layer before parse/screen/build/review automation takes over.
+
+**Primary evidence**:
+- `reading-companion-backend/eval/attentional_v2/ingest_library_sources.py`
+- `reading-companion-backend/tests/test_source_intake.py`
+- `scripts/library-source-intake.sh`
+- `README.md`
+- `reading-companion-backend/AGENTS.md`
+- `docs/workspace-overview.md`
+- `docs/source-of-truth-map.md`
+- `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`

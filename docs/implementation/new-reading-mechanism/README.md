@@ -57,6 +57,10 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 - `evaluation-dataset-layout.md`
   - concrete family-first dataset-package design for the bilingual `attentional_v2` benchmark build
   - defines package ids, folder roots, the split between tracked datasets, tracked manifests, and local-only private dataset packages, and the current public-first large `v2` benchmark family
+- `dataset-platform-closed-loop.md`
+  - the current design target for the full dataset automation loop
+  - defines how source intake, target-case mining, packet review, refinement, and stop conditions should fit together
+  - pins the Phase 1 managed source-intake contract and operator workflow
 - `dataset-quality-hardening.md`
   - explicit plan for strengthening semantic case trust before broader semantic comparison work
   - defines the review-status ladder, the weak-bucket hardening workflow, and the LLM-plus-human review split
@@ -96,7 +100,8 @@ Update when: the design capture, plan, tracker, or open-question set changes dur
 8. `evaluation-corpus-requirements.md`
 9. `modern-nonfiction-expansion-booklist.md`
 10. `evaluation-dataset-layout.md`
-11. `dataset-quality-hardening.md`
-12. `mechanism-pattern-ledger.md`
-13. `runtime-artifact-map.md`
-14. Stable docs listed above, as required by the task at hand
+11. `dataset-platform-closed-loop.md`
+12. `dataset-quality-hardening.md`
+13. `mechanism-pattern-ledger.md`
+14. `runtime-artifact-map.md`
+15. Stable docs listed above, as required by the task at hand

@@ -182,7 +182,47 @@ Important frontend variables:
 - `make agent-check`: run contract/doc checks plus switching-memory traceability warnings
 - `make backfill-covers`: scan existing backend outputs, extract missing EPUB covers, and refresh manifests
 - `make dataset-review-pipeline DATASET_REVIEW_PIPELINE_ARGS="..."`: run the reusable mechanical dataset-review packet pipeline from the workspace root
+- `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="..."`: ingest books from the managed library inbox into canonical local source storage and the source catalog
 - `cd reading-companion-frontend && npm run generate-api-types`: refresh generated frontend API types after the backend OpenAPI snapshot changes
+
+## Dataset Source Intake
+Use the managed library inbox for future private/public source additions.
+
+Drop books into:
+- `reading-companion-backend/state/library_inbox/en/public/`
+- `reading-companion-backend/state/library_inbox/en/private/`
+- `reading-companion-backend/state/library_inbox/zh/public/`
+- `reading-companion-backend/state/library_inbox/zh/private/`
+
+Nested batch directories are allowed under those roots.
+
+Optional sidecar metadata:
+- place `<book>.source.json` next to the source file
+- useful fields:
+  - `source_id`
+  - `title`
+  - `author`
+  - `canonical_filename`
+  - `type_tags`
+  - `role_tags`
+  - `selection_priority`
+  - `notes`
+
+Run intake:
+- dry-run:
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--dry-run"`
+- ingest everything currently in the inbox:
+  - `make library-source-intake`
+- ingest only private English sources:
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en --visibility private"`
+
+Intake outputs:
+- canonical copied books under `reading-companion-backend/state/library_sources/`
+- source catalog:
+  - `reading-companion-backend/state/dataset_build/source_catalog.json`
+  - `reading-companion-backend/state/dataset_build/source_catalog.md`
+- per-run summaries:
+  - `reading-companion-backend/state/dataset_build/source_intake_runs/`
 
 ## Dataset Review Pipeline
 Use the reusable dataset-review pipeline when the work is limited to the mechanical packet lifecycle:

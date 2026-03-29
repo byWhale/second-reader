@@ -267,18 +267,46 @@ Update when: status changes, blockers appear, or phases complete.
 - [ ] Reach the preferred reviewed-slice confidence target before broad mechanism tuning:
   - `10-12` `reviewed_active` excerpt cases per language
 - [ ] Make the dataset-build method smarter, more effective, and more efficient.
-  - move from coarse fixed-window excerpt sampling toward question-first, phenomenon-aware case mining
-  - make excerpt selection answer explicit evaluation buckets such as local reading, bridge, anchored reaction, and reconsolidation
+  - reuse the current strengths instead of discarding them:
+    - source screening and candidate-chapter scoring in `corpus_builder.py`
+    - explicit case metadata fields such as `question_ids`, `phenomena`, `selection_reason`, and `judge_focus`
+    - review outcomes already stored through `benchmark_status`, `review_status`, `review_history`, and `review_latest`
+  - move from coarse fixed-window excerpt sampling toward question-first, target-case mining
+  - make excerpt selection answer explicit evaluation buckets such as local reading, bridge, anchored reaction, reconsolidation, and future target families without redesigning the whole builder
+  - use the current curated cases and later keep/revise/drop review results as feedback signals for proposing better next candidates
 - [ ] Make dataset building fully automated end to end, with LLM replacing remaining non-decision curation where policy allows.
-  - cover source intake, screening, dataset packaging, weak-case review, mechanical adjudication/import, and adequacy reporting
+  - do not separate dataset growth from dataset review/refinement:
+    - one automation loop should run source intake -> screening -> target-case generation -> dataset packaging -> weak-case review packet generation -> audit -> adjudication/import -> adequacy scoring -> targeted rebuild
+  - cover source intake, screening, dataset packaging, weak-case review, mechanical adjudication/import, adequacy reporting, and automatic iteration
   - treat human-owned promotion, freeze, and default-cutover decisions as explicit stop points rather than silent automation targets
+  - target 100% automation for all non-decision dataset work, with bounded stop conditions such as sufficiency thresholds, source-pool exhaustion, or explicit policy gates
+  - reuse the current packet review machinery rather than replacing it:
+    - `generate_revision_replacement_packet.py`
+    - `run_case_design_audit.py`
+    - `auto_review_packet.py`
+    - `import_dataset_review_packet.py`
+    - `run_dataset_review_pipeline.py`
 - [ ] Make source-book intake and intermediate-artifact management clear and durable.
   - keep canonical managed copies of original books inside project-owned storage instead of relying on external source paths as the long-term truth
   - define one documented drop-folder workflow for future book additions so new intake can be fetched and processed reproducibly
-  - recommended strategy: design these three items as one unified dataset-platform lane, then implement in phases:
+  - Phase 1 managed intake is now landed:
+    - operator drop folders under `reading-companion-backend/state/library_inbox/`
+    - intake CLI at `reading-companion-backend/eval/attentional_v2/ingest_library_sources.py`
+    - root operator surface:
+      - `make library-source-intake`
+    - durable catalog outputs under `reading-companion-backend/state/dataset_build/`
+  - make the intermediate-artifact chain explicit so the later automation loop has stable handoff points:
+    - source book -> canonical parse -> screened source record -> candidate chapters/spans -> dataset package rows -> review packets -> archived review outcomes
+  - keep provenance lightweight and operational rather than heavy:
+    - intake filename
+    - content hash
+    - intake batch / timestamp
+    - canonical managed path
+    - parse / packaging status
+  - recommended strategy: design these three items as one unified dataset-platform lane with one closed build-review-refine loop, then implement in phases:
     - source/artifact governance first
     - smarter question-first case mining second
-    - end-to-end automation/orchestration third
+    - closed-loop automation/orchestration third
 - [x] Run local-reading and span-trajectory evaluation
   - landed as two parallel balanced chapter-core packs:
     - English:

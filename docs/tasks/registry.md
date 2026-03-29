@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-29T09:12:56Z`
+Last updated: `2026-03-29T10:25:32Z`
 
 ## Status Values
 - `active`
@@ -33,36 +33,35 @@ Last updated: `2026-03-29T09:12:56Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the active judged two-case rerun in place, because the apparent stall was parent-log sparsity rather than another early launcher failure; confirm health from the live per-case runtime files and `llm_standard.jsonl` traces, then inspect the judged summary outputs as real mechanism evidence while keeping the earlier detached `--judge-mode none` rerun as harness-only evidence
-- Jobs:
-  - `bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329`
-
-## Queued
+- Next: inspect the completed judged two-case rerun as real mechanism evidence, preserve the `walden` win, and diagnose the `up_from_slavery` chapter mismatch before deciding what to repair next
+- Jobs: none
 
 ### `TASK-DATASET-SOURCE-GOVERNANCE` — Make source-book intake and intermediate artifacts clear and durable
-- Status: `queued`
+- Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: replace indirect external-root references with a managed source catalog, canonical project-owned copies of original books, and one documented drop-folder workflow for future book additions
+- Next: use the landed managed intake layer as the new source of truth for future book additions, then connect the current private-library builder inputs to the managed source catalog instead of hard-coded external roots
 - Jobs: none
 
-### `TASK-DATASET-SMART-BUILDER` — Make dataset building question-first, smarter, and more effective
+## Queued
+
+### `TASK-DATASET-SMART-BUILDER` — Make dataset case mining question-first, smarter, and more effective
 - Status: `queued`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - Blocked by: `TASK-DATASET-SOURCE-GOVERNANCE`
-- Next: design a phenomenon-aware case-mining layer that starts from evaluation questions and bucket requirements instead of fixed excerpt windows and broad role heuristics
+- Next: teach the smart builder to consume the managed source catalog and existing curated/reviewed case signals, then replace fixed excerpt windows and role-and-position proxy buckets with target-case mining
 - Jobs: none
 
-### `TASK-DATASET-FULL-AUTOMATION` — Make dataset building fully automated end to end
+### `TASK-DATASET-FULL-AUTOMATION` — Make dataset building fully automated as one closed build-review-refine loop
 - Status: `queued`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - Blocked by: `TASK-DATASET-SOURCE-GOVERNANCE`, `TASK-DATASET-SMART-BUILDER`
-- Next: design one reusable orchestration flow that can run intake, screening, dataset packaging, weak-case review, mechanical adjudication/import, and adequacy reporting with LLM replacing remaining non-decision curation where policy allows
+- Next: design one reusable orchestration flow that can run intake, screening, target-case generation, dataset packaging, weak-case review, mechanical adjudication/import, adequacy scoring, and targeted regeneration until thresholds are met, the source pool is exhausted, or an explicit human-owned policy stop is reached
 - Jobs: none
 
 ### `TASK-RUNTIME-VIABILITY-GATES` — Run durable-trace, re-entry, and runtime-viability evaluation
