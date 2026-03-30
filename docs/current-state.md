@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-29T16:35:43Z`
+Last verified: `2026-03-30T09:55:00Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -203,6 +203,8 @@ Last verified: `2026-03-29T16:35:43Z`
     - root operator surface:
       - `make library-source-intake`
     - durable source catalog outputs under `reading-companion-backend/state/dataset_build/`
+    - new canonical managed copies now live under one language-rooted `state/library_sources/` layout instead of a public/private folder split
+    - `visibility` remains only as compatibility metadata and should not drive normal product-side intake or dataset-platform decisions
     - the current private-library supplement builder now consumes that managed source catalog and canonical local source copies instead of external `/BOOK` or `Downloads` roots
   - build the next dataset platform as one closed loop:
     - managed source intake and project-owned artifact layout
@@ -214,7 +216,8 @@ Last verified: `2026-03-29T16:35:43Z`
   - the first live Phase 2 landing is now in code:
     - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
     - `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
-    - the private-library supplement builder now writes question-aligned excerpt candidate datasets to:
+    - the current historical `private_library` builder family now behaves as a managed local supplement lane rather than as a distribution-driven policy lane
+    - it writes question-aligned excerpt candidate datasets to:
       - `state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_en_question_aligned_v1/`
       - `state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_zh_question_aligned_v1/`
     - the builder also emits durable intermediate artifacts under:
@@ -240,7 +243,7 @@ Last verified: `2026-03-29T16:35:43Z`
   - run `make library-source-intake`
 - Validate the first Question-Aligned Case Construction landing on a real private-library supplement build:
   - confirm the new question-aligned candidate datasets and intermediate artifacts look strong enough to use as the next replacement-construction base
-  - then decide whether to extend the same artifact model to the public builder or keep the next step private-library-only
+  - then decide whether to widen the same artifact model across the broader managed local source pool or move directly to unattended orchestration
 - Prepare the next dataset-platform design on top of the now-completed judged rerun and the landed source-governance work, and design it as one closed build-review-refine loop implemented in phases:
   - source-book intake and intermediate-artifact governance is now landed
   - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
@@ -278,6 +281,7 @@ Last verified: `2026-03-29T16:35:43Z`
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build, and the first question-aligned replacement for fixed-window excerpt mining is landed, but it still needs real-build validation before it becomes the unquestioned base for later automation.
+- Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
 - Route mismatches between frontend routes and backend-returned targets can still regress the canonical product path.
 - Resume behavior remains sensitive to artifact placement under `reading-companion-backend/output/` and `reading-companion-backend/state/`.

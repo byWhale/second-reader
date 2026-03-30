@@ -180,8 +180,8 @@ def _existing_record_by_sha(records: list[dict[str, Any]]) -> dict[str, dict[str
 def _catalog_sort_key(record: dict[str, Any]) -> tuple[str, str, str]:
     return (
         _clean_text(record.get("language")),
-        _clean_text(record.get("visibility")),
         _clean_text(record.get("source_id")),
+        _clean_text(record.get("visibility")),
     )
 
 
@@ -272,7 +272,7 @@ def _normalize_metadata(source: InboxSource) -> dict[str, Any]:
     visibility = _normalize_visibility(payload.get("visibility"))
     source_id = _clean_text(payload.get("source_id"))
     if not source_id:
-        source_id = f"{_sanitize_identifier(preferred_stem) or 'source'}_{visibility}_{language}"
+        source_id = f"{_sanitize_identifier(preferred_stem) or 'source'}_{language}"
     return {
         "source_id": source_id,
         "title": title,
@@ -334,9 +334,9 @@ def _destination_relative_path(
     canonical_stem: str,
     suffix: str,
 ) -> Path:
+    # Visibility is now compatibility metadata only; canonical managed copies
+    # live in one language-rooted source tree regardless of distribution status.
     filename = f"{canonical_stem}{suffix}"
-    if visibility == "private":
-        return Path(language) / "private" / filename
     return Path(language) / filename
 
 
@@ -406,14 +406,13 @@ def _merge_record(existing: dict[str, Any], candidate: dict[str, Any], *, seen_a
 def render_catalog_markdown(catalog: dict[str, Any]) -> str:
     records = list(catalog.get("records") or [])
     language_counts = Counter(_clean_text(record.get("language")) or "unknown" for record in records)
-    visibility_counts = Counter(_clean_text(record.get("visibility")) or "unknown" for record in records)
     lines = [
         "# Source Catalog",
         "",
         f"- updated_at: `{catalog.get('updated_at', '')}`",
         f"- record_count: `{len(records)}`",
         f"- language_counts: `{json.dumps(dict(sorted(language_counts.items())), ensure_ascii=False)}`",
-        f"- visibility_counts: `{json.dumps(dict(sorted(visibility_counts.items())), ensure_ascii=False)}`",
+        "- visibility is retained only as compatibility metadata and is not a primary intake or build axis.",
         "",
         "## Records",
         "",
@@ -425,7 +424,6 @@ def render_catalog_markdown(catalog: dict[str, Any]) -> str:
                 f"  - title: `{record.get('title', '')}`",
                 f"  - author: `{record.get('author', '')}`",
                 f"  - language: `{record.get('language', '')}`",
-                f"  - visibility: `{record.get('visibility', '')}`",
                 f"  - relative_local_path: `{record.get('relative_local_path', '')}`",
                 f"  - original_filename: `{record.get('original_filename', '')}`",
                 f"  - sha256: `{record.get('sha256', '')}`",
@@ -605,7 +603,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--visibility",
         choices=VISIBILITY_CHOICES,
-        help="Optional compatibility filter over resolved visibility.",
+        help="Optional compatibility-only filter over resolved visibility metadata.",
     )
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--dry-run", action="store_true")

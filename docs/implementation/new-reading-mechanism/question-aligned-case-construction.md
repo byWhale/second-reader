@@ -67,7 +67,9 @@ Because excerpt cases are where:
 - review feedback is richest
 
 ## First Landing
-The first live implementation is now landed on the managed private-library supplement path.
+The first live implementation is now landed on the managed local supplement path.
+
+The current dataset ids still use `private_library` for continuity with existing evidence and review artifacts, but that naming is now historical rather than a preferred platform boundary.
 
 Current code entrypoints:
 - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`

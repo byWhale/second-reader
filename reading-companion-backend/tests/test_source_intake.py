@@ -82,7 +82,7 @@ def test_run_source_intake_copies_files_and_writes_catalog_with_private_default(
 
     assert summary["candidate_count"] == 1
     assert summary["ingested_count"] == 1
-    copied_path = paths.library_source_root / "en" / "private" / "steve_jobs.epub"
+    copied_path = paths.library_source_root / "en" / "steve_jobs.epub"
     assert copied_path.exists()
 
     catalog = load_catalog(paths.source_catalog_path)
@@ -93,7 +93,7 @@ def test_run_source_intake_copies_files_and_writes_catalog_with_private_default(
     assert record["author"] == "Walter Isaacson"
     assert record["language"] == "en"
     assert record["visibility"] == "private"
-    assert record["relative_local_path"] == "state/library_sources/en/private/steve_jobs.epub"
+    assert record["relative_local_path"] == "state/library_sources/en/steve_jobs.epub"
     assert record["ingest_batch_ids"] == ["2026-03-29/english"]
     assert record["parse_status"] == "not_started"
     assert record["screening_status"] == "not_started"
@@ -121,8 +121,8 @@ def test_run_source_intake_auto_detects_language_for_english_and_chinese_epubs(t
 
     assert summary["candidate_count"] == 2
     assert summary["ingested_count"] == 2
-    assert (paths.library_source_root / "en" / "private" / "walden.epub").exists()
-    assert (paths.library_source_root / "zh" / "private" / "朝花夕拾.epub").exists()
+    assert (paths.library_source_root / "en" / "walden.epub").exists()
+    assert (paths.library_source_root / "zh" / "朝花夕拾.epub").exists()
 
     records = {record["title"]: record for record in load_catalog(paths.source_catalog_path)["records"]}
     assert records["Walden"]["language"] == "en"
@@ -131,7 +131,7 @@ def test_run_source_intake_auto_detects_language_for_english_and_chinese_epubs(t
     assert records["朝花夕拾"]["visibility"] == "private"
 
 
-def test_run_source_intake_explicit_public_visibility_routes_to_public_path(tmp_path: Path) -> None:
+def test_run_source_intake_keeps_visibility_only_as_metadata_and_uses_shared_path(tmp_path: Path) -> None:
     paths = SourceIntakePaths.from_root(tmp_path)
     source_path = paths.library_inbox_root / "public_candidates" / "Walden.epub"
     _write(source_path, "demo epub bytes")
@@ -152,6 +152,24 @@ def test_run_source_intake_explicit_public_visibility_routes_to_public_path(tmp_
     record = load_catalog(paths.source_catalog_path)["records"][0]
     assert record["visibility"] == "public"
     assert record["relative_local_path"] == "state/library_sources/en/walden.epub"
+
+
+def test_run_source_intake_default_source_id_no_longer_bakes_visibility_into_identifier(tmp_path: Path) -> None:
+    paths = SourceIntakePaths.from_root(tmp_path)
+    source_path = paths.library_inbox_root / "batch_a" / "Walden.epub"
+    _write(source_path, "demo")
+    _write_json(
+        source_path.with_suffix(".source.json"),
+        {
+            "title": "Walden",
+            "language": "en",
+        },
+    )
+
+    run_source_intake(paths, run_id="source_id_default")
+
+    record = load_catalog(paths.source_catalog_path)["records"][0]
+    assert record["source_id"] == "walden_en"
 
 
 def test_reingest_same_hash_updates_existing_record_without_duplication(tmp_path: Path) -> None:
@@ -207,7 +225,7 @@ def test_run_source_intake_dry_run_does_not_mutate_state(tmp_path: Path) -> None
     assert summary["candidate_count"] == 1
     assert summary["ingested_count"] == 1
     assert not paths.source_catalog_path.exists()
-    assert not (paths.library_source_root / "en" / "private" / "walden.epub").exists()
+    assert not (paths.library_source_root / "en" / "walden.epub").exists()
     assert not (paths.source_intake_runs_root / "dry_run.json").exists()
 
 

@@ -279,7 +279,7 @@ Update when: status changes, blockers appear, or phases complete.
     - source screening and candidate-chapter scoring in `corpus_builder.py`
     - explicit case metadata fields such as `question_ids`, `phenomena`, `selection_reason`, and `judge_focus`
     - review outcomes already stored through `benchmark_status`, `review_status`, `review_history`, and `review_latest`
-  - first live landing is now complete on the private-library supplement path:
+  - first live landing is now complete on the managed local supplement path:
     - new helper module:
       - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
     - new artifacts:
@@ -288,13 +288,13 @@ Update when: status changes, blockers appear, or phases complete.
       - candidate cases
       - reserve cases
       - adequacy reports
-    - the private-library supplement builder now uses the live `attentional_v2_private_library_excerpt_{en,zh}_v2` datasets as review-feedback input instead of overwriting them
+    - the current historical `private_library` supplement builder now uses the live `attentional_v2_private_library_excerpt_{en,zh}_v2` datasets as review-feedback input instead of overwriting them
     - the new candidate outputs are written to:
       - `attentional_v2_private_library_excerpt_en_question_aligned_v1`
       - `attentional_v2_private_library_excerpt_zh_question_aligned_v1`
   - next:
-    - validate one real private-library build with the new outputs
-    - then decide whether to widen the same artifact model to the public builder before the unattended controller lands
+    - validate one real managed-local build with the new outputs
+    - then decide whether to widen the same artifact model across the broader managed source pool before the unattended controller lands
   - the loop boundary is now defined and partially materialized:
     - target-profile contract
     - opportunity-card contract

@@ -441,7 +441,7 @@ The earlier Downloads-only `v1` supplement still exists as historical seed infra
 For future additions, new local books should enter through the managed inbox first:
 - `reading-companion-backend/state/library_inbox/`
 
-Nested folders below that root are only for operator batch organization. New intake defaults to local-only/private storage unless sidecar metadata explicitly marks a source as public.
+Nested folders below that root are only for operator batch organization. Public/private is now compatibility metadata only and should not be treated as a primary operator workflow or dataset-build branch.
 
 The managed intake layer then copies them into:
 - `reading-companion-backend/state/library_sources/`
@@ -451,15 +451,17 @@ And records them in:
 - `reading-companion-backend/state/dataset_build/source_intake_runs/`
 
 The current private-library supplement builder now consumes that managed source catalog plus canonical `state/library_sources/` copies instead of reading directly from external `/BOOK` or `Downloads` roots.
+The current `private_library` names remain historical identifiers for the existing local supplement family; they are not the preferred future platform boundary.
 
 - tracked manifests:
   - `reading-companion-backend/eval/manifests/source_books/attentional_v2_private_library_screen_v2.json`
   - `reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_library_v2.json`
   - `reading-companion-backend/eval/manifests/corpora/attentional_v2_private_library_bilingual_v2.json`
   - `reading-companion-backend/eval/manifests/splits/attentional_v2_private_library_bilingual_v2.json`
-- promoted private source books:
-  - `reading-companion-backend/state/library_sources/en/private/`
-  - `reading-companion-backend/state/library_sources/zh/private/`
+- managed source-book territory:
+  - `reading-companion-backend/state/library_sources/en/`
+  - `reading-companion-backend/state/library_sources/zh/`
+  - older `/private/` subpaths remain valid as compatibility inputs for already-built manifests
 - `storage_mode = local-only` package mirror:
   - `reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_en_v2/`
   - `reading-companion-backend/state/eval_local_datasets/chapter_corpora/attentional_v2_private_library_chapters_zh_v2/`

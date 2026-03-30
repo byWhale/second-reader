@@ -159,8 +159,8 @@ Supported fields:
 
 This is the preferred place to refine title/author/tags without editing code.
 - `language` is optional and overrides automatic language detection when needed.
-- `visibility` is optional and defaults to `private`.
-- Most normal drops should not need a sidecar unless the operator wants to override metadata or explicitly mark a source as `public`.
+- `visibility` is optional compatibility metadata only and should not shape normal product-side source intake.
+- Most normal drops should not need a sidecar unless the operator wants to override metadata or other descriptive fields.
 
 ### Ingest command
 - root command:
@@ -173,12 +173,10 @@ This is the preferred place to refine title/author/tags without editing code.
 ### Output locations
 Canonical copied sources:
 - `reading-companion-backend/state/library_sources/`
-  - explicit `public` sources keep the existing language-root convention:
+  - new managed copies now use one language-rooted layout regardless of visibility metadata:
     - `state/library_sources/en/<file>.epub`
     - `state/library_sources/zh/<file>.epub`
-  - default `private` sources keep the existing private subfolders:
-    - `state/library_sources/en/private/<file>.epub`
-    - `state/library_sources/zh/private/<file>.epub`
+  - older `/private/` paths remain valid compatibility inputs and should not be treated as the future platform shape
 
 Catalog and run summaries:
 - `reading-companion-backend/state/dataset_build/source_catalog.json`
@@ -222,6 +220,7 @@ Phase 1 does not replace the current builders immediately.
 
 It gives them a better upstream source territory:
 - the current private-library supplement builder now pulls from the managed catalog and canonical library
+- public/private is no longer the intended source-selection axis for future automation; current `private_library` names are historical dataset-family labels, not a platform-wide policy requirement
 - later builders should do the same instead of reaching back to ad hoc external roots
 
 ## Immediate Next Work After Phase 1

@@ -1,7 +1,7 @@
 """Build a combined private-library local supplement from managed source-catalog inputs.
 
 This script now:
-- reads private managed-source records from `state/dataset_build/source_catalog.json`
+- reads managed-source records from `state/dataset_build/source_catalog.json`
 - reuses canonical copied books under `state/library_sources/`
 - screens every reachable book through the canonical parse pipeline
 - writes tracked source/corpus/split/local-ref manifests for the combined local pool
@@ -148,11 +148,12 @@ def load_private_library_source_items(
     catalog_path: Path = SOURCE_CATALOG_PATH,
     tracked_manifest_path: Path = TRACKED_SOURCE_MANIFEST_PATH,
 ) -> list[dict[str, Any]]:
+    # Historical manifest and dataset ids still say "private_library", but the
+    # managed source path now stays source-agnostic and does not gate on
+    # visibility metadata.
     overrides = _tracked_private_library_overrides(tracked_manifest_path)
     items: list[dict[str, Any]] = []
     for record in _catalog_records(catalog_path):
-        if _clean_text(record.get("visibility")) != "private":
-            continue
         language = _clean_text(record.get("language"))
         if language not in {"en", "zh"}:
             continue

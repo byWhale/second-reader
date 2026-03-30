@@ -210,8 +210,10 @@ Optional sidecar metadata:
   - `notes`
 - normal use does not require a sidecar
 - `language` is optional and is auto-detected when omitted
-- `visibility` is optional and defaults to `private`
-- set `visibility: "public"` only when you intentionally want the source stored under the public-compatible path
+- `visibility` is optional compatibility metadata only
+- new canonical managed copies no longer route into separate public/private folders
+- if you omit `source_id`, the default generated id now follows `<canonical_stem>_<language>`
+- most normal product work should ignore `visibility` entirely
 
 Run intake:
 - dry-run:
@@ -225,6 +227,9 @@ Run intake:
 
 Intake outputs:
 - canonical copied books under `reading-companion-backend/state/library_sources/`
+- current managed copies are language-rooted, for example:
+  - `reading-companion-backend/state/library_sources/en/walden.epub`
+  - `reading-companion-backend/state/library_sources/zh/朝花夕拾.epub`
 - source catalog:
   - `reading-companion-backend/state/dataset_build/source_catalog.json`
   - `reading-companion-backend/state/dataset_build/source_catalog.md`

@@ -1113,3 +1113,32 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - `docs/tasks/registry.md`
 - `docs/tasks/registry.json`
+
+## Entry 42
+**ID**: DEC-045
+**Status**: active
+
+**Decision / Inflection**: Stop treating public/private as a primary dataset-platform organizing rule; keep it only as compatibility metadata while the project optimizes for product quality, automation, and speed.
+
+**Period**: Late March 2026, after the managed inbox, source catalog, and first question-aligned supplement landing had already clarified that the main product bottlenecks were case quality and automation rather than source-distribution handling.
+
+**Problem**: The dataset platform had already simplified operator intake to one inbox folder, but `visibility` still leaked into canonical source paths, generated source ids, and parts of the dataset-platform narrative as if public/private distribution were a first-class product concern. That added friction and made future automation look more complicated than the actual product goal required. The project's immediate goal is stronger reader evaluation data and faster closed-loop improvement, not distribution packaging.
+
+**Alternatives considered**: Keep the current visibility split everywhere because old manifests used it, remove all visibility metadata immediately and migrate every historical manifest/path, or build a heavier dual-track public/private architecture before the unattended loop landed.
+
+**Why this path won**: The best tradeoff was to simplify the live platform without forcing a risky migration. New managed copies now use one language-rooted source tree, default generated source ids no longer bake visibility into the identifier, and the current managed supplement loader no longer treats visibility as its primary admission gate. Historical dataset ids, manifests, and older `/private/` paths still work, but they are explicitly compatibility baggage rather than the design center.
+
+**What changed in the system**: `reading-companion-backend/eval/attentional_v2/ingest_library_sources.py` now treats `visibility` as optional compatibility metadata, writes new canonical copies under `state/library_sources/<language>/`, and generates default source ids as `<canonical_stem>_<language>`. `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py` now loads managed source records without filtering them by visibility. Stable docs and current-state/task routing now say explicitly that future dataset-platform work should optimize around managed-source quality and automation rather than around public/private branching. Historical `private_library` naming remains in some dataset ids and manifests for continuity with existing evidence.
+
+**Why it matters later**: Future contributors would otherwise keep reintroducing public/private branching into primary jobs just because those words still existed in older ids and manifests. This entry records the intended rule clearly: unless a task is explicitly about distribution, export policy, or legacy recovery, public/private should stay in the background and must not slow the main product-quality and automation lanes.
+
+**Primary evidence**:
+- `reading-companion-backend/eval/attentional_v2/ingest_library_sources.py`
+- `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+- `reading-companion-backend/tests/test_source_intake.py`
+- `reading-companion-backend/tests/test_private_library_supplement.py`
+- `README.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
+- `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`

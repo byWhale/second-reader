@@ -24,7 +24,7 @@ def _write_json(path: Path, payload: object) -> None:
 
 def test_load_private_library_source_items_uses_catalog_paths_and_manifest_fallbacks(tmp_path: Path) -> None:
     root = tmp_path
-    source_path = root / "state" / "library_sources" / "en" / "private" / "fooled_by_randomness.epub"
+    source_path = root / "state" / "library_sources" / "en" / "fooled_by_randomness.epub"
     _write(source_path, "demo")
 
     catalog_path = root / "state" / "dataset_build" / "source_catalog.json"
@@ -39,7 +39,7 @@ def test_load_private_library_source_items_uses_catalog_paths_and_manifest_fallb
                     "language": "en",
                     "visibility": "private",
                     "origin": "manual_library_inbox",
-                    "relative_local_path": "state/library_sources/en/private/fooled_by_randomness.epub",
+                    "relative_local_path": "state/library_sources/en/fooled_by_randomness.epub",
                     "original_filename": "Fooled by Randomness.epub",
                     "selection_priority": 9999,
                     "type_tags": [],
@@ -82,7 +82,7 @@ def test_load_private_library_source_items_uses_catalog_paths_and_manifest_fallb
     item = items[0]
     spec = item["spec"]
     assert spec.source_id == "fooled_by_randomness_private_en"
-    assert spec.promoted_local_path == "en/private/fooled_by_randomness.epub"
+    assert spec.promoted_local_path == "en/fooled_by_randomness.epub"
     assert spec.selection_priority == 6
     assert spec.type_tags == ["psychology_decision", "modern_nonfiction"]
     assert spec.role_tags == ["argumentative", "reference_heavy"]
@@ -91,9 +91,9 @@ def test_load_private_library_source_items_uses_catalog_paths_and_manifest_fallb
     assert item["acquisition_batch_id"] == "legacy_private_downloads_v1"
 
 
-def test_load_private_library_source_items_prefers_explicit_catalog_metadata_and_filters_non_private(tmp_path: Path) -> None:
+def test_load_private_library_source_items_prefers_explicit_catalog_metadata_and_ignores_visibility_gating(tmp_path: Path) -> None:
     root = tmp_path
-    private_source = root / "state" / "library_sources" / "zh" / "private" / "case_a.epub"
+    private_source = root / "state" / "library_sources" / "zh" / "case_a.epub"
     public_source = root / "state" / "library_sources" / "en" / "case_b.epub"
     _write(private_source, "a")
     _write(public_source, "b")
@@ -110,7 +110,7 @@ def test_load_private_library_source_items_prefers_explicit_catalog_metadata_and
                     "language": "zh",
                     "visibility": "private",
                     "origin": "manual_library_inbox",
-                    "relative_local_path": "state/library_sources/zh/private/case_a.epub",
+                    "relative_local_path": "state/library_sources/zh/case_a.epub",
                     "selection_priority": 3,
                     "type_tags": ["history"],
                     "role_tags": ["argumentative"],
@@ -128,7 +128,7 @@ def test_load_private_library_source_items_prefers_explicit_catalog_metadata_and
                     "selection_priority": 1,
                     "type_tags": ["business"],
                     "role_tags": ["expository"],
-                    "notes": ["Should be ignored by the private-library builder."],
+                    "notes": ["Visibility should not exclude this managed source."],
                     "original_filename": "case_b.epub",
                 },
             ]
@@ -137,13 +137,16 @@ def test_load_private_library_source_items_prefers_explicit_catalog_metadata_and
 
     items = load_private_library_source_items(root=root, catalog_path=catalog_path, tracked_manifest_path=root / "missing.json")
 
-    assert len(items) == 1
-    spec = items[0]["spec"]
-    assert spec.source_id == "case_a_private_zh"
-    assert spec.selection_priority == 3
-    assert spec.type_tags == ["history"]
-    assert spec.role_tags == ["argumentative"]
-    assert spec.notes == ["Catalog metadata wins."]
+    assert len(items) == 2
+    specs = {item["spec"].source_id: item["spec"] for item in items}
+    assert specs["case_a_private_zh"].selection_priority == 3
+    assert specs["case_a_private_zh"].type_tags == ["history"]
+    assert specs["case_a_private_zh"].role_tags == ["argumentative"]
+    assert specs["case_a_private_zh"].notes == ["Catalog metadata wins."]
+    assert specs["case_b_public_en"].selection_priority == 1
+    assert specs["case_b_public_en"].type_tags == ["business"]
+    assert specs["case_b_public_en"].role_tags == ["expository"]
+    assert specs["case_b_public_en"].notes == ["Visibility should not exclude this managed source."]
 
 
 def test_build_private_library_splits_adds_dynamic_batch_groups() -> None:
@@ -186,7 +189,7 @@ def test_main_wires_question_aligned_excerpt_outputs_without_using_old_seed_buil
     monkeypatch,
 ) -> None:
     root = tmp_path
-    source_path = root / "state" / "library_sources" / "en" / "private" / "demo.epub"
+    source_path = root / "state" / "library_sources" / "en" / "demo.epub"
     _write(source_path, "demo")
     _write_json(
         root
@@ -233,7 +236,7 @@ def test_main_wires_question_aligned_excerpt_outputs_without_using_old_seed_buil
                     language="en",
                     origin="managed-library-source",
                     storage_mode="local-only",
-                    promoted_local_path="en/private/demo.epub",
+                    promoted_local_path="en/demo.epub",
                     acquisition={"kind": "managed_source_catalog"},
                     type_tags=["essay"],
                     role_tags=["argumentative"],
@@ -243,7 +246,7 @@ def test_main_wires_question_aligned_excerpt_outputs_without_using_old_seed_buil
                 "source_path": source_path,
                 "acquisition_batch_id": "batch_a",
                 "origin_filename": "demo.epub",
-                "relative_local_path": "state/library_sources/en/private/demo.epub",
+                "relative_local_path": "state/library_sources/en/demo.epub",
             }
         ],
     )
@@ -257,7 +260,7 @@ def test_main_wires_question_aligned_excerpt_outputs_without_using_old_seed_buil
             "language": "en",
             "type_tags": ["essay"],
             "role_tags": ["argumentative"],
-            "relative_local_path": "state/library_sources/en/private/demo.epub",
+            "relative_local_path": "state/library_sources/en/demo.epub",
             "sha256": "abc",
             "file_size": 4,
             "output_dir": "outputs/demo_private_en",

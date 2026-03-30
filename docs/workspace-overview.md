@@ -88,6 +88,7 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - Treat `reading-companion-backend/state/library_inbox/` as the operator-facing drop-folder territory for future source books before they are canonically ingested.
 - Use nested folders there only for optional batch organization, not as required language or visibility routing.
 - Treat `reading-companion-backend/state/library_sources/` as the local manually curated source-book territory for repeated backend and evaluation use.
+- Treat public/private as compatibility metadata only in this source territory, not as a primary organizer for product or dataset-platform work.
 - Treat `reading-companion-backend/state/dataset_build/` as the durable dataset-platform territory for source catalogs, intake runs, and later build-loop orchestration state.
 - Treat `reading-companion-backend/state/eval_local_datasets/` as the local-only mirror for evaluation packages that should not be checked into the repo because they contain copyrighted or otherwise private source text.
 - Treat `reading-companion-backend/state/job_registry/` as the durable state for long-running agent/eval jobs whose status must survive agent changes or handoffs.

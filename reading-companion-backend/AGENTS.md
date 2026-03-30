@@ -69,6 +69,7 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 - Treat `state/uploads/` as transient user-upload intake, not as the durable source library for manually curated books.
 - Treat `state/library_inbox/` as the operator drop-zone for future source-book additions before they are canonically ingested.
 - Treat `state/library_sources/` as the local durable source-library territory for repeated backend imports, demos, and evaluation preparation.
+- Do not let public/private distribution handling become a primary organizer for dataset-platform work unless the task is explicitly about export, distribution, or legacy recovery.
 - Treat `state/dataset_build/` as the durable dataset-platform coordination territory for source catalogs, intake summaries, and later build-loop control artifacts.
 - Treat `state/eval_local_datasets/` as the local-only mirror for evaluation packages derived from private books; use it when excerpt/chapter packages should not be checked into the repo.
 - Treat `state/job_registry/` as durable agent/eval background-job tracking territory for long-running offline work such as evaluation, packet audits, and dataset creation.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-29T16:35:43Z",
+  "updated_at": "2026-03-30T09:55:00Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -117,11 +117,12 @@
         "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md"
       ],
       "decision_refs": [
-        "DEC-043"
+        "DEC-043",
+        "DEC-045"
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep using the managed inbox plus source catalog as the source of truth for future book additions and private-library supplement refreshes.",
+      "next_action": "Keep using the managed inbox plus source catalog as the source of truth for future book additions, and treat public/private only as compatibility metadata instead of a primary workflow branch.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md",
@@ -132,7 +133,7 @@
         "reading-companion-backend/eval/manifests/source_books/attentional_v2_private_library_screen_v2.json",
         "reading-companion-backend/eval/manifests/local_refs/attentional_v2_private_library_v2.json"
       ],
-      "last_updated": "2026-03-29T13:51:50Z",
+      "last_updated": "2026-03-30T09:55:00Z",
       "last_updated_by": "codex"
     },
     {
@@ -149,10 +150,12 @@
         "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md",
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md"
       ],
-      "decision_refs": [],
+      "decision_refs": [
+        "DEC-045"
+      ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Validate the first private-library question-aligned build on real inputs, then decide whether to widen the same target-profile, opportunity, and adequacy artifact model to the public builder before the unattended controller lands.",
+      "next_action": "Validate the first managed-local question-aligned build on real inputs, then decide whether to widen the same target-profile, opportunity, and adequacy artifact model across the broader managed source pool before the unattended controller lands.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -164,7 +167,7 @@
         "reading-companion-backend/tests/test_question_aligned_case_construction.py",
         "reading-companion-backend/tests/test_private_library_supplement.py"
       ],
-      "last_updated": "2026-03-29T16:35:43Z",
+      "last_updated": "2026-03-30T09:55:00Z",
       "last_updated_by": "codex"
     },
     {
@@ -180,10 +183,12 @@
         "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
         "docs/source-of-truth-map.md"
       ],
-      "decision_refs": [],
+      "decision_refs": [
+        "DEC-045"
+      ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned private-library build is validated strongly enough to automate safely.",
+      "next_action": "Keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned managed-local build is validated strongly enough to automate safely.",
       "blocked_by": [
         "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION"
       ],
@@ -193,7 +198,7 @@
         "reading-companion-backend/eval/attentional_v2/generate_revision_replacement_packet.py",
         "reading-companion-backend/eval/attentional_v2/auto_review_packet.py"
       ],
-      "last_updated": "2026-03-29T16:35:43Z",
+      "last_updated": "2026-03-30T09:55:00Z",
       "last_updated_by": "codex"
     },
     {

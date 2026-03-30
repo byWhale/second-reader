@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-29T16:35:43Z`
+Last updated: `2026-03-30T09:55:00Z`
 
 ## Status Values
 - `active`
@@ -41,7 +41,7 @@ Last updated: `2026-03-29T16:35:43Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: validate the first private-library question-aligned build on real inputs, then decide whether to widen the same target-profile / opportunity / adequacy artifact model to the public builder before the unattended controller lands
+- Next: validate the first managed-local question-aligned build on real inputs, then decide whether to widen the same target-profile / opportunity / adequacy artifact model across the broader managed source pool before the unattended controller lands
 - Jobs: none
 
 ## Queued
@@ -52,7 +52,7 @@ Last updated: `2026-03-29T16:35:43Z`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - Blocked by: `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION`
-- Next: keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned private-library build is validated strongly enough to automate safely
+- Next: keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned managed-local build is validated strongly enough to automate safely
 - Jobs: none
 
 ### `TASK-RUNTIME-VIABILITY-GATES` — Run durable-trace, re-entry, and runtime-viability evaluation
@@ -109,5 +109,5 @@ Last updated: `2026-03-29T16:35:43Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep using the managed inbox plus source catalog as the source of truth for future book additions and private-library supplement refreshes
+- Next: keep using the managed inbox plus source catalog as the source of truth for future book additions, and treat public/private only as compatibility metadata instead of a primary workflow branch
 - Jobs: none
