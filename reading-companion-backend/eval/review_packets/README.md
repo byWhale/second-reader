@@ -41,6 +41,19 @@ Each packet folder should contain:
 - `cases.preview.md`
 - `cases.source.jsonl`
 - `README.md`
+- after LLM adjudication, packet roots may also contain:
+  - `llm_review_summary.json`
+  - `llm_review_report.md`
+  - `llm_review_runs/<run_id>/`
+
+Each adjudication run under `llm_review_runs/<run_id>/` now writes:
+- `manifest.json`
+- `summary.json`
+- `report.md`
+- `cases/<case_id>.json`
+  - per-case normalized review result
+  - source/audit prompt-input fingerprints
+  - selected target/tier/provider trace metadata when available
 
 ## Packet Generators
 - `eval/attentional_v2/export_dataset_review_packet.py`
@@ -68,6 +81,13 @@ Default mechanical path:
   - it does not freeze reviewed slices automatically
   - it does not launch durable-trace, re-entry, or runtime-viability follow-up work
   - it stops with the final summary artifact instead of making a decision-bearing next move
+- reproducibility helper:
+  - `eval/attentional_v2/compare_packet_adjudication_runs.py`
+  - compare two packet dirs or adjudication run dirs when we need to inspect whether drift came from:
+    - source-row changes
+    - regenerated audit-input changes
+    - adjudication-output changes
+    - routing changes
 
 Optional manual mode:
 1. Open `cases.preview.md` for the readable view.

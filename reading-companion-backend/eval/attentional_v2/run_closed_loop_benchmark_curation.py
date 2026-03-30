@@ -35,6 +35,7 @@ from .build_private_library_supplement import (
     build_options_from_args as build_builder_options_from_args,
     build_private_library_supplement,
 )
+from .compare_packet_adjudication_runs import compare_adjudication_runs
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -447,11 +448,57 @@ def render_summary_markdown(summary: dict[str, Any]) -> str:
             f"- repair_packet_ids: `{json.dumps(summary['repair_packet_ids_by_language'], ensure_ascii=False, sort_keys=True)}`",
             f"- initial_import_action_counts: `{json.dumps(summary['initial_import_action_counts_by_language'], ensure_ascii=False, sort_keys=True)}`",
             f"- post_import_benchmark_status_counts: `{json.dumps(summary['post_import_benchmark_status_counts_by_language'], ensure_ascii=False, sort_keys=True)}`",
+            f"- initial_adjudication_input_fingerprints: `{json.dumps(summary['initial_adjudication_input_fingerprints_by_language'], ensure_ascii=False, sort_keys=True)}`",
+            f"- repair_adjudication_input_fingerprints: `{json.dumps(summary['repair_adjudication_input_fingerprints_by_language'], ensure_ascii=False, sort_keys=True)}`",
+            f"- variability_guard_triggered: `{summary['variability_guard_triggered']}`",
             "",
             "## Stop Point",
             f"- {summary['decision_note']}",
         ]
     )
+
+
+def packet_adjudication_summary(packet_dir: Path) -> dict[str, Any] | None:
+    summary_path = packet_dir / "llm_review_summary.json"
+    if not summary_path.exists():
+        return None
+    return load_json(summary_path)
+
+
+def packet_adjudication_variability(packet_dir: Path) -> list[dict[str, Any]]:
+    run_root = packet_dir / "llm_review_runs"
+    if not run_root.exists():
+        return []
+    run_dirs = sorted(path for path in run_root.iterdir() if path.is_dir() and (path / "summary.json").exists())
+    if len(run_dirs) < 2:
+        return []
+
+    warnings: list[dict[str, Any]] = []
+    runs_by_fingerprint: dict[str, list[Path]] = {}
+    for run_dir in run_dirs:
+        summary = load_json(run_dir / "summary.json")
+        fingerprint = str(summary.get("adjudication_input_fingerprint", "")).strip()
+        if not fingerprint:
+            continue
+        runs_by_fingerprint.setdefault(fingerprint, []).append(run_dir)
+
+    for fingerprint, grouped_run_dirs in sorted(runs_by_fingerprint.items()):
+        if len(grouped_run_dirs) < 2:
+            continue
+        baseline = grouped_run_dirs[0]
+        for candidate in grouped_run_dirs[1:]:
+            comparison = compare_adjudication_runs(baseline, candidate)
+            drift_counts = dict(comparison.get("drift_counts") or {})
+            if any(int(drift_counts.get(key, 0) or 0) > 0 for key in drift_counts):
+                warnings.append(
+                    {
+                        "adjudication_input_fingerprint": fingerprint,
+                        "baseline_run_id": str(comparison.get("run_id_a", "")).strip(),
+                        "candidate_run_id": str(comparison.get("run_id_b", "")).strip(),
+                        "drift_counts": drift_counts,
+                    }
+                )
+    return warnings
 
 
 def write_final_summary(paths: ClosedLoopPaths, state: ClosedLoopState) -> dict[str, Any]:
@@ -486,6 +533,41 @@ def write_final_summary(paths: ClosedLoopPaths, state: ClosedLoopState) -> dict[
         payload = load_json(Path(summary_path))
         repair_action_counts[language] = dict(payload.get("action_counts", {}))
 
+    initial_adjudication_input_fingerprints: dict[str, str] = {}
+    initial_variability_warnings: dict[str, list[dict[str, Any]]] = {}
+    for language, packet_info in state.initial_packets_by_language.items():
+        archived_packet_dir = str(packet_info.get("archived_packet_dir", "")).strip()
+        if not archived_packet_dir:
+            continue
+        packet_dir = Path(archived_packet_dir)
+        adjudication_summary = packet_adjudication_summary(packet_dir)
+        if adjudication_summary is not None:
+            fingerprint = str(adjudication_summary.get("adjudication_input_fingerprint", "")).strip()
+            if fingerprint:
+                initial_adjudication_input_fingerprints[language] = fingerprint
+        warnings = packet_adjudication_variability(packet_dir)
+        if warnings:
+            initial_variability_warnings[language] = warnings
+
+    repair_adjudication_input_fingerprints: dict[str, str] = {}
+    repair_variability_warnings: dict[str, list[dict[str, Any]]] = {}
+    for language, packet_info in state.repair_pipeline_by_language.items():
+        packet_id = str(packet_info.get("packet_id", "")).strip()
+        if not packet_id:
+            continue
+        archived_packet_dir = paths.archive_packet_root / packet_id
+        if not archived_packet_dir.exists():
+            continue
+        adjudication_summary = packet_adjudication_summary(archived_packet_dir)
+        if adjudication_summary is not None:
+            fingerprint = str(adjudication_summary.get("adjudication_input_fingerprint", "")).strip()
+            if fingerprint:
+                repair_adjudication_input_fingerprints[language] = fingerprint
+        warnings = packet_adjudication_variability(archived_packet_dir)
+        if warnings:
+            repair_variability_warnings[language] = warnings
+
+    variability_guard_triggered = bool(initial_variability_warnings or repair_variability_warnings)
     post_import_counts = {
         language: benchmark_status_counts(paths, dataset_id)
         for language, dataset_id in sorted(excerpt_dataset_ids.items())
@@ -501,6 +583,15 @@ def write_final_summary(paths: ClosedLoopPaths, state: ClosedLoopState) -> dict[
         "repair_packet_ids_by_language": repair_packet_ids,
         "initial_import_action_counts_by_language": dict(sorted(initial_import_action_counts.items())),
         "repair_action_counts_by_language": dict(sorted(repair_action_counts.items())),
+        "initial_adjudication_input_fingerprints_by_language": dict(
+            sorted(initial_adjudication_input_fingerprints.items())
+        ),
+        "repair_adjudication_input_fingerprints_by_language": dict(
+            sorted(repair_adjudication_input_fingerprints.items())
+        ),
+        "initial_adjudication_variability_warnings_by_language": dict(sorted(initial_variability_warnings.items())),
+        "repair_adjudication_variability_warnings_by_language": dict(sorted(repair_variability_warnings.items())),
+        "variability_guard_triggered": variability_guard_triggered,
         "post_import_benchmark_status_counts_by_language": post_import_counts,
         "decision_bearing_followup_launched": False,
         "decision_note": NO_DECISION_NOTE,

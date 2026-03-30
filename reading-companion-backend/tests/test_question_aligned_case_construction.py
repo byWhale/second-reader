@@ -7,6 +7,7 @@ from pathlib import Path
 from eval.attentional_v2.question_aligned_case_construction import (
     TARGET_PROFILE_ORDER,
     _assembled_case,
+    _window_quality_adjustment,
     _window_is_valid_for_profile,
     build_question_aligned_excerpt_scope,
     render_excerpt_sentences,
@@ -125,6 +126,27 @@ def _sentences_zh_with_paratext_and_prose() -> list[dict[str, str]]:
         {
             "sentence_id": "c2-s9",
             "text": "父親說，「事已如此，不必難過，好在天無絕人之路！」",
+        },
+    ]
+
+
+def _sentences_zh_with_open_quote_late_scene() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c2-s1",
+            "text": "他待我漸漸不同往日。",
+        },
+        {
+            "sentence_id": "c2-s2",
+            "text": "但最近兩年的不見，他終於忘却我的不好，只是惦記着我，惦記着我的兒子。",
+        },
+        {
+            "sentence_id": "c2-s3",
+            "text": "我北來後，他寫了一封信給我，信中說道，「我身體平安，惟膀子疼痛利害，舉箸提筆，諸多不便，大約大去之期不遠矣。",
+        },
+        {
+            "sentence_id": "c2-s4",
+            "text": "那年冬天，祖母死了，父親的差使也交卸了，正是禍不單行的日子。」",
         },
     ]
 
@@ -364,6 +386,85 @@ def test_scope_selection_skips_chinese_paratext_and_keeps_real_prose_window(tmp_
 
     zh_cases = scope["cases_by_language"]["zh"]
     assert len(zh_cases) == 1
+    assert zh_cases[0]["target_profile_id"] == "tension_reversal"
+    assert zh_cases[0]["candidate_position_bucket"] in {"middle", "late"}
+    assert zh_cases[0]["anchor_sentence_id"] in {"c2-s5", "c2-s6"}
     assert zh_cases[0]["start_sentence_id"] != "c2-s1"
     assert "文学周报" not in zh_cases[0]["excerpt_text"]
     assert "同名散文集" not in zh_cases[0]["excerpt_text"]
+
+
+def test_window_quality_adjustment_prefers_clean_late_chinese_scene_over_early_filler() -> None:
+    adjustment, evidence = _window_quality_adjustment(
+        profile_id="tension_reversal",
+        language="zh",
+        selection_role="narrative_reflective",
+        position_bucket="late",
+        window=[
+            "但最近兩年的不見，他終於忘却我的不好，只是惦記着我，惦記着我的兒子。",
+            "我北來後，他寫了一封信給我，信中說道，「我身體平安，惟膀子疼痛利害，舉箸提筆，諸多不便，大約大去之期不遠矣。」",
+            "到徐州見着父親，看見滿院狼藉的東西，又想起祖母，不禁簌簌地流下眼淚。",
+        ],
+    )
+
+    assert adjustment > 1.0
+    assert "zh_late_scene_bonus" in evidence
+    assert "zh_scene_dialogue_bonus" in evidence
+
+    filler_adjustment, filler_evidence = _window_quality_adjustment(
+        profile_id="distinction_definition",
+        language="zh",
+        selection_role="narrative_reflective",
+        position_bucket="early",
+        window=[
+            "作者不是在夸耀勇气，而是在定义一种更困难的自持：明知会失去认同，也要守住自己的判断。",
+            "前面那句关于独立的宣言在这里再次回来，同样的词被放进新的语境里，形成明显的回扣。",
+            "直到后来失败真正发生，这句话才显出另一层意义，原来它一直在为更晚的重新理解埋伏笔。",
+        ],
+    )
+
+    assert filler_adjustment < 0
+    assert "zh_early_filler_penalty" in filler_evidence
+
+
+def test_scope_selection_expands_chinese_late_scene_when_quote_runs_past_boundary(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "zh": [
+            _chapter_row(
+                source_id="book_zh",
+                language="zh",
+                output_dir="outputs/book_zh",
+                chapter_id="2",
+                chapter_title="背影",
+                role="narrative_reflective",
+            )
+        ]
+    }
+    source_index = {
+        "book_zh": {
+            "source_id": "book_zh",
+            "type_tags": ["essay"],
+            "role_tags": ["narrative_reflective"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_zh"): {
+            "chapters": [{"id": "2", "sentences": _sentences_zh_with_open_quote_late_scene()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="demo_scope",
+    )
+
+    zh_case = scope["cases_by_language"]["zh"][0]
+    assert zh_case["target_profile_id"] == "tension_reversal"
+    assert zh_case["end_sentence_id"] == "c2-s4"
+    assert "差使也交卸了" in zh_case["excerpt_text"]

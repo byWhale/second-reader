@@ -320,13 +320,16 @@ def _local_textual_cues(
 def _cue_anchor_quote(local_textual_cues: list[dict[str, str]], *, focal_text: str) -> str:
     """Choose one bounded fallback anchor when local pressure is clear but zoom returned no compact phrase."""
 
+    cleaned_focal = _clean_text(focal_text)
+    if cleaned_focal and len(cleaned_focal) <= 180:
+        return cleaned_focal
     for cue in local_textual_cues:
         if not isinstance(cue, dict):
             continue
         evidence = _clean_text(cue.get("evidence"))
         if evidence and len(evidence) <= 180:
             return evidence
-    return _clean_text(focal_text)[:180]
+    return cleaned_focal[:180]
 
 
 def _has_compact_local_anchor(*, anchor_quote: str, focal_text: str) -> bool:
@@ -350,16 +353,20 @@ def _micro_selective_reaction_candidate(
     local_textual_cues: list[dict[str, str]],
     compact_local_anchor: bool,
     focal_text: str,
-    short_span: bool,
+    span_sentence_count: int,
 ) -> ReactionCandidate | None:
     """Build one bounded synthetic local reaction candidate when the phrase-level pressure is clear."""
 
-    if not short_span:
-        return None
+    short_span = span_sentence_count <= 2
+    unresolved_pressure_note = _clean_text(closure_result.get("unresolved_pressure_note"))
     cue_types = {str(item.get("cue_type", "") or "") for item in local_textual_cues if isinstance(item, dict)}
     pressure_cues = cue_types & {"actor_intention", "social_pressure", "causal_stakes"}
+    multi_cue_pressure = len(pressure_cues) >= 2
     pressure_gate_open = zoom_result is None or bool((zoom_result or {}).get("consider_reaction_emission"))
-    if not compact_local_anchor and not (pressure_cues and pressure_gate_open):
+    bounded_pressure_span = short_span or (
+        span_sentence_count <= 3 and multi_cue_pressure and bool(unresolved_pressure_note)
+    )
+    if not compact_local_anchor and not (pressure_cues and pressure_gate_open and bounded_pressure_span):
         return None
     anchor_quote = _clean_text((zoom_result or {}).get("anchor_quote"))
     if not anchor_quote and pressure_cues:
@@ -371,7 +378,7 @@ def _micro_selective_reaction_candidate(
     if cue_types & {"callback_cue", "recognition_gap", "actor_intention", "social_pressure"}:
         reaction_type = "curious"
         content = (
-            _clean_text(closure_result.get("unresolved_pressure_note"))
+            unresolved_pressure_note
             or _clean_text((zoom_result or {}).get("uncertainty_note"))
             or content
         )
@@ -884,7 +891,7 @@ def run_phase4_local_cycle(
         local_textual_cues=reaction_local_cues,
         compact_local_anchor=compact_local_anchor,
         focal_text=_clean_text(focal_sentence.get("text")),
-        short_span=len(current_span_sentences) <= 2,
+        span_sentence_count=len(current_span_sentences),
     )
     should_consider_reaction = (
         bool(effective_suggested_reaction)

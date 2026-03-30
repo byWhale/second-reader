@@ -17,6 +17,7 @@ from src.reading_runtime.sequential_state import (
     append_activity_event,
     build_book_manifest_from_document,
     build_run_state,
+    chapter_reference,
     reset_activity,
     write_book_manifest,
     write_parse_progress,
@@ -111,7 +112,7 @@ def _clean_text(value: object) -> str:
 def _chapter_ref(chapter: dict[str, object]) -> str:
     """Return the stable chapter reference for one book-document chapter."""
 
-    return _clean_text(chapter.get("reference") or chapter.get("chapter_ref") or f"Chapter {int(chapter.get('id', 0) or 0)}")
+    return chapter_reference(chapter)
 
 
 def _chapter_matches_request(chapter: dict[str, object], requested_number: int) -> bool:

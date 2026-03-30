@@ -264,10 +264,10 @@ It gives them a better upstream source territory:
    - the stronger-selection rerun moved that again to `zh keep = 1`
    - this proves builder-side bilingual quality can improve, but it does not yet prove stable unattended widening
 4. Treat adjudication variability as part of the controller-hardening problem:
-   - the English packet payload remained byte-identical between the last two bilingual reruns
-   - yet packet adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`
-   - so the next controller-hardening step must distinguish builder improvement from review-policy variability
+   - the English source rows remained identical between the last two bilingual reruns
+   - but the regenerated audit inputs drifted on all `4` English cases, and the final adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`
+   - so the next controller-hardening step must distinguish builder improvement from audit/adjudication variability
 5. Only widen toward the multi-iteration unattended scheduler after the current bilingual stability pass:
    - finish the remaining Chinese scene/bucket shaping
-   - bound or explain identical-packet adjudication variability
+   - bound or explain source-equal bilingual drift with the adjudication compare tooling
    - then run the next broader English and bilingual scratch validation wave

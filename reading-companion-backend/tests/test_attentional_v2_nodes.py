@@ -812,6 +812,166 @@ def test_run_phase4_local_cycle_uses_pressure_cues_without_zoom_for_short_stakes
     assert result["reaction_result"]["reaction"]["anchor_quote"] == "The result of this was in too many cases that the girls went to the bad."
 
 
+def test_run_phase4_local_cycle_uses_multi_cue_pressure_for_bounded_three_sentence_span(monkeypatch):
+    """A slightly wider narrative-pressure span may emit once when unresolved multi-cue pressure stays live."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The choice keeps motive, outside pressure, and consequence in one unresolved frame.",
+                "anchor_quote": "",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": True,
+                "uncertainty_note": "The sentence cluster stays unresolved because the decision is still under pressure.",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The passage holds motive, patron pressure, and the likely cost together.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "The choice is still live because other people can still force the speaker's path.",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "advance",
+                "reason": "the narrative pressure has been registered clearly enough",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            calls.append("emit")
+            assert '"synthetic_local_candidate": true' in prompt.lower()
+            assert '"type": "curious"' in prompt
+            assert "He was prepared to teach" in prompt
+            return {
+                "decision": "emit",
+                "reason": "the wider pressure span still warrants one bounded visible question",
+                "reaction": None,
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence(
+            "c1-s2",
+            "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+            sentence_index=2,
+        ),
+        current_span_sentences=[
+            _sentence("c1-s1", "He wished to keep his place and felt that he could not enjoy losing it.", sentence_index=1),
+            _sentence(
+                "c1-s2",
+                "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+                sentence_index=2,
+            ),
+            _sentence("c1-s3", "The result of this was that his students would be the ones to suffer for it.", sentence_index=3),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=None,
+        book_title="Up from Slavery",
+        author="Booker T. Washington",
+        chapter_title="The Reconstruction Period",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True},
+    )
+
+    assert calls == ["zoom", "closure", "controller", "emit"]
+    assert result["reaction_result"]["decision"] == "emit"
+    assert result["reaction_result"]["reaction"]["type"] == "curious"
+    assert result["reaction_result"]["reaction"]["anchor_quote"].startswith("He was prepared to teach")
+
+
+def test_run_phase4_local_cycle_keeps_three_sentence_pressure_span_bounded_without_unresolved_note(monkeypatch):
+    """A wider span still stays quiet when the unresolved narrative pressure is not explicitly live."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The passage registers outside pressure but already settles it locally.",
+                "anchor_quote": "",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": False,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The social pressure is visible, but the passage has already settled the point.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "advance",
+                "reason": "the pressure has already resolved locally",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            raise AssertionError("reaction_emission should stay gated off")
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence(
+            "c1-s2",
+            "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+            sentence_index=2,
+        ),
+        current_span_sentences=[
+            _sentence("c1-s1", "He wished to keep his place and felt that he could not enjoy losing it.", sentence_index=1),
+            _sentence(
+                "c1-s2",
+                "He was prepared to teach that the earth was either flat or round, according to the preference of a majority of his patrons.",
+                sentence_index=2,
+            ),
+            _sentence("c1-s3", "He fulfilled his promise and the tension promptly closed there.", sentence_index=3),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="en",
+        output_dir=None,
+        book_title="Up from Slavery",
+        author="Booker T. Washington",
+        chapter_title="The Reconstruction Period",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True},
+    )
+
+    assert calls == ["zoom", "closure", "controller"]
+    assert result["reaction_result"] is None
+
+
 def test_run_phase4_local_cycle_degrades_zoom_llm_error(monkeypatch):
     """A transient zoom_read LLM failure should not abort the whole Phase 4 cycle."""
 

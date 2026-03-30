@@ -56,7 +56,8 @@ Update when: status changes, blockers appear, or phases complete.
         - bounded repair via `run_dataset_review_pipeline.py`
       - current blocker after the first real bilingual reruns:
         - builder-side Chinese quality improved from `drop` to `keep`
-        - but identical-English packet adjudication still moved materially between adjacent bilingual reruns
+        - the English source rows stayed fixed, but regenerated audit inputs still changed materially across the bilingual rerun pair
+        - the compare tooling now shows `source_input_drift = 0` and `audit_input_drift = 4` on that real English pair
         - so unattended widening now waits on bilingual reproducibility, not on missing controller plumbing
     - later frontend/API retirement of section-first chapter/detail and marks surfaces
     - later stable-doc promotion timing under `Q10`
@@ -333,11 +334,16 @@ Update when: status changes, blockers appear, or phases complete.
       - `closed_loop_full_smoke_bilingual_selectionfix_20260330`
         - English `revise = 4`
         - Chinese `keep = 1`
-        - the English packet payload was byte-identical to the previous bilingual rerun, so that English swing now points to adjudication variability rather than to new builder changes
+        - the English source rows stayed identical to the previous bilingual rerun, but the regenerated audit inputs differed on all `4` English cases and the final adjudication moved with them
+    - adjudication reproducibility tooling is now landed:
+      - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+      - `reading-companion-backend/eval/attentional_v2/compare_packet_adjudication_runs.py`
+      - run-local adjudication artifacts now preserve per-case fingerprints plus `manifest.json`, `summary.json`, and `report.md`
+      - the compare tool now distinguishes source-input drift from audit-input drift on both new and legacy runs
   - next:
     - keep the English quality gains
     - finish the remaining Chinese scene/bucket shaping so the stronger late-scene opportunity remains the primary pick cleanly
-    - use the bilingual rerun pair to diagnose how much instability is still coming from packet adjudication
+    - use the bilingual rerun pair plus the compare tooling to bound how much instability is still coming from regenerated audit content versus final adjudication
     - only then widen the same artifact model across the broader managed source pool
   - the loop boundary is now defined and partially materialized:
     - target-profile contract
@@ -370,7 +376,7 @@ Update when: status changes, blockers appear, or phases complete.
   - next:
     - keep the bounded controller as the active automation surface
     - do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible
-    - separate builder-quality gains from packet-adjudication variability before trusting unattended widening
+    - separate builder-quality gains from audit/adjudication variability before trusting unattended widening
 - [x] Make source-book intake and intermediate-artifact management clear and durable.
   - keep canonical managed copies of original books inside project-owned storage instead of relying on external source paths as the long-term truth
   - define one documented drop-folder workflow for future book additions so new intake can be fetched and processed reproducibly

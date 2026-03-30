@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from src.attentional_v2.runner import _chapter_ref
 from src.attentional_v2.evaluation import normalized_eval_bundle_file
 from src.attentional_v2.schemas import (
     build_empty_reaction_records,
@@ -97,6 +98,11 @@ def _book_document() -> dict[str, object]:
             }
         ],
     }
+
+
+def test_runner_chapter_ref_uses_shared_user_facing_reference() -> None:
+    assert _chapter_ref({"id": 10, "title": "Chapter V. The Reconstruction Period", "chapter_number": 5}) == "Chapter 5"
+    assert _chapter_ref({"id": 7, "title": "Visitors"}) == "Visitors"
 
 
 def _anchor(anchor_id: str, sentence_id: str, quote: str, paragraph_index: int) -> dict[str, object]:

@@ -146,13 +146,22 @@ Current real-run evidence:
     - Chinese `keep = 1`
     - diagnosis:
       - the Chinese lane improved again because `tension_reversal` displaced the weaker early filler case
-      - the English packet payload was byte-identical to the previous bilingual rerun, so the English shift points to adjudication variability rather than to new builder changes
+      - the English source rows stayed identical to the previous bilingual rerun, but the regenerated audit inputs changed on all `4` English cases and the final adjudication moved with them
+- adjudication reproducibility tooling is now landed:
+  - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+  - `reading-companion-backend/eval/attentional_v2/compare_packet_adjudication_runs.py`
+  - the compare output on the real English bilingual pair now shows:
+    - `source_input_drift = 0`
+    - `audit_input_drift = 4`
+    - `action_drift = 2`
+    - `confidence_drift = 2`
+    - `problem_type_drift = 3`
 
 Current interpretation:
 - the excerpt-boundary / fragment-quality bug was real and materially important
 - English question-aligned construction improved materially
 - Chinese construction also improved materially and can now produce a real prose `keep`
-- the next blocker for wider automation is no longer intake plumbing alone; it is bilingual reproducibility across both builder quality and packet adjudication
+- the next blocker for wider automation is no longer intake plumbing alone; it is bilingual reproducibility across both builder quality and regenerated audit/adjudication behavior
 
 ## What We Keep
 Preserve these current strengths:

@@ -87,9 +87,10 @@ def _builder_runner_factory(root: Path):
 
 
 class FakeClosedLoopRunner:
-    def __init__(self, root: Path, *, initial_import_status: str) -> None:
+    def __init__(self, root: Path, *, initial_import_status: str, create_variability_warning: bool = False) -> None:
         self.root = root
         self.initial_import_status = initial_import_status
+        self.create_variability_warning = create_variability_warning
         self.calls: list[list[str]] = []
 
     def __call__(self, command: list[str], cwd: Path) -> None:
@@ -113,6 +114,64 @@ class FakeClosedLoopRunner:
         if module == "eval.attentional_v2.run_case_design_audit":
             return
         if module == "eval.attentional_v2.auto_review_packet":
+            packet_dir = Path(_arg_value(command, "--packet-dir"))
+            packet_id = packet_dir.name
+            base_summary = {
+                "packet_id": packet_id,
+                "run_id": f"{packet_id}__llm_review__demo_a",
+                "review_policy": "llm_multi_prompt_adjudication_v1",
+                "adjudication_contract_version": "packet_adjudication_rubric_v2",
+                "adjudication_input_fingerprint": "same-packet-input",
+                "action_counts": {"keep": 1},
+            }
+            _write_json(packet_dir / "llm_review_summary.json", base_summary)
+            (packet_dir / "llm_review_report.md").write_text("# LLM Review\n", encoding="utf-8")
+            _write_json(
+                packet_dir / "llm_review_runs" / base_summary["run_id"] / "summary.json",
+                base_summary,
+            )
+            _write_json(
+                packet_dir / "llm_review_runs" / base_summary["run_id"] / "cases" / "demo_case.json",
+                {
+                    "case_id": "demo_case",
+                    "adjudication_input_fingerprint": "same-case-input",
+                    "normalized_review": {
+                        "review__action": "keep",
+                        "review__confidence": "high",
+                        "review__problem_types": ["other"],
+                    },
+                    "provider_id": "MiniMax-M2.7-highspeed",
+                    "selected_target_id": "MiniMax-M2.7-highspeed",
+                    "selected_tier_id": "primary",
+                    "key_slot_id": "primary",
+                },
+            )
+            if self.create_variability_warning:
+                varied_summary = {
+                    **base_summary,
+                    "run_id": f"{packet_id}__llm_review__demo_b",
+                    "action_counts": {"revise": 1},
+                }
+                _write_json(
+                    packet_dir / "llm_review_runs" / varied_summary["run_id"] / "summary.json",
+                    varied_summary,
+                )
+                _write_json(
+                    packet_dir / "llm_review_runs" / varied_summary["run_id"] / "cases" / "demo_case.json",
+                    {
+                        "case_id": "demo_case",
+                        "adjudication_input_fingerprint": "same-case-input",
+                        "normalized_review": {
+                            "review__action": "revise",
+                            "review__confidence": "medium",
+                            "review__problem_types": ["weak_excerpt"],
+                        },
+                        "provider_id": "MiniMax-M2.7-highspeed",
+                        "selected_target_id": "MiniMax-M2.7-highspeed",
+                        "selected_tier_id": "primary",
+                        "key_slot_id": "primary",
+                    },
+                )
             return
         if module == "eval.attentional_v2.import_dataset_review_packet":
             packet_dir = Path(_arg_value(command, "--packet-dir"))
@@ -236,6 +295,8 @@ def test_run_closed_loop_full_happy_path_writes_summary(tmp_path: Path) -> None:
     assert summary["post_import_benchmark_status_counts_by_language"]["en"]["reviewed_active"] == 1
     assert summary["post_import_benchmark_status_counts_by_language"]["zh"]["reviewed_active"] == 1
     assert summary["repair_packet_ids_by_language"] == {}
+    assert summary["initial_adjudication_input_fingerprints_by_language"]["en"] == "same-packet-input"
+    assert summary["variability_guard_triggered"] is False
     assert any(_module_name(command) == "eval.attentional_v2.export_dataset_review_packet" for command in runner.calls)
 
 
@@ -294,3 +355,19 @@ def test_run_closed_loop_resuming_final_summary_does_not_duplicate_stage_history
     )
 
     assert payload["executed_stages"].count("final_summary") == 1
+
+
+def test_run_closed_loop_surfaces_adjudication_variability_warning(tmp_path: Path) -> None:
+    args = build_parser().parse_args(["--run-id", "demo_variability"])
+    paths = ClosedLoopPaths.from_root(tmp_path, "demo_variability")
+    runner = FakeClosedLoopRunner(tmp_path, initial_import_status="reviewed_active", create_variability_warning=True)
+
+    payload = run_closed_loop(
+        args,
+        paths=paths,
+        command_runner=runner,
+        builder_runner=_builder_runner_factory(tmp_path),
+    )
+
+    assert payload["variability_guard_triggered"] is True
+    assert payload["initial_adjudication_variability_warnings_by_language"]["en"][0]["drift_counts"]["action_drift"] == 1

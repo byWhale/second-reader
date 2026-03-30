@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-30T05:43:23Z`
+Last updated: `2026-03-30T11:54:08Z`
 
 ## Status Values
 - `active`
@@ -41,7 +41,7 @@ Last updated: `2026-03-30T05:43:23Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the English quality-fix gains, finish the remaining Chinese scene/bucket shaping, and use the latest bilingual scratch evidence to separate builder weakness from packet-adjudication variability before widening the managed-source sample
+- Next: keep the English quality-fix gains, finish the remaining Chinese scene/bucket shaping, and use the new adjudication compare evidence to separate builder weakness from regenerated audit/adjudication variability before widening the managed-source sample
 - Jobs: none
 
 ### `TASK-DATASET-FULL-AUTOMATION` — Make dataset building fully automated as one closed build-review-refine loop
@@ -49,7 +49,7 @@ Last updated: `2026-03-30T05:43:23Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the bounded controller as the active automation surface, but do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible and identical-English packet adjudication is better bounded
+- Next: keep the bounded controller as the active automation surface, but do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible and the source-equal English pair no longer shows uncontrolled audit/adjudication drift
 - Jobs: none
 
 ## Queued

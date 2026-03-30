@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-30T05:43:23Z`
+Last verified: `2026-03-30T11:54:08Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -248,13 +248,32 @@ Last verified: `2026-03-30T05:43:23Z`
       - result: English `revise = 4`; Chinese `keep = 1`
       - diagnosis:
         - the Chinese lane improved again because the stronger `tension_reversal` opportunity now displaced the weaker early `distinction_definition` filler
-        - the English packet payload was byte-identical to the previous bilingual rerun, yet LLM adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`, so review variability is now part of the stability problem
+        - the English `cases.source.jsonl` rows stayed identical to the previous bilingual rerun, but regenerated case-audit inputs changed on all `4` English cases and the final LLM adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`
+  - adjudication reproducibility tooling is now landed:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+      - `reading-companion-backend/eval/attentional_v2/compare_packet_adjudication_runs.py`
+    - bounded behaviors:
+      - each adjudication run now writes per-case artifacts plus run-local `manifest.json`, `summary.json`, and `report.md` under `llm_review_runs/<run_id>/`
+      - adjudication fingerprints now normalize to prompt-relevant input content instead of audit wrapper metadata such as timings or run ids
+      - the compare tool now surfaces source-input drift separately from audit-input drift
+    - current real English pair diagnosis:
+      - compare result:
+        - `same_packet_input_fingerprint = false`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 4`
+        - `action_drift = 2`
+        - `confidence_drift = 2`
+        - `problem_type_drift = 3`
+      - current interpretation:
+        - the remaining bilingual instability is not a pure same-input adjudication wobble
+        - the English source rows held constant, but the regenerated audit judgments did not
   - current interpretation:
     - English builder quality improved materially and remains clearly better than the first narrow-English baseline
     - Chinese builder quality also improved materially: it no longer selects pure front matter and can now produce at least one real prose `keep`
     - the next blocker for unattended widening is bilingual reproducibility, not intake plumbing:
       - remaining Chinese scene/bucket shaping still matters
-      - packet adjudication variability on otherwise identical English packets now needs bounded diagnosis before we trust wider unattended loops
+      - audit-plus-adjudication reproducibility on otherwise source-equal English packets now needs bounded diagnosis before we trust wider unattended loops
   - all bounded controller runs still stopped with summaries only:
     - no benchmark promotion, reviewed-slice freeze, runtime-viability, or default-cutover work was launched automatically
     - the live review queue is back to `active_packet_count = 0`
@@ -331,7 +350,7 @@ Last verified: `2026-03-30T05:43:23Z`
 - Use the latest bilingual scratch evidence to stabilize case quality and reproducibility rather than adding new platform plumbing:
   - keep the English-only quality-fix evidence as the working proof that the builder improvements are real
   - finish the remaining Chinese shaping work so the selected excerpt stays on the stronger late-scene opportunity without residual edge noise
-  - inspect the identical-English bilingual packet pair to decide how much of the remaining instability is LLM adjudication variability rather than construction quality
+  - use the new compare tooling on the bilingual English pair to keep separating source-equal builder state from regenerated audit drift and final adjudication drift
 - Keep the bounded controller as the active automation surface, but defer wider unattended expansion until the bilingual route is more reproducible:
   - broader English and broader bilingual scratch widening should now happen only after the current Chinese/profile and adjudication-stability diagnosis is explicit
   - the multi-iteration unattended scheduler still remains after that stability pass, not before it
@@ -373,7 +392,7 @@ Last verified: `2026-03-30T05:43:23Z`
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
 - The first real scratch builder/controller runs were intentionally narrow: the earliest English baseline still yielded no `keep` outcomes, but the later quality-fix runs improved that materially; the remaining narrowness is now bilingual stability rather than the mere absence of `keep` results.
-- Repeated bilingual packet adjudication over an identical English packet can still move materially between runs, so current bilingual widening is constrained by review reproducibility as well as by builder quality.
+- The last bilingual English pair held source rows constant but still regenerated materially different audit judgments, so current bilingual widening is constrained by audit/adjudication reproducibility as well as by builder quality.
 - Historical compatibility paths under `state/library_sources/<language>/private/...` are now cataloged successfully, but they remain compatibility inputs rather than the intended future operator workflow.
 - Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.

@@ -13,6 +13,11 @@ TARGET_PROFILE_FLOOR_REVIEWED_ACTIVE = 2
 TARGET_PROFILE_FLOOR_RESERVE = 1
 MIN_COMPLETE_SENTENCES_PER_EXCERPT = 3
 MIN_PROFILE_ORDER_SELECTION_PRIORITY = 4.0
+MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE = 4
+ZH_LATE_SCENE_BONUS = 0.65
+ZH_SCENE_DIALOGUE_BONUS = 0.45
+ZH_EARLY_FILLER_PENALTY = 0.55
+WINDOW_EDGE_NOISE_PENALTY = 0.75
 TARGET_PROFILE_ORDER = (
     "distinction_definition",
     "tension_reversal",
@@ -113,6 +118,12 @@ INITIAL_FRAGMENT_RE = re.compile(r"^(?:[A-Z]\.)+$")
 LOWERCASE_START_RE = re.compile(r"^[a-z]")
 SHORT_COMMA_FRAGMENT_RE = re.compile(r"^[A-Z][^.!?]{0,60},[^.!?]{0,40}[.!?]$")
 ABBREVIATION_SUFFIX_RE = re.compile(r"(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr)\.|\b(?:[A-Z]\.)+)$")
+QUOTE_PAIRS = (
+    ("“", "”"),
+    ("‘", "’"),
+    ("「", "」"),
+    ("『", "』"),
+)
 EXPLICIT_CALLBACK_MARKERS_EN = (
     "again",
     "once more",
@@ -473,7 +484,7 @@ def _build_opportunity_cards_for_chapter(
         top_candidates = sorted(
             candidates,
             key=lambda item: (-float(item["construction_priority"]), int(item["index"])),
-        )[:2]
+        )[:MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE]
         for rank, candidate in enumerate(top_candidates, start=1):
             profile = EXCERPT_TARGET_PROFILES[profile_id]
             radius = int(profile["radius_en"] if language == "en" else profile["radius_zh"])
@@ -500,6 +511,13 @@ def _build_opportunity_cards_for_chapter(
                 language=language,
             ):
                 continue
+            window_priority_adjustment, window_evidence = _window_quality_adjustment(
+                profile_id=profile_id,
+                language=language,
+                selection_role=str(row.get("selection_role", "")),
+                position_bucket=str(candidate["position_bucket"]),
+                window=[str(item.get("text") or "").strip() for item in window],
+            )
             anchor_sentence_id = candidate["sentence"]["sentence_id"]
             source_priority = int(row.get("selection_priority", 9999) or 9999)
             opportunities.append(
@@ -521,11 +539,11 @@ def _build_opportunity_cards_for_chapter(
                     "prior_context_sentence_ids": [],
                     "anchor_excerpt_text": str(candidate["sentence"].get("text") or "").strip(),
                     "context_excerpt_text": rendered_excerpt_text,
-                    "phenomenon_evidence": list(candidate["evidence"]),
+                    "phenomenon_evidence": list(candidate["evidence"]) + window_evidence,
                     "judgeability_score": round(float(candidate["judgeability_score"]), 3),
                     "discriminative_power_score": round(float(candidate["discriminative_power_score"]), 3),
                     "ambiguity_risk": candidate["ambiguity_risk"],
-                    "construction_priority": round(float(candidate["construction_priority"]), 3),
+                    "construction_priority": round(float(candidate["construction_priority"]) + window_priority_adjustment, 3),
                     "complete_sentence_count": complete_sentence_count,
                     "selection_reason_draft": _selection_reason_draft(
                         profile_id=profile_id,
@@ -849,6 +867,7 @@ def _needs_following_sentence(text: str) -> bool:
         TITLE_FRAGMENT_RE.match(cleaned)
         or INITIAL_FRAGMENT_RE.match(cleaned)
         or ABBREVIATION_SUFFIX_RE.search(cleaned)
+        or _has_unclosed_quote(cleaned)
     )
 
 
@@ -951,3 +970,62 @@ def _looks_like_paratext_window(window: list[str], language: str) -> bool:
         return True
     combined = " ".join(cleaned) if language == "en" else "".join(cleaned)
     return sentence_hits >= 1 and _looks_like_paratext_sentence(combined, language)
+
+
+def _window_quality_adjustment(
+    *,
+    profile_id: str,
+    language: str,
+    selection_role: str,
+    position_bucket: str,
+    window: list[str],
+) -> tuple[float, list[str]]:
+    cleaned = [str(item or "").strip() for item in window if str(item or "").strip()]
+    if not cleaned:
+        return 0.0, []
+
+    adjustment = 0.0
+    evidence: list[str] = []
+    rendered_parts = _rendered_excerpt_parts(cleaned)
+    if not rendered_parts:
+        return 0.0, []
+
+    if _needs_preceding_sentence(rendered_parts[0]) or _needs_following_sentence(rendered_parts[-1]):
+        adjustment -= WINDOW_EDGE_NOISE_PENALTY
+        evidence.append("edge_noise_penalty")
+
+    if language == "zh" and profile_id in {"tension_reversal", "reconsolidation_later_reinterpretation"}:
+        if position_bucket == "late":
+            adjustment += ZH_LATE_SCENE_BONUS
+            evidence.append("zh_late_scene_bonus")
+        if any(
+            any(marker in part for marker in ("「", "」", "“", "”"))
+            for part in rendered_parts
+        ) and any(
+            not any(marker in part for marker in ("「", "」", "“", "”")) for part in rendered_parts
+        ):
+            adjustment += ZH_SCENE_DIALOGUE_BONUS
+            evidence.append("zh_scene_dialogue_bonus")
+
+    if (
+        language == "zh"
+        and profile_id == "distinction_definition"
+        and position_bucket == "early"
+        and selection_role == "narrative_reflective"
+    ):
+        adjustment -= ZH_EARLY_FILLER_PENALTY
+        evidence.append("zh_early_filler_penalty")
+
+    return adjustment, evidence
+
+
+def _has_unclosed_quote(text: str) -> bool:
+    cleaned = str(text or "").strip()
+    if not cleaned:
+        return False
+    for opener, closer in QUOTE_PAIRS:
+        if cleaned.count(opener) > cleaned.count(closer):
+            return True
+    if cleaned.count('"') % 2 == 1:
+        return True
+    return False
