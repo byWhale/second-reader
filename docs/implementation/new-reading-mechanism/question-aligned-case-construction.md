@@ -116,6 +116,7 @@ Current bounded fixes:
 - preserve the full excerpt span in stored sentence ids instead of collapsing to anchor/support bounds
 - stitch parser-fragment splits and expand windows around broken edges before rendering the final excerpt
 - stitch Chinese continuation fragments without injecting synthetic spaces into the rendered excerpt
+- strip invisible Unicode format characters and normalize non-breaking whitespace before builder-facing excerpt text and anchor lines are emitted into cases or packet review
 - require explicit backward-link markers for callback candidates
 - reject obvious reported-speech false positives for anchored-reaction candidates
 - penalize context-dependent fragment anchors
@@ -202,12 +203,173 @@ Current real-run evidence:
     - `action_drift = 2`
     - `confidence_drift = 2`
     - `problem_type_drift = 3`
+  - follow-up hardening is now landed in code:
+    - packet adjudication consumes a compact structured audit summary instead of free-text audit notes / challenge prose
+    - placeholder audit rows are rejected before downstream adjudication
+    - callback-bridge construction now requires a resolved antecedent and carries explicit `prior_context_sentence_ids` / `prior_context_text`
+    - the audit context builder now prefers those builder-supplied prior-context ids over the older generic `start-3` lookback heuristic
+    - the closed-loop variability guard now compares adjacent same-source adjudication runs even when the regenerated audit changed the packet fingerprint
+  - fresh live audit-pair follow-up on current code:
+    - `closed_loop_full_smoke_en_broader_auditpair_20260331`
+      - English `keep = 5`, `revise = 3`, `drop = 0`
+    - `closed_loop_full_smoke_bilingual_broader_auditpair_20260331`
+      - English `keep = 3`, `revise = 5`, `drop = 0`
+      - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - persisted compare artifact:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditpair_20260331/case_audit_compare_against_bilingual.json`
+    - compare result on the shared English case-audit runs:
+      - `same_run_audit_prompt_input_fingerprint = true`
+      - `source_input_drift = 0`
+      - `audit_input_drift = 0`
+      - `primary_decision_drift = 2`
+      - `primary_confidence_drift = 2`
+      - `primary_problem_type_drift = 5`
+      - `primary_score_drift = 8`
+      - `adversarial_risk_drift = 2`
+    - diagnosis:
+      - the remaining live English instability is now narrowed to same-input audit-stage output variance rather than builder/input drift
+      - the next narrow hardening move belongs in audit-stage reproducibility, not in source-row reconstruction or case/context assembly
+  - first audit-stage hardening patch now landed in code:
+    - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `AUDIT_PROMPT_CONTRACT_VERSION` is now `case_design_audit_v2`
+      - the primary audit prompt now asks for `strong|adequate|weak` axis bands instead of raw `1-5` scoring
+      - primary normalization maps those bands back into canonical numeric scores for downstream compatibility
+    - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+      - compact adjudication inputs now prefer explicit normalized band fields when they are present
+    - completed validation:
+      - `bgjob_closed_loop_en_broader_auditcontractv2_20260331`
+      - `bgjob_closed_loop_bilingual_broader_auditcontractv2_20260331`
+      - same-input English audit drift remained builder-stable but not audit-stable:
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 5`
+        - `primary_problem_type_drift = 6`
+        - `primary_score_drift = 7`
+      - the stricter all-strong keep gate made the primary audit more brittle to single-axis `4 -> 3` wobble instead of narrowing the blocker
+  - second audit-stage hardening patch now landed in code:
+    - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `AUDIT_PROMPT_CONTRACT_VERSION` is now `case_design_audit_v3`
+      - `keep` now means no weak axis and at most one adequate axis
+      - normalized primary decisions and minimal problem types are now derived deterministically from the normalized axis scores
+    - completed validation:
+      - `bgjob_closed_loop_en_broader_auditcontractv3_20260331`
+      - `bgjob_closed_loop_bilingual_broader_auditcontractv3_20260331`
+      - same-input English audit drift improved relative to `auditcontractv2` but remained too high for unattended widening:
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 4`
+        - `primary_problem_type_drift = 5`
+        - `primary_score_drift = 5`
+      - the softer keep gate helped, but it did not fully stabilize the audit
+  - third audit-stage hardening patch now landed in code:
+    - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - primary audit now runs `3` zero-temperature replicas per case
+      - the final normalized primary review is selected by deterministic consensus
+      - this keeps the repair inside audit-stage reproducibility instead of changing builder inputs again
+    - validation:
+      - `bgjob_closed_loop_en_broader_auditconsensusv3_20260331`
+      - `bgjob_closed_loop_bilingual_broader_auditconsensusv3_20260331`
+      - both reruns completed cleanly and now show that consensus narrows same-input audit-stage variance more effectively than the softer keep gate alone:
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 2`
+        - `primary_problem_type_drift = 2`
+        - `primary_score_drift = 4`
+      - this is the best current audit reproducibility candidate
+  - one remaining English outlier still exposed a builder-side text-sanitation defect even after the audit-input fingerprints matched:
+    - `education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1`
+    - the emitted excerpt and selection-reason text still carried invisible Unicode whitespace from the source sentence
+  - a bounded builder-side follow-up is now landed:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+      - rendered excerpt text now strips invisible format characters and normalizes non-breaking whitespace
+      - builder-facing anchor lines and selection-reason text now reuse the cleaned line
+    - deterministic validation:
+      - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_whitespacefix_20260331/build_summary.json`
+      - the Henry Adams anchored-reaction row now emits clean `excerpt_text` and `selection_reason`
+    - narrow closed-loop confirmation:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_henry_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+      - English `keep = 3`, `revise = 1`, `drop = 0`
+      - the previously corrupted `education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1` case now exits as `keep` instead of failing on text integrity
+    - broader English confirmation:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+      - English `keep = 7`, `revise = 1`, `drop = 0`
+      - the only remaining English holdout in that two-source slice is a bounded callback-breadth / mixed-focus revise, not a builder text-corruption defect
+  - wave-closeout status:
+    - `auditconsensusv3` remains the best current audit reproducibility candidate versus `auditpair`, `auditcontractv2`, and `auditcontractv3`
+    - the last persisted queue checkpoint is still `generated_at = 2026-03-30T20:05:14.323982Z` with `active_packet_count = 0`
+    - the broader bilingual post-fix validation is now completed:
+      - `bgjob_closed_loop_bilingual_broader_whitespacefix_20260331`
+      - English `keep = 6`, `revise = 1`, `drop = 1`
+      - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+      - the remaining regressions are concentrated in `callback_bridge` cases rather than across the whole builder path
+    - a bounded callback-bridge repair is now landed:
+      - callback-bridge `judge_focus` now asks for a traceable earlier bridge with clear attribution
+      - nearby resolved antecedents are now inlined into the main excerpt instead of being left only in `prior_context_text`
+      - focused validation passed:
+        - `tests/test_question_aligned_case_construction.py`
+        - `tests/test_case_design_audit.py`
+        - `tests/test_case_design_audit_reproducibility.py`
+        - `tests/test_packet_adjudication_reproducibility.py`
+        - `tests/test_closed_loop_benchmark_curation.py`
+        - `71 passed`
+    - the callback-bridge follow-up validation is now completed:
+      - `bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331`
+      - English `keep = 6`, `revise = 2`, `drop = 0`
+      - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+      - case-level interpretation:
+        - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1` improved from `drop` to `revise`
+        - `on_liberty_public_en__5__callback_bridge__seed_v1` stayed `revise`
+        - `chenlun_public_zh__4__callback_bridge__seed_v1` stayed `revise`
+      - diagnosis:
+        - the bounded callback repair cleared replacement-level failure but did not yet make the surviving callback excerpts fully self-contained
+        - the remaining work is still excerpt shaping and antecedent carry-forward, not a global rebuild of the case-construction stack
+    - the callback antecedent-quality follow-up is now completed:
+      - `bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331`
+      - English `keep = 4`, `revise = 4`, `drop = 0`
+      - Chinese `keep = 1`, `revise = 0`, `drop = 0`
+      - diagnosis:
+        - this pass usefully removed the weak Chinese callback baggage
+        - it also degraded the English lane relative to `callbackbridgefix`, so it is useful negative evidence rather than the final callback-shaping answer
+    - a narrower inferential callback backlink patch is now landed locally:
+      - English callback markers now recognize inferential backlink phrases such as `from this` and `from that`
+      - `_english_inferential_callback_score(...)` helps real inferential callbacks resolve against immediately prior evidence even when lexical overlap is weak
+      - English generic overlap is tightened further by adding `home` to `CALLBACK_GENERIC_OVERLAP_TERMS_EN`
+      - builder-only scratch validation:
+        - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_callback_qualitycheck_20260331/build_summary.json`
+        - `on_liberty_public_en__5__callback_bridge__opp_2` is restored in the English opportunity map
+        - the weak Henry `return home` callback no longer survives as the active callback export
+        - the weak Chinese `chenlun_public_zh__4__callback_bridge__seed_v1` row remains absent from the active candidate set
+    - one follow-up validation run is currently active:
+      - `bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331`
+      - completed result:
+        - English `keep = 5`, `revise = 3`, `drop = 0`
+        - Chinese `keep = 1`, `revise = 0`, `drop = 0`
+      - case-level interpretation:
+        - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1` remains `revise`
+        - `on_liberty_public_en__10__callback_bridge__seed_v1` is now a clean `keep`
+        - `on_liberty_public_en__4__callback_bridge__seed_v1` remains `revise`
+        - no weak Chinese callback row returns to the active packet
+    - one narrower callback-focus follow-up is now landed locally:
+      - callback cases now carry the resolved earlier bridge target directly into `selection_reason` and `judge_focus`
+      - focused validation:
+        - `tests/test_question_aligned_case_construction.py`
+        - `tests/test_case_design_audit.py`
+        - `tests/test_case_design_audit_reproducibility.py`
+        - `tests/test_packet_adjudication_reproducibility.py`
+        - `tests/test_closed_loop_benchmark_curation.py`
+        - `72 passed`
+    - the next live validation run is now active:
+      - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331`
+      - the next acceptance check is whether Henry 29 and `on_liberty_public_en__4__callback_bridge__seed_v1` move from `revise` to `keep` without reviving weak callback rows
 
 Current interpretation:
 - the excerpt-boundary / fragment-quality bug was real and materially important
 - English question-aligned construction improved materially
 - Chinese construction also improved materially and can now produce a real prose `keep`
-- the next blocker for wider automation is no longer intake plumbing alone; it is scratch reproducibility across both builder quality and regenerated audit/adjudication behavior under the same contract
+- the next blocker for wider automation is no longer intake plumbing; it is now the combination of:
+  - same-input audit/adjudication reproducibility under the live audit variants
+  - one more callback-bridge-specific excerpt-shaping pass to handle the remaining bilingual outliers on the cleaned English path and the still-narrow Chinese callback slice
+- the current direct measurement lanes are now:
+  - `auditconsensusv3` as the best current same-input audit-stability lane
+  - the completed Henry Adams, broader-English, broader-bilingual whitespace-fix, and broader-bilingual callbackbridgefix follow-ups as proof that the remaining issue has narrowed from text corruption to one bounded callback excerpt-shaping family
+  - the surviving `revise` cases as the direct targets for the next narrow builder refinement
 
 ## What We Keep
 Preserve these current strengths:
@@ -300,6 +462,7 @@ This layer turns opportunity cards into actual dataset rows.
 Responsibilities:
 - choose final excerpt boundaries
 - include enough context for fair judging
+- dedupe exact same-source same-profile excerpt windows before they become active or reserve rows
 - assign `question_ids`
 - assign `phenomena`
 - write concrete `selection_reason`
@@ -331,6 +494,7 @@ Recommended fields:
 - `anchor_sentence_ids`
 - `support_sentence_ids`
 - `prior_context_sentence_ids`
+- `prior_context_excerpt_text`
 - `anchor_excerpt_text`
 - `context_excerpt_text`
 - `phenomenon_evidence`
@@ -351,6 +515,13 @@ These artifacts are:
 - reproducible from current sources plus code
 - useful for debugging and regeneration
 - not the final benchmark truth layer
+
+`callback_bridge` opportunities have one extra rule:
+- a local backward marker is not enough on its own
+- the builder should resolve one bounded earlier antecedent and either:
+  - expand the main excerpt when that antecedent is still close
+  - or store explicit prior-context ids/text when the antecedent is farther back
+- if no real antecedent can be resolved, the opportunity should be rejected rather than carried as a cue-only bridge
 
 ## Target Profile Contract
 Each target profile should have two parts.

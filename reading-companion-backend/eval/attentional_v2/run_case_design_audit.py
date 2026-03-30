@@ -15,6 +15,7 @@ The runner is intentionally traceable:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import time
@@ -25,7 +26,14 @@ from pathlib import Path
 from statistics import mean
 from typing import Any, Callable
 
-from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
+from src.iterator_reader.llm_utils import (
+    LLMInvocationOverrides,
+    LLMTraceContext,
+    ReaderLLMError,
+    eval_trace_context,
+    invoke_json,
+    llm_invocation_scope,
+)
 from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
 from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID
 
@@ -52,6 +60,10 @@ BOILERPLATE_MARKERS = (
     "www.gutenberg.org",
 )
 SEMANTIC_VALIDATION_ATTEMPTS = 3
+AUDIT_PROMPT_CONTRACT_VERSION = "case_design_audit_v3"
+AUDIT_REVIEW_OVERRIDES = LLMInvocationOverrides(temperature=0.0)
+PRIMARY_REVIEW_REPLICA_COUNT = 3
+PRIMARY_REVIEW_CONSENSUS_POLICY = "majority_vote_median_scores_conservative_tiebreak"
 
 PRIMARY_SYSTEM = """You audit benchmark case design for a reading-mechanism evaluation dataset.
 
@@ -68,23 +80,28 @@ Immediate context:
 Decide whether this is a strong benchmark case for its current purpose.
 
 Scoring rules:
-- `bucket_fit`, `focus_clarity`, and `excerpt_strength` use a `1-5` scale
-- `5` means strongest / clearly benchmark-worthy on that axis
-- `3` means mixed or adequate but not strong
-- `1` means weak on that axis
-- Keep the scores coherent with the decision:
-  - `keep` should not use `1` or `2` on these axes
-  - `revise` usually means at least one axis is `3` or below
+- `bucket_fit_band`, `focus_clarity_band`, and `excerpt_strength_band` use `strong|adequate|weak`
+- `strong` means benchmark-worthy now on that axis
+- `adequate` means promising but not yet strong on that axis
+- `weak` means materially weak on that axis
+- Keep the bands coherent with the decision:
+  - `keep` means no axis is `weak` and at most one axis is `adequate`
+  - `revise` means more than one axis is `adequate`, or any axis is `weak` but still salvageable
   - `drop` should reflect materially weak fit or excerpt integrity
+- Prefer the smallest stable `problem_types` set that explains the decision.
+  - do not list multiple overlapping problem types unless the case clearly needs them
+  - if the main defect is focus, prefer `ambiguous_focus`
+  - if the main defect is excerpt quality or span integrity, prefer `weak_excerpt`
+  - use `source_parse_problem` or `text_noise` only when the excerpt itself clearly shows that kind of defect
 
 Return JSON:
 {{
   "decision": "keep|revise|drop|unclear",
   "confidence": "high|medium|low",
   "problem_types": ["wrong_bucket|weak_excerpt|ambiguous_focus|text_noise|duplicate_case|too_easy|too_hard|source_parse_problem|other"],
-  "bucket_fit": 1,
-  "focus_clarity": 1,
-  "excerpt_strength": 1,
+  "bucket_fit_band": "strong|adequate|weak",
+  "focus_clarity_band": "strong|adequate|weak",
+  "excerpt_strength_band": "strong|adequate|weak",
   "revised_bucket": "",
   "revised_selection_reason": "",
   "revised_judge_focus": "",
@@ -150,6 +167,18 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def _canonical_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def _fingerprint(value: Any) -> str:
+    return hashlib.sha256(_canonical_json(value).encode("utf-8")).hexdigest()
+
+
+def _prompt_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def packet_dir_from_args(packet_id: str | None, packet_dir: str | None) -> Path:
     if packet_dir:
         return Path(packet_dir).expanduser().resolve()
@@ -182,6 +211,102 @@ def default_context() -> dict[str, list[str]]:
     }
 
 
+def _case_prompt_inputs(case: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "case_id": str(case.get("case_id", "")).strip(),
+        "case_title": str(case.get("case_title", "")).strip(),
+        "question_ids": list(case.get("question_ids") or []),
+        "phenomena": list(case.get("phenomena") or []),
+        "selection_reason": str(case.get("selection_reason", "")).strip(),
+        "judge_focus": str(case.get("judge_focus", "")).strip(),
+        "excerpt_text": str(case.get("excerpt_text", "")).strip(),
+    }
+
+
+def _context_prompt_inputs(context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "lookback_sentences": [str(item).strip() for item in list(context.get("lookback_sentences") or [])],
+        "excerpt_sentences": [str(item).strip() for item in list(context.get("excerpt_sentences") or [])],
+        "lookahead_sentences": [str(item).strip() for item in list(context.get("lookahead_sentences") or [])],
+    }
+
+
+def _primary_user_prompt_from_inputs(case_inputs: dict[str, Any], context_inputs: dict[str, Any]) -> str:
+    return PRIMARY_PROMPT.format(
+        case_json=json.dumps(case_inputs, ensure_ascii=False, indent=2),
+        context_json=json.dumps(context_inputs, ensure_ascii=False, indent=2),
+    )
+
+
+def _adversarial_user_prompt_from_inputs(case_inputs: dict[str, Any], context_inputs: dict[str, Any]) -> str:
+    return ADVERSARIAL_PROMPT.format(
+        case_json=json.dumps(case_inputs, ensure_ascii=False, indent=2),
+        context_json=json.dumps(context_inputs, ensure_ascii=False, indent=2),
+    )
+
+
+def normalize_audit_prompt_input_payload(value: Any) -> dict[str, Any]:
+    payload = dict(value) if isinstance(value, dict) else {}
+    case_inputs = _case_prompt_inputs(dict(payload.get("case") or {}))
+    context_inputs = _context_prompt_inputs(dict(payload.get("context") or {}))
+    prompt_hashes_raw = dict(payload.get("prompt_hashes") or {}) if isinstance(payload.get("prompt_hashes"), dict) else {}
+    prompt_hashes = {
+        "primary_system_prompt_hash": str(prompt_hashes_raw.get("primary_system_prompt_hash", "")).strip(),
+        "primary_user_prompt_hash": str(prompt_hashes_raw.get("primary_user_prompt_hash", "")).strip(),
+        "adversarial_system_prompt_hash": str(prompt_hashes_raw.get("adversarial_system_prompt_hash", "")).strip(),
+        "adversarial_user_prompt_hash": str(prompt_hashes_raw.get("adversarial_user_prompt_hash", "")).strip(),
+    }
+    if not any(case_inputs.values()) and not any(context_inputs.values()) and not any(prompt_hashes.values()):
+        return {}
+    return {
+        "audit_prompt_contract_version": str(
+            payload.get("audit_prompt_contract_version", AUDIT_PROMPT_CONTRACT_VERSION)
+        ).strip()
+        or AUDIT_PROMPT_CONTRACT_VERSION,
+        "case": case_inputs,
+        "context": context_inputs,
+        "prompt_hashes": prompt_hashes,
+    }
+
+
+def build_audit_prompt_input_payload(case: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    case_inputs = _case_prompt_inputs(case)
+    context_inputs = _context_prompt_inputs(context)
+    return normalize_audit_prompt_input_payload(
+        {
+            "audit_prompt_contract_version": AUDIT_PROMPT_CONTRACT_VERSION,
+            "case": case_inputs,
+            "context": context_inputs,
+            "prompt_hashes": {
+                "primary_system_prompt_hash": _prompt_hash(PRIMARY_SYSTEM),
+                "primary_user_prompt_hash": _prompt_hash(
+                    _primary_user_prompt_from_inputs(case_inputs, context_inputs)
+                ),
+                "adversarial_system_prompt_hash": _prompt_hash(ADVERSARIAL_SYSTEM),
+                "adversarial_user_prompt_hash": _prompt_hash(
+                    _adversarial_user_prompt_from_inputs(case_inputs, context_inputs)
+                ),
+            },
+        }
+    )
+
+
+def audit_run_input_fingerprint(case_input_fingerprints: dict[str, str]) -> str:
+    normalized = {
+        case_id: str(case_input_fingerprints[case_id]).strip()
+        for case_id in sorted(case_input_fingerprints)
+        if str(case_input_fingerprints[case_id]).strip()
+    }
+    if not normalized:
+        return ""
+    return _fingerprint(
+        {
+            "audit_prompt_contract_version": AUDIT_PROMPT_CONTRACT_VERSION,
+            "case_input_fingerprints": normalized,
+        }
+    )
+
+
 def find_span_and_context(case: dict[str, Any], source_index: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
     source = source_index.get(str(case.get("source_id", "")))
     if not source:
@@ -205,8 +330,17 @@ def find_span_and_context(case: dict[str, Any], source_index: dict[str, dict[str
         excerpt_text = render_excerpt_sentences(
             str(sentence.get("text", "")).strip() for sentence in excerpt_rows
         )
+        prior_context_sentence_ids = [
+            str(sentence_id).strip()
+            for sentence_id in (case.get("prior_context_sentence_ids") or [])
+            if str(sentence_id).strip() in by_id and by_id[str(sentence_id).strip()] < start
+        ]
+        if prior_context_sentence_ids:
+            lookback_rows = [sentences[by_id[sentence_id]] for sentence_id in prior_context_sentence_ids]
+        else:
+            lookback_rows = sentences[max(0, start - 3) : start]
         context = {
-            "lookback_sentences": [str(item.get("text", "")).strip() for item in sentences[max(0, start - 3) : start]],
+            "lookback_sentences": [str(item.get("text", "")).strip() for item in lookback_rows],
             "excerpt_sentences": [str(item.get("text", "")).strip() for item in excerpt_rows],
             "lookahead_sentences": [str(item.get("text", "")).strip() for item in sentences[end + 1 : end + 3]],
         }
@@ -216,6 +350,7 @@ def find_span_and_context(case: dict[str, Any], source_index: dict[str, dict[str
             "book_document_path": str(book_document_path),
             "excerpt_text_reconstructed": excerpt_text,
             "expected_excerpt_text": str(case.get("excerpt_text", "")).strip(),
+            "prior_context_sentence_ids": prior_context_sentence_ids,
         }, context
     raise ValueError(f"Chapter missing for {case.get('case_id')}")
 
@@ -274,31 +409,234 @@ def default_adversarial() -> dict[str, Any]:
     }
 
 
+def _consensus_mode(values: list[str], *, tie_order: list[str], default: str) -> str:
+    cleaned = [str(value).strip().lower() for value in values if str(value).strip()]
+    if not cleaned:
+        return default
+    counts = Counter(cleaned)
+    best_count = max(counts.values())
+    tied = {value for value, count in counts.items() if count == best_count}
+    for candidate in tie_order:
+        if candidate in tied:
+            return candidate
+    return cleaned[0]
+
+
+def _median_int(values: list[int]) -> int:
+    if not values:
+        return 0
+    ordered = sorted(int(value) for value in values)
+    return ordered[len(ordered) // 2]
+
+
+def _pick_primary_exemplar_index(
+    payloads: list[dict[str, Any]],
+    consensus: dict[str, Any],
+) -> int:
+    if not payloads:
+        return 0
+
+    def _score(payload: dict[str, Any]) -> tuple[int, int]:
+        matches = 0
+        if str(payload.get("decision", "")).strip().lower() == consensus["decision"]:
+            matches += 3
+        if str(payload.get("confidence", "")).strip().lower() == consensus["confidence"]:
+            matches += 1
+        for field in ("bucket_fit", "focus_clarity", "excerpt_strength"):
+            try:
+                payload_score = int(payload.get(field, 0))
+            except (TypeError, ValueError):
+                payload_score = 0
+            if payload_score == consensus[field]:
+                matches += 1
+        payload_problem_types = sorted(
+            str(item).strip() for item in list(payload.get("problem_types") or []) if str(item).strip()
+        )
+        if payload_problem_types == consensus["problem_types"]:
+            matches += 1
+        return matches, -payloads.index(payload)
+
+    return max(range(len(payloads)), key=lambda index: _score(payloads[index]))
+
+
+def summarize_primary_consensus(payloads: list[dict[str, Any]]) -> tuple[dict[str, Any], int]:
+    normalized_payloads = [normalize_primary(payload) for payload in payloads]
+    if not normalized_payloads:
+        return default_primary(), 0
+
+    consensus = default_primary()
+    consensus["decision"] = _consensus_mode(
+        [payload.get("decision", "") for payload in normalized_payloads],
+        tie_order=["drop", "revise", "unclear", "keep"],
+        default=consensus["decision"],
+    )
+    consensus["confidence"] = _consensus_mode(
+        [payload.get("confidence", "") for payload in normalized_payloads],
+        tie_order=["low", "medium", "high"],
+        default=consensus["confidence"],
+    )
+    for field in ("bucket_fit", "focus_clarity", "excerpt_strength"):
+        consensus[field] = _median_int(
+            [int(payload.get(field, 0) or 0) for payload in normalized_payloads]
+        )
+
+    fallback_exemplar_index = _pick_primary_exemplar_index(normalized_payloads, consensus)
+    fallback_exemplar = normalized_payloads[fallback_exemplar_index]
+
+    if consensus["decision"] == "keep":
+        consensus["problem_types"] = []
+        consensus["revised_bucket"] = ""
+        consensus["revised_selection_reason"] = ""
+        consensus["revised_judge_focus"] = ""
+    else:
+        problem_type_counts = Counter(
+            str(problem_type).strip()
+            for payload in normalized_payloads
+            for problem_type in list(payload.get("problem_types") or [])
+            if str(problem_type).strip()
+        )
+        majority_threshold = len(normalized_payloads) // 2 + 1
+        consensus["problem_types"] = sorted(
+            problem_type
+            for problem_type, count in problem_type_counts.items()
+            if count >= majority_threshold
+        )
+        if consensus["decision"] in {"revise", "drop"} and not consensus["problem_types"]:
+            consensus["problem_types"] = list(fallback_exemplar.get("problem_types") or []) or ["other"]
+        for field in ("revised_bucket", "revised_selection_reason", "revised_judge_focus"):
+            candidate_values = [
+                str(payload.get(field, "")).strip()
+                for payload in normalized_payloads
+                if str(payload.get(field, "")).strip()
+            ]
+            consensus[field] = _consensus_mode(
+                candidate_values,
+                tie_order=sorted(set(candidate_values)),
+                default="",
+            )
+
+    final_consensus = normalize_primary(consensus)
+    exemplar_index = _pick_primary_exemplar_index(normalized_payloads, final_consensus)
+    final_consensus["notes"] = (
+        str(normalized_payloads[exemplar_index].get("notes", "")).strip() or final_consensus["notes"]
+    )
+    return final_consensus, exemplar_index
+
+
 def normalize_primary(payload: Any) -> dict[str, Any]:
     normalized = default_primary()
     if not isinstance(payload, dict):
         return normalized
+
+    def _score_fields() -> tuple[str, str, str]:
+        return ("bucket_fit", "focus_clarity", "excerpt_strength")
+
+    def _band_from_score(score: int) -> str:
+        if score >= 4:
+            return "strong"
+        if score >= 3:
+            return "adequate"
+        if score >= 1:
+            return "weak"
+        return ""
+
+    def _score_from_band(band: str) -> int:
+        return {
+            "strong": 4,
+            "adequate": 3,
+            "weak": 2,
+        }.get(band, 0)
+
+    def _derived_decision(axis_scores: dict[str, int], raw_decision: str) -> str:
+        if raw_decision in {"drop", "unclear"}:
+            return raw_decision
+        if raw_decision == "keep" and any(score <= 2 for score in axis_scores.values()):
+            return "keep"
+        weak_count = sum(1 for score in axis_scores.values() if score <= 2)
+        adequate_count = sum(1 for score in axis_scores.values() if score == 3)
+        strong_count = sum(1 for score in axis_scores.values() if score >= 4)
+        if weak_count == 0 and adequate_count <= 1 and strong_count >= 2:
+            return "keep"
+        return "revise"
+
+    def _canonical_problem_types(
+        raw_problem_types: list[str],
+        axis_scores: dict[str, int],
+        decision: str,
+    ) -> list[str]:
+        if decision == "keep":
+            return []
+        ordered_types: list[str] = []
+
+        def _append(problem_type: str) -> None:
+            if problem_type not in ordered_types:
+                ordered_types.append(problem_type)
+
+        if axis_scores["bucket_fit"] <= 2 and "wrong_bucket" in raw_problem_types:
+            _append("wrong_bucket")
+        if axis_scores["excerpt_strength"] <= 2:
+            _append("weak_excerpt")
+        elif axis_scores["excerpt_strength"] == 3 and "weak_excerpt" in raw_problem_types:
+            _append("weak_excerpt")
+        if axis_scores["focus_clarity"] <= 2:
+            _append("ambiguous_focus")
+        elif axis_scores["focus_clarity"] == 3 and "ambiguous_focus" in raw_problem_types:
+            _append("ambiguous_focus")
+        if axis_scores["bucket_fit"] == 3 and "wrong_bucket" in raw_problem_types:
+            _append("wrong_bucket")
+
+        for problem_type in (
+            "source_parse_problem",
+            "text_noise",
+            "duplicate_case",
+            "too_easy",
+            "too_hard",
+        ):
+            if problem_type in raw_problem_types:
+                _append(problem_type)
+
+        if not ordered_types and raw_problem_types and "other" not in raw_problem_types:
+            _append(raw_problem_types[0])
+        if not ordered_types:
+            _append("other")
+        return ordered_types
+
     decision = str(payload.get("decision", "")).strip().lower()
     if decision in {"keep", "revise", "drop", "unclear"}:
         normalized["decision"] = decision
     confidence = str(payload.get("confidence", "")).strip().lower()
     if confidence in {"high", "medium", "low"}:
         normalized["confidence"] = confidence
+    band_fields = {
+        "bucket_fit": str(payload.get("bucket_fit_band", "")).strip().lower(),
+        "focus_clarity": str(payload.get("focus_clarity_band", "")).strip().lower(),
+        "excerpt_strength": str(payload.get("excerpt_strength_band", "")).strip().lower(),
+    }
     for field in ("bucket_fit", "focus_clarity", "excerpt_strength"):
-        try:
-            score = int(payload.get(field, 0))
-        except (TypeError, ValueError):
-            score = 0
-        normalized[field] = max(0, min(5, score))
+        band = band_fields[field]
+        if band not in {"strong", "adequate", "weak"}:
+            try:
+                score = int(payload.get(field, 0))
+            except (TypeError, ValueError):
+                score = 0
+            band = _band_from_score(max(0, min(5, score)))
+        normalized[field] = _score_from_band(band)
     if isinstance(payload.get("problem_types"), list):
         normalized["problem_types"] = [str(item).strip() for item in payload["problem_types"] if str(item).strip()]
     normalized["revised_bucket"] = str(payload.get("revised_bucket", "")).strip()
     normalized["revised_selection_reason"] = str(payload.get("revised_selection_reason", "")).strip()
     normalized["revised_judge_focus"] = str(payload.get("revised_judge_focus", "")).strip()
     normalized["notes"] = str(payload.get("notes", "")).strip() or normalized["notes"]
+    axis_scores = {field: int(normalized[field]) for field in _score_fields()}
+    normalized["decision"] = _derived_decision(axis_scores, normalized["decision"])
+    normalized["problem_types"] = _canonical_problem_types(
+        list(normalized["problem_types"]),
+        axis_scores,
+        normalized["decision"],
+    )
     if normalized["decision"] == "keep":
-        for field in ("bucket_fit", "focus_clarity", "excerpt_strength"):
-            normalized[field] = max(normalized[field], 3)
+        for field in _score_fields():
+            normalized[field] = 4
         normalized["problem_types"] = []
         normalized["revised_bucket"] = ""
         normalized["revised_selection_reason"] = ""
@@ -365,6 +703,7 @@ def invoke_review_with_meta(
     default_payload: dict[str, Any],
     normalize: Callable[[Any], dict[str, Any]],
     validation_error: Callable[[dict[str, Any]], str],
+    scope_overrides: LLMInvocationOverrides | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     last_metadata: dict[str, Any] | None = None
     last_normalized = dict(default_payload)
@@ -379,6 +718,7 @@ def invoke_review_with_meta(
         try:
             with llm_invocation_scope(
                 trace_context=LLMTraceContext(stage="case_design_audit", node=stage_name),
+                overrides=scope_overrides,
             ):
                 payload = invoke_json(system_prompt, user_prompt, default=default_payload)
         except ReaderLLMError as exc:
@@ -436,54 +776,61 @@ def invoke_review_with_meta(
 
 
 def run_primary(case: dict[str, Any], context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    return invoke_review_with_meta(
-        stage_name="primary_review",
-        system_prompt=PRIMARY_SYSTEM,
-        user_prompt=PRIMARY_PROMPT.format(
-            case_json=json.dumps(
-                {
-                    "case_id": case.get("case_id"),
-                    "case_title": case.get("case_title"),
-                    "question_ids": case.get("question_ids", []),
-                    "phenomena": case.get("phenomena", []),
-                    "selection_reason": case.get("selection_reason", ""),
-                    "judge_focus": case.get("judge_focus", ""),
-                    "excerpt_text": case.get("excerpt_text", ""),
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            context_json=json.dumps(context, ensure_ascii=False, indent=2),
+    case_inputs = _case_prompt_inputs(case)
+    context_inputs = _context_prompt_inputs(context)
+    # Keep audit-stage scoring reproducible without changing the shared profile's throughput policy.
+    replica_payloads: list[dict[str, Any]] = []
+    replica_metadata: list[dict[str, Any]] = []
+    system_prompt = PRIMARY_SYSTEM
+    user_prompt = _primary_user_prompt_from_inputs(case_inputs, context_inputs)
+
+    for replica_index in range(PRIMARY_REVIEW_REPLICA_COUNT):
+        payload, metadata = invoke_review_with_meta(
+            stage_name=f"primary_review_replica_{replica_index + 1}",
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            default_payload=default_primary(),
+            normalize=normalize_primary,
+            validation_error=primary_validation_issue,
+            scope_overrides=AUDIT_REVIEW_OVERRIDES,
+        )
+        replica_payloads.append(payload)
+        replica_metadata.append(metadata)
+
+    consensus_payload, exemplar_index = summarize_primary_consensus(replica_payloads)
+    return consensus_payload, {
+        "stage": "primary_review",
+        "status": "ok",
+        "started_at": replica_metadata[0]["started_at"] if replica_metadata else "",
+        "completed_at": replica_metadata[-1]["completed_at"] if replica_metadata else "",
+        "duration_ms": sum(int(metadata.get("duration_ms", 0) or 0) for metadata in replica_metadata),
+        "replica_count": len(replica_metadata),
+        "selection_policy": PRIMARY_REVIEW_CONSENSUS_POLICY,
+        "selected_replica_index": exemplar_index,
+        "consensus_decision": consensus_payload["decision"],
+        "consensus_problem_types": list(consensus_payload["problem_types"]),
+        "replicas": replica_metadata,
+        "semantic_attempt_count": sum(
+            int(metadata.get("semantic_attempt_count", 0) or 0) for metadata in replica_metadata
         ),
-        default_payload=default_primary(),
-        normalize=normalize_primary,
-        validation_error=primary_validation_issue,
-    )
+        "semantic_retry_count": sum(
+            int(metadata.get("semantic_retry_count", 0) or 0) for metadata in replica_metadata
+        ),
+        "validation_issue": "",
+    }
 
 
 def run_adversarial(case: dict[str, Any], context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    case_inputs = _case_prompt_inputs(case)
+    context_inputs = _context_prompt_inputs(context)
     return invoke_review_with_meta(
         stage_name="adversarial_review",
         system_prompt=ADVERSARIAL_SYSTEM,
-        user_prompt=ADVERSARIAL_PROMPT.format(
-            case_json=json.dumps(
-                {
-                    "case_id": case.get("case_id"),
-                    "case_title": case.get("case_title"),
-                    "question_ids": case.get("question_ids", []),
-                    "phenomena": case.get("phenomena", []),
-                    "selection_reason": case.get("selection_reason", ""),
-                    "judge_focus": case.get("judge_focus", ""),
-                    "excerpt_text": case.get("excerpt_text", ""),
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            context_json=json.dumps(context, ensure_ascii=False, indent=2),
-        ),
+        user_prompt=_adversarial_user_prompt_from_inputs(case_inputs, context_inputs),
         default_payload=default_adversarial(),
         normalize=normalize_adversarial,
         validation_error=adversarial_validation_issue,
+        scope_overrides=AUDIT_REVIEW_OVERRIDES,
     )
 
 
@@ -526,6 +873,11 @@ def aggregate(rows: list[dict[str, Any]], *, total_case_count: int, status: str)
     primary_decisions = Counter(str(row["primary_review"]["decision"]) for row in completed_rows)
     adversarial_risks = Counter(str(row["adversarial_review"]["risk_level"]) for row in completed_rows)
     factual_failures = sum(1 for row in completed_rows if not bool(row["factual_audit"]["ok"]))
+    case_input_fingerprints = {
+        str(row.get("case_id", "")).strip(): str(row.get("audit_prompt_input_fingerprint", "")).strip()
+        for row in rows
+        if str(row.get("case_id", "")).strip() and str(row.get("audit_prompt_input_fingerprint", "")).strip()
+    }
     return {
         "status": status,
         "case_count": total_case_count,
@@ -538,6 +890,9 @@ def aggregate(rows: list[dict[str, Any]], *, total_case_count: int, status: str)
         "average_bucket_fit": round(mean(row["primary_review"]["bucket_fit"] for row in completed_rows), 3) if completed_rows else 0.0,
         "average_focus_clarity": round(mean(row["primary_review"]["focus_clarity"] for row in completed_rows), 3) if completed_rows else 0.0,
         "average_excerpt_strength": round(mean(row["primary_review"]["excerpt_strength"] for row in completed_rows), 3) if completed_rows else 0.0,
+        "audit_prompt_contract_version": AUDIT_PROMPT_CONTRACT_VERSION,
+        "case_input_fingerprints": dict(sorted(case_input_fingerprints.items())),
+        "run_audit_prompt_input_fingerprint": audit_run_input_fingerprint(case_input_fingerprints),
     }
 
 
@@ -634,6 +989,8 @@ def process_case(
     write_case_state(run_dir, case_id, state)
 
     overall_started = time.perf_counter()
+    audit_prompt_input_payload: dict[str, Any] = {}
+    audit_prompt_input_fingerprint = ""
     try:
         with llm_invocation_scope(
             profile_id=DEFAULT_DATASET_REVIEW_PROFILE_ID,
@@ -652,6 +1009,8 @@ def process_case(
             context = default_context()
             if factual.get("ok"):
                 _, context = find_span_and_context(case, source_index)
+            audit_prompt_input_payload = build_audit_prompt_input_payload(case, context)
+            audit_prompt_input_fingerprint = _fingerprint(audit_prompt_input_payload)
 
             primary, primary_meta = run_primary(case, context)
             state["llm_calls"]["primary_review"] = primary_meta
@@ -681,6 +1040,8 @@ def process_case(
                 "factual_audit": factual,
                 "primary_review": primary,
                 "adversarial_review": adversarial,
+                "audit_prompt_input_payload": audit_prompt_input_payload,
+                "audit_prompt_input_fingerprint": audit_prompt_input_fingerprint,
                 "audit_metadata": {
                     "timing_ms": dict(state["timing_ms"]),
                     "llm_calls": dict(state["llm_calls"]),
@@ -706,6 +1067,8 @@ def process_case(
             "packet_id": packet_id,
             "status": "failed",
             "error": dict(state["error"]),
+            "audit_prompt_input_payload": audit_prompt_input_payload,
+            "audit_prompt_input_fingerprint": audit_prompt_input_fingerprint,
             "audit_metadata": {
                 "timing_ms": dict(state["timing_ms"]),
                 "llm_calls": dict(state["llm_calls"]),

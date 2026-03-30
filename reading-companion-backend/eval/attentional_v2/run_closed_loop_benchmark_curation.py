@@ -474,30 +474,33 @@ def packet_adjudication_variability(packet_dir: Path) -> list[dict[str, Any]]:
         return []
 
     warnings: list[dict[str, Any]] = []
-    runs_by_fingerprint: dict[str, list[Path]] = {}
-    for run_dir in run_dirs:
-        summary = load_json(run_dir / "summary.json")
-        fingerprint = str(summary.get("adjudication_input_fingerprint", "")).strip()
-        if not fingerprint:
+    for baseline, candidate in zip(run_dirs, run_dirs[1:]):
+        comparison = compare_adjudication_runs(baseline, candidate)
+        drift_counts = dict(comparison.get("drift_counts") or {})
+        case_diffs = list(comparison.get("case_diffs") or [])
+        comparable_same_source_cases = [
+            item for item in case_diffs if bool(item.get("same_source_row_fingerprint"))
+        ]
+        if not comparable_same_source_cases:
             continue
-        runs_by_fingerprint.setdefault(fingerprint, []).append(run_dir)
-
-    for fingerprint, grouped_run_dirs in sorted(runs_by_fingerprint.items()):
-        if len(grouped_run_dirs) < 2:
-            continue
-        baseline = grouped_run_dirs[0]
-        for candidate in grouped_run_dirs[1:]:
-            comparison = compare_adjudication_runs(baseline, candidate)
-            drift_counts = dict(comparison.get("drift_counts") or {})
-            if any(int(drift_counts.get(key, 0) or 0) > 0 for key in drift_counts):
-                warnings.append(
-                    {
-                        "adjudication_input_fingerprint": fingerprint,
-                        "baseline_run_id": str(comparison.get("run_id_a", "")).strip(),
-                        "candidate_run_id": str(comparison.get("run_id_b", "")).strip(),
-                        "drift_counts": drift_counts,
-                    }
-                )
+        if any(int(drift_counts.get(key, 0) or 0) > 0 for key in drift_counts):
+            warnings.append(
+                {
+                    "baseline_run_id": str(comparison.get("run_id_a", "")).strip(),
+                    "candidate_run_id": str(comparison.get("run_id_b", "")).strip(),
+                    "packet_input_fingerprint_a": str(
+                        comparison.get("packet_input_fingerprint_a", "")
+                    ).strip(),
+                    "packet_input_fingerprint_b": str(
+                        comparison.get("packet_input_fingerprint_b", "")
+                    ).strip(),
+                    "same_packet_input_fingerprint": bool(
+                        comparison.get("same_packet_input_fingerprint")
+                    ),
+                    "same_source_case_count": len(comparable_same_source_cases),
+                    "drift_counts": drift_counts,
+                }
+            )
     return warnings
 
 

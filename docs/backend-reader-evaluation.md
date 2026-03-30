@@ -43,6 +43,27 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - targeted adjudicated review for ambiguous or high-impact cases
   - when human review capacity is unavailable, multi-prompt LLM adjudication may replace manual review as the operational reviewer
 - When LLM audit or adjudication rubrics use ordinal scores, the rubric contract should define the score direction explicitly and guard against impossible decision/score combinations before those payloads are treated as downstream benchmark evidence.
+- When audit rubrics compress case quality into coarse bands, the normalized keep gate should not be stricter than the real benchmark-readiness intent.
+  - if the intended meaning is "benchmark-usable now unless a real weak axis is present," prefer a deterministic rule such as "no weak axes and at most one adequate axis" over an "all axes must be perfect" gate that can turn a single `4 -> 3` wobble into same-input decision drift
+- When multi-stage packet review uses LLM audit plus final adjudication, the final adjudicator should consume a compact structured audit summary rather than raw audit prose.
+  - free-text audit notes and disagreement narratives remain useful operator evidence
+  - they should not be treated as canonical adjudication input when reproducibility matters
+- The final adjudicator should also see case-quality-bearing fields rather than builder workflow bookkeeping.
+  - scratch ids, internal build scores, empty review-history markers, and similar workflow metadata are useful operator evidence
+  - they should not be allowed to bias benchmark-readiness decisions when the question is the excerpt case itself
+- When reproducibility is the question, isolate the layer that is being measured.
+  - same-packet adjudication reproducibility should be measured on frozen packet inputs, for example by rerunning `auto_review_packet.py --probe-only` on an archived packet
+  - same-input case-audit reproducibility should persist stable prompt inputs/fingerprints per case so later comparisons can distinguish audit-model variance from builder/input drift
+  - builder-emitted excerpt, anchor, and selection-reason text should normalize invisible Unicode formatting and non-breaking whitespace before the audit layer sees it
+    - otherwise a text-corruption defect can masquerade as audit-model drift even when the real issue is upstream excerpt rendering
+  - if a real case-audit comparison shows `audit_input_drift = 0` while primary decisions, scores, or problem types still move materially, treat the next repair as audit-stage reproducibility hardening rather than as builder/input debugging
+  - when one prompt-contract adjustment still leaves same-input audit drift materially high, a small repeated-review consensus pass is an acceptable next repair before redesigning builder inputs
+    - for example, repeat the primary audit on the same pinned target and same prompt inputs, then aggregate with deterministic majority/median rules
+  - when a packet already has a prior `llm_review_run`, `--probe-only` should prefer replaying that stored run's adjudication input payloads instead of regenerating them from newer compact-audit logic
+  - replayed saved-input probes should still record the currently active rubric/prompt identity so later comparisons do not mistake a cross-rubric replay for same-contract evidence
+  - transient quota exhaustion on the pinned target should not be treated as benchmark evidence by default
+    - a bounded same-target recovery pass is acceptable before a packet-review batch finalizes `unclear` rows from quota-only failures
+  - closed-loop repeats that rebuild after importing into live feedback datasets should not be treated as same-input reproducibility evidence unless the feedback inputs are frozen deliberately
 
 ## Dual Diagnosis Rule
 - Every meaningful evaluation pass should inspect two possibilities:

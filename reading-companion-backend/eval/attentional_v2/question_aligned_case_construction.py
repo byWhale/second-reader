@@ -7,6 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 import re
 from typing import Any, Callable
+import unicodedata
 
 
 TARGET_PROFILE_FLOOR_REVIEWED_ACTIVE = 2
@@ -20,6 +21,9 @@ ZH_EARLY_FILLER_PENALTY = 0.55
 RECONSOLIDATION_MISSING_CUE_PENALTY = 1.2
 WINDOW_EDGE_NOISE_PENALTY = 0.75
 ZH_TENSION_MISSING_CUE_PENALTY = 1.2
+CALLBACK_LOOKBACK_SENTENCE_LIMIT_EN = 5
+CALLBACK_LOOKBACK_SENTENCE_LIMIT_ZH = 7
+CALLBACK_INLINE_ANTECEDENT_GAP = 2
 TARGET_PROFILE_ORDER = (
     "distinction_definition",
     "tension_reversal",
@@ -60,7 +64,7 @@ EXCERPT_TARGET_PROFILES = {
         "question_ids": ["EQ-CM-002", "EQ-CM-004", "EQ-AV2-004"],
         "phenomena": ["bridge_potential", "callback", "cross_span_link"],
         "selection_reason_template": "Selected because the passage invites a backward bridge or callback that should remain source-grounded rather than associative.",
-        "judge_focus_template": "Does the mechanism connect the current line to earlier material honestly and for the right reason?",
+        "judge_focus_template": "Can the reader trace the backward bridge to specific earlier material from the passage, while keeping the attribution of the bridging claim clear?",
         "preferred_roles": ("argumentative", "reference_heavy", "narrative_reflective"),
         "preferred_positions": ("middle", "late"),
         "en_cues": ("again", "once more", "earlier", "before", "return", "returns", "went back", "back over"),
@@ -130,12 +134,57 @@ EXPLICIT_CALLBACK_MARKERS_EN = (
     "again",
     "once more",
     "earlier",
+    "from this",
+    "from that",
+    "from these",
+    "from those",
     "return",
     "returns",
     "went back",
     "back over",
 )
-EXPLICIT_CALLBACK_MARKERS_ZH = ("再次", "回到", "前面", "之前", "又一次")
+EXPLICIT_CALLBACK_MARKERS_ZH = ("再次", "回到", "前面", "之前", "又一次", "依旧", "依舊")
+CALLBACK_STOP_TERMS_EN = {
+    "again",
+    "back",
+    "before",
+    "earlier",
+    "over",
+    "return",
+    "returns",
+    "same",
+    "went",
+}
+CALLBACK_GENERIC_OVERLAP_TERMS_EN = {
+    "from",
+    "that",
+    "their",
+    "there",
+    "these",
+    "this",
+    "those",
+    "home",
+    "into",
+    "none",
+    "soon",
+    "which",
+    "while",
+    "with",
+    "himself",
+}
+CALLBACK_STOP_TERMS_ZH = {
+    "再次",
+    "前面",
+    "之前",
+    "又一次",
+    "回到",
+    "依旧",
+    "依舊",
+    "此处",
+    "这里",
+    "那句",
+    "这句",
+}
 REPORTED_SPEECH_MARKERS_EN = (
     "said",
     "says",
@@ -168,12 +217,26 @@ PARATEXT_MARKERS_ZH = (
     "Public domain",
 )
 SENTENCE_END_MARKERS = frozenset(".!?。！？…;；:：\"”」』）)]'")
+NORMALIZED_SPACE_EQUIVALENTS = frozenset({" ", "\t", "\r", "\n", "\f", "\v", "\u00a0", "\u2007", "\u202f"})
+INVISIBLE_FORMAT_CHARACTERS = frozenset({"\u200b", "\u200c", "\u200d", "\ufeff", "\u2060"})
 
 
 def excerpt_target_profiles() -> list[dict[str, Any]]:
     """Return the stable ordered target-profile list for excerpt construction."""
 
     return [deepcopy(EXCERPT_TARGET_PROFILES[target_id]) for target_id in TARGET_PROFILE_ORDER]
+
+
+def _normalize_sentence_text(text: Any) -> str:
+    cleaned_characters: list[str] = []
+    for character in str(text or ""):
+        if character in INVISIBLE_FORMAT_CHARACTERS or unicodedata.category(character) == "Cf":
+            continue
+        if character in NORMALIZED_SPACE_EQUIVALENTS:
+            cleaned_characters.append(" ")
+            continue
+        cleaned_characters.append(character)
+    return re.sub(r" +", " ", "".join(cleaned_characters)).strip()
 
 
 def target_profile_id_for_case_row(row: dict[str, Any]) -> str:
@@ -452,7 +515,7 @@ def _build_opportunity_cards_for_chapter(
     sentence_scores_by_profile: dict[str, list[dict[str, Any]]] = defaultdict(list)
 
     for index, sentence in enumerate(sentences):
-        sentence_text = str(sentence.get("text") or "").strip()
+        sentence_text = _normalize_sentence_text(sentence.get("text") or "")
         if len(sentence_text) < 20:
             prior_text += " " + sentence_text
             prior_tokens |= _tokenize(sentence_text, language)
@@ -476,6 +539,7 @@ def _build_opportunity_cards_for_chapter(
                 {
                     "index": index,
                     "sentence": sentence,
+                    "sentence_text": sentence_text,
                     "position_bucket": position_bucket,
                     **score_payload,
                 }
@@ -493,25 +557,51 @@ def _build_opportunity_cards_for_chapter(
             radius = int(profile["radius_en"] if language == "en" else profile["radius_zh"])
             start = max(0, candidate["index"] - radius)
             end = min(total_sentences, candidate["index"] + radius + 1)
+            prior_context_sentence_ids: list[str] = []
+            prior_context_excerpt_text = ""
+            callback_evidence: list[str] = []
+            callback_antecedent_resolved: bool | None = None
+            callback_target_text = ""
+            if profile_id == "callback_bridge":
+                antecedent = _resolve_callback_antecedent(
+                    sentences=sentences,
+                    anchor_index=int(candidate["index"]),
+                    language=language,
+                )
+                callback_antecedent_resolved = bool(antecedent["resolved"])
+                if not callback_antecedent_resolved:
+                    continue
+                callback_evidence = list(antecedent["evidence"])
+                callback_target_text = _callback_target_prompt_text(
+                    str(antecedent["excerpt_text"])
+                )
+                antecedent_index = int(antecedent["antecedent_index"])
+                if antecedent_index < start:
+                    if (start - antecedent_index) <= CALLBACK_INLINE_ANTECEDENT_GAP:
+                        start = antecedent_index
+                    else:
+                        prior_context_sentence_ids = list(antecedent["sentence_ids"])
+                        prior_context_excerpt_text = str(antecedent["excerpt_text"])
             start, end = _expand_excerpt_window(sentences, start=start, end=end)
             window = sentences[start:end]
             if not window:
                 continue
             rendered_excerpt_text = render_excerpt_sentences(
-                str(item.get("text") or "").strip() for item in window
+                item.get("text") or "" for item in window
             )
             if len(rendered_excerpt_text) < 80:
                 continue
             complete_sentence_count = _complete_sentence_count(
-                str(item.get("text") or "").strip() for item in window
+                item.get("text") or "" for item in window
             )
             if complete_sentence_count < MIN_COMPLETE_SENTENCES_PER_EXCERPT:
                 continue
             if not _window_is_valid_for_profile(
                 profile_id=profile_id,
-                anchor_text=str(candidate["sentence"].get("text") or "").strip(),
-                window=[str(item.get("text") or "").strip() for item in window],
+                anchor_text=str(candidate.get("sentence_text") or ""),
+                window=[item.get("text") or "" for item in window],
                 language=language,
+                callback_antecedent_resolved=callback_antecedent_resolved,
             ):
                 continue
             window_priority_adjustment, window_evidence = _window_quality_adjustment(
@@ -519,12 +609,12 @@ def _build_opportunity_cards_for_chapter(
                 language=language,
                 selection_role=str(row.get("selection_role", "")),
                 position_bucket=str(candidate["position_bucket"]),
-                window=[str(item.get("text") or "").strip() for item in window],
+                window=[item.get("text") or "" for item in window],
             )
             anchor_sentence_id = candidate["sentence"]["sentence_id"]
             anchor_display_text = _selection_reason_anchor_text(
-                anchor_text=str(candidate["sentence"].get("text") or "").strip(),
-                window_texts=[str(item.get("text") or "").strip() for item in window],
+                anchor_text=str(candidate.get("sentence_text") or ""),
+                window_texts=[item.get("text") or "" for item in window],
             )
             source_priority = int(row.get("selection_priority", 9999) or 9999)
             opportunities.append(
@@ -543,10 +633,11 @@ def _build_opportunity_cards_for_chapter(
                     "excerpt_sentence_ids": [item["sentence_id"] for item in window],
                     "anchor_sentence_ids": [anchor_sentence_id],
                     "support_sentence_ids": [item["sentence_id"] for item in window if item["sentence_id"] != anchor_sentence_id],
-                    "prior_context_sentence_ids": [],
-                    "anchor_excerpt_text": str(candidate["sentence"].get("text") or "").strip(),
+                    "prior_context_sentence_ids": prior_context_sentence_ids,
+                    "prior_context_excerpt_text": prior_context_excerpt_text,
+                    "anchor_excerpt_text": str(candidate.get("sentence_text") or ""),
                     "context_excerpt_text": rendered_excerpt_text,
-                    "phenomenon_evidence": list(candidate["evidence"]) + window_evidence,
+                    "phenomenon_evidence": list(candidate["evidence"]) + callback_evidence + window_evidence,
                     "judgeability_score": round(float(candidate["judgeability_score"]), 3),
                     "discriminative_power_score": round(float(candidate["discriminative_power_score"]), 3),
                     "ambiguity_risk": candidate["ambiguity_risk"],
@@ -555,8 +646,12 @@ def _build_opportunity_cards_for_chapter(
                     "selection_reason_draft": _selection_reason_draft(
                         profile_id=profile_id,
                         sentence_text=anchor_display_text,
+                        callback_target_text=callback_target_text,
                     ),
-                    "judge_focus_draft": _judge_focus_draft(profile_id=profile_id),
+                    "judge_focus_draft": _judge_focus_draft(
+                        profile_id=profile_id,
+                        callback_target_text=callback_target_text,
+                    ),
                     "rejection_reasons": [],
                     "reserve_rank": 0,
                     "derived_from_review_feedback": bool(candidate["deficit_boost"]),
@@ -676,6 +771,7 @@ def _select_cases_and_reserves(
     reserves_per_chapter: int,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     selected_ids: set[str] = set()
+    selected_signatures: set[tuple[str, str, str, str]] = set()
     selected_chapters: dict[str, int] = defaultdict(int)
     selected_profiles_per_chapter: dict[str, set[str]] = defaultdict(set)
     cases: list[dict[str, Any]] = []
@@ -695,9 +791,13 @@ def _select_cases_and_reserves(
             chapter_key = str(item["chapter_case_id"])
             if chapter_key in selected_chapters:
                 continue
+            signature = _case_signature(item)
+            if signature in selected_signatures:
+                continue
             case = _assembled_case(item)
             cases.append(case)
             selected_ids.add(str(item["opportunity_id"]))
+            selected_signatures.add(signature)
             selected_chapters[chapter_key] += 1
             selected_profiles_per_chapter[chapter_key].add(profile_id)
             break
@@ -720,13 +820,18 @@ def _select_cases_and_reserves(
             continue
         if float(item["construction_priority"]) < MIN_PROFILE_ORDER_SELECTION_PRIORITY:
             continue
+        signature = _case_signature(item)
+        if signature in selected_signatures:
+            continue
         case = _assembled_case(item)
         cases.append(case)
         selected_ids.add(str(item["opportunity_id"]))
+        selected_signatures.add(signature)
         selected_chapters[chapter_key] += 1
         selected_profiles_per_chapter[chapter_key].add(profile_id)
 
     reserves: list[dict[str, Any]] = []
+    reserve_signatures = set(selected_signatures)
     reserve_counts: dict[str, int] = defaultdict(int)
     for item in sorted(
         opportunities,
@@ -741,8 +846,12 @@ def _select_cases_and_reserves(
             continue
         if reserve_counts[chapter_key] >= reserves_per_chapter:
             continue
+        signature = _case_signature(item)
+        if signature in reserve_signatures:
+            continue
         reserve = _assembled_reserve_case(item, reserve_rank=reserve_counts[chapter_key] + 1)
         reserves.append(reserve)
+        reserve_signatures.add(signature)
         reserve_counts[chapter_key] += 1
 
     cases.sort(key=lambda row: (str(row["output_language"]), str(row["source_id"]), int(row["chapter_number"])))
@@ -773,13 +882,15 @@ def _assembled_case(opportunity: dict[str, Any]) -> dict[str, Any]:
         "chapter_title": opportunity["chapter_title"],
         "start_sentence_id": start_sentence_id,
         "end_sentence_id": end_sentence_id,
-        "excerpt_text": opportunity["context_excerpt_text"],
+        "excerpt_text": str(opportunity["context_excerpt_text"]).strip(),
         "excerpt_sentence_ids": excerpt_sentence_ids,
+        "prior_context_sentence_ids": list(opportunity.get("prior_context_sentence_ids") or []),
+        "prior_context_text": str(opportunity.get("prior_context_excerpt_text", "")).strip(),
         "anchor_sentence_id": opportunity["anchor_sentence_ids"][0],
         "question_ids": list(profile["question_ids"]),
         "phenomena": list(profile["phenomena"]),
-        "selection_reason": opportunity["selection_reason_draft"],
-        "judge_focus": opportunity["judge_focus_draft"],
+        "selection_reason": _normalize_sentence_text(opportunity["selection_reason_draft"]),
+        "judge_focus": _normalize_sentence_text(opportunity["judge_focus_draft"]),
         "target_profile_id": profile_id,
         "opportunity_id": opportunity["opportunity_id"],
         "replacement_family_id": f"{opportunity['source_id']}::{opportunity['chapter_id']}::{profile_id}",
@@ -821,13 +932,15 @@ def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -
         "chapter_title": opportunity["chapter_title"],
         "start_sentence_id": start_sentence_id,
         "end_sentence_id": end_sentence_id,
-        "excerpt_text": opportunity["context_excerpt_text"],
+        "excerpt_text": str(opportunity["context_excerpt_text"]).strip(),
         "excerpt_sentence_ids": excerpt_sentence_ids,
+        "prior_context_sentence_ids": list(opportunity.get("prior_context_sentence_ids") or []),
+        "prior_context_text": str(opportunity.get("prior_context_excerpt_text", "")).strip(),
         "anchor_sentence_id": opportunity["anchor_sentence_ids"][0],
         "question_ids": list(profile["question_ids"]),
         "phenomena": list(profile["phenomena"]),
-        "selection_reason": opportunity["selection_reason_draft"],
-        "judge_focus": opportunity["judge_focus_draft"],
+        "selection_reason": _normalize_sentence_text(opportunity["selection_reason_draft"]),
+        "judge_focus": _normalize_sentence_text(opportunity["judge_focus_draft"]),
         "target_profile_id": profile_id,
         "opportunity_id": opportunity["opportunity_id"],
         "replacement_family_id": f"{opportunity['source_id']}::{opportunity['chapter_id']}::{profile_id}",
@@ -841,16 +954,33 @@ def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -
     }
 
 
-def _selection_reason_draft(*, profile_id: str, sentence_text: str) -> str:
+def _callback_target_prompt_text(text: str) -> str:
+    cleaned = _normalize_sentence_text(text)
+    if len(cleaned) > 160:
+        cleaned = cleaned[:157].rstrip() + "..."
+    return cleaned
+
+
+def _selection_reason_draft(
+    *,
+    profile_id: str,
+    sentence_text: str,
+    callback_target_text: str = "",
+) -> str:
     profile = EXCERPT_TARGET_PROFILES[profile_id]
-    clipped = re.sub(r"\s+", " ", sentence_text).strip()
+    clipped = _normalize_sentence_text(sentence_text)
     if len(clipped) > 160:
         clipped = clipped[:157].rstrip() + "..."
+    if profile_id == "callback_bridge" and callback_target_text:
+        return (
+            f"{profile['selection_reason_template']} Earlier bridge target: "
+            f"{callback_target_text}. Anchor line: {clipped}"
+        )
     return f"{profile['selection_reason_template']} Anchor line: {clipped}"
 
 
 def _selection_reason_anchor_text(*, anchor_text: str, window_texts: list[str]) -> str:
-    cleaned_anchor = str(anchor_text or "").strip()
+    cleaned_anchor = _normalize_sentence_text(anchor_text)
     if not cleaned_anchor:
         return ""
     if not (_needs_preceding_sentence(cleaned_anchor) or _needs_following_sentence(cleaned_anchor)):
@@ -861,8 +991,30 @@ def _selection_reason_anchor_text(*, anchor_text: str, window_texts: list[str]) 
     return cleaned_anchor
 
 
-def _judge_focus_draft(*, profile_id: str) -> str:
+def _judge_focus_draft(*, profile_id: str, callback_target_text: str = "") -> str:
+    if profile_id == "callback_bridge" and callback_target_text:
+        return (
+            "Can the reader trace the backward bridge to this specific earlier "
+            f"material: {callback_target_text}, while keeping the attribution of "
+            "the bridging claim clear and non-associative?"
+        )
     return str(EXCERPT_TARGET_PROFILES[profile_id]["judge_focus_template"])
+
+
+def _case_signature(opportunity: dict[str, Any]) -> tuple[str, str, str, str]:
+    profile_id = str(opportunity["target_profile_ids"][0])
+    excerpt_text = re.sub(r"\s+", " ", str(opportunity.get("context_excerpt_text") or "")).strip()
+    prior_context_text = re.sub(
+        r"\s+",
+        " ",
+        str(opportunity.get("prior_context_excerpt_text") or ""),
+    ).strip()
+    return (
+        str(opportunity.get("source_id") or ""),
+        profile_id,
+        excerpt_text,
+        prior_context_text,
+    )
 
 
 def _position_bucket(*, index: int, total: int) -> str:
@@ -877,9 +1029,177 @@ def _position_bucket(*, index: int, total: int) -> str:
 
 
 def _tokenize(text: str, language: str) -> set[str]:
+    text = _normalize_sentence_text(text)
     if language == "zh":
         return {match.group(0) for match in re.finditer(r"[\u4e00-\u9fff]{2,}", text)}
     return {token for token in re.findall(r"[A-Za-z]{4,}", text.lower()) if token not in {"that", "this", "with", "from", "have", "were"}}
+
+
+def _callback_terms(text: str, language: str) -> set[str]:
+    text = _normalize_sentence_text(text)
+    if language == "zh":
+        cleaned = re.sub(r"[^\u4e00-\u9fff]", "", text)
+        if len(cleaned) < 2:
+            return set()
+        terms: set[str] = set()
+        for size in (2, 3, 4):
+            for index in range(0, max(0, len(cleaned) - size + 1)):
+                term = cleaned[index : index + size]
+                if term in CALLBACK_STOP_TERMS_ZH:
+                    continue
+                terms.add(term)
+        return terms
+    return {
+        token
+        for token in re.findall(r"[A-Za-z]{4,}", text.lower())
+        if token not in CALLBACK_STOP_TERMS_EN
+    }
+
+
+def _callback_terms_after_first_explicit_marker(text: str, language: str) -> set[str]:
+    normalized = _normalize_sentence_text(text)
+    if language == "zh":
+        marker_positions = [
+            normalized.find(marker)
+            for marker in EXPLICIT_CALLBACK_MARKERS_ZH
+            if normalized.find(marker) >= 0
+        ]
+        if not marker_positions:
+            return set()
+        marker_index = min(marker_positions)
+        return _callback_terms(normalized[marker_index:], language)
+    lowered = normalized.lower()
+    marker_positions = [
+        lowered.find(marker)
+        for marker in EXPLICIT_CALLBACK_MARKERS_EN
+        if lowered.find(marker) >= 0
+    ]
+    if not marker_positions:
+        return set()
+    marker_index = min(marker_positions)
+    return _callback_terms(normalized[marker_index:], language)
+
+
+def _callback_overlap_score(overlap: set[str], language: str) -> float:
+    if language == "zh":
+        return sum(1.0 if len(term) == 2 else 1.6 if len(term) == 3 else 2.1 for term in overlap)
+    return float(len(overlap))
+
+
+def _english_inferential_callback_score(anchor_text: str, prior_text: str, *, distance: int) -> float:
+    lowered_anchor = _normalize_sentence_text(anchor_text).lower()
+    lowered_prior = _normalize_sentence_text(prior_text).lower()
+    inferential_markers = ("from this", "from that", "from these", "from those")
+    if not any(marker in lowered_anchor for marker in inferential_markers):
+        return 0.0
+    if distance > 2:
+        return 0.0
+    if len(lowered_prior) < 40:
+        return 0.0
+    score = 0.9
+    if any(marker in lowered_prior for marker in ('"', "“", "”", "chapter", "contribution", "cause")):
+        score += 0.35
+    return score
+
+
+def _distinctive_callback_overlap(overlap: set[str], language: str) -> set[str]:
+    if language == "zh":
+        return {
+            term
+            for term in overlap
+            if len(term) >= 3 and not any(marker in term for marker in EXPLICIT_CALLBACK_MARKERS_ZH)
+        }
+    return {
+        term
+        for term in overlap
+        if term not in CALLBACK_GENERIC_OVERLAP_TERMS_EN
+    }
+
+
+def _resolve_callback_antecedent(
+    *,
+    sentences: list[dict[str, Any]],
+    anchor_index: int,
+    language: str,
+) -> dict[str, Any]:
+    anchor_text = _normalize_sentence_text(sentences[anchor_index].get("text") or "")
+    unresolved = {
+        "resolved": False,
+        "antecedent_index": -1,
+        "sentence_ids": [],
+        "excerpt_text": "",
+        "evidence": ["callback_antecedent_missing"],
+    }
+    if not _has_explicit_callback_marker(anchor_text, language):
+        return unresolved
+    anchor_terms = _callback_terms(anchor_text, language)
+    if not anchor_terms:
+        return unresolved
+
+    lookback_limit = (
+        CALLBACK_LOOKBACK_SENTENCE_LIMIT_ZH if language == "zh" else CALLBACK_LOOKBACK_SENTENCE_LIMIT_EN
+    )
+    best_candidate: dict[str, Any] | None = None
+    best_score = 0.0
+    for prior_index in range(max(0, anchor_index - lookback_limit), anchor_index):
+        prior_text = _normalize_sentence_text(sentences[prior_index].get("text") or "")
+        if len(prior_text) < 20 or _looks_like_paratext_sentence(prior_text, language):
+            continue
+        overlap = anchor_terms.intersection(_callback_terms(prior_text, language))
+        distinctive_overlap = _distinctive_callback_overlap(overlap, language)
+        inferential_score = 0.0
+        if language == "zh":
+            post_marker_terms = _callback_terms_after_first_explicit_marker(anchor_text, language)
+            if post_marker_terms:
+                distinctive_overlap = distinctive_overlap.intersection(post_marker_terms)
+        else:
+            inferential_score = _english_inferential_callback_score(
+                anchor_text,
+                prior_text,
+                distance=anchor_index - prior_index,
+            )
+        overlap_score = _callback_overlap_score(distinctive_overlap, language)
+        if overlap_score <= 0 and inferential_score <= 0:
+            continue
+        distance = anchor_index - prior_index
+        candidate_score = max(overlap_score, inferential_score) - (max(0, distance - 1) * 0.18)
+        if _looks_fragmentary(prior_text):
+            candidate_score -= 0.25
+        if candidate_score <= best_score:
+            continue
+        prior_start, prior_end = _expand_excerpt_window(
+            sentences,
+            start=prior_index,
+            end=min(len(sentences), prior_index + 1),
+        )
+        prior_rows = sentences[prior_start:prior_end]
+        best_candidate = {
+            "resolved": True,
+            "antecedent_index": prior_index,
+            "sentence_ids": [
+                str(item.get("sentence_id") or "")
+                for item in prior_rows
+                if str(item.get("sentence_id") or "").strip()
+            ],
+            "excerpt_text": render_excerpt_sentences(
+                item.get("text") or "" for item in prior_rows
+            ),
+            "evidence": [
+                f"callback_antecedent_distance:{distance}",
+                f"callback_overlap_score:{round(candidate_score, 3)}",
+                f"callback_overlap_terms:{'|'.join(sorted(distinctive_overlap)[:4])}",
+            ],
+        }
+        if inferential_score > 0:
+            best_candidate["evidence"].append(
+                f"callback_inferential_backlink:{round(inferential_score, 3)}"
+            )
+        best_score = candidate_score
+
+    threshold = 1.2 if language == "zh" else 1.0
+    if best_candidate is None or best_score < threshold:
+        return unresolved
+    return best_candidate
 
 
 def _is_short_comma_fragment(text: str) -> bool:
@@ -888,7 +1208,7 @@ def _is_short_comma_fragment(text: str) -> bool:
 
 
 def _needs_preceding_sentence(text: str) -> bool:
-    cleaned = str(text or "").strip()
+    cleaned = _normalize_sentence_text(text)
     if not cleaned:
         return False
     return bool(
@@ -898,7 +1218,7 @@ def _needs_preceding_sentence(text: str) -> bool:
 
 
 def _needs_following_sentence(text: str) -> bool:
-    cleaned = str(text or "").strip()
+    cleaned = _normalize_sentence_text(text)
     if not cleaned:
         return False
     return bool(
@@ -911,7 +1231,7 @@ def _needs_following_sentence(text: str) -> bool:
 
 
 def _looks_fragmentary(text: str) -> bool:
-    cleaned = str(text or "").strip()
+    cleaned = _normalize_sentence_text(text)
     if not cleaned:
         return True
     return _needs_preceding_sentence(cleaned) or _needs_following_sentence(cleaned)
@@ -928,7 +1248,7 @@ def render_excerpt_sentences(texts: Any) -> str:
 def _rendered_excerpt_parts(texts: Any) -> list[str]:
     rendered: list[str] = []
     for raw_text in texts:
-        text = str(raw_text or "").strip()
+        text = _normalize_sentence_text(raw_text)
         if not text:
             continue
         if rendered and (_needs_following_sentence(rendered[-1]) or _needs_preceding_sentence(text)):
@@ -940,11 +1260,11 @@ def _rendered_excerpt_parts(texts: Any) -> list[str]:
 
 def _expand_excerpt_window(sentences: list[dict[str, Any]], *, start: int, end: int) -> tuple[int, int]:
     while start > 0 and (
-        _needs_preceding_sentence(str(sentences[start].get("text") or "").strip())
-        or _needs_following_sentence(str(sentences[start - 1].get("text") or "").strip())
+        _needs_preceding_sentence(sentences[start].get("text") or "")
+        or _needs_following_sentence(sentences[start - 1].get("text") or "")
     ):
         start -= 1
-    while end < len(sentences) and _needs_following_sentence(str(sentences[end - 1].get("text") or "").strip()):
+    while end < len(sentences) and _needs_following_sentence(sentences[end - 1].get("text") or ""):
         if end >= len(sentences):
             break
         end += 1
@@ -952,15 +1272,16 @@ def _expand_excerpt_window(sentences: list[dict[str, Any]], *, start: int, end: 
 
 
 def _has_explicit_callback_marker(text: str, language: str) -> bool:
-    lowered = text.lower()
+    normalized = _normalize_sentence_text(text)
+    lowered = normalized.lower()
     markers = EXPLICIT_CALLBACK_MARKERS_EN if language == "en" else EXPLICIT_CALLBACK_MARKERS_ZH
     if language == "en":
         return any(marker in lowered for marker in markers)
-    return any(marker in text for marker in markers)
+    return any(marker in normalized for marker in markers)
 
 
 def _looks_like_cjk_continuation_end(text: str) -> bool:
-    cleaned = str(text or "").strip()
+    cleaned = _normalize_sentence_text(text)
     if not cleaned or not re.search(r"[\u4e00-\u9fff]", cleaned):
         return False
     return cleaned[-1] not in SENTENCE_END_MARKERS
@@ -973,11 +1294,12 @@ def _join_excerpt_fragments(previous: str, current: str) -> str:
 
 
 def _looks_like_reported_speech(text: str, language: str) -> bool:
-    lowered = text.lower()
+    normalized = _normalize_sentence_text(text)
+    lowered = normalized.lower()
     markers = REPORTED_SPEECH_MARKERS_EN if language == "en" else REPORTED_SPEECH_MARKERS_ZH
     if language == "en":
-        return ("\"" in text or "“" in text) and any(marker in lowered for marker in markers)
-    return ("“" in text or "”" in text or "「" in text) and any(marker in text for marker in markers)
+        return ("\"" in normalized or "“" in normalized) and any(marker in lowered for marker in markers)
+    return ("“" in normalized or "”" in normalized or "「" in normalized) and any(marker in normalized for marker in markers)
 
 
 def _window_is_valid_for_profile(
@@ -986,11 +1308,14 @@ def _window_is_valid_for_profile(
     anchor_text: str,
     window: list[str],
     language: str,
+    callback_antecedent_resolved: bool | None = None,
 ) -> bool:
     rendered_excerpt = render_excerpt_sentences(window)
     if not rendered_excerpt:
         return False
     if profile_id == "callback_bridge" and not _has_explicit_callback_marker(anchor_text, language):
+        return False
+    if profile_id == "callback_bridge" and callback_antecedent_resolved is False:
         return False
     if profile_id == "anchored_reaction_selectivity" and _looks_like_reported_speech(anchor_text, language):
         return False
@@ -1000,7 +1325,7 @@ def _window_is_valid_for_profile(
 
 
 def _looks_like_paratext_sentence(text: str, language: str) -> bool:
-    cleaned = str(text or "").strip()
+    cleaned = _normalize_sentence_text(text)
     if not cleaned:
         return False
     digit_count = sum(character.isdigit() for character in cleaned)
@@ -1014,7 +1339,11 @@ def _looks_like_paratext_sentence(text: str, language: str) -> bool:
 
 
 def _looks_like_paratext_window(window: list[str], language: str) -> bool:
-    cleaned = [str(item or "").strip() for item in window if str(item or "").strip()]
+    cleaned: list[str] = []
+    for item in window:
+        normalized = _normalize_sentence_text(item)
+        if normalized:
+            cleaned.append(normalized)
     if not cleaned:
         return False
     sentence_hits = sum(1 for text in cleaned if _looks_like_paratext_sentence(text, language))
@@ -1032,7 +1361,11 @@ def _window_quality_adjustment(
     position_bucket: str,
     window: list[str],
 ) -> tuple[float, list[str]]:
-    cleaned = [str(item or "").strip() for item in window if str(item or "").strip()]
+    cleaned: list[str] = []
+    for item in window:
+        normalized = _normalize_sentence_text(item)
+        if normalized:
+            cleaned.append(normalized)
     if not cleaned:
         return 0.0, []
 
@@ -1072,7 +1405,7 @@ def _window_quality_adjustment(
 
 
 def _has_unclosed_quote(text: str) -> bool:
-    cleaned = str(text or "").strip()
+    cleaned = _normalize_sentence_text(text)
     if not cleaned:
         return False
     for opener, closer in QUOTE_PAIRS:

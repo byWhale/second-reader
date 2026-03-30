@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-30T13:50:41Z`
+Last verified: `2026-03-30T23:06:06Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -78,9 +78,136 @@ Last verified: `2026-03-30T13:50:41Z`
       - `kangxi_hongpiao_private_zh__27__seed_1`
       - `zouchu_weiyi_zhenliguan_private_zh__8__seed_1`
   - both recovery summaries explicitly recorded `decision_bearing_followup_launched: false`
-- The review queue is empty again:
-  - `reading-companion-backend/eval/review_packets/review_queue_summary.json`
+- The audit reproducibility wave is now fully complete in durable repo evidence:
+  - the canonical wave-end checkpoint still lives in `reading-companion-backend/eval/review_packets/review_queue_summary.json`
+  - `generated_at = 2026-03-30T20:05:14.323982Z`
   - `active_packet_count = 0`
+  - this stable queue checkpoint reflects the completed `auditpair`, `auditcontractv2`, `auditcontractv3`, `auditconsensusv3`, the narrow Henry Adams whitespace-fix follow-up, and the broader English plus broader bilingual whitespace-fix runs, all of which refreshed with `changed = false`
+  - this remains packet-local work only:
+    - no promotion, reviewed-slice freezing, runtime-viability, or default-cutover work was auto-launched
+- The post-fix broader English validation is now completed:
+  - job id:
+    - `bgjob_closed_loop_en_broader_whitespacefix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 7`, `revise = 1`, `drop = 0`
+    - post-import English benchmark counts: `reviewed_active = 7`, `needs_revision = 1`
+  - diagnosis:
+    - the Henry Adams anchored-reaction outlier now stays clean and benchmark-ready end to end
+    - the only remaining English holdout in this two-source slice is `education_of_henry_adams_public_en__29__callback_bridge__seed_v1`, which is still a bounded callback breadth / mixed-focus issue rather than a text-integrity failure
+- The broader bilingual post-fix validation is now completed:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_whitespacefix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 6`, `revise = 1`, `drop = 1`
+    - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+  - diagnosis:
+    - Chinese held steady at the current narrow baseline rather than regressing
+    - the remaining English instability is now concentrated in `callback_bridge` cases rather than in the whole cleaned builder path:
+      - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1` degraded from `revise` to `drop`
+      - `on_liberty_public_en__5__callback_bridge__seed_v1` degraded from `keep` to `revise`
+    - the next bounded repair belongs in callback-bridge shaping rather than in another global text-sanitization or audit-plumbing pass
+- A bounded callback-bridge repair is now landed in code:
+  - code:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+  - bounded changes:
+    - callback-bridge `judge_focus` now asks for a traceable earlier bridge with clear attribution instead of the looser "honestly and for the right reason" wording
+    - when a resolved callback antecedent falls only a small gap before the excerpt window, the builder now inlines that antecedent into the main excerpt instead of leaving it only in `prior_context_text`
+  - local validation:
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_case_design_audit.py`
+    - `reading-companion-backend/tests/test_case_design_audit_reproducibility.py`
+    - `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
+    - `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
+    - focused result: `71 passed`
+- The callback-bridge follow-up validation is now completed:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackbridgefix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 6`, `revise = 2`, `drop = 0`
+    - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - post-import English benchmark counts: `reviewed_active = 6`, `needs_revision = 2`
+    - post-import Chinese benchmark counts: `reviewed_active = 1`, `needs_revision = 1`
+  - diagnosis:
+    - the bounded callback repair cleared the last English `drop`, so the broader bilingual slice no longer has a replacement-level failure
+    - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1` improved from `drop` to `revise`, but it still reads as broad or mixed because the callback evidence is present yet not fully self-contained in the excerpt window
+    - `on_liberty_public_en__5__callback_bridge__seed_v1` remains `revise` because the bridge is real but still too compressed to read as benchmark-ready on its own
+    - `chenlun_public_zh__4__callback_bridge__seed_v1` remains `revise` because the backward-link target is still not explicit enough inside the excerpt itself
+    - the next bounded move belongs in callback excerpt shaping and antecedent carry-forward, not in audit plumbing, queue orchestration, or another global sanitization pass
+- The callback antecedent-quality follow-up is now completed:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackcontentfix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 4`, `revise = 4`, `drop = 0`
+    - Chinese `keep = 1`, `revise = 0`, `drop = 0`
+    - post-import English benchmark counts: `reviewed_active = 4`, `needs_revision = 4`
+    - post-import Chinese benchmark counts: `reviewed_active = 1`
+  - diagnosis:
+    - this pass successfully removed the weak Chinese callback baggage
+    - it also demoted the earlier weak `on_liberty_public_en__5__callback_bridge__seed_v1` callback export, but the overall English quality regressed from the stronger `callbackbridgefix` checkpoint
+    - `callbackcontentfix` is therefore useful negative evidence, not the final callback-shaping answer
+- A tighter inferential callback backlink follow-up is now landed in code:
+  - code:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+  - bounded changes:
+    - English callback markers now treat inferential backlink phrases such as `from this` and `from that` as callback signals
+    - `_english_inferential_callback_score(...)` now helps real inferential callbacks resolve against the immediately prior evidence even when lexical overlap is weak
+    - English generic overlap is tightened further by adding `home` to `CALLBACK_GENERIC_OVERLAP_TERMS_EN`
+  - builder-only validation:
+    - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_callback_qualitycheck_20260331/build_summary.json`
+    - `on_liberty_public_en__5__callback_bridge__opp_2` is restored in the opportunity map
+    - the weak Henry `return home` callback no longer survives as the active callback candidate
+    - the weak Chinese `chenlun_public_zh__4__callback_bridge__seed_v1` row remains absent from the active candidate set
+- The callback inference follow-up is now completed:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackinferencefix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 5`, `revise = 3`, `drop = 0`
+    - Chinese `keep = 1`, `revise = 0`, `drop = 0`
+    - post-import English benchmark counts: `reviewed_active = 5`, `needs_revision = 3`
+    - post-import Chinese benchmark counts: `reviewed_active = 1`
+  - diagnosis:
+    - this run recovered useful English quality from the weaker `callbackcontentfix` checkpoint while preserving the cleaner Chinese lane
+    - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1` remains `revise` because the callback target is real but still described too generically
+    - `on_liberty_public_en__10__callback_bridge__seed_v1` is now a clean `keep`
+    - `on_liberty_public_en__4__callback_bridge__seed_v1` remains `revise` because the callback target is present but the judge focus is still too broad or mixed
+    - no weak Chinese callback row returned to the active packet
+- A bounded callback target-specific focus patch is now landed locally:
+  - code:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+  - bounded changes:
+    - callback cases now carry the resolved earlier bridge target directly into `selection_reason` and `judge_focus`
+    - the callback prompt no longer uses one generic "specific earlier material" phrase for every callback case
+  - local validation:
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_case_design_audit.py`
+    - `reading-companion-backend/tests/test_case_design_audit_reproducibility.py`
+    - `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
+    - `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
+    - focused result: `72 passed`
+- One active callback-focus follow-up is now running:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331`
+  - run dir:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackfocusfix_20260331/`
+  - purpose:
+    - rerun the same four-source bilingual slice after making callback selection reasons and judge-focus prompts name the resolved earlier bridge target explicitly
+  - next evidence target:
+    - check whether Henry 29 and `on_liberty_public_en__4__callback_bridge__seed_v1` move from `revise` to `keep` without reviving weak callback rows
+  - boundary:
+    - this run is still scratch-safe evidence only; no promotion, reviewed-slice freezing, runtime-viability, or default-cutover work has been auto-launched
 - The focused English round-3 narrative/reference rerun is no longer running:
   - job id:
     - `bgjob_en_chapter_core_rerun_round3_parallel_20260329`
@@ -227,6 +354,9 @@ Last verified: `2026-03-30T13:50:41Z`
     - Chinese `tension_reversal` candidates now need an explicit local cue instead of atmospheric scene-setting alone
     - second-pass chapter fill now respects the minimum selection threshold instead of force-filling weak chapters
     - fragmentary anchor lines now reuse the merged readable line in `selection_reason`
+    - `callback_bridge` candidates now require a resolved antecedent instead of surviving on a local backward marker alone
+    - callback cases now carry explicit `prior_context_sentence_ids` / `prior_context_text` so longer-lookback bridge evidence survives into audit and packet review
+    - exact same-source same-profile excerpt duplicates are now filtered before they become active or reserve rows, so near-identical packet slots such as the duplicated `on_liberty` callback excerpt do not keep resurfacing as separate benchmark seeds
 - The bounded closed-loop controller now has real scratch evidence beyond the first plumbing landing:
   - earlier baseline evidence remains useful:
     - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_construct_smoke_20260330/closed_loop_benchmark_curation_run_state.json`
@@ -293,10 +423,14 @@ Last verified: `2026-03-30T13:50:41Z`
     - code:
       - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
       - `reading-companion-backend/eval/attentional_v2/compare_packet_adjudication_runs.py`
+      - `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
     - bounded behaviors:
       - each adjudication run now writes per-case artifacts plus run-local `manifest.json`, `summary.json`, and `report.md` under `llm_review_runs/<run_id>/`
       - adjudication fingerprints now normalize to prompt-relevant input content instead of audit wrapper metadata such as timings or run ids
       - the compare tool now surfaces source-input drift separately from audit-input drift
+      - final packet adjudication now consumes a compact structured audit summary instead of free-text audit notes or challenge prose
+      - packet adjudication now rejects placeholder / unusable audit rows instead of silently normalizing them into downstream review evidence
+      - the closed-loop variability guard now compares adjacent same-source adjudication runs even when regenerated audit inputs changed the packet fingerprint
     - current real English pair diagnosis:
       - compare result:
         - `same_packet_input_fingerprint = false`
@@ -311,17 +445,371 @@ Last verified: `2026-03-30T13:50:41Z`
   - current interpretation:
     - English builder quality improved materially and remains clearly better than the first narrow-English baseline
     - Chinese builder quality also improved materially: it no longer selects pure front matter and can now produce at least one real prose `keep`
-    - the next blocker for unattended widening is bilingual reproducibility, not intake plumbing:
-      - remaining Chinese shaping now looks narrower and more concrete:
-        - callback lookback context still needs work on the surviving `chenlun` case
-      - the same-config English post-fix repeat is now completed and still shows:
+    - the next blocker for unattended widening is now validation after the landed hardening rather than missing plumbing:
+      - Chinese callback cases no longer package a cue-only bridge without showing the earlier bridge target
+      - English adjudication no longer treats audit prose-only drift as canonical downstream input
+      - the next bounded move is to rerun broader English and focused/broader Chinese scratch validation to see how much source-equal drift remains after the compact-adjudication and callback-antecedent patches
+  - a compact adjudication-summary hardening patch is now landed for packet review runs:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+      - `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
+    - bounded behaviors:
+      - `llm_review_runs/<run_id>/` now uses a short storage id instead of repeating the full packet id in the filesystem path
+      - auxiliary trace-file lookup is now non-fatal, so missing or unreadable trace files do not crash the whole packet adjudication pass
+      - the long-path failure seen on the broader English repeat is now covered by a regression test
+  - the first broader English compact-adjudication rerun is now completed:
+    - job id:
+      - `bgjob_closed_loop_en_broader_compactadjudication_20260330`
+    - summary:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_compactadjudication_20260330/closed_loop_benchmark_curation_summary.json`
+    - result:
+      - English `keep = 3`, `revise = 5`, `drop = 0`
+  - the first Chinese callback-lookback rerun is now completed:
+    - job id:
+      - `bgjob_closed_loop_zh_callbacklookback_20260330`
+    - summary:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_zh_callbacklookback_20260330/closed_loop_benchmark_curation_summary.json`
+    - result:
+      - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - diagnosis:
+      - the surviving `chenlun_public_zh__4__callback_bridge__seed_v1` was structurally real, but its `prior_context_sentence_ids` were still empty
+      - the archived review still rejected it as a cue-only bridge because the packet showed no earlier bridge target
+  - the follow-up Chinese callback prior-context rerun is now completed:
+    - job id:
+      - `bgjob_closed_loop_zh_callbackpriorcontext_20260330`
+    - summary:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_zh_callbackpriorcontext_20260330/closed_loop_benchmark_curation_summary.json`
+    - result:
+      - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - diagnosis:
+      - `chenlun_public_zh__4__callback_bridge__seed_v1` now carries non-empty `prior_context_sentence_ids` and `prior_context_text`
+      - the archived review no longer says the case lacks prior context; it now asks for a stronger excerpt boundary that makes the callback salience more evident
+      - the Chinese blocker has narrowed from missing bridge evidence to excerpt-boundary quality
+  - the broader English compact-adjudication repeat first failed and then was resumed successfully:
+    - original failed job:
+      - `bgjob_closed_loop_en_broader_compactadjudication_repeat_20260330`
+      - failure: `auto_review_packet.py` hit `OSError: [Errno 63] File name too long` while building the packet-review trace path
+    - resumed recovery job:
+      - `bgjob_closed_loop_en_broader_compactadjudication_repeat_resume_20260330`
+      - result:
+        - English `keep = 2`, `revise = 6`, `drop = 0`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/closed_loop_benchmark_curation_summary.json`
+      - archived packet review:
+        - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_report.md`
+  - current compact-adjudication English pair diagnosis:
+    - compare result:
+      - `same_packet_input_fingerprint = false`
+      - `source_input_drift = 3`
+      - `audit_input_drift = 8`
+      - `action_drift = 3`
+      - `confidence_drift = 2`
+      - `problem_type_drift = 4`
+    - interpretation:
+      - the path-length bug is fixed and no longer blocks the controller
+      - the pair is still not trustworthy as reproducibility evidence because three English source rows drifted and all eight audit inputs changed
+      - the source drift is now understood more clearly:
+        - the repeat reused the same source books but not the same feedback state
+        - the first compact run imported its packet into the live English feedback dataset before the repeat rebuilt the scratch packet
+        - this means the repeat pair mixes builder-feedback adaptation with audit/adjudication variability instead of isolating one reproducibility layer cleanly
+      - the next blocker is now reproducibility isolation plus audit stability rather than packet orchestration
+  - the frozen-packet adjudication probe wave is now completed:
+    - target packet:
+      - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/`
+    - first frozen-input probe:
+      - job id:
+        - `bgjob_packet_adjudication_probe_en_compactrepeat_20260330`
+      - run id:
+        - `llm_review__20260330-154948__ae50caff2084`
+      - compare against the archived non-probe run `llm_review__20260330-153904__ae50caff2084`:
+        - `same_packet_input_fingerprint = true`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 0`
+        - `action_drift = 6`
+        - `confidence_drift = 6`
+        - `problem_type_drift = 3`
+      - interpretation:
+        - this was the first clean proof that final adjudication itself could drift heavily even when both source rows and compact audit inputs were frozen
+    - compact-audit-v2 probe:
+      - job id:
+        - `bgjob_packet_adjudication_probe_en_compactrepeat_compactauditv2_20260330`
+      - run id:
+        - `llm_review__20260330-160343__ae50caff2084`
+      - compare against the archived non-probe run:
+        - `same_packet_input_fingerprint = false`
         - `source_input_drift = 0`
         - `audit_input_drift = 8`
-        - `action_drift = 2`
-      - so the remaining blocker is still regenerated audit/adjudication instability on source-equal English packets, but the next rerun will now surface unusable audit payloads as explicit audit failure instead of silently normalizing them
+        - `action_drift = 3`
+      - interpretation:
+        - this run did not preserve the original frozen adjudication input contract because the compact audit summary logic changed again
+        - it was still useful as evidence that the narrowed compact-audit contract could move the action mix toward `keep = 5`, `revise = 3`
+        - it was not valid same-input adjudication-only evidence
+    - replayed frozen-input probe after the probe-only replay hardening:
+      - direct run id:
+        - `llm_review__20260330-163116__ae50caff2084`
+      - summary:
+        - `input_payload_source = reused_prior_run`
+        - `reused_input_run_id = llm_review__20260330-153904__ae50caff2084`
+        - `adjudication_input_fingerprint = 1737d8aa13f7786bd8cff08648dce90ff3d0e889122aabe2e7ca969926e05edd`
+      - compare against the archived non-probe run:
+        - `same_packet_input_fingerprint = true`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 0`
+        - `action_drift = 1`
+        - `confidence_drift = 2`
+        - `problem_type_drift = 3`
+      - compare against the first frozen-input probe:
+        - `same_packet_input_fingerprint = true`
+        - `action_drift = 5`
+        - `confidence_drift = 5`
+        - `problem_type_drift = 4`
+      - interpretation:
+        - `auto_review_packet.py --probe-only` can now replay stored adjudication inputs from the packet's prior run instead of silently regenerating them from newer compaction logic
+        - the latest same-input replay landed much closer to the archived baseline than the first probe did
+        - adjudication variance is still material across repeated same-input probes, so the next blocker remains final adjudication hardening rather than wider controller automation
+    - current code hardening after that diagnosis:
+      - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py` now performs a bounded serial recovery pass for quota-only adjudication failures before finalizing `unclear` rows
+      - the adjudication prompt now strips builder workflow metadata such as scratch status, review history, internal builder scores, and other non-case-quality bookkeeping from the case JSON it shows the final adjudicator
+      - the packet-adjudication scope now also passes its worker demand into target-tier selection so scope-start routing can honor job concurrency needs more explicitly
+      - focused reproducibility tests for both replayed inputs and quota-failure recovery now pass in `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
+  - a second adjudication-stability hardening wave is now landed:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+      - `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
+    - bounded behaviors:
+      - `ADJUDICATION_CONTRACT_VERSION` is now `packet_adjudication_rubric_v4`
+      - replayed saved-input probes now recompute the active adjudication contract identity before recording comparison metadata, so older saved payloads are not mislabeled as same-contract evidence after rubric edits
+      - the final adjudication prompt now explicitly says to judge the excerpt case rather than workflow-stage bookkeeping, to default to `keep` for strong/clean/low-risk cases, and not to penalize `callback_bridge` simply because adjacent phenomena are also present
+      - `_apply_adjudication_precedence(...)` now enforces a strong-clean-low-risk `keep` precedence plus a narrower callback-bridge `revise` precedence when the primary audit already says the callback case is broad or ambiguous
+      - focused reproducibility tests passed for replayed saved inputs plus the new precedence guards
+  - the frozen-input adjudication v4 probe pair is now completed:
+    - target packet:
+      - `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/`
+    - run ids:
+      - `llm_review__20260330-174858__ae50caff2084`
+      - `llm_review__20260330-175048__ae50caff2084`
+    - compare result:
+      - `same_packet_input_fingerprint = true`
+      - `source_input_drift = 0`
+      - `audit_input_drift = 0`
+      - `action_drift = 0`
+      - `confidence_drift = 1`
+      - `problem_type_drift = 2`
+      - both runs kept the same `action_counts`: `keep = 5`, `revise = 3`
+    - interpretation:
+      - same-input final-action stability is now materially better under rubric v4
+      - the remaining noise on frozen packet inputs is confidence/problem-type jitter rather than action flips
+  - the broader v4 live validation wave is now completed:
+    - broader English scratch validation:
+      - job id:
+        - `bgjob_closed_loop_en_broader_adjudicationv4_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_adjudicationv4_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 6`, `revise = 2`, `drop = 0`
+    - broader bilingual scratch validation:
+      - job id:
+        - `bgjob_closed_loop_bilingual_broader_adjudicationv4_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_adjudicationv4_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 5`, `revise = 3`, `drop = 0`
+        - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - shared-English compare against the bilingual v4 run:
+      - `source_input_drift = 0`
+      - `audit_input_drift = 5`
+      - `action_drift = 3`
+      - `confidence_drift = 4`
+      - `problem_type_drift = 4`
+    - interpretation:
+      - the adjudication bottleneck has shifted from frozen same-input action instability to live regenerated audit-input drift across English-only versus bilingual contexts
+      - the next dataset-platform narrowing step should focus on why the shared English case audits still change when the source rows stay constant
+  - case-audit reproducibility tooling is now landed:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `reading-companion-backend/eval/attentional_v2/compare_case_audit_runs.py`
+      - `reading-companion-backend/tests/test_case_design_audit.py`
+    - bounded behaviors:
+      - each case-audit row now persists a stable prompt-input payload plus `audit_prompt_input_fingerprint`
+      - case-audit summaries now persist a run-level audit-input fingerprint built from the per-case prompt fingerprints
+      - `compare_case_audit_runs.py` can now separate same-input audit drift from input drift across two audit runs
+    - interpretation:
+      - future English-only versus bilingual audit comparisons no longer need to guess whether the divergence came from prompt inputs or from the audit model output itself
+  - the fresh detached audit-pair live-stability wave is now completed on current code:
+    - broader English-only rerun:
+      - job id:
+        - `bgjob_closed_loop_en_broader_auditpair_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditpair_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 5`, `revise = 3`, `drop = 0`
+    - broader bilingual rerun:
+      - job id:
+        - `bgjob_closed_loop_bilingual_broader_auditpair_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_auditpair_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 3`, `revise = 5`, `drop = 0`
+        - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - shared-English case-audit compare result:
+      - artifact:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditpair_20260331/case_audit_compare_against_bilingual.json`
+      - result:
+        - `same_run_audit_prompt_input_fingerprint = true`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 2`
+        - `primary_confidence_drift = 2`
+        - `primary_problem_type_drift = 5`
+        - `primary_score_drift = 8`
+        - `adversarial_risk_drift = 2`
+    - interpretation:
+      - the remaining live English instability is now narrowed to same-input audit-stage output variance, not builder-side case/context drift
+      - the next selective hardening move belongs in audit-stage reproducibility rather than in source-row reconstruction or builder plumbing
+  - the first audit-stage reproducibility hardening patch is now landed in code:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
+      - `reading-companion-backend/tests/test_case_design_audit.py`
+    - bounded changes:
+      - `AUDIT_PROMPT_CONTRACT_VERSION` is now `case_design_audit_v2`
+      - the primary audit prompt now asks for `strong|adequate|weak` axis bands instead of raw `1-5` scoring
+      - primary audit normalization now maps those bands back into canonical numeric scores for downstream compatibility
+      - adjudication-side compact audit inputs now prefer explicit normalized bands when they are present
+  - the detached audit-contract-v2 validation wave is now completed:
+    - broader English-only rerun:
+      - job id:
+        - `bgjob_closed_loop_en_broader_auditcontractv2_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcontractv2_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 4`, `revise = 3`, `unclear = 1`, `drop = 0`
+    - broader bilingual rerun:
+      - job id:
+        - `bgjob_closed_loop_bilingual_broader_auditcontractv2_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_auditcontractv2_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 5`, `revise = 3`, `unclear = 0`, `drop = 0`
+        - Chinese `keep = 1`, `revise = 1`, `unclear = 0`, `drop = 0`
+    - shared-English case-audit compare result:
+      - artifact:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcontractv2_20260331/case_audit_compare_against_bilingual.json`
+      - result:
+        - `same_run_audit_prompt_input_fingerprint = true`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 5`
+        - `primary_confidence_drift = 3`
+        - `primary_problem_type_drift = 6`
+        - `primary_score_drift = 7`
+        - `adversarial_risk_drift = 3`
+    - interpretation:
+      - the stricter all-strong keep gate made the primary audit more brittle to single-axis `4 -> 3` wobble instead of narrowing same-input drift
+      - the blocker is still audit-stage reproducibility, not builder/input drift
+  - the second audit-stage reproducibility hardening patch is now landed in code:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `reading-companion-backend/tests/test_case_design_audit.py`
+    - bounded changes:
+      - `AUDIT_PROMPT_CONTRACT_VERSION` is now `case_design_audit_v3`
+      - the primary audit keep gate now treats one adequate axis as still benchmark-usable when no axis is weak
+      - primary normalization now derives the normalized decision and minimal problem-type set deterministically from the normalized axis scores while preserving the malformed-keep repair path
+  - the detached audit-contract-v3 validation wave is now completed:
+    - broader English-only rerun:
+      - job id:
+        - `bgjob_closed_loop_en_broader_auditcontractv3_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcontractv3_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 4`, `revise = 4`, `unclear = 0`, `drop = 0`
+    - broader bilingual rerun:
+      - job id:
+        - `bgjob_closed_loop_bilingual_broader_auditcontractv3_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_auditcontractv3_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 5`, `revise = 3`, `unclear = 0`, `drop = 0`
+        - Chinese `keep = 2`, `revise = 0`, `unclear = 0`, `drop = 0`
+    - shared-English case-audit compare result:
+      - artifact:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcontractv3_20260331/case_audit_compare_against_bilingual.json`
+      - result:
+        - `same_run_audit_prompt_input_fingerprint = true`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 4`
+        - `primary_confidence_drift = 5`
+        - `primary_problem_type_drift = 5`
+        - `primary_score_drift = 5`
+        - `adversarial_risk_drift = 1`
+    - interpretation:
+      - the softer keep gate improved the audit relative to `auditcontractv2`, especially on score drift and adversarial-risk drift
+      - the blocker still remains inside same-input audit reproducibility, because `primary_decision_drift = 4` is still too high for unattended widening
+  - the third audit-stage reproducibility hardening patch is now landed in code:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `reading-companion-backend/tests/test_case_design_audit.py`
+    - bounded changes:
+      - the primary audit now runs `3` zero-temperature replicas per case
+      - the final normalized primary review is selected by deterministic consensus:
+        - majority vote on the normalized action
+        - median axis scores
+        - conservative tie-breaks
+        - majority or exemplar-backed problem types
+      - this keeps the repair inside audit-stage reproducibility rather than changing builder inputs again
+  - the detached audit-consensus-v3 validation wave is now completed:
+    - broader English-only rerun:
+      - job id:
+        - `bgjob_closed_loop_en_broader_auditconsensusv3_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditconsensusv3_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 5`, `revise = 3`, `unclear = 0`, `drop = 0`
+    - broader bilingual rerun:
+      - job id:
+        - `bgjob_closed_loop_bilingual_broader_auditconsensusv3_20260331`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_auditconsensusv3_20260331/closed_loop_benchmark_curation_summary.json`
+      - result:
+        - English `keep = 5`, `revise = 3`, `unclear = 0`, `drop = 0`
+        - Chinese `keep = 1`, `revise = 1`, `unclear = 0`, `drop = 0`
+    - shared-English case-audit compare result:
+      - artifact:
+        - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditconsensusv3_20260331/case_audit_compare_against_bilingual.json`
+      - result:
+        - `same_run_audit_prompt_input_fingerprint = true`
+        - `source_input_drift = 0`
+        - `audit_input_drift = 0`
+        - `primary_decision_drift = 2`
+        - `primary_confidence_drift = 2`
+        - `primary_problem_type_drift = 2`
+        - `primary_score_drift = 4`
+        - `adversarial_risk_drift = 2`
+    - interpretation:
+      - replica consensus is the first audit-stage hardening move that brought same-input English `primary_decision_drift` back down to the earlier `auditpair` baseline while also improving problem-type and score stability beyond that baseline
+      - the English-only and bilingual runs now align on final English `keep = 5` / `revise = 3`, so the blocker has moved from narrow audit reproducibility toward broader validation and unattended-loop boundary work
+  - a builder-side invisible-whitespace normalization patch is now landed in code:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+      - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+    - bounded changes:
+      - rendered excerpt text now strips invisible Unicode format characters and normalizes non-breaking whitespace before the final case text is emitted
+      - builder-facing anchor text and selection-reason lines now reuse the cleaned text instead of leaking zero-width / non-breaking whitespace noise into packet review
+    - deterministic validation:
+      - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_whitespacefix_20260331/build_summary.json`
+      - the previously corrupted `education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1` row now emits clean `excerpt_text` and `selection_reason` with no invisible whitespace artifacts
+    - narrow closed-loop confirmation:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_henry_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+      - result: English `keep = 3`, `revise = 1`, `drop = 0`
+      - the previously corrupted Henry Adams anchored-reaction case no longer fails on text integrity
+      - it now lands as a confident `keep` on the cleaned packet path
+    - broader English confirmation:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+      - result: English `keep = 7`, `revise = 1`, `drop = 0`
+      - the cleaned builder path now holds across the current two-source English slice instead of only on the narrow Henry Adams proof
   - all bounded controller runs still stopped with summaries only:
     - no benchmark promotion, reviewed-slice freeze, runtime-viability, or default-cutover work was launched automatically
-    - the live review queue is back to `active_packet_count = 0`
 - The post-patch broader English scratch validation is now completed:
   - job id:
     - `bgjob_closed_loop_en_broader_auditcoherencefix_20260330`
@@ -384,7 +872,10 @@ Last verified: `2026-03-30T13:50:41Z`
   - interpretation to carry forward:
     - the guarded rerun completed cleanly and reproduced the broader English `4 keep / 4 revise` split
     - the next dataset-platform step is comparison and reproducibility diagnosis, not more queue plumbing
-- There are currently no active background jobs.
+- One active offline background job is now running.
+  - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331` is the current callback-quality validation lane
+  - `callbackbridgefix`, `callbackcontentfix`, and `callbackinferencefix` now form the completed evidence ladder behind it
+  - the next inspect-and-decide checkpoint is whether target-specific callback focus drafting converts the remaining Henry / `on_liberty` revise cases into clean keeps
 - The dataset-platform route is now underway, and it should keep reusing the machinery already landed rather than replace it:
   - keep the current strengths:
     - manifest-driven source promotion and canonical parsing from `corpus_builder.py`
@@ -455,15 +946,23 @@ Last verified: `2026-03-30T13:50:41Z`
   - drop books into `reading-companion-backend/state/library_inbox/`
   - use nested folders only for optional batch organization
   - run `make library-source-intake`
-- Use the latest bilingual scratch evidence to stabilize case quality and reproducibility rather than adding new platform plumbing:
-  - keep the English-only quality-fix evidence plus the broader bilingual `keep = 6` result as the working proof that the builder improvements are real
-  - use the completed Chinese cue-gate probe as the new proof that the weak `chenlun` reconsolidation scene fillers can be removed without losing the `beiying` keep
-  - decide whether the next Chinese patch should extend callback lookback context for `chenlun_public_zh__4__callback_bridge__seed_v1`
-  - use the new compare tooling on the bilingual English pair to keep separating source-equal builder state from regenerated audit drift and final adjudication drift
-  - use the completed first broader English post-fix run as the baseline packet for a same-config repeat rather than treating the pre-fix versus post-fix pair as a clean reproducibility verdict
-- Keep the bounded controller as the active automation surface, but defer wider unattended expansion until the bilingual route is more reproducible:
-  - the completed audit semantic-retry broader English rerun is now the latest post-fix reproducibility check
-  - the multi-iteration unattended scheduler still remains after that stability pass, not before it
+- Use the latest scratch evidence to stabilize case quality and reproducibility rather than adding new platform plumbing:
+  - keep the broader English adjudication-v4 result (`keep = 6`, `revise = 2`) as the strongest current English scratch result
+  - keep the broader bilingual adjudication-v4 result (`en: keep = 5 / revise = 3`, `zh: keep = 1 / revise = 1`) as the current cross-language baseline
+  - keep the completed Chinese callback-priorcontext rerun as proof that `chenlun` bridge evidence now survives into packet review
+  - shift the Chinese follow-up from “add prior context” to “tighten callback excerpt boundaries so the bridge is more legible as a benchmark case”
+  - keep replayed frozen-input `auto_review_packet.py --probe-only` runs as the clean adjudication-only measurement path, because the v4 pair now shows `action_drift = 0` on frozen inputs
+  - use the completed `auditpair` compare artifact as the narrow live-stability baseline, because it shows `audit_input_drift = 0` with only `primary_decision_drift = 2` on the shared English cases
+  - treat the completed `auditcontractv2` compare result as proof that the stricter all-strong keep gate did not solve the blocker and in fact widened `primary_decision_drift` to `5`
+  - treat the completed `auditcontractv3` compare result as a partial improvement rather than a finish line, because it reduced `primary_score_drift` to `5` and `primary_decision_drift` to `4` but still left the audit too unstable for unattended widening
+  - treat the completed `auditconsensusv3` compare result as the new live reproducibility baseline, because it brought `primary_decision_drift` back down to `2`, reduced `primary_problem_type_drift` to `2`, and aligned English final action counts across the English-only and bilingual runs
+  - keep the new builder-side invisible-whitespace normalization as the current English case-quality repair, because it removed the zero-width / non-breaking whitespace corruption that was still leaking into the Henry Adams anchored-reaction case
+  - keep the completed Henry Adams and broader-English whitespace-fix follow-ups as proof that the same anchored-reaction case now reviews as `keep` on the cleaned path and that the remaining English issue is a bounded callback-breadth outlier, not text corruption
+- Keep the bounded controller as the active automation surface, but move the next automatic work from narrow audit hardening back into broader validation and unattended-loop boundary work:
+  - the completed v4 frozen-input pair is already the clean proof that final-action instability is no longer the primary blocker
+  - the completed `auditconsensusv3` pair is now the clean proof that live English audit drift is narrow enough to resume broader validation
+  - the broader bilingual whitespace-fix rerun is now completed evidence, not an in-flight lane
+  - its result says the next bounded automation move should be one callback-bridge-specific repair pass, because the remaining regressions are narrow (`education_of_henry_adams_public_en__29__callback_bridge__seed_v1`, `on_liberty_public_en__5__callback_bridge__seed_v1`, and the still-revise `chenlun_public_zh__4__callback_bridge__seed_v1`) rather than global
 - Keep the dataset-platform route phased rather than monolithic:
   - source-book intake and intermediate-artifact governance is now landed
   - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
@@ -474,7 +973,8 @@ Last verified: `2026-03-30T13:50:41Z`
   - treat `walden_205_en__10` as incomplete because no case artifact or summary artifacts were written
 - Work from the recovered live local-only excerpt datasets:
   - the current follow-up cleanup pass has now dispositioned those cases mechanically, but it did not clear the open benchmark-status backlog
-  - keep the review queue empty unless a deliberate new packet is created
+  - the `auditpair`, `auditcontractv2`, `auditcontractv3`, and `auditconsensusv3` waves all completed cleanly and their compare artifacts now form the durable audit-hardening evidence ladder
+  - the last persisted queue summary still shows `active_packet_count = 0` at `2026-03-30T20:05:14.323982Z`, and both whitespace-fix follow-up runs refreshed with `changed = false`, so no active packet remained open after import/archive
 - Prepare a human-owned post-cleanup gate review from the recovered counts, the two new follow-up packet summaries, and the still-open benchmark statuses.
 - Keep benchmark promotion, reviewed-slice freezing, durable-trace, re-entry, runtime-viability, and any default-cutover decision paused until a human explicitly asks for them.
 
@@ -503,7 +1003,10 @@ Last verified: `2026-03-30T13:50:41Z`
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
 - The first real scratch builder/controller runs were intentionally narrow: the earliest English baseline still yielded no `keep` outcomes, but the later quality-fix runs improved that materially; the remaining narrowness is now bilingual stability rather than the mere absence of `keep` results.
 - The last bilingual English pair held source rows constant but still regenerated materially different audit judgments, so current bilingual widening is constrained by audit/adjudication reproducibility as well as by builder quality.
-- The audit-score coherence repair is bounded and high-confidence, but it still needs live scratch validation before it becomes evidence that the broader automation loop is trustworthy.
+- The adjudication-v4 frozen-input pair removed same-input action drift, but the broader English-only versus broader bilingual v4 runs still show `source_input_drift = 0`, `audit_input_drift = 5`, and `action_drift = 3` on the shared English case set.
+- The fresh audit-pair compare artifact now shows `audit_input_drift = 0` but `primary_score_drift = 8`, so the remaining live instability is audit-stage model variance rather than builder/input drift.
+- One remaining English outlier had invisible Unicode whitespace inside the emitted excerpt and selection-reason text even though the audit input fingerprints matched across runs; the builder-side normalization patch fixed that defect on the current builder path.
+- The current callback antecedent-quality rerun is the live bounded validation lane; the remaining risk is treating the completed callbackbridgefix result as the final callback verdict before the tighter antecedent-quality repair finishes.
 - Historical compatibility paths under `state/library_sources/<language>/private/...` are now cataloged successfully, but they remain compatibility inputs rather than the intended future operator workflow.
 - Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
@@ -526,46 +1029,20 @@ Last verified: `2026-03-30T13:50:41Z`
 3. `docs/current-state.md`
 4. relevant child `AGENTS.md`
 5. `docs/tasks/registry.md`
-6. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.json`
-7. `reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.log`
-8. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditsemanticretry_20260330.json`
-9. `reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditsemanticretry_20260330.log`
-10. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.json`
-11. `reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.log`
-12. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json`
-13. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_zh_cuegate_20260330/closed_loop_benchmark_curation_summary.json`
-14. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_zh_cuegate_20260330__initial_review__closed_loop_full_smoke_zh_cuegate_20260330/llm_review_report.md`
-15. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md`
-16. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/aggregate.json`
-17. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_followup_after_recovery_20260329/dataset_review_pipeline_summary.json`
-18. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_followup_after_recovery_20260329/dataset_review_pipeline_summary.json`
-19. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_detached_20260329_125043.json`
-20. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_recovery_20260329/dataset_review_pipeline_summary.json`
-21. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json`
-22. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
-23. `docs/implementation/new-reading-mechanism/evaluation-question-map.md`
-24. `docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md`
-25. `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
-26. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
-27. `reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json`
-28. `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
-29. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
-30. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
-31. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
-32. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json`
-33. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
-34. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
-35. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/llm_review_runs/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__llm_review__20260330-121645/report.md`
-36. `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
-37. `reading-companion-backend/tests/test_case_design_audit.py`
-38. `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
-39. `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
-40. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
+6. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+7. `reading-companion-backend/eval/review_packets/review_queue_summary.json`
+8. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_whitespacefix_20260331.json`
+9. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
+10. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_whitespacefix_20260331__initial_review__closed_loop_full_smoke_en_broader_whitespacefix_20260331/llm_review_runs/llm_review__20260330-201515__9faa0f54f05d/cases/education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1.json`
+11. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331.json`
+12. `reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331.log`
+13. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditpair_20260331/case_audit_compare_against_bilingual.json`
+14. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-30T13:50:41Z",
+  "updated_at": "2026-03-30T23:06:06Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
@@ -574,7 +1051,9 @@ Last verified: `2026-03-30T13:50:41Z`
     "TASK-DATASET-FULL-AUTOMATION"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [],
+  "active_job_ids": [
+    "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331"
+  ],
   "open_decision_ids": [
     "OD-PRIVATE-LIBRARY-POST-RESCUE-GATE",
     "OD-BENCHMARK-SIZE",
@@ -610,6 +1089,23 @@ Last verified: `2026-03-30T13:50:41Z`
     "reading-companion-backend/tests/test_case_design_audit.py",
     "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.json",
     "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditpair_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditpair_20260331.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_auditpair_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_auditpair_20260331.log",
+    "reading-companion-backend/eval/attentional_v2/compare_case_audit_runs.py",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcontractv2_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcontractv2_20260331.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_auditcontractv2_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_auditcontractv2_20260331.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcontractv3_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcontractv3_20260331.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_auditcontractv3_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_auditcontractv3_20260331.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditconsensusv3_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditconsensusv3_20260331.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_auditconsensusv3_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_auditconsensusv3_20260331.log",
     "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.json",
     "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.log",
     "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.json",
@@ -625,7 +1121,16 @@ Last verified: `2026-03-30T13:50:41Z`
     "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_20260329.json",
     "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_20260329.log",
     "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_recovery_20260329/dataset_review_pipeline_summary.json",
-    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json"
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_adjudicationv4_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_adjudicationv4_20260331.log",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_adjudicationv4_20260331/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_adjudicationv4_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_adjudicationv4_20260331.log",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_adjudicationv4_20260331/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/eval/attentional_v2/compare_case_audit_runs.py",
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-174858__ae50caff2084/summary.json",
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-175048__ae50caff2084/summary.json"
   ],
   "truth_refs": [
     "docs/source-of-truth-map.md",

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-30T12:42:11Z`
+Last updated: `2026-03-30T23:06:06Z`
 
 ## Status Values
 - `active`
@@ -42,17 +42,45 @@ Last updated: `2026-03-30T12:42:11Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the cue-guard and fragment-aware anchor fixes, preserve the removal of weak `chenlun` scene-setting / no-cue reconsolidation cases, and make the next bounded Chinese patch about longer lookback context for `chenlun_public_zh__4__callback_bridge__seed_v1`
+- Next: keep `callbackinferencefix` as the current best callback-quality evidence, and let the running `callbackfocusfix` rerun decide whether target-specific focus drafting moves Henry 29 and `on_liberty_public_en__4__callback_bridge__seed_v1` from `revise` to `keep`; if it does not, the next bounded move is callback-antecedent specificity rather than broad builder redesign
 - Jobs:
+  - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)
+  - `bgjob_closed_loop_zh_callbackpriorcontext_20260330` (`completed`)
   - `bgjob_closed_loop_zh_cueguard_20260330` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331` (`running`)
 
 ### `TASK-DATASET-FULL-AUTOMATION` — Make dataset building fully automated as one closed build-review-refine loop
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: compare the completed audit semantic-retry broader English rerun against the earlier broader English runs, decide whether it reduced source-equal drift or mainly reproduced the current `4 keep / 4 revise` split, and keep the multi-iteration unattended scheduler on hold until audit reproducibility is trustworthy
+- Next: let the running `callbackfocusfix` rerun finish, because it is the first four-source validation after target-specific callback focus drafting; if it converts the remaining Henry and `on_liberty` callback revises into keeps without reviving weak rows, move the next automatic work up to broader controller hardening, otherwise do one more bounded callback-antecedent specificity patch before widening automation
 - Jobs:
+  - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331` (`running`)
+  - `bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_whitespacefix_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_whitespacefix_20260331` (`completed`)
+  - `bgjob_closed_loop_en_henry_whitespacefix_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_auditconsensusv3_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_auditconsensusv3_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_auditcontractv3_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_auditcontractv3_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_auditcontractv2_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_auditcontractv2_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_auditpair_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_auditpair_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_adjudicationv4_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_adjudicationv4_20260331` (`completed`)
+  - `bgjob_closed_loop_en_broader_compactadjudication_20260330` (`completed`)
+  - `bgjob_closed_loop_en_broader_compactadjudication_repeat_20260330` (`failed`)
+  - `bgjob_closed_loop_en_broader_compactadjudication_repeat_resume_20260330` (`completed`)
+  - `bgjob_packet_adjudication_probe_en_compactrepeat_20260330` (`completed`)
+  - `bgjob_packet_adjudication_probe_en_compactrepeat_compactauditv2_20260330` (`completed`)
   - `bgjob_closed_loop_en_broader_auditsemanticretry_20260330` (`completed`)
   - `bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330` (`completed`)
   - `bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330` (`completed`)

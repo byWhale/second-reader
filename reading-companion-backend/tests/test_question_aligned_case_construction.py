@@ -8,8 +8,11 @@ from eval.attentional_v2.question_aligned_case_construction import (
     TARGET_PROFILE_ORDER,
     MIN_PROFILE_ORDER_SELECTION_PRIORITY,
     _assembled_case,
+    _judge_focus_draft,
+    _resolve_callback_antecedent,
     _score_sentence_for_profile,
     _selection_reason_anchor_text,
+    _selection_reason_draft,
     _select_cases_and_reserves,
     _window_quality_adjustment,
     _window_is_valid_for_profile,
@@ -155,6 +158,154 @@ def _sentences_zh_with_open_quote_late_scene() -> list[dict[str, str]]:
     ]
 
 
+def _sentences_zh_with_longer_callback_lookback() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c3-s1",
+            "text": "他在桥边立下誓言，宁可独行，也不愿再向掌声低头。",
+        },
+        {
+            "sentence_id": "c3-s2",
+            "text": "那时同行的人都笑他太倔，只当这句话是一时逞强。",
+        },
+        {
+            "sentence_id": "c3-s3",
+            "text": "几年里他一直把这件事压在心底，很少再提起。",
+        },
+        {
+            "sentence_id": "c3-s4",
+            "text": "等到旧友重新出现，桥边的风景和从前一样安静。",
+        },
+        {
+            "sentence_id": "c3-s5",
+            "text": "走到旧桥头时，他又一次回到那句“宁可独行”的誓言，也重新听见自己当年说话的声音。",
+        },
+        {
+            "sentence_id": "c3-s6",
+            "text": "那句旧话并没有改变意思，只是在这一刻重新被他听见。",
+        },
+    ]
+
+
+def _sentences_en_with_near_callback_antecedent() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c5-s1",
+            "text": "At Surrenden the family had already agreed that the establishment would break up in October, and the decision shadowed every conversation.",
+        },
+        {
+            "sentence_id": "c5-s2",
+            "text": "He still delayed his departure because he hoped one last appeal might persuade his friend to stay near home.",
+        },
+        {
+            "sentence_id": "c5-s3",
+            "text": "Again, as soon as the Surrenden establishment broke up, he prepared for return home and felt the old disappointment sharpen into self-reproach.",
+        },
+        {
+            "sentence_id": "c5-s4",
+            "text": "The return looked less like a fresh beginning than a forced replay of the same mistake he thought he had finally outgrown.",
+        },
+    ]
+
+
+def _sentences_zh_with_unresolved_callback_cue() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c4-s1",
+            "text": "他一路沉默，只觉得周围的人声越来越远。",
+        },
+        {
+            "sentence_id": "c4-s2",
+            "text": "灯光照在桥面上，把潮湿的石板映得发冷。",
+        },
+        {
+            "sentence_id": "c4-s3",
+            "text": "走到中途时，他又一次回到这个问题，却说不清究竟是哪一句话在逼近自己。",
+        },
+        {
+            "sentence_id": "c4-s4",
+            "text": "于是他只能继续往前走，心里空空地发紧。",
+        },
+    ]
+
+
+def _sentences_en_with_generic_callback_overlap_only() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c6-s1",
+            "text": "She spoke with deliberate calm, which made the first objection sound milder than it was.",
+        },
+        {
+            "sentence_id": "c6-s2",
+            "text": "Nor, again, is it, on the face of it, consistent with those doctrines of individual liberty which he propounded in a later work.",
+        },
+    ]
+
+
+def _sentences_en_with_distinctive_callback_overlap() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c7-s1",
+            "text": "Apart from the general tone, Mill had already identified one specific contribution that shaped the argument.",
+        },
+        {
+            "sentence_id": "c7-s2",
+            "text": "The discussion pauses over several political digressions before returning to the claim.",
+        },
+        {
+            "sentence_id": "c7-s3",
+            "text": "From this it would appear that she gave Mill that tendency to Socialism which did not accord with his earlier advocacy of peasant proprietorships.",
+        },
+    ]
+
+
+def _sentences_en_with_inferential_callback_backlink() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c9-s1",
+            "text": "She pointed out the need of such a chapter, and the extreme imperfection of the book without it; she was the cause of my writing it.",
+        },
+        {
+            "sentence_id": "c9-s2",
+            "text": "From this it would appear that she gave Mill that tendency to Socialism which did not accord with his earlier advocacy of peasant proprietorships.",
+        },
+        {
+            "sentence_id": "c9-s3",
+            "text": "Nor, again, is it consistent with those doctrines of individual liberty which he propounded in a later work.",
+        },
+    ]
+
+
+def _sentences_en_with_weak_single_term_callback_overlap() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c10-s1",
+            "text": "He shouldered his pack and started for home.",
+        },
+        {
+            "sentence_id": "c10-s2",
+            "text": "Again, as soon as the Surrenden establishment broke up, he prepared for return home and felt the old disappointment sharpen into self-reproach.",
+        },
+        {
+            "sentence_id": "c10-s3",
+            "text": "The return looked less like a fresh beginning than a forced replay of the same mistake he thought he had finally outgrown.",
+        },
+    ]
+
+
+def _sentences_zh_with_marker_only_callback_overlap() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c8-s1",
+            "text": "所以他進了Ｋ府中學之後，不上半年又忽然轉了Ｈ府中學來；在Ｈ府中學住了三個月，革命就起來了。",
+        },
+        {
+            "sentence_id": "c8-s2",
+            "text": "Ｈ府中學停學之後，他依舊只能回到那小小的書齋裡來。",
+        },
+    ]
+
+
 def test_target_profile_id_for_case_row_supports_explicit_case_id_and_legacy_phenomena() -> None:
     assert (
         target_profile_id_for_case_row({"target_profile_id": "callback_bridge"})
@@ -293,6 +444,22 @@ def test_render_excerpt_sentences_stitches_chinese_continuation_fragments() -> N
     )
 
 
+def test_render_excerpt_sentences_normalizes_invisible_whitespace() -> None:
+    rendered = render_excerpt_sentences(
+        [
+            "Gladstone’s offence, “singular and palpable,” was not the speech alone, but its cause\ufeff—the policy that inspired the speech.",
+            "“I weakly supposed\u200b \u00a0… I really, though most strangely, believed that it was an act of friendliness.”",
+            "Whatever absurdity Gladstone supposed, Russell supposed nothing of the sort.",
+        ]
+    )
+
+    assert "\ufeff" not in rendered
+    assert "\u200b" not in rendered
+    assert "\u00a0" not in rendered
+    assert "cause—the policy" in rendered
+    assert "supposed … I really" in rendered
+
+
 def test_assembled_case_uses_full_excerpt_sentence_bounds() -> None:
     case = _assembled_case(
         {
@@ -305,6 +472,8 @@ def test_assembled_case_uses_full_excerpt_sentence_bounds() -> None:
             "chapter_title": "Chapter One",
             "target_profile_ids": ["callback_bridge"],
             "excerpt_sentence_ids": ["c1-s1", "c1-s2", "c1-s3"],
+            "prior_context_sentence_ids": ["c1-s0"],
+            "prior_context_excerpt_text": "Sentence 0.",
             "anchor_sentence_ids": ["c1-s2"],
             "support_sentence_ids": ["c1-s1", "c1-s3"],
             "context_excerpt_text": "Sentence 1.\nSentence 2.\nSentence 3.",
@@ -324,6 +493,8 @@ def test_assembled_case_uses_full_excerpt_sentence_bounds() -> None:
     assert case["start_sentence_id"] == "c1-s1"
     assert case["end_sentence_id"] == "c1-s3"
     assert case["anchor_sentence_id"] == "c1-s2"
+    assert case["prior_context_sentence_ids"] == ["c1-s0"]
+    assert case["prior_context_text"] == "Sentence 0."
 
 
 def test_profile_specific_window_filters_reject_generic_callback_and_reported_speech() -> None:
@@ -558,6 +729,22 @@ def test_selection_reason_anchor_text_uses_merged_line_for_fragmentary_anchor() 
     assert "\n" not in merged
 
 
+def test_selection_reason_anchor_text_normalizes_invisible_whitespace() -> None:
+    merged = _selection_reason_anchor_text(
+        anchor_text="“I weakly supposed\u200b \u00a0… I really, though most strangely, believed that it was an act of friendliness.”",
+        window_texts=[
+            "Gladstone’s offence, “singular and palpable,” was not the speech alone, but its cause\ufeff—the policy that inspired the speech.",
+            "“I weakly supposed\u200b \u00a0… I really, though most strangely, believed that it was an act of friendliness.”",
+            "Whatever absurdity Gladstone supposed, Russell supposed nothing of the sort.",
+        ],
+    )
+
+    assert "\ufeff" not in merged
+    assert "\u200b" not in merged
+    assert "\u00a0" not in merged
+    assert "supposed … I really" in merged
+
+
 def test_second_pass_selection_skips_subthreshold_fillers() -> None:
     cases, reserves = _select_cases_and_reserves(
         [
@@ -622,6 +809,72 @@ def test_second_pass_selection_skips_subthreshold_fillers() -> None:
     assert [reserve["chapter_id"] for reserve in reserves] == ["2"]
 
 
+def test_selection_skips_exact_duplicate_excerpt_cases() -> None:
+    cases, reserves = _select_cases_and_reserves(
+        [
+            {
+                "opportunity_id": "demo__1__callback_bridge__opp_1",
+                "chapter_case_id": "demo__1",
+                "source_id": "demo",
+                "book_title": "Demo",
+                "author": "Author",
+                "language_track": "en",
+                "chapter_id": "1",
+                "chapter_number": 1,
+                "chapter_title": "Chapter 1",
+                "selection_role": "argumentative",
+                "target_profile_ids": ["callback_bridge"],
+                "excerpt_sentence_ids": ["c1-s1", "c1-s2", "c1-s3"],
+                "anchor_sentence_ids": ["c1-s2"],
+                "support_sentence_ids": ["c1-s1", "c1-s3"],
+                "prior_context_sentence_ids": ["c1-s0"],
+                "prior_context_excerpt_text": "Earlier line.",
+                "context_excerpt_text": "A.\nB.\nC.",
+                "selection_reason_draft": "Reason",
+                "judge_focus_draft": "Focus",
+                "construction_priority": MIN_PROFILE_ORDER_SELECTION_PRIORITY + 0.3,
+                "judgeability_score": 4.3,
+                "discriminative_power_score": 4.3,
+                "candidate_position_bucket": "middle",
+                "type_tags": ["essay"],
+                "role_tags": ["argumentative"],
+            },
+            {
+                "opportunity_id": "demo__2__callback_bridge__opp_1",
+                "chapter_case_id": "demo__2",
+                "source_id": "demo",
+                "book_title": "Demo",
+                "author": "Author",
+                "language_track": "en",
+                "chapter_id": "2",
+                "chapter_number": 2,
+                "chapter_title": "Chapter 2",
+                "selection_role": "argumentative",
+                "target_profile_ids": ["callback_bridge"],
+                "excerpt_sentence_ids": ["c2-s1", "c2-s2", "c2-s3"],
+                "anchor_sentence_ids": ["c2-s2"],
+                "support_sentence_ids": ["c2-s1", "c2-s3"],
+                "prior_context_sentence_ids": ["c2-s0"],
+                "prior_context_excerpt_text": "Earlier line.",
+                "context_excerpt_text": "A.\nB.\nC.",
+                "selection_reason_draft": "Reason",
+                "judge_focus_draft": "Focus",
+                "construction_priority": MIN_PROFILE_ORDER_SELECTION_PRIORITY,
+                "judgeability_score": 4.0,
+                "discriminative_power_score": 4.0,
+                "candidate_position_bucket": "middle",
+                "type_tags": ["essay"],
+                "role_tags": ["argumentative"],
+            },
+        ],
+        cases_per_chapter=1,
+        reserves_per_chapter=1,
+    )
+
+    assert [case["chapter_id"] for case in cases] == ["1"]
+    assert reserves == []
+
+
 def test_scope_selection_expands_chinese_late_scene_when_quote_runs_past_boundary(tmp_path: Path) -> None:
     chapter_rows_by_language = {
         "zh": [
@@ -663,3 +916,278 @@ def test_scope_selection_expands_chinese_late_scene_when_quote_runs_past_boundar
     assert zh_case["target_profile_id"] == "tension_reversal"
     assert zh_case["end_sentence_id"] == "c2-s4"
     assert "差使也交卸了" in zh_case["excerpt_text"]
+
+
+def test_scope_selection_preserves_longer_lookback_for_callback_bridge(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "zh": [
+            _chapter_row(
+                source_id="book_zh_callback",
+                language="zh",
+                output_dir="outputs/book_zh_callback",
+                chapter_id="3",
+                chapter_title="第三章",
+                role="narrative_reflective",
+            )
+        ]
+    }
+    source_index = {
+        "book_zh_callback": {
+            "source_id": "book_zh_callback",
+            "type_tags": ["essay"],
+            "role_tags": ["narrative_reflective", "reference_heavy"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_zh_callback"): {
+            "chapters": [{"id": "3", "sentences": _sentences_zh_with_longer_callback_lookback()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="callback_scope",
+    )
+
+    zh_case = scope["cases_by_language"]["zh"][0]
+    assert zh_case["target_profile_id"] == "callback_bridge"
+    assert zh_case["anchor_sentence_id"] == "c3-s5"
+    assert zh_case["prior_context_sentence_ids"] == ["c3-s1"]
+    assert "宁可独行" in zh_case["prior_context_text"]
+    assert zh_case["start_sentence_id"] != "c3-s1"
+
+
+def test_scope_selection_inlines_near_callback_antecedent_into_excerpt(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            _chapter_row(
+                source_id="book_en_callback",
+                language="en",
+                output_dir="outputs/book_en_callback",
+                chapter_id="5",
+                chapter_title="Chapter Five",
+                role="narrative_reflective",
+            )
+        ]
+    }
+    source_index = {
+        "book_en_callback": {
+            "source_id": "book_en_callback",
+            "type_tags": ["essay"],
+            "role_tags": ["narrative_reflective", "reference_heavy"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en_callback"): {
+            "chapters": [{"id": "5", "sentences": _sentences_en_with_near_callback_antecedent()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="callback_scope_near_inline",
+    )
+
+    en_case = next(
+        case
+        for case in [*scope["cases_by_language"]["en"], *scope["reserve_cases_by_language"]["en"]]
+        if case["target_profile_id"] == "callback_bridge"
+    )
+    assert en_case["target_profile_id"] == "callback_bridge"
+    assert en_case["anchor_sentence_id"] == "c5-s3"
+    assert en_case["start_sentence_id"] == "c5-s1"
+    assert en_case["prior_context_sentence_ids"] == []
+    assert "Surrenden" in en_case["excerpt_text"]
+
+
+def test_callback_bridge_judge_focus_emphasizes_traceability_and_attribution(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            _chapter_row(
+                source_id="book_en_callback",
+                language="en",
+                output_dir="outputs/book_en_callback",
+                chapter_id="5",
+                chapter_title="Chapter Five",
+                role="reference_heavy",
+            )
+        ]
+    }
+    source_index = {
+        "book_en_callback": {
+            "source_id": "book_en_callback",
+            "type_tags": ["essay"],
+            "role_tags": ["reference_heavy"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en_callback"): {
+            "chapters": [{"id": "5", "sentences": _sentences_en_with_near_callback_antecedent()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="callback_scope_focus",
+    )
+
+    en_case = next(
+        case
+        for case in [*scope["cases_by_language"]["en"], *scope["reserve_cases_by_language"]["en"]]
+        if case["target_profile_id"] == "callback_bridge"
+    )
+    assert en_case["target_profile_id"] == "callback_bridge"
+    assert "trace" in en_case["judge_focus"].lower()
+    assert "attribution" in en_case["judge_focus"].lower()
+    assert "surrenden" in en_case["judge_focus"].lower()
+    assert "surrenden" in en_case["selection_reason"].lower()
+
+
+def test_callback_bridge_drafts_name_specific_earlier_target() -> None:
+    target_text = (
+        "She pointed out the need of such a chapter, and the extreme imperfection "
+        "of the book without it; she was the cause of my writing it."
+    )
+
+    selection_reason = _selection_reason_draft(
+        profile_id="callback_bridge",
+        sentence_text=(
+            "From this it would appear that she gave Mill that tendency to "
+            "Socialism which did not accord with his earlier advocacy of peasant proprietorships."
+        ),
+        callback_target_text=target_text,
+    )
+    judge_focus = _judge_focus_draft(
+        profile_id="callback_bridge",
+        callback_target_text=target_text,
+    )
+
+    assert "earlier bridge target" in selection_reason.lower()
+    assert "cause of my writing it" in selection_reason.lower()
+    assert "specific earlier material" in judge_focus.lower()
+    assert "cause of my writing it" in judge_focus.lower()
+
+
+def test_scope_selection_rejects_callback_bridge_without_resolved_antecedent(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "zh": [
+            _chapter_row(
+                source_id="book_zh_unresolved",
+                language="zh",
+                output_dir="outputs/book_zh_unresolved",
+                chapter_id="4",
+                chapter_title="第四章",
+                role="narrative_reflective",
+            )
+        ]
+    }
+    source_index = {
+        "book_zh_unresolved": {
+            "source_id": "book_zh_unresolved",
+            "type_tags": ["essay"],
+            "role_tags": ["narrative_reflective"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_zh_unresolved"): {
+            "chapters": [{"id": "4", "sentences": _sentences_zh_with_unresolved_callback_cue()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="callback_scope_negative",
+    )
+
+    assert all(
+        case["target_profile_id"] != "callback_bridge"
+        for case in scope["cases_by_language"]["zh"]
+    )
+
+
+def test_resolve_callback_antecedent_rejects_generic_english_overlap_only() -> None:
+    sentences = _sentences_en_with_generic_callback_overlap_only()
+
+    result = _resolve_callback_antecedent(
+        sentences=sentences,
+        anchor_index=1,
+        language="en",
+    )
+
+    assert result["resolved"] is False
+
+
+def test_resolve_callback_antecedent_keeps_distinctive_english_overlap() -> None:
+    sentences = _sentences_en_with_distinctive_callback_overlap()
+
+    result = _resolve_callback_antecedent(
+        sentences=sentences,
+        anchor_index=2,
+        language="en",
+    )
+
+    assert result["resolved"] is True
+    assert result["antecedent_index"] == 0
+    assert "mill" in "|".join(result["evidence"]).lower()
+
+
+def test_resolve_callback_antecedent_keeps_inferential_english_backlink() -> None:
+    sentences = _sentences_en_with_inferential_callback_backlink()
+
+    result = _resolve_callback_antecedent(
+        sentences=sentences,
+        anchor_index=1,
+        language="en",
+    )
+
+    assert result["resolved"] is True
+    assert result["antecedent_index"] == 0
+    assert any("inferential_backlink" in evidence for evidence in result["evidence"])
+
+
+def test_resolve_callback_antecedent_rejects_weak_single_term_english_overlap() -> None:
+    sentences = _sentences_en_with_weak_single_term_callback_overlap()
+
+    result = _resolve_callback_antecedent(
+        sentences=sentences,
+        anchor_index=1,
+        language="en",
+    )
+
+    assert result["resolved"] is False
+
+
+def test_resolve_callback_antecedent_rejects_marker_only_chinese_overlap() -> None:
+    sentences = _sentences_zh_with_marker_only_callback_overlap()
+
+    result = _resolve_callback_antecedent(
+        sentences=sentences,
+        anchor_index=1,
+        language="zh",
+    )
+
+    assert result["resolved"] is False

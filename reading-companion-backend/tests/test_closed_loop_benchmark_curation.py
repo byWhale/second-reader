@@ -135,6 +135,8 @@ class FakeClosedLoopRunner:
                 {
                     "case_id": "demo_case",
                     "adjudication_input_fingerprint": "same-case-input",
+                    "source_row_fingerprint": "same-source",
+                    "audit_row_fingerprint": "audit-a",
                     "normalized_review": {
                         "review__action": "keep",
                         "review__confidence": "high",
@@ -150,6 +152,7 @@ class FakeClosedLoopRunner:
                 varied_summary = {
                     **base_summary,
                     "run_id": f"{packet_id}__llm_review__demo_b",
+                    "adjudication_input_fingerprint": "different-packet-input",
                     "action_counts": {"revise": 1},
                 }
                 _write_json(
@@ -160,7 +163,9 @@ class FakeClosedLoopRunner:
                     packet_dir / "llm_review_runs" / varied_summary["run_id"] / "cases" / "demo_case.json",
                     {
                         "case_id": "demo_case",
-                        "adjudication_input_fingerprint": "same-case-input",
+                        "adjudication_input_fingerprint": "different-case-input",
+                        "source_row_fingerprint": "same-source",
+                        "audit_row_fingerprint": "audit-b",
                         "normalized_review": {
                             "review__action": "revise",
                             "review__confidence": "medium",
@@ -371,3 +376,4 @@ def test_run_closed_loop_surfaces_adjudication_variability_warning(tmp_path: Pat
 
     assert payload["variability_guard_triggered"] is True
     assert payload["initial_adjudication_variability_warnings_by_language"]["en"][0]["drift_counts"]["action_drift"] == 1
+    assert payload["initial_adjudication_variability_warnings_by_language"]["en"][0]["same_packet_input_fingerprint"] is False
