@@ -1,0 +1,13 @@
+{
+  "packet_id": "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_qapatch_check_20260330__initial_review__closed_loop_full_qapatch_check_20260330",
+  "run_id": "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_qapatch_check_20260330__initial_review__closed_loop_full_qapatch_check_20260330__llm_review__20260330-043939",
+  "generated_at": "2026-03-30T04:39:58.068304Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "case_count": 4,
+  "action_counts": {
+    "revise": 3,
+    "keep": 1
+  },
+  "source_case_audit_run_id": "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_qapatch_check_20260330__initial_review__closed_loop_full_qapatch_check_20260330__20260330-043852"
+}

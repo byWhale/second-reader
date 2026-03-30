@@ -13,6 +13,7 @@ from eval.attentional_v2.ingest_library_sources import (
     SourceIntakePaths,
     discover_inbox_sources,
     load_catalog,
+    run_library_source_bootstrap,
     run_source_intake,
 )
 
@@ -229,6 +230,55 @@ def test_run_source_intake_dry_run_does_not_mutate_state(tmp_path: Path) -> None
     assert not (paths.source_intake_runs_root / "dry_run.json").exists()
 
 
+def test_run_library_source_bootstrap_builds_catalog_from_existing_library_and_skips_normalized(
+    tmp_path: Path,
+) -> None:
+    paths = SourceIntakePaths.from_root(tmp_path)
+    library_source = paths.library_source_root / "en" / "walden_205.epub"
+    normalized_source = paths.library_source_root / "en" / "walden_205.normalized.epub"
+    _write(library_source, "walden-bytes")
+    _write(normalized_source, "normalized")
+    _write_json(
+        paths.manifest_source_books_root / "attentional_v2_public_benchmark_pool_v2.json",
+        {
+            "books": [
+                {
+                    "source_id": "walden_205_en",
+                    "title": "Walden, and On The Duty Of Civil Disobedience",
+                    "author": "Henry David Thoreau",
+                    "language": "en",
+                    "origin": "public-open-access",
+                    "source_url": "https://www.gutenberg.org/ebooks/205",
+                    "relative_local_path": "state/library_sources/en/walden_205.epub",
+                    "type_tags": ["expository", "philosophical"],
+                    "role_tags": ["expository", "argumentative"],
+                    "selection_priority": 50,
+                    "notes": ["Tracked public source."],
+                    "sha256": "ignore-me",
+                    "acquisition": {"acquisition_batch_id": "public_v2"},
+                }
+            ]
+        },
+    )
+
+    summary = run_library_source_bootstrap(paths, run_id="bootstrap_a")
+
+    assert summary["candidate_count"] == 1
+    assert summary["ingested_count"] == 1
+    assert any(result["status"] == "skipped_normalized_epub" for result in summary["results"])
+    catalog = load_catalog(paths.source_catalog_path)
+    assert catalog["record_count"] == 1
+    record = catalog["records"][0]
+    assert record["source_id"] == "walden_205_en"
+    assert record["title"] == "Walden, and On The Duty Of Civil Disobedience"
+    assert record["author"] == "Henry David Thoreau"
+    assert record["visibility"] == "public"
+    assert record["relative_local_path"] == "state/library_sources/en/walden_205.epub"
+    assert record["ingest_batch_ids"] == ["public_v2"]
+    assert record["source_url"] == "https://www.gutenberg.org/ebooks/205"
+    assert (paths.source_intake_runs_root / "bootstrap_a.json").exists()
+
+
 def test_ingest_library_sources_cli_supports_temp_root(tmp_path: Path) -> None:
     backend_root = Path(__file__).resolve().parents[1]
     source_path = tmp_path / "state" / "library_inbox" / "batch_a" / "book.epub"
@@ -259,5 +309,35 @@ def test_ingest_library_sources_cli_supports_temp_root(tmp_path: Path) -> None:
     assert completed.returncode == 0
     payload = json.loads(completed.stdout)
     assert payload["run_id"] == "cli_run"
+    assert payload["ingested_count"] == 1
+    assert (tmp_path / "state" / "dataset_build" / "source_catalog.json").exists()
+
+
+def test_ingest_library_sources_cli_supports_bootstrap_library_sources_mode(tmp_path: Path) -> None:
+    backend_root = Path(__file__).resolve().parents[1]
+    source_path = tmp_path / "state" / "library_sources" / "en" / "book.epub"
+    _write(source_path, "demo")
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "eval.attentional_v2.ingest_library_sources",
+            "--root",
+            str(tmp_path),
+            "--run-id",
+            "bootstrap_cli_run",
+            "--bootstrap-library-sources",
+        ],
+        cwd=backend_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0
+    payload = json.loads(completed.stdout)
+    assert payload["run_id"] == "bootstrap_cli_run"
+    assert payload["mode"] == "bootstrap_library_sources"
     assert payload["ingested_count"] == 1
     assert (tmp_path / "state" / "dataset_build" / "source_catalog.json").exists()

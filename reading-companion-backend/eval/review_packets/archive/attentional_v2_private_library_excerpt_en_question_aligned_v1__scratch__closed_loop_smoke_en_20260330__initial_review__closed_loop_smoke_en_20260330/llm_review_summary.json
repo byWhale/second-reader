@@ -1,0 +1,12 @@
+{
+  "packet_id": "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_smoke_en_20260330__initial_review__closed_loop_smoke_en_20260330",
+  "run_id": "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_smoke_en_20260330__initial_review__closed_loop_smoke_en_20260330__llm_review__20260330-014039",
+  "generated_at": "2026-03-30T01:41:15.622106Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "case_count": 4,
+  "action_counts": {
+    "revise": 4
+  },
+  "source_case_audit_run_id": "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_smoke_en_20260330__initial_review__closed_loop_smoke_en_20260330__20260330-013931"
+}

@@ -1,9 +1,10 @@
 SHELL := /bin/bash
 
-.PHONY: doctor setup dev-backend dev-frontend dev run-demo test build contract-check agent-check agent-context e2e preview-reactions backfill-covers dataset-review-pipeline library-source-intake
+.PHONY: doctor setup dev-backend dev-frontend dev run-demo test build contract-check agent-check agent-context e2e preview-reactions backfill-covers dataset-review-pipeline library-source-intake closed-loop-benchmark-curation
 
 DATASET_REVIEW_PIPELINE_ARGS ?=
 LIBRARY_SOURCE_INTAKE_ARGS ?=
+CLOSED_LOOP_BENCHMARK_CURATION_ARGS ?=
 
 doctor:
 	./scripts/doctor.sh
@@ -52,3 +53,6 @@ dataset-review-pipeline:
 
 library-source-intake:
 	./scripts/library-source-intake.sh $(LIBRARY_SOURCE_INTAKE_ARGS)
+
+closed-loop-benchmark-curation:
+	./scripts/closed-loop-benchmark-curation.sh $(CLOSED_LOOP_BENCHMARK_CURATION_ARGS)

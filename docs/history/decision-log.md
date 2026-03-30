@@ -1142,3 +1142,34 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/tasks/registry.md`
 - `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
 - `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+
+## Entry 43
+**ID**: DEC-046
+**Status**: active
+
+**Decision / Inflection**: Land the dataset-platform controller as a scratch-safe bounded closed loop first, and keep the full unattended multi-iteration scheduler deferred until real scratch runs validate the new construction artifacts.
+
+**Period**: Late March 2026, after question-aligned case construction had landed in code and the next practical problem became how to automate build-review-import work without touching live benchmark truth prematurely.
+
+**Problem**: The project wanted to move quickly toward full dataset automation, but the new question-aligned builder was still fresh and the live `v2` review-truth datasets remained valuable feedback truth. A direct jump to a fully unattended multi-iteration scheduler would have mixed two risks together at once: weak semantic construction and unbounded control-loop behavior. The system needed a way to validate end-to-end build-review-import automation safely, without overwriting live manifests or live dataset ids.
+
+**Alternatives considered**: Keep automation at the design-doc level only until every later scheduler detail was specified, let the new builder write directly into the live dataset ids and tracked manifests during validation, or build an entirely separate parallel builder instead of refactoring the current managed supplement path.
+
+**Why this path won**: The safest fast path was a bounded scratch-safe controller. The existing managed supplement builder now resolves a run-scoped namespace when asked, so scratch validation runs can write manifests and build artifacts under `state/dataset_build/build_runs/<run_id>/` while still using normal local dataset package conventions through unique scratch dataset ids. The new `run_closed_loop_benchmark_curation.py` controller then reuses the proven packet-review machinery instead of replacing it: initial candidate review is exported with `--only-unreviewed`, bounded repair reuses `run_dataset_review_pipeline.py`, and the run stops with a final summary instead of silently crossing into promotion or cutover decisions.
+
+**What changed in the system**: `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py` now has a reusable scratch-safe mode with run-scoped ids, manifests, and build summaries. `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py` plus the root `make closed-loop-benchmark-curation` surface now orchestrate the first bounded closed loop: construct scratch datasets, export initial review packets, audit, adjudicate, import, optionally run one repair wave, refresh the queue summary, and emit a final stop-and-summarize report. The task registry and current-state docs now treat this as an active dataset-platform lane rather than a purely queued future idea.
+
+**Why it matters later**: Future contributors might otherwise assume the only meaningful automation step was a final always-on unattended scheduler. This entry records the intended staging clearly: first prove the question-aligned builder and bounded controller on isolated scratch runs, then widen the scheduler only after real evidence shows the new artifacts are trustworthy enough to automate aggressively.
+
+**Primary evidence**:
+- `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+- `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+- `reading-companion-backend/tests/test_private_library_supplement.py`
+- `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
+- `README.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+- `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`

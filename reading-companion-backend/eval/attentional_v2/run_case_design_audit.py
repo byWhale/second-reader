@@ -37,6 +37,7 @@ from .case_audit_runs import (
     RUN_STATE_FILE,
     SUMMARY_DIR,
 )
+from .question_aligned_case_construction import render_excerpt_sentences
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -190,7 +191,9 @@ def find_span_and_context(case: dict[str, Any], source_index: dict[str, dict[str
         start = by_id[start_sentence_id]
         end = by_id[end_sentence_id]
         excerpt_rows = sentences[start : end + 1]
-        excerpt_text = "\n".join(str(sentence.get("text", "")).strip() for sentence in excerpt_rows).strip()
+        excerpt_text = render_excerpt_sentences(
+            str(sentence.get("text", "")).strip() for sentence in excerpt_rows
+        )
         context = {
             "lookback_sentences": [str(item.get("text", "")).strip() for item in sentences[max(0, start - 3) : start]],
             "excerpt_sentences": [str(item.get("text", "")).strip() for item in excerpt_rows],

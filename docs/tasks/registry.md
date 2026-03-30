@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-30T09:55:00Z`
+Last updated: `2026-03-30T05:43:23Z`
 
 ## Status Values
 - `active`
@@ -41,19 +41,18 @@ Last updated: `2026-03-30T09:55:00Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: validate the first managed-local question-aligned build on real inputs, then decide whether to widen the same target-profile / opportunity / adequacy artifact model across the broader managed source pool before the unattended controller lands
+- Next: keep the English quality-fix gains, finish the remaining Chinese scene/bucket shaping, and use the latest bilingual scratch evidence to separate builder weakness from packet-adjudication variability before widening the managed-source sample
 - Jobs: none
 
-## Queued
-
 ### `TASK-DATASET-FULL-AUTOMATION` — Make dataset building fully automated as one closed build-review-refine loop
-- Status: `queued`
+- Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Blocked by: `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION`
-- Next: keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned managed-local build is validated strongly enough to automate safely
+- Next: keep the bounded controller as the active automation surface, but do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible and identical-English packet adjudication is better bounded
 - Jobs: none
+
+## Queued
 
 ### `TASK-RUNTIME-VIABILITY-GATES` — Run durable-trace, re-entry, and runtime-viability evaluation
 - Status: `queued`

@@ -108,6 +108,29 @@ Goal:
 ### Phase 3: Closed-Loop Orchestration
 Goal:
 - connect source intake, mining, packaging, review, adequacy scoring, and regeneration into one automatic loop
+- current first landing:
+  - `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+  - root surface:
+    - `make closed-loop-benchmark-curation`
+  - default safety mode:
+    - scratch-safe
+    - run-scoped manifests and build artifacts go under `reading-companion-backend/state/dataset_build/build_runs/<run_id>/`
+    - scratch dataset ids stay isolated under `reading-companion-backend/state/eval_local_datasets/`
+  - current stage order:
+    1. `construct_dataset`
+    2. `export_review_packets`
+    3. `audit_packets`
+    4. `adjudicate_packets`
+    5. `import_packets`
+    6. optional `repair_open_backlog`
+    7. `refresh_queue_summary`
+    8. `final_summary`
+  - current mechanical mapping:
+    - initial candidate review uses `export_dataset_review_packet.py --only-unreviewed`
+    - bounded repair uses `run_dataset_review_pipeline.py`
+  - current boundary:
+    - one bounded build-review-import pass plus an optional one-wave repair follow-up
+    - not yet the final unattended multi-iteration scheduler
 
 ## Phase Boundary Rule
 We should design the unattended-loop boundary now, but not finalize or implement the full unattended controller until Phase 2 artifacts are real and stable.
@@ -169,6 +192,9 @@ This is the preferred place to refine title/author/tags without editing code.
   - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--dry-run"`
 - filtered example:
   - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en"`
+- compatibility recovery when `state/library_sources/` already exists but `source_catalog.json` does not:
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--bootstrap-library-sources --run-id <run_id>"`
+  - this seeds the managed source catalog from existing managed files plus tracked manifest metadata without copying source files again
 
 ### Output locations
 Canonical copied sources:
@@ -223,11 +249,25 @@ It gives them a better upstream source territory:
 - public/private is no longer the intended source-selection axis for future automation; current `private_library` names are historical dataset-family labels, not a platform-wide policy requirement
 - later builders should do the same instead of reaching back to ad hoc external roots
 
-## Immediate Next Work After Phase 1
-1. Land the Question-Aligned Case Construction design:
-   - target profiles
-   - opportunity cards
-   - case assembly
-   - adequacy reporting
-2. Reuse current curated cases and review outcomes as feedback signals for question-aligned construction and later replacement.
-3. Define the unattended-loop contract now, but wait to finalize the full controller until the Phase 2 artifacts above are stable enough to orchestrate safely.
+## Current Next Work
+1. Keep using the recovered managed source catalog and bounded controller, but treat the current bottleneck as case quality plus bilingual reproducibility rather than as intake plumbing.
+2. Preserve the working builder/controller evidence already earned:
+   - narrow English post-fix smoke:
+     - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+     - result: `keep = 2`, `revise = 2`, `drop = 0`
+   - broader English post-fix smoke:
+     - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+     - result: `keep = 4`, `revise = 4`, `drop = 0`
+3. Keep tightening the bilingual route before unattended widening:
+   - the first bilingual post-fix run still selected Chinese front matter and ended `zh drop = 1`
+   - the paratext filter rerun moved that to `zh revise = 1`
+   - the stronger-selection rerun moved that again to `zh keep = 1`
+   - this proves builder-side bilingual quality can improve, but it does not yet prove stable unattended widening
+4. Treat adjudication variability as part of the controller-hardening problem:
+   - the English packet payload remained byte-identical between the last two bilingual reruns
+   - yet packet adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`
+   - so the next controller-hardening step must distinguish builder improvement from review-policy variability
+5. Only widen toward the multi-iteration unattended scheduler after the current bilingual stability pass:
+   - finish the remaining Chinese scene/bucket shaping
+   - bound or explain identical-packet adjudication variability
+   - then run the next broader English and bilingual scratch validation wave

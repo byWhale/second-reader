@@ -67,7 +67,7 @@ Because excerpt cases are where:
 - review feedback is richest
 
 ## First Landing
-The first live implementation is now landed on the managed local supplement path.
+The first live implementation is now landed on the managed local supplement path, and it now has a reusable scratch-safe build mode for validation runs.
 
 The current dataset ids still use `private_library` for continuity with existing evidence and review artifacts, but that naming is now historical rather than a preferred platform boundary.
 
@@ -79,18 +79,80 @@ Current private-library outputs:
 - candidate datasets:
   - `attentional_v2_private_library_excerpt_en_question_aligned_v1`
   - `attentional_v2_private_library_excerpt_zh_question_aligned_v1`
+- scratch-safe candidate datasets:
+  - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__<run_id>`
+  - `attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__<run_id>`
 - durable intermediate artifacts under `reading-companion-backend/state/dataset_build/`:
   - `target_profiles/`
   - `opportunity_maps/`
   - `candidate_cases/`
   - `reserve_cases/`
   - `adequacy_reports/`
+- scratch build runs keep their own artifact and manifest namespace under:
+  - `reading-companion-backend/state/dataset_build/build_runs/<run_id>/`
+  - this includes:
+    - `target_profiles/`
+    - `opportunity_maps/`
+    - `candidate_cases/`
+    - `reserve_cases/`
+    - `adequacy_reports/`
+    - `manifests/`
+    - `build_summary.json`
+    - `build_summary.md`
 
 Current feedback source:
 - the live reviewed local-only datasets stay separate and are read as feedback truth:
   - `attentional_v2_private_library_excerpt_en_v2`
   - `attentional_v2_private_library_excerpt_zh_v2`
 - this means the first landing does not overwrite the current review-truth datasets while the new construction path is still being validated
+- feedback can also be disabled or overridden explicitly when a scratch run needs to test construction behavior in isolation
+
+## Latest Scratch Evidence
+The first real quality-fix wave is now landed in the builder and audit reconstruction paths:
+- `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+- `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+
+Current bounded fixes:
+- preserve the full excerpt span in stored sentence ids instead of collapsing to anchor/support bounds
+- stitch parser-fragment splits and expand windows around broken edges before rendering the final excerpt
+- require explicit backward-link markers for callback candidates
+- reject obvious reported-speech false positives for anchored-reaction candidates
+- penalize context-dependent fragment anchors
+- reject paratext / bibliographic windows
+- keep low-priority profile-order filler candidates from outranking much stronger same-chapter opportunities
+
+Current real-run evidence:
+- narrow English builder validation:
+  - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
+  - result: `4` English candidate cases and `4` reserves from `education_of_henry_adams_public_en`
+- narrow English bounded full smoke after the fix:
+  - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+  - result: `keep = 2`, `revise = 2`, `drop = 0`
+  - this replaced the earlier narrow-English result of `drop = 2`, `revise = 2`, `keep = 0`
+- broader English bounded full smoke:
+  - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+  - result: `keep = 4`, `revise = 4`, `drop = 0`
+- bilingual scratch sequence:
+  - `closed_loop_full_smoke_bilingual_qualityfix_20260330`
+    - English `revise = 4`
+    - Chinese `drop = 1`
+    - diagnosis: Chinese still selected publication metadata instead of literary prose
+  - `closed_loop_full_smoke_bilingual_paratextfix_20260330`
+    - English `keep = 2`, `revise = 2`
+    - Chinese `revise = 1`
+    - diagnosis: front-matter selection was fixed, but the chosen Chinese excerpt still carried residual edge noise
+  - `closed_loop_full_smoke_bilingual_selectionfix_20260330`
+    - English `revise = 4`
+    - Chinese `keep = 1`
+    - diagnosis:
+      - the Chinese lane improved again because `tension_reversal` displaced the weaker early filler case
+      - the English packet payload was byte-identical to the previous bilingual rerun, so the English shift points to adjudication variability rather than to new builder changes
+
+Current interpretation:
+- the excerpt-boundary / fragment-quality bug was real and materially important
+- English question-aligned construction improved materially
+- Chinese construction also improved materially and can now produce a real prose `keep`
+- the next blocker for wider automation is no longer intake plumbing alone; it is bilingual reproducibility across both builder quality and packet adjudication
 
 ## What We Keep
 Preserve these current strengths:
@@ -395,6 +457,19 @@ So the right answer is:
 
 ### Phase 3
 - build the unattended controller around the stabilized Phase 2 artifacts
+- current first controller landing:
+  - `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+  - root surface:
+    - `make closed-loop-benchmark-curation`
+  - current scope:
+    - construct scratch datasets
+    - export initial `--only-unreviewed` packets
+    - audit, adjudicate, import, archive
+    - optionally run one bounded revision/replacement repair wave
+    - refresh the queue summary
+    - emit one final stop-and-summarize report
+  - current boundary:
+    - this is a first bounded controller, not the final unattended multi-iteration scheduler
 
 ## Immediate Next Code Targets
 - `reading-companion-backend/eval/attentional_v2/corpus_builder.py`
@@ -404,6 +479,10 @@ So the right answer is:
 - current local/private supplement build path:
   - `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
   - keep it using the managed source catalog while the new construction layer is added
+  - keep validating the scratch-safe build namespace before promoting that path into the unquestioned default for real source runs
+- first closed-loop controller path:
+  - `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+  - validate it on real managed inputs, then widen its stop-condition and regeneration policy only after the scratch build outputs look trustworthy
 
 ## Non-Goals For This Phase
 - do not reopen benchmark promotion automatically

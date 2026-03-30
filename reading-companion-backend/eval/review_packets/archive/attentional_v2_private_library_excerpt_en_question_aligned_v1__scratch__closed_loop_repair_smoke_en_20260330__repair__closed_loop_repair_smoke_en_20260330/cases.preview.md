@@ -1,0 +1,111 @@
+# Revision/Replacement Packet `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_repair_smoke_en_20260330__repair__closed_loop_repair_smoke_en_20260330`
+
+This packet was generated automatically from cases whose current `benchmark_status` requires another hardening round.
+
+## Dataset
+- dataset_id: `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_repair_smoke_en_20260330`
+- family: `excerpt_cases`
+- language_track: `en`
+- version: `2`
+- targeted_statuses: `needs_revision|needs_replacement|needs_revision|needs_replacement`
+
+## Review Actions
+- `keep`
+- `revise`
+- `drop`
+- `unclear`
+
+## Confidence
+- `high`
+- `medium`
+- `low`
+
+## 1. `education_of_henry_adams_public_en__7__distinction_definition__seed_v1`
+
+- benchmark_status: `needs_revision`
+- review_status: `llm_reviewed`
+- book: `The Education of Henry Adams`
+- author: `Henry Adams`
+- chapter: `II: Boston (1848–1854)` (`7`)
+- question_ids: `EQ-CM-002|EQ-AV2-002|EQ-AV2-005`
+- phenomena: `distinction|definition_pressure|anchored_reaction`
+- selection_reason: Selected because the passage turns on a distinction or definition that a strong reader should close around precisely. Anchor line: Between him and State Street the relation was more natural than between Edward Everett and State Street; but instead of doing so, Charles Francis Adams drew...
+- judge_focus: Does the mechanism identify the distinction cleanly and keep the reading move answerable to the passage?
+- latest_review_action: `revise`
+- latest_problem_types: `source_parse_problem|weak_excerpt|text_noise`
+- latest_revised_bucket: ``
+- latest_notes: The excerpt begins with the fragment 'Everett, his seniors.' which is a source parse error—likely a mid-sentence break with no lookback context provided. The anchor line's distinction (between Charles Francis Adams's 'natural' relation and Edward Everett's relation with State Street) cannot be identified without prior sentences establishing who 'him' refers to and explaining State Street as a metonym for Boston's financial-political establishment. The reading move would require external knowledge of Adams family history rather than passage-based inference. Revise by extracting a proper excerpt with sufficient lookback context to make the distinction self-contained, or reconstruct with lookahead sentences that define the key terms.
+
+```text
+Everett, his seniors.
+Between him and State Street the relation was more natural than between Edward Everett and State Street; but instead of doing so, Charles Francis Adams drew himself aloof and renewed the old war which had already lasted since 1700.
+He could not help it.
+```
+
+## 2. `education_of_henry_adams_public_en__16__callback_bridge__seed_v1`
+
+- benchmark_status: `needs_replacement`
+- review_status: `llm_reviewed`
+- book: `The Education of Henry Adams`
+- author: `Henry Adams`
+- chapter: `XI: The Battle of the Rams (1863)` (`16`)
+- question_ids: `EQ-CM-002|EQ-CM-004|EQ-AV2-004`
+- phenomena: `bridge_potential|callback|cross_span_link`
+- selection_reason: Selected because the passage invites a backward bridge or callback that should remain source-grounded rather than associative. Anchor line: Again and again, in afterlife, he went back over the ground to see whether he could detect error on either side.
+- judge_focus: Does the mechanism connect the current line to earlier material honestly and for the right reason?
+- latest_review_action: `drop`
+- latest_problem_types: `source_parse_problem|weak_excerpt`
+- latest_revised_bucket: ``
+- latest_notes: The excerpt text mismatch confirmed by factual audit (first two sentences missing) combined with entirely empty lookback/lookahead context makes this case non-functional for evaluating callback_bridge mechanisms. The anchor line describes Adams' reflective habit rather than demonstrating a textual callback. Without surrounding sentences to verify the bridge mechanism, the judge focus question ('Does the mechanism connect the current line to earlier material?') cannot be answered. This case requires structural reconstruction before reconsideration.
+
+```text
+They had persisted for two years and a half in their plan for breaking up the Union, and had yielded at last only in the jaws of war.
+After a long and desperate struggle, the American Minister had trumped their best card and won the game.
+Again and again, in afterlife, he went back over the ground to see whether he could detect error on either side.
+He found none.
+At every stage the steps were both probable and proved.
+```
+
+## 3. `education_of_henry_adams_public_en__29__anchored_reaction_selectivity__seed_v1`
+
+- benchmark_status: `needs_replacement`
+- review_status: `llm_reviewed`
+- book: `The Education of Henry Adams`
+- author: `Henry Adams`
+- chapter: `XXIV: Indian Summer (1898–1899)` (`29`)
+- question_ids: `EQ-CM-002|EQ-AV2-005`
+- phenomena: `reaction_anchor|selective_legibility|visible_thought`
+- selection_reason: Selected because the passage contains a line that seems reaction-worthy but still demands selective, anchored reading. Anchor line: Constantly he repulsed argument: “Adams, you reason too much!”
+- judge_focus: Is the visible reaction anchored to the actual line and genuinely worth preserving?
+- latest_review_action: `drop`
+- latest_problem_types: `ambiguous_focus|wrong_bucket`
+- latest_revised_bucket: ``
+- latest_notes: The excerpt fundamentally misidentifies the subject of the visible reaction. The anchor line 'Adams, you reason too much!' is Okakura speaking to Adams, not Adams's own visible reaction. The case incorrectly labels Okakura's verbal provocation as the subject's (Adams's) reaction, creating an inverted annotation that cannot be salvaged through revision. This is not a case of 'anchored_reaction_selectivity' but rather a misdirected reaction_analysis that cannot support the intended bucket without comprehensive redesign.
+
+```text
+As he said of his friend Okakura, his thought ran as a stream runs through grass, hidden perhaps but always there; and one felt often uncertain in what direction it flowed, for even a contradiction was to him only a shade of difference, a complementary color, about which no intelligent artist would dispute.
+Constantly he repulsed argument: “Adams, you reason too much!”
+was one of his standing reproaches even in the mild discussion of rice and mangoes in the warm night of Tahiti dinners.
+```
+
+## 4. `education_of_henry_adams_public_en__8__tension_reversal__seed_v1`
+
+- benchmark_status: `needs_replacement`
+- review_status: `llm_reviewed`
+- book: `The Education of Henry Adams`
+- author: `Henry Adams`
+- chapter: `III: Washington (1850–1854)` (`8`)
+- question_ids: `EQ-CM-002|EQ-AV2-003|EQ-AV2-005`
+- phenomena: `tension_reversal|controller_move_quality|anchored_reaction`
+- selection_reason: Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: The effort had failed, but one still went to Mount Vernon, although it was no easy trip.
+- judge_focus: Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?
+- latest_review_action: `drop`
+- latest_problem_types: `source_parse_problem|weak_excerpt|text_noise`
+- latest_revised_bucket: ``
+- latest_notes: The excerpt ends abruptly mid-sentence with 'Mr.', a clear source parsing truncation. The passage contains only two sentences and lacks sufficient material for meaningful tension_reversal evaluation. Both primary and adversarial reviews correctly identify this as unusable. The anchor line is pedagogically promising but cannot be assessed without complete surrounding context. Drop and re-extract from source with full sentence boundaries and adequate lookahead/lookback context before resubmission.
+
+```text
+People made pilgrimages to Mount Vernon and made even an effort to build Washington a monument.
+The effort had failed, but one still went to Mount Vernon, although it was no easy trip.
+Mr.
+```

@@ -6,7 +6,10 @@ from pathlib import Path
 
 from eval.attentional_v2.question_aligned_case_construction import (
     TARGET_PROFILE_ORDER,
+    _assembled_case,
+    _window_is_valid_for_profile,
     build_question_aligned_excerpt_scope,
+    render_excerpt_sentences,
     target_profile_id_for_case_row,
 )
 
@@ -81,6 +84,47 @@ def _sentences_zh() -> list[dict[str, str]]:
         {
             "sentence_id": "c2-s4",
             "text": "直到后来失败真正发生，这句话才显出另一层意义，原来它一直在为更晚的重新理解埋伏笔。",
+        },
+    ]
+
+
+def _sentences_zh_with_paratext_and_prose() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c2-s1",
+            "text": "背影作者：朱自清1925年10月1925年11月22日 1925年10月在北京。",
+        },
+        {
+            "sentence_id": "c2-s2",
+            "text": "1925年11月22日《文学周报》第200期。",
+        },
+        {
+            "sentence_id": "c2-s3",
+            "text": "下文不是1928年出版同名散文集。",
+        },
+        {
+            "sentence_id": "c2-s4",
+            "text": "他待我漸漸不同往日。",
+        },
+        {
+            "sentence_id": "c2-s5",
+            "text": "但最近兩年的不見，他終於忘却我的不好，只是惦記着我，惦記着我的兒子。",
+        },
+        {
+            "sentence_id": "c2-s6",
+            "text": "我北來後，他寫了一封信給我，信中說道，「我身體平安，惟膀子疼痛利害，舉箸提筆，諸多不便，大約大去之期不遠矣。」",
+        },
+        {
+            "sentence_id": "c2-s7",
+            "text": "那年冬天，祖母死了，父親的差使也交卸了，正是禍不單行的日子，我從北京到徐州，打算跟着父親奔喪囘家。",
+        },
+        {
+            "sentence_id": "c2-s8",
+            "text": "到徐州見着父親，看見滿院狼藉的東西，又想起祖母，不禁簌簌地流下眼淚。",
+        },
+        {
+            "sentence_id": "c2-s9",
+            "text": "父親說，「事已如此，不必難過，好在天無絕人之路！」",
         },
     ]
 
@@ -186,5 +230,140 @@ def test_build_question_aligned_excerpt_scope_generates_cases_reserves_and_revie
     assert case["replacement_family_id"] == f"book_en::1::{case['target_profile_id']}"
     assert case["reserve_group_id"] == "book_en::1"
     assert case["benchmark_status"] == "unset"
+    assert case["start_sentence_id"] == case["excerpt_sentence_ids"][0]
+    assert case["end_sentence_id"] == case["excerpt_sentence_ids"][-1]
     assert reserve["reserve_rank"] == 1
     assert reserve["target_profile_id"] in TARGET_PROFILE_ORDER
+
+
+def test_render_excerpt_sentences_stitches_fragmentary_sentence_splits() -> None:
+    rendered = render_excerpt_sentences(
+        [
+            "Charles Francis Adams might then have taken his inherited rights in succession to Mr.",
+            "Webster and Mr.",
+            "Everett, his seniors.",
+            "Between him and State Street the relation was more natural.",
+        ]
+    )
+
+    assert "Mr. Webster and Mr. Everett, his seniors." in rendered
+    assert rendered.endswith("Between him and State Street the relation was more natural.")
+
+
+def test_assembled_case_uses_full_excerpt_sentence_bounds() -> None:
+    case = _assembled_case(
+        {
+            "source_id": "book_en",
+            "chapter_id": "1",
+            "book_title": "Book",
+            "author": "Author",
+            "language_track": "en",
+            "chapter_number": 1,
+            "chapter_title": "Chapter One",
+            "target_profile_ids": ["callback_bridge"],
+            "excerpt_sentence_ids": ["c1-s1", "c1-s2", "c1-s3"],
+            "anchor_sentence_ids": ["c1-s2"],
+            "support_sentence_ids": ["c1-s1", "c1-s3"],
+            "context_excerpt_text": "Sentence 1.\nSentence 2.\nSentence 3.",
+            "selection_reason_draft": "Reason",
+            "judge_focus_draft": "Focus",
+            "construction_priority": 6.4,
+            "judgeability_score": 4.8,
+            "discriminative_power_score": 4.9,
+            "selection_role": "argumentative",
+            "type_tags": ["essay"],
+            "role_tags": ["argumentative"],
+            "candidate_position_bucket": "middle",
+            "opportunity_id": "book_en__1__callback_bridge__opp_1",
+        }
+    )
+
+    assert case["start_sentence_id"] == "c1-s1"
+    assert case["end_sentence_id"] == "c1-s3"
+    assert case["anchor_sentence_id"] == "c1-s2"
+
+
+def test_profile_specific_window_filters_reject_generic_callback_and_reported_speech() -> None:
+    assert (
+        _window_is_valid_for_profile(
+            profile_id="callback_bridge",
+            anchor_text="No doubt it was the same old furniture, the same old patriot, and the same old President.",
+            window=[
+                "George Washington remained steady in the mind of Henry Adams.",
+                "No doubt it was the same old furniture, the same old patriot, and the same old President.",
+                "The boy took to it instinctively.",
+            ],
+            language="en",
+        )
+        is False
+    )
+    assert (
+        _window_is_valid_for_profile(
+            profile_id="anchored_reaction_selectivity",
+            anchor_text="Constantly he repulsed argument: “Adams, you reason too much!”",
+            window=[
+                "As he said of his friend Okakura, his thought ran as a stream runs through grass.",
+                "Constantly he repulsed argument: “Adams, you reason too much!”",
+                "was one of his standing reproaches.",
+            ],
+            language="en",
+        )
+        is False
+    )
+    assert (
+        _window_is_valid_for_profile(
+            profile_id="distinction_definition",
+            anchor_text="1925年11月22日《文学周报》第200期。",
+            window=[
+                "背影作者：朱自清1925年10月1925年11月22日 1925年10月在北京。",
+                "1925年11月22日《文学周报》第200期。",
+                "下文不是1928年出版同名散文集。",
+            ],
+            language="zh",
+        )
+        is False
+    )
+
+
+def test_scope_selection_skips_chinese_paratext_and_keeps_real_prose_window(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "zh": [
+            _chapter_row(
+                source_id="book_zh",
+                language="zh",
+                output_dir="outputs/book_zh",
+                chapter_id="2",
+                chapter_title="背影",
+                role="expository",
+            )
+        ]
+    }
+    source_index = {
+        "book_zh": {
+            "source_id": "book_zh",
+            "type_tags": ["essay"],
+            "role_tags": ["expository", "narrative_reflective"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_zh"): {
+            "chapters": [{"id": "2", "sentences": _sentences_zh_with_paratext_and_prose()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="demo_scope",
+    )
+
+    zh_cases = scope["cases_by_language"]["zh"]
+    assert len(zh_cases) == 1
+    assert zh_cases[0]["start_sentence_id"] != "c2-s1"
+    assert "文学周报" not in zh_cases[0]["excerpt_text"]
+    assert "同名散文集" not in zh_cases[0]["excerpt_text"]

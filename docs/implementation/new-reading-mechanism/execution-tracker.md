@@ -45,6 +45,19 @@ Update when: status changes, blockers appear, or phases complete.
       - helper module landed at `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
       - the private-library supplement builder now emits target profiles, opportunity maps, candidate cases, reserve cases, and adequacy reports under `state/dataset_build/`
       - the builder now writes separate question-aligned excerpt candidate datasets instead of overwriting the live `v2` review-truth datasets
+      - the builder also has a scratch-safe namespace now:
+        - run-scoped manifests and build artifacts go under `state/dataset_build/build_runs/<run_id>/`
+        - scratch excerpt datasets use run-scoped ids under `state/eval_local_datasets/`
+    - Closed-Loop Benchmark Curation is now in first bounded controller landing rather than pure design:
+      - runner landed at `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+      - root operator surface landed at `make closed-loop-benchmark-curation`
+      - the current controller reuses the existing packet machinery instead of replacing it:
+        - initial review via `export_dataset_review_packet.py --only-unreviewed`
+        - bounded repair via `run_dataset_review_pipeline.py`
+      - current blocker after the first real bilingual reruns:
+        - builder-side Chinese quality improved from `drop` to `keep`
+        - but identical-English packet adjudication still moved materially between adjacent bilingual reruns
+        - so unattended widening now waits on bilingual reproducibility, not on missing controller plumbing
     - later frontend/API retirement of section-first chapter/detail and marks surfaces
     - later stable-doc promotion timing under `Q10`
 
@@ -292,9 +305,40 @@ Update when: status changes, blockers appear, or phases complete.
     - the new candidate outputs are written to:
       - `attentional_v2_private_library_excerpt_en_question_aligned_v1`
       - `attentional_v2_private_library_excerpt_zh_question_aligned_v1`
+    - the builder now also supports scratch-safe validation runs:
+      - run-scoped manifests and build artifacts under `state/dataset_build/build_runs/<run_id>/`
+      - run-scoped dataset ids under `state/eval_local_datasets/`
+  - real post-landing evidence is now in repo state:
+    - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
+      - `education_of_henry_adams_public_en`
+      - `4` candidate cases
+      - `4` reserves
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - `keep = 2`
+      - `revise = 2`
+      - `drop = 0`
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - `keep = 4`
+      - `revise = 4`
+      - `drop = 0`
+    - bilingual scratch sequence:
+      - `closed_loop_full_smoke_bilingual_qualityfix_20260330`
+        - English `revise = 4`
+        - Chinese `drop = 1`
+        - diagnosis: Chinese still selected publication metadata
+      - `closed_loop_full_smoke_bilingual_paratextfix_20260330`
+        - English `keep = 2`
+        - English `revise = 2`
+        - Chinese `revise = 1`
+      - `closed_loop_full_smoke_bilingual_selectionfix_20260330`
+        - English `revise = 4`
+        - Chinese `keep = 1`
+        - the English packet payload was byte-identical to the previous bilingual rerun, so that English swing now points to adjudication variability rather than to new builder changes
   - next:
-    - validate one real managed-local build with the new outputs
-    - then decide whether to widen the same artifact model across the broader managed source pool before the unattended controller lands
+    - keep the English quality gains
+    - finish the remaining Chinese scene/bucket shaping so the stronger late-scene opportunity remains the primary pick cleanly
+    - use the bilingual rerun pair to diagnose how much instability is still coming from packet adjudication
+    - only then widen the same artifact model across the broader managed source pool
   - the loop boundary is now defined and partially materialized:
     - target-profile contract
     - opportunity-card contract
@@ -312,6 +356,21 @@ Update when: status changes, blockers appear, or phases complete.
     - `auto_review_packet.py`
     - `import_dataset_review_packet.py`
     - `run_dataset_review_pipeline.py`
+  - first bounded controller landing is now complete:
+    - `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+    - root operator surface:
+      - `make closed-loop-benchmark-curation`
+    - current scope:
+      - construct question-aligned scratch datasets
+      - export initial `--only-unreviewed` packets
+      - audit, adjudicate, import, archive
+      - optional one-wave revision/replacement repair
+      - refresh queue summary
+      - emit a final stop-and-summarize report
+  - next:
+    - keep the bounded controller as the active automation surface
+    - do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible
+    - separate builder-quality gains from packet-adjudication variability before trusting unattended widening
 - [x] Make source-book intake and intermediate-artifact management clear and durable.
   - keep canonical managed copies of original books inside project-owned storage instead of relying on external source paths as the long-term truth
   - define one documented drop-folder workflow for future book additions so new intake can be fetched and processed reproducibly

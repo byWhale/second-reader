@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-30T09:55:00Z",
+  "updated_at": "2026-03-30T05:43:23Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -151,11 +151,12 @@
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md"
       ],
       "decision_refs": [
-        "DEC-045"
+        "DEC-045",
+        "DEC-046"
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Validate the first managed-local question-aligned build on real inputs, then decide whether to widen the same target-profile, opportunity, and adequacy artifact model across the broader managed source pool before the unattended controller lands.",
+      "next_action": "Keep the English quality-fix gains, finish the remaining Chinese scene/bucket shaping, and use the latest bilingual scratch evidence to separate builder weakness from packet-adjudication variability before widening the managed-source sample.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -165,15 +166,25 @@
         "reading-companion-backend/eval/attentional_v2/corpus_builder.py",
         "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
         "reading-companion-backend/tests/test_question_aligned_case_construction.py",
-        "reading-companion-backend/tests/test_private_library_supplement.py"
+        "reading-companion-backend/tests/test_private_library_supplement.py",
+        "reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json",
+        "reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md"
       ],
-      "last_updated": "2026-03-30T09:55:00Z",
+      "last_updated": "2026-03-30T05:43:23Z",
       "last_updated_by": "codex"
     },
     {
       "id": "TASK-DATASET-FULL-AUTOMATION",
       "title": "Make dataset building fully automated as one closed build-review-refine loop",
-      "status": "queued",
+      "status": "active",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
@@ -184,21 +195,33 @@
         "docs/source-of-truth-map.md"
       ],
       "decision_refs": [
-        "DEC-045"
+        "DEC-045",
+        "DEC-046"
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the unattended-loop boundary aligned with the now-landed Phase 2 construction artifacts, then finalize the orchestrator only after the question-aligned managed-local build is validated strongly enough to automate safely.",
-      "blocked_by": [
-        "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION"
-      ],
+      "next_action": "Keep the bounded controller as the active automation surface, but do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible and identical-English packet adjudication is better bounded.",
+      "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+        "docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md",
+        "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
+        "reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py",
+        "reading-companion-backend/tests/test_private_library_supplement.py",
+        "reading-companion-backend/tests/test_closed_loop_benchmark_curation.py",
         "reading-companion-backend/eval/attentional_v2/run_dataset_review_pipeline.py",
         "reading-companion-backend/eval/attentional_v2/generate_revision_replacement_packet.py",
-        "reading-companion-backend/eval/attentional_v2/auto_review_packet.py"
+        "reading-companion-backend/eval/attentional_v2/auto_review_packet.py",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md"
       ],
-      "last_updated": "2026-03-30T09:55:00Z",
+      "last_updated": "2026-03-30T05:43:23Z",
       "last_updated_by": "codex"
     },
     {

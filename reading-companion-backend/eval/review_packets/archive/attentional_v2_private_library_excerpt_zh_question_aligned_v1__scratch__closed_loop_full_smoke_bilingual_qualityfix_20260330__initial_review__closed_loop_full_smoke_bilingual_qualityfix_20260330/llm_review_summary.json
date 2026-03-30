@@ -1,0 +1,12 @@
+{
+  "packet_id": "attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_qualityfix_20260330__initial_review__closed_loop_full_smoke_bilingual_qualityfix_20260330",
+  "run_id": "attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_qualityfix_20260330__initial_review__closed_loop_full_smoke_bilingual_qualityfix_20260330__llm_review__20260330-045239",
+  "generated_at": "2026-03-30T04:52:50.107246Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "case_count": 1,
+  "action_counts": {
+    "drop": 1
+  },
+  "source_case_audit_run_id": "attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_qualityfix_20260330__initial_review__closed_loop_full_smoke_bilingual_qualityfix_20260330__20260330-045138"
+}

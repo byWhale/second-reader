@@ -7,13 +7,16 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-30T09:55:00Z`
+Last verified: `2026-03-30T05:43:23Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
   - inspect the completed English two-case evidence rerun without converting it into an automatic mechanism or promotion decision
   - work from the recovered private-library local-only datasets rather than the stale seed-reset narrative
   - preserve the remaining benchmark-hardening backlog and human-owned gate decisions in repo-local state
+- In parallel, keep the dataset-platform route moving from landing to evidence-driven refinement:
+  - use the recovered managed source catalog on this checkout instead of treating missing-catalog recovery as the active blocker
+  - use the real scratch builder/controller evidence to improve case quality and bilingual reproducibility before widening automation further
 
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
@@ -190,6 +193,71 @@ Last verified: `2026-03-30T09:55:00Z`
   - that supplement already includes the known `16`-book `/Users/baiweijiang/Documents/BOOK/` batch plus the earlier `13` private Downloads books
   - `state/library_sources/` has no extra private EPUBs beyond that tracked manifest
   - no separate new 10-book wave is currently visible to the private-library builder
+- The managed source catalog is now recovered on this checkout through the intake compatibility path:
+  - intake run:
+    - `reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json`
+  - current result:
+    - `56` existing managed source files were cataloged from `state/library_sources/`
+    - `5` `.normalized.epub` files were skipped as non-canonical managed sources
+    - `reading-companion-backend/state/dataset_build/source_catalog.json` now exists and is usable by the managed supplement builder
+- The first real managed-local scratch builder validation is now completed:
+  - build summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
+  - current result:
+    - selected source: `education_of_henry_adams_public_en`
+    - `4` English excerpt cases
+    - `4` English reserve cases
+    - adequacy next action: `construct_and_review`
+    - scratch manifests and dataset ids stayed namespaced under the run id
+- The question-aligned builder quality-fix wave is now landed in code:
+  - primary code paths:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+  - bounded behaviors landed:
+    - case `start_sentence_id` / `end_sentence_id` now preserve the whole rendered excerpt window instead of only the anchor/support subset
+    - excerpt rendering now stitches parser-fragment splits such as `Mr.` / initials / lowercase continuations and expands windows around broken edges
+    - callback selection now requires explicit backward-link markers instead of generic lexical overlap
+    - anchored-reaction selection now rejects obvious reported-speech false positives
+    - context-dependent fragment anchors are penalized instead of being treated as stable standalone cases
+    - paratext / bibliographic windows are filtered out
+    - weak profile-order filler candidates no longer outrank much stronger same-chapter opportunities during the primary auto-selection pass
+- The bounded closed-loop controller now has real scratch evidence beyond the first plumbing landing:
+  - earlier baseline evidence remains useful:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_construct_smoke_20260330/closed_loop_benchmark_curation_run_state.json`
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_20260330/closed_loop_benchmark_curation_summary.json`
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_repair_smoke_en_20260330/closed_loop_benchmark_curation_summary.json`
+  - English-only quality improved materially after the builder fixes:
+    - initial narrow English full smoke after the fix:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: `keep = 2`, `revise = 2`, `drop = 0`
+      - this replaced the earlier narrow-English outcome of `drop = 2`, `revise = 2`, `keep = 0`
+    - broader English scratch validation after the same fix:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: `keep = 4`, `revise = 4`, `drop = 0`
+  - bilingual scratch validation exposed the next bottleneck more clearly:
+    - first bilingual quality-fix run:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: English `revise = 4`, Chinese `drop = 1`
+      - diagnosis: the Chinese case was still pure publication metadata, so the failure was builder quality rather than only review strictness
+    - first bilingual paratext-filter rerun:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: English `keep = 2`, `revise = 2`; Chinese `revise = 1`
+      - diagnosis: the publication-history/front-matter miss was fixed, but the selected Chinese excerpt still carried residual edge noise and was not yet benchmark-ready
+    - second bilingual selection-floor rerun:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: English `revise = 4`; Chinese `keep = 1`
+      - diagnosis:
+        - the Chinese lane improved again because the stronger `tension_reversal` opportunity now displaced the weaker early `distinction_definition` filler
+        - the English packet payload was byte-identical to the previous bilingual rerun, yet LLM adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`, so review variability is now part of the stability problem
+  - current interpretation:
+    - English builder quality improved materially and remains clearly better than the first narrow-English baseline
+    - Chinese builder quality also improved materially: it no longer selects pure front matter and can now produce at least one real prose `keep`
+    - the next blocker for unattended widening is bilingual reproducibility, not intake plumbing:
+      - remaining Chinese scene/bucket shaping still matters
+      - packet adjudication variability on otherwise identical English packets now needs bounded diagnosis before we trust wider unattended loops
+  - all bounded controller runs still stopped with summaries only:
+    - no benchmark promotion, reviewed-slice freeze, runtime-viability, or default-cutover work was launched automatically
+    - the live review queue is back to `active_packet_count = 0`
 - The dataset-platform route is now underway, and it should keep reusing the machinery already landed rather than replace it:
   - keep the current strengths:
     - manifest-driven source promotion and canonical parsing from `corpus_builder.py`
@@ -203,6 +271,9 @@ Last verified: `2026-03-30T09:55:00Z`
     - root operator surface:
       - `make library-source-intake`
     - durable source catalog outputs under `reading-companion-backend/state/dataset_build/`
+    - compatibility recovery is now also landed:
+      - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--bootstrap-library-sources --run-id <run_id>"`
+      - this seeds the managed source catalog from existing `state/library_sources/` files plus tracked manifest metadata when inbox-driven intake has not been used yet
     - new canonical managed copies now live under one language-rooted `state/library_sources/` layout instead of a public/private folder split
     - `visibility` remains only as compatibility metadata and should not drive normal product-side intake or dataset-platform decisions
     - the current private-library supplement builder now consumes that managed source catalog and canonical local source copies instead of external `/BOOK` or `Downloads` roots
@@ -227,7 +298,23 @@ Last verified: `2026-03-30T09:55:00Z`
       - `state/dataset_build/reserve_cases/`
       - `state/dataset_build/adequacy_reports/`
     - the existing live `attentional_v2_private_library_excerpt_en_v2` and `attentional_v2_private_library_excerpt_zh_v2` datasets are now used as feedback inputs for adequacy and replacement pressure instead of being overwritten by this new construction path
-  - the unattended loop boundary should be defined now, but the full unattended controller should wait until target profiles, opportunity cards, and adequacy reports are implemented as stable artifacts
+  - the builder now also supports scratch-safe validation runs:
+    - run-scoped manifests and build artifacts go under `state/dataset_build/build_runs/<run_id>/`
+    - scratch excerpt datasets use run-scoped ids under `state/eval_local_datasets/`
+  - the first bounded Phase 3 controller is now landed in code:
+    - `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+    - root operator surface:
+      - `make closed-loop-benchmark-curation`
+    - current scope:
+      - construct scratch datasets
+      - export initial `--only-unreviewed` packets
+      - audit, adjudicate, import, archive
+      - optional one-wave revision/replacement repair
+      - refresh queue summary
+      - emit one final stop-and-summarize report
+    - current boundary:
+      - this is a first bounded controller, not yet the final unattended multi-iteration scheduler
+  - the unattended loop boundary is now more concrete, but the final scheduler should still wait until real scratch runs confirm the Phase 2 artifacts and first bounded controller are trustworthy
 - Use the task registry plus the execution tracker as the route back into detailed mechanism work.
 
 ## Next
@@ -241,14 +328,18 @@ Last verified: `2026-03-30T09:55:00Z`
   - drop books into `reading-companion-backend/state/library_inbox/`
   - use nested folders only for optional batch organization
   - run `make library-source-intake`
-- Validate the first Question-Aligned Case Construction landing on a real private-library supplement build:
-  - confirm the new question-aligned candidate datasets and intermediate artifacts look strong enough to use as the next replacement-construction base
-  - then decide whether to widen the same artifact model across the broader managed local source pool or move directly to unattended orchestration
-- Prepare the next dataset-platform design on top of the now-completed judged rerun and the landed source-governance work, and design it as one closed build-review-refine loop implemented in phases:
+- Use the latest bilingual scratch evidence to stabilize case quality and reproducibility rather than adding new platform plumbing:
+  - keep the English-only quality-fix evidence as the working proof that the builder improvements are real
+  - finish the remaining Chinese shaping work so the selected excerpt stays on the stronger late-scene opportunity without residual edge noise
+  - inspect the identical-English bilingual packet pair to decide how much of the remaining instability is LLM adjudication variability rather than construction quality
+- Keep the bounded controller as the active automation surface, but defer wider unattended expansion until the bilingual route is more reproducible:
+  - broader English and broader bilingual scratch widening should now happen only after the current Chinese/profile and adjudication-stability diagnosis is explicit
+  - the multi-iteration unattended scheduler still remains after that stability pass, not before it
+- Keep the dataset-platform route phased rather than monolithic:
   - source-book intake and intermediate-artifact governance is now landed
   - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
-  - the unattended loop contract should be kept explicit now so Phase 2 emits the right artifacts
-  - full closed-loop automation that reuses packet audit/adjudication/import plus adequacy checks remains after that
+  - the first bounded closed-loop controller is now landed and has completed one real scratch smoke plus one repair wave
+  - the multi-iteration unattended scheduler still remains after a broader set of real scratch validations above
 - Keep the prior failed `bgjob_en_chapter_core_rerun_round3_parallel_20260329` artifacts as debugging evidence:
   - treat `up_from_slavery_public_en__10` as packaging-corrupted because the `attentional_v2` case entry points at `walden` outputs
   - treat `walden_205_en__10` as incomplete because no case artifact or summary artifacts were written
@@ -280,7 +371,10 @@ Last verified: `2026-03-30T09:55:00Z`
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
-- The managed source catalog now drives both intake and the current private-library supplement build, and the first question-aligned replacement for fixed-window excerpt mining is landed, but it still needs real-build validation before it becomes the unquestioned base for later automation.
+- The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
+- The first real scratch builder/controller runs were intentionally narrow: the earliest English baseline still yielded no `keep` outcomes, but the later quality-fix runs improved that materially; the remaining narrowness is now bilingual stability rather than the mere absence of `keep` results.
+- Repeated bilingual packet adjudication over an identical English packet can still move materially between runs, so current bilingual widening is constrained by review reproducibility as well as by builder quality.
+- Historical compatibility paths under `state/library_sources/<language>/private/...` are now cataloged successfully, but they remain compatibility inputs rather than the intended future operator workflow.
 - Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
 - Route mismatches between frontend routes and backend-returned targets can still regress the canonical product path.
@@ -291,6 +385,7 @@ Last verified: `2026-03-30T09:55:00Z`
 - `TASK-BENCH-BACKLOG-RESCUE`
 - `TASK-MECH-EN-RERUN`
 - `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION`
+- `TASK-DATASET-FULL-AUTOMATION`
 
 ## Active Job IDs
 - none
@@ -315,17 +410,30 @@ Last verified: `2026-03-30T09:55:00Z`
 17. `docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md`
 18. `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
 19. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
-20. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
+20. `reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json`
+21. `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
+22. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+23. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+24. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+25. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json`
+26. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
+27. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md`
+28. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md`
+29. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md`
+30. `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+31. `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+32. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-29T15:05:19Z",
+  "updated_at": "2026-03-30T05:43:23Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
     "TASK-MECH-EN-RERUN",
-    "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION"
+    "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION",
+    "TASK-DATASET-FULL-AUTOMATION"
   ],
   "blocked_task_ids": [],
   "active_job_ids": [],
@@ -343,8 +451,20 @@ Last verified: `2026-03-30T09:55:00Z`
     "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
     "reading-companion-backend/eval/attentional_v2/ingest_library_sources.py",
     "reading-companion-backend/tests/test_source_intake.py",
+    "reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json",
     "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
     "reading-companion-backend/tests/test_private_library_supplement.py",
+    "reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json",
+    "reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py",
+    "reading-companion-backend/tests/test_closed_loop_benchmark_curation.py",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md",
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
     "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.json",
     "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.log",
     "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md",

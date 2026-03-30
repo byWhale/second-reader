@@ -183,6 +183,7 @@ Important frontend variables:
 - `make backfill-covers`: scan existing backend outputs, extract missing EPUB covers, and refresh manifests
 - `make dataset-review-pipeline DATASET_REVIEW_PIPELINE_ARGS="..."`: run the reusable mechanical dataset-review packet pipeline from the workspace root
 - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="..."`: ingest books from the managed library inbox into canonical local source storage and the source catalog
+- `make closed-loop-benchmark-curation CLOSED_LOOP_BENCHMARK_CURATION_ARGS="..."`: run the first scratch-safe closed-loop benchmark-curation pass for the managed local supplement
 - `cd reading-companion-frontend && npm run generate-api-types`: refresh generated frontend API types after the backend OpenAPI snapshot changes
 
 ## Dataset Source Intake
@@ -220,6 +221,8 @@ Run intake:
   - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--dry-run"`
 - ingest everything currently in the inbox:
   - `make library-source-intake`
+- recover a missing source catalog from existing managed library files when this checkout already has `state/library_sources/` but no catalog:
+  - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--bootstrap-library-sources --run-id bootstrap_existing_sources_20260330"`
 - ingest only English sources after automatic language resolution:
   - `make library-source-intake LIBRARY_SOURCE_INTAKE_ARGS="--language en"`
 - optional compatibility filter if you need to inspect only explicitly public or private records:
@@ -235,6 +238,9 @@ Intake outputs:
   - `reading-companion-backend/state/dataset_build/source_catalog.md`
 - per-run summaries:
   - `reading-companion-backend/state/dataset_build/source_intake_runs/`
+- compatibility recovery note:
+  - bootstrap mode seeds `source_catalog.json` from existing `state/library_sources/` files plus tracked manifest metadata without copying files again
+  - older compatibility paths such as `state/library_sources/en/private/...` can still be backfilled into the catalog even though new operator-driven intake should use the simpler one-inbox workflow
 
 ## Dataset Review Pipeline
 Use the reusable dataset-review pipeline when the work is limited to the mechanical packet lifecycle:
@@ -252,6 +258,41 @@ Current local-only English cleanup example:
 
 Long-running wrapper example:
 - `cd reading-companion-backend && .venv/bin/python scripts/run_registered_job.py --task-ref "execution-tracker#example" --lane dataset_growth --purpose "English dataset review pipeline" --cwd "$PWD" -- .venv/bin/python -m eval.attentional_v2.run_dataset_review_pipeline --dataset-id attentional_v2_private_library_excerpt_en_v2 --family excerpt_cases --storage-mode local-only --packet-id attentional_v2_private_library_cleanup_en_example`
+
+## Closed-Loop Benchmark Curation
+Use the first closed-loop benchmark-curation runner when you want one scratch-safe build-review-import pass over the managed local supplement.
+
+Current scope:
+- construct the question-aligned scratch datasets from managed local sources
+- export initial `--only-unreviewed` review packets
+- run case-design audit
+- run LLM adjudication
+- import and archive the packets
+- optionally run one bounded revision/replacement repair wave
+- refresh the queue summary
+- emit a final stop-and-summarize report
+
+Current boundaries:
+- default mode is scratch-safe and writes run-scoped manifests/artifacts under `reading-companion-backend/state/dataset_build/build_runs/<run_id>/`
+- scratch datasets still live under `reading-companion-backend/state/eval_local_datasets/`, but they use unique run-scoped dataset ids
+- if the managed source catalog is missing but `state/library_sources/` already exists, the builder path now recovers by bootstrapping the catalog once before continuing
+- `--from-stage` / `--through-stage` now support bounded partial runs cleanly, so the controller can stop after construction or export for smoke/recovery work without forcing `final_summary`
+- the runner stops after summarizing and does not reopen promotion, freeze reviewed slices, or launch runtime/deployment decisions automatically
+
+Examples:
+- dry-run one scratch pass:
+  - `make closed-loop-benchmark-curation CLOSED_LOOP_BENCHMARK_CURATION_ARGS="--run-id demo_curate --dry-run"`
+- run only the scratch dataset-construction stage through the controller:
+  - `make closed-loop-benchmark-curation CLOSED_LOOP_BENCHMARK_CURATION_ARGS="--run-id demo_construct --language en --limit-sources 1 --through-stage construct_dataset"`
+- run a bounded English-only scratch pass over two managed sources:
+  - `make closed-loop-benchmark-curation CLOSED_LOOP_BENCHMARK_CURATION_ARGS="--run-id demo_curate --language en --limit-sources 2"`
+- run the same one-source English scratch smoke plus one repair wave that has already been validated on the recovered catalog:
+  - `make closed-loop-benchmark-curation CLOSED_LOOP_BENCHMARK_CURATION_ARGS="--run-id demo_curate --language en --limit-sources 1 --repair-open-backlog"`
+- include one bounded repair wave after the initial import:
+  - `make closed-loop-benchmark-curation CLOSED_LOOP_BENCHMARK_CURATION_ARGS="--run-id demo_curate --repair-open-backlog"`
+
+Long-running wrapper example:
+- `cd reading-companion-backend && .venv/bin/python scripts/run_registered_job.py --task-ref "execution-tracker#dataset-platform" --lane dataset_platform --purpose "Closed-loop benchmark curation scratch pass" --cwd "$PWD" -- .venv/bin/python -m eval.attentional_v2.run_closed_loop_benchmark_curation --run-id demo_curate --repair-open-backlog`
 
 ## Long-Running Eval Jobs
 Use the backend background-job registry for evaluation, packet review, or dataset jobs that may run for `10-15` minutes or longer.

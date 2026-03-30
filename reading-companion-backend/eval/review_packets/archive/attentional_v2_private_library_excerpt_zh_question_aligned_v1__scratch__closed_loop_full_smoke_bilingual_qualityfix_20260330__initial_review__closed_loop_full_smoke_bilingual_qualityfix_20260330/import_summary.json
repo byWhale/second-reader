@@ -1,0 +1,14 @@
+{
+  "packet_id": "attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_qualityfix_20260330__initial_review__closed_loop_full_smoke_bilingual_qualityfix_20260330",
+  "imported_at": "2026-03-30T04:52:50.753578Z",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v1",
+  "dataset_primary_file_path": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_qualityfix_20260330/cases.jsonl",
+  "reviewed_case_count": 1,
+  "action_counts": {
+    "drop": 1,
+    "keep": 0,
+    "revise": 0,
+    "unclear": 0
+  }
+}
