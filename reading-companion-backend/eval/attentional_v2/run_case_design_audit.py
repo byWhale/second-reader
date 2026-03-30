@@ -23,7 +23,7 @@ from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean
-from typing import Any
+from typing import Any, Callable
 
 from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, eval_trace_context, invoke_json, llm_invocation_scope
 from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
@@ -51,6 +51,7 @@ BOILERPLATE_MARKERS = (
     "public domain",
     "www.gutenberg.org",
 )
+SEMANTIC_VALIDATION_ATTEMPTS = 3
 
 PRIMARY_SYSTEM = """You audit benchmark case design for a reading-mechanism evaluation dataset.
 
@@ -65,6 +66,16 @@ Immediate context:
 {context_json}
 
 Decide whether this is a strong benchmark case for its current purpose.
+
+Scoring rules:
+- `bucket_fit`, `focus_clarity`, and `excerpt_strength` use a `1-5` scale
+- `5` means strongest / clearly benchmark-worthy on that axis
+- `3` means mixed or adequate but not strong
+- `1` means weak on that axis
+- Keep the scores coherent with the decision:
+  - `keep` should not use `1` or `2` on these axes
+  - `revise` usually means at least one axis is `3` or below
+  - `drop` should reflect materially weak fit or excerpt integrity
 
 Return JSON:
 {{
@@ -285,6 +296,13 @@ def normalize_primary(payload: Any) -> dict[str, Any]:
     normalized["revised_selection_reason"] = str(payload.get("revised_selection_reason", "")).strip()
     normalized["revised_judge_focus"] = str(payload.get("revised_judge_focus", "")).strip()
     normalized["notes"] = str(payload.get("notes", "")).strip() or normalized["notes"]
+    if normalized["decision"] == "keep":
+        for field in ("bucket_fit", "focus_clarity", "excerpt_strength"):
+            normalized[field] = max(normalized[field], 3)
+        normalized["problem_types"] = []
+        normalized["revised_bucket"] = ""
+        normalized["revised_selection_reason"] = ""
+        normalized["revised_judge_focus"] = ""
     return normalized
 
 
@@ -303,44 +321,118 @@ def normalize_adversarial(payload: Any) -> dict[str, Any]:
     return normalized
 
 
+def primary_validation_issue(payload: dict[str, Any]) -> str:
+    if str(payload.get("notes", "")).strip() == default_primary()["notes"]:
+        return "primary_review_unavailable"
+    for field in ("bucket_fit", "focus_clarity", "excerpt_strength"):
+        try:
+            score = int(payload.get(field, 0))
+        except (TypeError, ValueError):
+            score = 0
+        if score < 1:
+            return f"invalid_{field}"
+    return ""
+
+
+def adversarial_validation_issue(payload: dict[str, Any]) -> str:
+    if str(payload.get("challenge_summary", "")).strip() == default_adversarial()["challenge_summary"]:
+        return "adversarial_review_unavailable"
+    return ""
+
+
+class AuditStageError(RuntimeError):
+    """Raised when an audit stage cannot produce a usable normalized payload."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        stage_name: str,
+        metadata: dict[str, Any],
+        normalized_payload: dict[str, Any],
+    ) -> None:
+        super().__init__(message)
+        self.stage_name = stage_name
+        self.metadata = metadata
+        self.normalized_payload = normalized_payload
+
+
 def invoke_review_with_meta(
     *,
     stage_name: str,
     system_prompt: str,
     user_prompt: str,
     default_payload: dict[str, Any],
-    normalize: Any,
+    normalize: Callable[[Any], dict[str, Any]],
+    validation_error: Callable[[dict[str, Any]], str],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    started_at = utc_now()
-    started_perf = time.perf_counter()
-    error: Exception | None = None
-    status = "ok"
-    try:
-        with llm_invocation_scope(
-            trace_context=LLMTraceContext(stage="case_design_audit", node=stage_name),
-        ):
-            payload = invoke_json(system_prompt, user_prompt, default=default_payload)
-    except ReaderLLMError as exc:
-        payload = default_payload
-        error = exc
-        status = "reader_llm_error"
-    except Exception as exc:  # pragma: no cover - defensive fallback
-        payload = default_payload
-        error = exc
-        status = "unexpected_error"
-    completed_at = utc_now()
-    duration_ms = int((time.perf_counter() - started_perf) * 1000)
-    metadata = {
-        "stage": stage_name,
-        "status": status,
-        "started_at": started_at,
-        "completed_at": completed_at,
-        "duration_ms": duration_ms,
-        "error_type": error.__class__.__name__ if error else "",
-        "error_message": str(error) if error else "",
-        "problem_code": getattr(error, "problem_code", "") if error else "",
-    }
-    return normalize(payload), metadata
+    last_metadata: dict[str, Any] | None = None
+    last_normalized = dict(default_payload)
+
+    for semantic_attempt in range(1, SEMANTIC_VALIDATION_ATTEMPTS + 1):
+        started_at = utc_now()
+        started_perf = time.perf_counter()
+        error: Exception | None = None
+        status = "ok"
+        validation_issue = ""
+
+        try:
+            with llm_invocation_scope(
+                trace_context=LLMTraceContext(stage="case_design_audit", node=stage_name),
+            ):
+                payload = invoke_json(system_prompt, user_prompt, default=default_payload)
+        except ReaderLLMError as exc:
+            payload = default_payload
+            error = exc
+            status = "reader_llm_error"
+        except Exception as exc:  # pragma: no cover - defensive fallback
+            payload = default_payload
+            error = exc
+            status = "unexpected_error"
+
+        normalized = normalize(payload)
+        last_normalized = normalized
+        validation_issue = validation_error(normalized)
+        completed_at = utc_now()
+        duration_ms = int((time.perf_counter() - started_perf) * 1000)
+        metadata = {
+            "stage": stage_name,
+            "status": status,
+            "started_at": started_at,
+            "completed_at": completed_at,
+            "duration_ms": duration_ms,
+            "error_type": error.__class__.__name__ if error else "",
+            "error_message": str(error) if error else "",
+            "problem_code": getattr(error, "problem_code", "") if error else "",
+            "semantic_attempt_count": semantic_attempt,
+            "semantic_retry_count": semantic_attempt - 1,
+            "validation_issue": validation_issue,
+        }
+        last_metadata = metadata
+
+        if error is None and not validation_issue:
+            return normalized, metadata
+
+        if semantic_attempt >= SEMANTIC_VALIDATION_ATTEMPTS:
+            failure_reason = validation_issue or status
+            raise AuditStageError(
+                f"{stage_name} failed to produce a usable payload: {failure_reason}",
+                stage_name=stage_name,
+                metadata={
+                    **metadata,
+                    "status": "response_validation_failed" if validation_issue else status,
+                },
+                normalized_payload=normalized,
+            )
+
+        time.sleep(min(1.0, 0.2 * semantic_attempt))
+
+    raise AuditStageError(
+        f"{stage_name} failed to produce a usable payload.",
+        stage_name=stage_name,
+        metadata=last_metadata or {"stage": stage_name, "status": "response_validation_failed"},
+        normalized_payload=last_normalized,
+    )
 
 
 def run_primary(case: dict[str, Any], context: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -365,6 +457,7 @@ def run_primary(case: dict[str, Any], context: dict[str, Any]) -> tuple[dict[str
         ),
         default_payload=default_primary(),
         normalize=normalize_primary,
+        validation_error=primary_validation_issue,
     )
 
 
@@ -390,6 +483,7 @@ def run_adversarial(case: dict[str, Any], context: dict[str, Any]) -> tuple[dict
         ),
         default_payload=default_adversarial(),
         normalize=normalize_adversarial,
+        validation_error=adversarial_validation_issue,
     )
 
 
@@ -593,6 +687,9 @@ def process_case(
                 },
             }
     except Exception as exc:  # pragma: no cover - defensive fallback
+        if isinstance(exc, AuditStageError):
+            state["llm_calls"][exc.stage_name] = dict(exc.metadata)
+            state["stage_statuses"][exc.stage_name] = "failed"
         state["status"] = "failed"
         state["current_stage"] = "failed"
         state["updated_at"] = utc_now()
@@ -757,18 +854,19 @@ def main() -> int:
                 )
                 submit_next(executor)
 
-        run_state["status"] = "completed"
+        final_status = "failed" if run_state["failed_case_ids"] else "completed"
+        run_state["status"] = final_status
         run_state["completed_at"] = utc_now()
         run_state["updated_at"] = run_state["completed_at"]
         write_run_state(run_dir, run_state)
         ordered = ordered_rows(results_by_case_id, case_order)
-        summary = aggregate(ordered, total_case_count=len(cases), status="completed")
+        summary = aggregate(ordered, total_case_count=len(cases), status=final_status)
         write_summary_outputs(run_dir, ordered, summary, packet_id=packet_id, partial=True)
         write_summary_outputs(run_dir, ordered, summary, packet_id=packet_id, partial=False)
 
         print(json.dumps(summary, ensure_ascii=False, indent=2))
         print(f"run_dir={run_dir}")
-        return 0
+        return 1 if run_state["failed_case_ids"] else 0
     except KeyboardInterrupt:  # pragma: no cover - operational behavior
         run_state["status"] = "incomplete"
         run_state["completed_at"] = utc_now()

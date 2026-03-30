@@ -6,7 +6,11 @@ from pathlib import Path
 
 from eval.attentional_v2.question_aligned_case_construction import (
     TARGET_PROFILE_ORDER,
+    MIN_PROFILE_ORDER_SELECTION_PRIORITY,
     _assembled_case,
+    _score_sentence_for_profile,
+    _selection_reason_anchor_text,
+    _select_cases_and_reserves,
     _window_quality_adjustment,
     _window_is_valid_for_profile,
     build_question_aligned_excerpt_scope,
@@ -272,6 +276,23 @@ def test_render_excerpt_sentences_stitches_fragmentary_sentence_splits() -> None
     assert rendered.endswith("Between him and State Street the relation was more natural.")
 
 
+def test_render_excerpt_sentences_stitches_chinese_continuation_fragments() -> None:
+    rendered = render_excerpt_sentences(
+        [
+            "樓屋的前面，有一塊草地，草地中間，有幾方白石，圍成了一個花園，圈",
+            "子裡，臥著一枝老梅，那草地的南盡頭，山頂的平正要向南斜下去的地方，有一",
+            "塊石碑立在那裡，系記這梅林的歷史的。",
+        ]
+    )
+
+    assert "圈\n" not in rendered
+    assert "有一\n" not in rendered
+    assert rendered == (
+        "樓屋的前面，有一塊草地，草地中間，有幾方白石，圍成了一個花園，圈子裡，"
+        "臥著一枝老梅，那草地的南盡頭，山頂的平正要向南斜下去的地方，有一塊石碑立在那裡，系記這梅林的歷史的。"
+    )
+
+
 def test_assembled_case_uses_full_excerpt_sentence_bounds() -> None:
     case = _assembled_case(
         {
@@ -425,6 +446,180 @@ def test_window_quality_adjustment_prefers_clean_late_chinese_scene_over_early_f
 
     assert filler_adjustment < 0
     assert "zh_early_filler_penalty" in filler_evidence
+
+
+def test_reconsolidation_requires_explicit_later_cue_for_high_score() -> None:
+    cue_free = _score_sentence_for_profile(
+        profile_id="reconsolidation_later_reinterpretation",
+        sentence_text="樓屋的前面，有一塊草地，草地中間，有幾方白石，圍成了一個花園。",
+        language="zh",
+        selection_role="narrative_reflective",
+        role_tags=["narrative_reflective"],
+        position_bucket="late",
+        prior_text="前文已經鋪墊了足夠多的背景，因此這裡 technically counts as later context even though the line itself has no reinterpretive cue.",
+        prior_tokens=set(),
+        feedback={},
+    )
+    cue_hit = _score_sentence_for_profile(
+        profile_id="reconsolidation_later_reinterpretation",
+        sentence_text="直到后来他才明白，原来這句話一直在為更晚的重新理解埋伏筆。",
+        language="zh",
+        selection_role="narrative_reflective",
+        role_tags=["narrative_reflective"],
+        position_bucket="late",
+        prior_text="前文已經鋪墊了足夠多的背景，因此這裡也有 later context。",
+        prior_tokens=set(),
+        feedback={},
+    )
+
+    assert "missing_reinterpretation_cue" in cue_free["evidence"]
+    assert cue_free["construction_priority"] < MIN_PROFILE_ORDER_SELECTION_PRIORITY
+    assert cue_hit["construction_priority"] > cue_free["construction_priority"]
+
+
+def test_reconsolidation_missing_cue_suppresses_feedback_boost() -> None:
+    cue_free = _score_sentence_for_profile(
+        profile_id="reconsolidation_later_reinterpretation",
+        sentence_text="樓屋的前面，有一塊草地，草地中間，有幾方白石，圍成了一個花園。",
+        language="zh",
+        selection_role="narrative_reflective",
+        role_tags=["narrative_reflective"],
+        position_bucket="late",
+        prior_text="前文已經鋪墊了足夠多的背景，因此這裡 technically counts as later context even though the line itself has no reinterpretive cue.",
+        prior_tokens=set(),
+        feedback={
+            "profiles": {
+                "reconsolidation_later_reinterpretation": {
+                    "reviewed_active": 0,
+                    "needs_revision": 3,
+                    "needs_replacement": 2,
+                    "needs_adjudication": 0,
+                }
+            }
+        },
+    )
+
+    assert "missing_reinterpretation_cue" in cue_free["evidence"]
+    assert "deficit_boost_suppressed" in cue_free["evidence"]
+    assert cue_free["construction_priority"] < MIN_PROFILE_ORDER_SELECTION_PRIORITY
+
+
+def test_chinese_narrative_tension_requires_explicit_local_cue() -> None:
+    cue_free = _score_sentence_for_profile(
+        profile_id="tension_reversal",
+        sentence_text="附近是一大平原，所以望眼連天，四面並無遮障之處，遠遠裡有一點燈火，明滅無常，森然有些鬼氣。",
+        language="zh",
+        selection_role="narrative_reflective",
+        role_tags=["narrative_reflective"],
+        position_bucket="middle",
+        prior_text="前文有一些背景鋪陳。",
+        prior_tokens=set(),
+        feedback={
+            "profiles": {
+                "tension_reversal": {
+                    "reviewed_active": 0,
+                    "needs_revision": 2,
+                    "needs_replacement": 1,
+                    "needs_adjudication": 0,
+                }
+            }
+        },
+    )
+    cue_hit = _score_sentence_for_profile(
+        profile_id="tension_reversal",
+        sentence_text="但接下来的转折却很尖锐，他忽然追问自己为什么一直想得到掌声，这个问题把前面的坚定都重新压紧了。",
+        language="zh",
+        selection_role="narrative_reflective",
+        role_tags=["narrative_reflective"],
+        position_bucket="middle",
+        prior_text="前文有一些背景鋪陳。",
+        prior_tokens=set(),
+        feedback={},
+    )
+
+    assert "zh_missing_tension_cue" in cue_free["evidence"]
+    assert "deficit_boost_suppressed" in cue_free["evidence"]
+    assert cue_free["construction_priority"] < MIN_PROFILE_ORDER_SELECTION_PRIORITY
+    assert cue_hit["construction_priority"] >= MIN_PROFILE_ORDER_SELECTION_PRIORITY
+
+
+def test_selection_reason_anchor_text_uses_merged_line_for_fragmentary_anchor() -> None:
+    anchor_text = "他家裡的人都怪他無恆性，說他的心思太活；然而依他自己講來，他以為他一個"
+    merged = _selection_reason_anchor_text(
+        anchor_text=anchor_text,
+        window_texts=[
+            "那時候他已在縣立小學堂卒了業，正在那裡換來換去的換中學堂。",
+            anchor_text,
+            "人同別的學生不同，不能按部就班的同他們同在一處求學的。",
+        ],
+    )
+
+    assert merged.endswith("人同別的學生不同，不能按部就班的同他們同在一處求學的。")
+    assert "\n" not in merged
+
+
+def test_second_pass_selection_skips_subthreshold_fillers() -> None:
+    cases, reserves = _select_cases_and_reserves(
+        [
+            {
+                "opportunity_id": "demo__1__tension_reversal__opp_1",
+                "chapter_case_id": "demo__1",
+                "source_id": "demo",
+                "book_title": "Demo",
+                "author": "Author",
+                "language_track": "zh",
+                "chapter_id": "1",
+                "chapter_number": 1,
+                "chapter_title": "Chapter 1",
+                "selection_role": "narrative_reflective",
+                "target_profile_ids": ["tension_reversal"],
+                "excerpt_sentence_ids": ["c1-s1", "c1-s2", "c1-s3"],
+                "anchor_sentence_ids": ["c1-s2"],
+                "support_sentence_ids": ["c1-s1", "c1-s3"],
+                "prior_context_sentence_ids": [],
+                "context_excerpt_text": "A.\nB.\nC.",
+                "selection_reason_draft": "Reason",
+                "judge_focus_draft": "Focus",
+                "construction_priority": MIN_PROFILE_ORDER_SELECTION_PRIORITY,
+                "judgeability_score": 4.2,
+                "discriminative_power_score": 4.2,
+                "candidate_position_bucket": "middle",
+                "type_tags": ["essay"],
+                "role_tags": ["narrative_reflective"],
+            },
+            {
+                "opportunity_id": "demo__2__tension_reversal__opp_1",
+                "chapter_case_id": "demo__2",
+                "source_id": "demo",
+                "book_title": "Demo",
+                "author": "Author",
+                "language_track": "zh",
+                "chapter_id": "2",
+                "chapter_number": 2,
+                "chapter_title": "Chapter 2",
+                "selection_role": "narrative_reflective",
+                "target_profile_ids": ["tension_reversal"],
+                "excerpt_sentence_ids": ["c2-s1", "c2-s2", "c2-s3"],
+                "anchor_sentence_ids": ["c2-s2"],
+                "support_sentence_ids": ["c2-s1", "c2-s3"],
+                "prior_context_sentence_ids": [],
+                "context_excerpt_text": "D.\nE.\nF.",
+                "selection_reason_draft": "Reason",
+                "judge_focus_draft": "Focus",
+                "construction_priority": MIN_PROFILE_ORDER_SELECTION_PRIORITY - 0.1,
+                "judgeability_score": 3.8,
+                "discriminative_power_score": 3.8,
+                "candidate_position_bucket": "middle",
+                "type_tags": ["essay"],
+                "role_tags": ["narrative_reflective"],
+            },
+        ],
+        cases_per_chapter=1,
+        reserves_per_chapter=1,
+    )
+
+    assert [case["chapter_id"] for case in cases] == ["1"]
+    assert [reserve["chapter_id"] for reserve in reserves] == ["2"]
 
 
 def test_scope_selection_expands_chinese_late_scene_when_quote_runs_past_boundary(tmp_path: Path) -> None:

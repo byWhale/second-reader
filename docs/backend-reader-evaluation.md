@@ -42,6 +42,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - explicit case-purpose metadata
   - targeted adjudicated review for ambiguous or high-impact cases
   - when human review capacity is unavailable, multi-prompt LLM adjudication may replace manual review as the operational reviewer
+- When LLM audit or adjudication rubrics use ordinal scores, the rubric contract should define the score direction explicitly and guard against impossible decision/score combinations before those payloads are treated as downstream benchmark evidence.
 
 ## Dual Diagnosis Rule
 - Every meaningful evaluation pass should inspect two possibilities:
@@ -323,6 +324,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - packet-level `run_state.json` should expose status and progress
   - per-case state artifacts should expose the active stage
   - partial summaries should be written before the whole packet finishes so slow judge calls do not look like silent failure
+- Packet-level case audits should not treat schema-valid placeholder payloads as trustworthy evidence.
+  - if a primary or adversarial review normalizes into the audit runner's explicit unavailable sentinel shape, the runner should retry that stage
+  - if the stage still cannot produce a usable payload after bounded retries, the audit run should fail clearly instead of flowing placeholder review content into downstream adjudication or import
 - Case-level parallelism is acceptable for packet audits when:
   - primary and adversarial review remain ordered inside each case
   - concurrency stays bounded by the backend LLM semaphore or a stricter packet-local limit

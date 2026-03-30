@@ -17,7 +17,9 @@ MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE = 4
 ZH_LATE_SCENE_BONUS = 0.65
 ZH_SCENE_DIALOGUE_BONUS = 0.45
 ZH_EARLY_FILLER_PENALTY = 0.55
+RECONSOLIDATION_MISSING_CUE_PENALTY = 1.2
 WINDOW_EDGE_NOISE_PENALTY = 0.75
+ZH_TENSION_MISSING_CUE_PENALTY = 1.2
 TARGET_PROFILE_ORDER = (
     "distinction_definition",
     "tension_reversal",
@@ -165,6 +167,7 @@ PARATEXT_MARKERS_ZH = (
     "版权",
     "Public domain",
 )
+SENTENCE_END_MARKERS = frozenset(".!?。！？…;；:：\"”」』）)]'")
 
 
 def excerpt_target_profiles() -> list[dict[str, Any]]:
@@ -519,6 +522,10 @@ def _build_opportunity_cards_for_chapter(
                 window=[str(item.get("text") or "").strip() for item in window],
             )
             anchor_sentence_id = candidate["sentence"]["sentence_id"]
+            anchor_display_text = _selection_reason_anchor_text(
+                anchor_text=str(candidate["sentence"].get("text") or "").strip(),
+                window_texts=[str(item.get("text") or "").strip() for item in window],
+            )
             source_priority = int(row.get("selection_priority", 9999) or 9999)
             opportunities.append(
                 {
@@ -547,7 +554,7 @@ def _build_opportunity_cards_for_chapter(
                     "complete_sentence_count": complete_sentence_count,
                     "selection_reason_draft": _selection_reason_draft(
                         profile_id=profile_id,
-                        sentence_text=str(candidate["sentence"].get("text") or "").strip(),
+                        sentence_text=anchor_display_text,
                     ),
                     "judge_focus_draft": _judge_focus_draft(profile_id=profile_id),
                     "rejection_reasons": [],
@@ -578,6 +585,7 @@ def _score_sentence_for_profile(
     lowered = sentence_text.lower()
     evidence: list[str] = []
     score = 0.0
+    structural_cue_missing = False
 
     cue_hits = sum(lowered.count(cue) for cue in profile["en_cues"]) if language == "en" else sum(sentence_text.count(cue) for cue in profile["zh_cues"])
     if cue_hits:
@@ -608,6 +616,19 @@ def _score_sentence_for_profile(
     if profile_id == "reconsolidation_later_reinterpretation" and len(prior_text) > 120:
         evidence.append("later_context_available")
         score += 0.6
+    if profile_id == "reconsolidation_later_reinterpretation" and cue_hits == 0:
+        score -= RECONSOLIDATION_MISSING_CUE_PENALTY
+        evidence.append("missing_reinterpretation_cue")
+        structural_cue_missing = True
+    if (
+        language == "zh"
+        and profile_id == "tension_reversal"
+        and selection_role == "narrative_reflective"
+        and cue_hits == 0
+    ):
+        score -= ZH_TENSION_MISSING_CUE_PENALTY
+        evidence.append("zh_missing_tension_cue")
+        structural_cue_missing = True
     if _needs_preceding_sentence(sentence_text):
         score -= 1.3
         evidence.append("context_dependency_penalty")
@@ -630,6 +651,9 @@ def _score_sentence_for_profile(
         + profile_feedback.get("needs_adjudication", 0)
     )
     deficit_boost = max(0, TARGET_PROFILE_FLOOR_REVIEWED_ACTIVE - reviewed_active) * 0.9 + min(1.5, open_count * 0.5)
+    if structural_cue_missing:
+        deficit_boost = 0.0
+        evidence.append("deficit_boost_suppressed")
     construction_priority = score + deficit_boost
     judgeability_score = max(0.0, min(5.0, score + 1.0))
     discriminative_power_score = max(0.0, min(5.0, score + deficit_boost))
@@ -693,6 +717,8 @@ def _select_cases_and_reserves(
         if selected_chapters[chapter_key] >= cases_per_chapter:
             continue
         if profile_id in selected_profiles_per_chapter[chapter_key]:
+            continue
+        if float(item["construction_priority"]) < MIN_PROFILE_ORDER_SELECTION_PRIORITY:
             continue
         case = _assembled_case(item)
         cases.append(case)
@@ -823,6 +849,18 @@ def _selection_reason_draft(*, profile_id: str, sentence_text: str) -> str:
     return f"{profile['selection_reason_template']} Anchor line: {clipped}"
 
 
+def _selection_reason_anchor_text(*, anchor_text: str, window_texts: list[str]) -> str:
+    cleaned_anchor = str(anchor_text or "").strip()
+    if not cleaned_anchor:
+        return ""
+    if not (_needs_preceding_sentence(cleaned_anchor) or _needs_following_sentence(cleaned_anchor)):
+        return cleaned_anchor
+    for part in _rendered_excerpt_parts(window_texts):
+        if cleaned_anchor in part:
+            return part
+    return cleaned_anchor
+
+
 def _judge_focus_draft(*, profile_id: str) -> str:
     return str(EXCERPT_TARGET_PROFILES[profile_id]["judge_focus_template"])
 
@@ -868,6 +906,7 @@ def _needs_following_sentence(text: str) -> bool:
         or INITIAL_FRAGMENT_RE.match(cleaned)
         or ABBREVIATION_SUFFIX_RE.search(cleaned)
         or _has_unclosed_quote(cleaned)
+        or _looks_like_cjk_continuation_end(cleaned)
     )
 
 
@@ -893,7 +932,7 @@ def _rendered_excerpt_parts(texts: Any) -> list[str]:
         if not text:
             continue
         if rendered and (_needs_following_sentence(rendered[-1]) or _needs_preceding_sentence(text)):
-            rendered[-1] = rendered[-1].rstrip() + " " + text.lstrip()
+            rendered[-1] = _join_excerpt_fragments(rendered[-1], text)
             continue
         rendered.append(text)
     return rendered
@@ -918,6 +957,19 @@ def _has_explicit_callback_marker(text: str, language: str) -> bool:
     if language == "en":
         return any(marker in lowered for marker in markers)
     return any(marker in text for marker in markers)
+
+
+def _looks_like_cjk_continuation_end(text: str) -> bool:
+    cleaned = str(text or "").strip()
+    if not cleaned or not re.search(r"[\u4e00-\u9fff]", cleaned):
+        return False
+    return cleaned[-1] not in SENTENCE_END_MARKERS
+
+
+def _join_excerpt_fragments(previous: str, current: str) -> str:
+    if _looks_like_cjk_continuation_end(previous):
+        return previous.rstrip() + current.lstrip()
+    return previous.rstrip() + " " + current.lstrip()
 
 
 def _looks_like_reported_speech(text: str, language: str) -> bool:

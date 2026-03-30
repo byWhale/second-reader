@@ -48,6 +48,26 @@ Update when: status changes, blockers appear, or phases complete.
       - the builder also has a scratch-safe namespace now:
         - run-scoped manifests and build artifacts go under `state/dataset_build/build_runs/<run_id>/`
         - scratch excerpt datasets use run-scoped ids under `state/eval_local_datasets/`
+      - the latest bounded Chinese builder repair is now landed:
+        - `reconsolidation_later_reinterpretation` candidates without explicit later / reinterpretation cues are penalized
+        - cue-free weak Chinese narrative candidates no longer get resurrected by feedback / deficit boosts
+        - Chinese `tension_reversal` candidates now need an explicit local cue instead of riding atmospheric scene-setting alone
+        - second-pass chapter fill now respects the same minimum selection threshold instead of force-filling weak chapters
+        - Chinese continuation fragments now stitch without synthetic spaces
+        - fragmentary anchor lines now reuse the merged readable line in `selection_reason`
+      - the focused Chinese builder-only validation after that repair is now completed:
+        - `scratch_validation_zh_cueguard_20260330`
+        - result: `2` active Chinese candidate cases and `4` reserves on the `beiying_public_zh` + `chenlun_public_zh` slice
+        - interpretation:
+          - `beiying_public_zh__2__tension_reversal__seed_v1` stayed strong
+          - the weak `chenlun` scene-description / no-cue reconsolidation cases disappeared from the active case set
+          - the active `chenlun` case shifted onto `chenlun_public_zh__4__callback_bridge__seed_v1`
+      - the focused Chinese closed-loop validation after that repair is now completed:
+        - `closed_loop_full_smoke_zh_cuegate_20260330`
+        - result: Chinese `keep = 1`, `revise = 1`, `drop = 0`
+        - interpretation:
+          - the weak `chenlun` reconsolidation scene-description cases disappeared
+          - the remaining `chenlun_public_zh__4__callback_bridge__seed_v1` is structurally valid but still needs a longer lookback bridge target
     - Closed-Loop Benchmark Curation is now in first bounded controller landing rather than pure design:
       - runner landed at `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
       - root operator surface landed at `make closed-loop-benchmark-curation`
@@ -58,7 +78,20 @@ Update when: status changes, blockers appear, or phases complete.
         - builder-side Chinese quality improved from `drop` to `keep`
         - the English source rows stayed fixed, but regenerated audit inputs still changed materially across the bilingual rerun pair
         - the compare tooling now shows `source_input_drift = 0` and `audit_input_drift = 4` on that real English pair
-        - so unattended widening now waits on bilingual reproducibility, not on missing controller plumbing
+        - the broader bilingual follow-up improved the broader English sample to `keep = 6`, `revise = 2`, but the shared Henry Adams cases still showed `source_input_drift = 0` and `audit_input_drift = 3`
+        - a bounded audit-score coherence repair is now landed in `run_case_design_audit.py`
+        - the first broader English post-fix packet is now completed at `closed_loop_full_smoke_en_broader_auditcoherencefix_20260330` with `keep = 3`, `revise = 5`
+        - the same-config English repeat is now also completed at `closed_loop_full_smoke_en_broader_auditcoherencefix_repeat_20260330` with `keep = 1`, `revise = 7`
+        - the broader bilingual post-fix validation is now completed at `closed_loop_full_smoke_bilingual_broader_auditcoherencefix_20260330` with:
+          - English `keep = 4`, `revise = 4`
+          - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+        - the score-coherence bug is fixed, but reproducibility is still not fixed:
+          - the post-fix English repeat pair still shows `source_input_drift = 0`, `audit_input_drift = 8`, `action_drift = 2`
+          - the post-fix English-vs-bilingual pair still shows `source_input_drift = 0`, `audit_input_drift = 8`, `action_drift = 5`
+        - a bounded audit semantic-retry hardening is now landed:
+          - placeholder primary/adversarial audit payloads now retry before the audit row is accepted
+          - if a usable audit payload still does not land, the audit command now fails nonzero and that run no longer counts as a completed audit for downstream pipeline resume
+        - so unattended widening still waits on audit/adjudication reproducibility, not on missing controller plumbing
     - later frontend/API retirement of section-first chapter/detail and marks surfaces
     - later stable-doc promotion timing under `Q10`
 

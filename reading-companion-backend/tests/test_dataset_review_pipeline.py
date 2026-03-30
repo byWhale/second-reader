@@ -172,6 +172,36 @@ def _write_completed_audit(root: Path, *, packet_id: str) -> Path:
     return run_dir
 
 
+def _write_failed_audit(root: Path, *, packet_id: str) -> Path:
+    run_dir = root / "eval" / "runs" / "attentional_v2" / "case_audits" / f"{packet_id}__20260328-000001"
+    (run_dir / "summary").mkdir(parents=True, exist_ok=True)
+    _write_json(
+        run_dir / "run_state.json",
+        {
+            "packet_id": packet_id,
+            "run_id": run_dir.name,
+            "status": "failed",
+            "case_count": 1,
+            "completed_case_count": 0,
+            "failed_case_count": 1,
+        },
+    )
+    _write_json(
+        run_dir / "summary" / "aggregate.json",
+        {
+            "status": "failed",
+            "case_count": 1,
+            "completed_case_count": 0,
+            "failed_case_count": 1,
+            "primary_decisions": {},
+            "adversarial_risk_counts": {},
+            "average_excerpt_strength": 0.0,
+        },
+    )
+    (run_dir / "summary" / "report.md").write_text("# Audit Failed\n", encoding="utf-8")
+    return run_dir
+
+
 def _write_adjudication_outputs(packet_dir: Path) -> None:
     _write_review_csv(packet_dir, action="keep")
     _write_json(
@@ -402,6 +432,35 @@ def test_adjudication_fails_without_completed_audit(tmp_path: Path) -> None:
             "tracked",
             "--packet-id",
             "packet_needs_audit",
+            "--from-stage",
+            "adjudicate_packet",
+            "--through-stage",
+            "adjudicate_packet",
+        ]
+    )
+
+    with pytest.raises(FileNotFoundError, match="completed case audit"):
+        run_pipeline(
+            args,
+            paths=PipelinePaths.from_root(tmp_path),
+            command_runner=lambda _command, _cwd: (_ for _ in ()).throw(AssertionError("command runner should not execute")),
+        )
+
+
+def test_failed_audit_does_not_satisfy_completed_audit_requirement(tmp_path: Path) -> None:
+    _bootstrap_dataset(tmp_path)
+    _write_pending_packet(tmp_path, dataset_id="demo_dataset", packet_id="packet_failed_audit")
+    _write_failed_audit(tmp_path, packet_id="packet_failed_audit")
+    args = build_parser().parse_args(
+        [
+            "--dataset-id",
+            "demo_dataset",
+            "--family",
+            "excerpt_cases",
+            "--storage-mode",
+            "tracked",
+            "--packet-id",
+            "packet_failed_audit",
             "--from-stage",
             "adjudicate_packet",
             "--through-stage",

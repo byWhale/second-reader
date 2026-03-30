@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-30T11:54:08Z`
+Last updated: `2026-03-30T12:42:11Z`
 
 ## Status Values
 - `active`
@@ -33,24 +33,29 @@ Last updated: `2026-03-30T11:54:08Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: convert the completed judged two-case rerun into one bounded repair plan, preserve the `walden` one-axis threading win, and inspect `up_from_slavery` for sparse chapter presence plus chapter-label trust issues before changing the mechanism again
-- Jobs: none
+- Next: finish the running judged follow-up rerun, then convert its result into one bounded repair plan that preserves the `walden` one-axis threading win while testing whether `up_from_slavery` gains earlier chapter presence and chapter-label trust
+- Jobs:
+  - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330`
 
 ### `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION` — Build question-aligned case construction for evaluation datasets
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the English quality-fix gains, finish the remaining Chinese scene/bucket shaping, and use the new adjudication compare evidence to separate builder weakness from regenerated audit/adjudication variability before widening the managed-source sample
-- Jobs: none
+- Next: keep the cue-guard and fragment-aware anchor fixes, preserve the removal of weak `chenlun` scene-setting / no-cue reconsolidation cases, and make the next bounded Chinese patch about longer lookback context for `chenlun_public_zh__4__callback_bridge__seed_v1`
+- Jobs:
+  - `bgjob_closed_loop_zh_cueguard_20260330` (`completed`)
 
 ### `TASK-DATASET-FULL-AUTOMATION` — Make dataset building fully automated as one closed build-review-refine loop
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the bounded controller as the active automation surface, but do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible and the source-equal English pair no longer shows uncontrolled audit/adjudication drift
-- Jobs: none
+- Next: rerun a scratch English closed-loop sample under the new audit semantic-retry guard, compare it against the prior post-fix broader English run, and do not widen to the multi-iteration unattended scheduler until source-equal packets stop showing heavy audit-input drift or the new guard turns that instability into an explicit audit failure
+- Jobs:
+  - `bgjob_closed_loop_en_broader_auditsemanticretry_20260330`
+  - `bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330` (`completed`)
 
 ## Queued
 

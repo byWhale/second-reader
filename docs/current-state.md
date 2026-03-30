@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-30T11:54:08Z`
+Last verified: `2026-03-30T13:25:41Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -216,11 +216,17 @@ Last verified: `2026-03-30T11:54:08Z`
   - bounded behaviors landed:
     - case `start_sentence_id` / `end_sentence_id` now preserve the whole rendered excerpt window instead of only the anchor/support subset
     - excerpt rendering now stitches parser-fragment splits such as `Mr.` / initials / lowercase continuations and expands windows around broken edges
+    - Chinese continuation fragments now stitch without synthetic spaces in the rendered excerpt
     - callback selection now requires explicit backward-link markers instead of generic lexical overlap
     - anchored-reaction selection now rejects obvious reported-speech false positives
     - context-dependent fragment anchors are penalized instead of being treated as stable standalone cases
     - paratext / bibliographic windows are filtered out
     - weak profile-order filler candidates no longer outrank much stronger same-chapter opportunities during the primary auto-selection pass
+    - `reconsolidation_later_reinterpretation` candidates without explicit later / reinterpretation cues are now penalized instead of letting late-scene preference alone carry them
+    - cue-free weak Chinese narrative candidates no longer get resurrected by feedback / deficit boosts
+    - Chinese `tension_reversal` candidates now need an explicit local cue instead of atmospheric scene-setting alone
+    - second-pass chapter fill now respects the minimum selection threshold instead of force-filling weak chapters
+    - fragmentary anchor lines now reuse the merged readable line in `selection_reason`
 - The bounded closed-loop controller now has real scratch evidence beyond the first plumbing landing:
   - earlier baseline evidence remains useful:
     - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_construct_smoke_20260330/closed_loop_benchmark_curation_run_state.json`
@@ -249,6 +255,40 @@ Last verified: `2026-03-30T11:54:08Z`
       - diagnosis:
         - the Chinese lane improved again because the stronger `tension_reversal` opportunity now displaced the weaker early `distinction_definition` filler
         - the English `cases.source.jsonl` rows stayed identical to the previous bilingual rerun, but regenerated case-audit inputs changed on all `4` English cases and the final LLM adjudication shifted from `keep = 2`, `revise = 2` to `revise = 4`
+    - broader bilingual validation after the same builder wave:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: English `keep = 6`, `revise = 2`; Chinese `keep = 1`, `revise = 3`, `drop = 1`
+      - diagnosis:
+        - English case quality on the broader two-book sample improved materially beyond the earlier four-case bilingual pair
+        - the remaining shared-case English instability still came from regenerated audit content rather than source-row drift:
+          - `source_input_drift = 0`
+          - `audit_input_drift = 3`
+          - `action_drift = 1`
+        - Chinese still has one residual low-quality case plus a revise-heavy tail, so builder shaping is not fully done there
+    - focused Chinese cue-gate probe after the broader bilingual run:
+      - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_zh_cuegate_20260330/closed_loop_benchmark_curation_summary.json`
+      - result: Chinese `keep = 1`, `revise = 1`, `drop = 0`
+      - diagnosis:
+        - the weak `chenlun` reconsolidation scene-description cases disappeared from the candidate set
+        - the surviving `chenlun_public_zh__4__callback_bridge__seed_v1` is structurally real but still needs a longer lookback bridge target in the excerpt window
+    - focused Chinese cue-guard builder validation:
+      - `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_zh_cueguard_20260330/build_summary.json`
+      - result: `2` active Chinese candidate cases and `4` reserves on the `beiying_public_zh` + `chenlun_public_zh` slice
+      - diagnosis:
+        - `beiying_public_zh__2__tension_reversal__seed_v1` stayed strong
+        - the active `chenlun` case shifted onto `chenlun_public_zh__4__callback_bridge__seed_v1`
+  - a bounded audit-score coherence repair is now landed for the case-design audit stage:
+    - code:
+      - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - `reading-companion-backend/tests/test_case_design_audit.py`
+      - `reading-companion-backend/eval/attentional_v2/case_audit_runs.py`
+      - `reading-companion-backend/tests/test_dataset_review_pipeline.py`
+    - bounded behaviors:
+      - the primary audit prompt now defines the `1-5` score direction explicitly
+      - impossible `keep` payloads no longer propagate `1` / `2` scores on bucket fit, focus clarity, or excerpt strength into downstream adjudication
+      - semantically unusable audit placeholders now trigger bounded stage retries instead of being accepted as completed evidence on the first pass
+      - if a case still cannot produce a usable primary or adversarial audit payload after those retries, the audit command now exits nonzero and downstream pipeline resume logic no longer treats that run as a completed audit
+      - focused audit/reproducibility/controller tests passed after the repair
   - adjudication reproducibility tooling is now landed:
     - code:
       - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
@@ -272,11 +312,64 @@ Last verified: `2026-03-30T11:54:08Z`
     - English builder quality improved materially and remains clearly better than the first narrow-English baseline
     - Chinese builder quality also improved materially: it no longer selects pure front matter and can now produce at least one real prose `keep`
     - the next blocker for unattended widening is bilingual reproducibility, not intake plumbing:
-      - remaining Chinese scene/bucket shaping still matters
-      - audit-plus-adjudication reproducibility on otherwise source-equal English packets now needs bounded diagnosis before we trust wider unattended loops
+      - remaining Chinese shaping now looks narrower and more concrete:
+        - callback lookback context still needs work on the surviving `chenlun` case
+      - the same-config English post-fix repeat is now completed and still shows:
+        - `source_input_drift = 0`
+        - `audit_input_drift = 8`
+        - `action_drift = 2`
+      - so the remaining blocker is still regenerated audit/adjudication instability on source-equal English packets, but the next rerun will now surface unusable audit payloads as explicit audit failure instead of silently normalizing them
   - all bounded controller runs still stopped with summaries only:
     - no benchmark promotion, reviewed-slice freeze, runtime-viability, or default-cutover work was launched automatically
     - the live review queue is back to `active_packet_count = 0`
+- The post-patch broader English scratch validation is now completed:
+  - job id:
+    - `bgjob_closed_loop_en_broader_auditcoherencefix_20260330`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 3`, `revise = 5`, `drop = 0`
+  - diagnosis:
+    - the audit-score coherence repair did remove the earlier impossible `keep + 1/1/1` primary-audit pattern
+    - comparing this packet directly against the pre-fix broader bilingual packet is not yet a clean reproducibility verdict because the audit contract changed
+- A same-config repeat of the broader English post-fix run is now completed:
+  - job id:
+    - `bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330`
+  - run id:
+    - `closed_loop_full_smoke_en_broader_auditcoherencefix_repeat_20260330`
+  - result:
+    - English `keep = 1`, `revise = 7`, `drop = 0`
+  - diagnosis:
+    - even under the same post-fix audit contract and worker caps, the English repeat pair still held `source_input_drift = 0` while all `8` audit rows changed
+    - the earlier impossible-score bug is fixed, but audit reproducibility is still not good enough for unattended widening
+- The broader bilingual post-fix validation is now completed:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 4`, `revise = 4`, `drop = 0`
+    - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+  - diagnosis:
+    - the Chinese cue-guard shaping held through the broader bilingual packet lifecycle and removed the earlier dropped Chinese tail
+    - the shared English rows still showed `source_input_drift = 0`, `audit_input_drift = 8`, and `action_drift = 5` against the post-fix English-only run
+- The judged two-case mechanism follow-up rerun is still running:
+  - job id:
+    - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330`
+  - run id:
+    - `attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_followup_20260330`
+  - purpose:
+    - test whether `up_from_slavery_public_en__10` gains earlier chapter presence without losing the `walden_205_en__10` win
+- The next guarded dataset-platform rerun is now running:
+  - job id:
+    - `bgjob_closed_loop_en_broader_auditsemanticretry_20260330`
+  - run id:
+    - `closed_loop_full_smoke_en_broader_auditsemanticretry_20260330`
+  - purpose:
+    - rerun the broader English scratch closed-loop sample under the new audit semantic-retry guard
+    - compare it against the prior post-fix broader English run to see whether the earlier `audit_input_drift = 8` instability shrinks or converts into explicit audit failure
+  - boundary:
+    - keep unattended widening paused until that guarded rerun produces either better reproducibility or a clearer failure mode
 - The dataset-platform route is now underway, and it should keep reusing the machinery already landed rather than replace it:
   - keep the current strengths:
     - manifest-driven source promotion and canonical parsing from `corpus_builder.py`
@@ -348,11 +441,13 @@ Last verified: `2026-03-30T11:54:08Z`
   - use nested folders only for optional batch organization
   - run `make library-source-intake`
 - Use the latest bilingual scratch evidence to stabilize case quality and reproducibility rather than adding new platform plumbing:
-  - keep the English-only quality-fix evidence as the working proof that the builder improvements are real
-  - finish the remaining Chinese shaping work so the selected excerpt stays on the stronger late-scene opportunity without residual edge noise
+  - keep the English-only quality-fix evidence plus the broader bilingual `keep = 6` result as the working proof that the builder improvements are real
+  - use the completed Chinese cue-gate probe as the new proof that the weak `chenlun` reconsolidation scene fillers can be removed without losing the `beiying` keep
+  - decide whether the next Chinese patch should extend callback lookback context for `chenlun_public_zh__4__callback_bridge__seed_v1`
   - use the new compare tooling on the bilingual English pair to keep separating source-equal builder state from regenerated audit drift and final adjudication drift
+  - use the completed first broader English post-fix run as the baseline packet for a same-config repeat rather than treating the pre-fix versus post-fix pair as a clean reproducibility verdict
 - Keep the bounded controller as the active automation surface, but defer wider unattended expansion until the bilingual route is more reproducible:
-  - broader English and broader bilingual scratch widening should now happen only after the current Chinese/profile and adjudication-stability diagnosis is explicit
+  - the running same-config broader English repeat is now the active post-fix reproducibility check
   - the multi-iteration unattended scheduler still remains after that stability pass, not before it
 - Keep the dataset-platform route phased rather than monolithic:
   - source-book intake and intermediate-artifact governance is now landed
@@ -393,6 +488,7 @@ Last verified: `2026-03-30T11:54:08Z`
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
 - The first real scratch builder/controller runs were intentionally narrow: the earliest English baseline still yielded no `keep` outcomes, but the later quality-fix runs improved that materially; the remaining narrowness is now bilingual stability rather than the mere absence of `keep` results.
 - The last bilingual English pair held source rows constant but still regenerated materially different audit judgments, so current bilingual widening is constrained by audit/adjudication reproducibility as well as by builder quality.
+- The audit-score coherence repair is bounded and high-confidence, but it still needs live scratch validation before it becomes evidence that the broader automation loop is trustworthy.
 - Historical compatibility paths under `state/library_sources/<language>/private/...` are now cataloged successfully, but they remain compatibility inputs rather than the intended future operator workflow.
 - Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
@@ -407,7 +503,8 @@ Last verified: `2026-03-30T11:54:08Z`
 - `TASK-DATASET-FULL-AUTOMATION`
 
 ## Active Job IDs
-- none
+- `bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330`
+- `bgjob_closed_loop_en_broader_auditsemanticretry_20260330`
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -415,38 +512,46 @@ Last verified: `2026-03-30T11:54:08Z`
 3. `docs/current-state.md`
 4. relevant child `AGENTS.md`
 5. `docs/tasks/registry.md`
-6. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.json`
-7. `reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.log`
-8. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md`
-9. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/aggregate.json`
-10. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_followup_after_recovery_20260329/dataset_review_pipeline_summary.json`
-11. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_followup_after_recovery_20260329/dataset_review_pipeline_summary.json`
-12. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_detached_20260329_125043.json`
-13. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_recovery_20260329/dataset_review_pipeline_summary.json`
-14. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json`
-15. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
-16. `docs/implementation/new-reading-mechanism/evaluation-question-map.md`
-17. `docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md`
-18. `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
-19. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
-20. `reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json`
-21. `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
-22. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
-23. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
-24. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
-25. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json`
-26. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
-27. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md`
-28. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md`
-29. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md`
-30. `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
-31. `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
-32. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
+6. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.json`
+7. `reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.log`
+8. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditsemanticretry_20260330.json`
+9. `reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditsemanticretry_20260330.log`
+10. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.json`
+11. `reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.log`
+12. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json`
+13. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_zh_cuegate_20260330/closed_loop_benchmark_curation_summary.json`
+14. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_zh_cuegate_20260330__initial_review__closed_loop_full_smoke_zh_cuegate_20260330/llm_review_report.md`
+15. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md`
+16. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/aggregate.json`
+17. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_followup_after_recovery_20260329/dataset_review_pipeline_summary.json`
+18. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_followup_after_recovery_20260329/dataset_review_pipeline_summary.json`
+19. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_detached_20260329_125043.json`
+20. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_recovery_20260329/dataset_review_pipeline_summary.json`
+21. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json`
+22. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
+23. `docs/implementation/new-reading-mechanism/evaluation-question-map.md`
+24. `docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md`
+25. `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
+26. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+27. `reading-companion-backend/state/dataset_build/source_intake_runs/bootstrap_existing_sources_20260330.json`
+28. `reading-companion-backend/state/dataset_build/build_runs/scratch_validation_en_qualityfix_20260330/build_summary.json`
+29. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+30. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+31. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json`
+32. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json`
+33. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
+34. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/closed_loop_benchmark_curation_summary.json`
+35. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/llm_review_runs/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__llm_review__20260330-121645/report.md`
+36. `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+37. `reading-companion-backend/tests/test_case_design_audit.py`
+38. `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+39. `reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py`
+40. `docs/source-of-truth-map.md` when you need to decide where durable information belongs
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-30T05:43:23Z",
+  "updated_at": "2026-03-30T13:25:41Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
@@ -455,7 +560,10 @@ Last verified: `2026-03-30T11:54:08Z`
     "TASK-DATASET-FULL-AUTOMATION"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [],
+  "active_job_ids": [
+    "bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330",
+    "bgjob_closed_loop_en_broader_auditsemanticretry_20260330"
+  ],
   "open_decision_ids": [
     "OD-PRIVATE-LIBRARY-POST-RESCUE-GATE",
     "OD-BENCHMARK-SIZE",
@@ -481,9 +589,18 @@ Last verified: `2026-03-30T11:54:08Z`
     "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
     "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json",
     "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+    "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json",
     "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
     "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md",
     "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
+    "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/llm_review_runs/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__llm_review__20260330-121645/report.md",
+    "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
+    "reading-companion-backend/tests/test_case_design_audit.py",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330.log",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.log",
     "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.json",
     "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.log",
     "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md",

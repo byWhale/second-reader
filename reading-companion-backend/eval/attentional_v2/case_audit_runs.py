@@ -49,8 +49,12 @@ def inspect_case_audit_run(run_dir: Path) -> dict[str, Any]:
         aggregate = load_json(aggregate_path)
 
     status = str(run_state.get("status", "")).strip().lower()
+    aggregate_status = str(aggregate.get("status", "")).strip().lower()
     if aggregate_path.exists():
-        effective_status = "completed"
+        if aggregate_status in {"failed", "incomplete"}:
+            effective_status = aggregate_status
+        else:
+            effective_status = "completed"
     elif status == "running":
         pid = run_state.get("pid")
         effective_status = "running" if process_is_alive(pid if isinstance(pid, int) else None) else "incomplete"

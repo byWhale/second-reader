@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-30T11:54:08Z",
+  "updated_at": "2026-03-30T12:42:11Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -19,9 +19,11 @@
         "DEC-015",
         "DEC-021"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330"
+      ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Convert the completed judged two-case rerun into one bounded repair plan, preserve the walden one-axis threading win, and inspect up_from_slavery for sparse chapter presence plus chapter-label trust issues before changing the mechanism again.",
+      "next_action": "Finish the running judged follow-up rerun, then convert its result into one bounded repair plan that preserves the walden one-axis threading win while testing whether up_from_slavery gains earlier chapter presence and chapter-label trust.",
       "blocked_by": [],
       "evidence_refs": [
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/summary/report.md",
@@ -40,7 +42,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/outputs/walden_205_en__10/iterator_v1/_runtime/activity.jsonl",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/bundles/attentional_v2/walden_205_en__10.json"
       ],
-      "last_updated": "2026-03-29T16:35:43Z",
+      "last_updated": "2026-03-30T12:28:54Z",
       "last_updated_by": "codex"
     },
     {
@@ -154,9 +156,11 @@
         "DEC-045",
         "DEC-046"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_closed_loop_zh_cueguard_20260330"
+      ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the English quality-fix gains, finish the remaining Chinese scene/bucket shaping, and use the new adjudication compare evidence to separate builder weakness from regenerated audit/adjudication variability before widening the managed-source sample.",
+      "next_action": "Keep the cue-guard and fragment-aware anchor fixes, preserve the removal of weak chenlun scene-setting / no-cue reconsolidation cases, and make the next bounded Chinese patch about longer lookback context for chenlun_public_zh__4__callback_bridge__seed_v1.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -176,11 +180,22 @@
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/scratch_validation_zh_cueguard_20260330/build_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_zh_cueguard_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_zh_cuegate_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_zh_cueguard_20260330.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_zh_cueguard_20260330.log",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_zh_cuegate_20260330__initial_review__closed_loop_full_smoke_zh_cuegate_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_zh_cueguard_20260330__initial_review__closed_loop_zh_cueguard_20260330/llm_review_report.md",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md"
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/llm_review_runs/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__llm_review__20260330-121645/report.md",
+        "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
+        "reading-companion-backend/tests/test_case_design_audit.py"
       ],
-      "last_updated": "2026-03-30T11:54:08Z",
+      "last_updated": "2026-03-30T12:42:11Z",
       "last_updated_by": "codex"
     },
     {
@@ -200,9 +215,13 @@
         "DEC-045",
         "DEC-046"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_closed_loop_en_broader_auditsemanticretry_20260330",
+        "bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330",
+        "bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330"
+      ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the bounded controller as the active automation surface, but do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible and the source-equal English pair no longer shows uncontrolled audit/adjudication drift.",
+      "next_action": "Rerun a scratch English closed-loop sample under the new audit semantic-retry guard, compare it against the prior post-fix broader English run, and do not widen to the multi-iteration unattended scheduler until source-equal packets stop showing heavy audit-input drift or the new guard turns that instability into an explicit audit failure.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -221,11 +240,24 @@
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_qualityfix_20260330/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_paratextfix_20260330/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditcoherencefix_repeat_20260330/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_auditcoherencefix_20260330/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_paratextfix_20260330__initial_review__closed_loop_full_smoke_bilingual_paratextfix_20260330/llm_review_report.md",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md"
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_selectionfix_20260330/llm_review_report.md",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/llm_review_runs/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__llm_review__20260330-121645/report.md",
+        "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
+        "reading-companion-backend/tests/test_case_design_audit.py",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcoherencefix_20260330.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcoherencefix_20260330.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_auditcoherencefix_repeat_20260330.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330.log"
       ],
-      "last_updated": "2026-03-30T11:54:08Z",
+      "last_updated": "2026-03-30T13:25:41Z",
       "last_updated_by": "codex"
     },
     {

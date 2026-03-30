@@ -115,11 +115,17 @@ The first real quality-fix wave is now landed in the builder and audit reconstru
 Current bounded fixes:
 - preserve the full excerpt span in stored sentence ids instead of collapsing to anchor/support bounds
 - stitch parser-fragment splits and expand windows around broken edges before rendering the final excerpt
+- stitch Chinese continuation fragments without injecting synthetic spaces into the rendered excerpt
 - require explicit backward-link markers for callback candidates
 - reject obvious reported-speech false positives for anchored-reaction candidates
 - penalize context-dependent fragment anchors
 - reject paratext / bibliographic windows
 - keep low-priority profile-order filler candidates from outranking much stronger same-chapter opportunities
+- penalize `reconsolidation_later_reinterpretation` candidates that have no explicit later / reinterpretation cue instead of letting late-scene preference alone carry them
+- suppress feedback/deficit boosts when cue-free weak Chinese narrative candidates would otherwise be promoted only because a profile is sparse
+- require explicit local tension cues for Chinese narrative `tension_reversal` candidates instead of letting atmospheric scene-setting masquerade as reversal pressure
+- skip sub-threshold second-pass chapter fillers instead of force-filling every chapter with a weak case
+- store fragment-aware anchor lines by reusing the merged readable line when the raw anchor sentence is only a parser fragment
 
 Current real-run evidence:
 - narrow English builder validation:
@@ -147,6 +153,46 @@ Current real-run evidence:
     - diagnosis:
       - the Chinese lane improved again because `tension_reversal` displaced the weaker early filler case
       - the English source rows stayed identical to the previous bilingual rerun, but the regenerated audit inputs changed on all `4` English cases and the final adjudication moved with them
+  - `closed_loop_full_smoke_bilingual_broader_selectionfix_20260330`
+    - English `keep = 6`, `revise = 2`
+    - Chinese `keep = 1`, `revise = 3`, `drop = 1`
+    - diagnosis:
+      - English case quality improved materially on the broader sample
+      - the shared English cases still showed `source_input_drift = 0` and `audit_input_drift = 3`
+      - Chinese still carried one weak dropped scene-description case plus a revise-heavy tail
+  - `closed_loop_full_smoke_zh_cuegate_20260330`
+    - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - diagnosis:
+      - the weak `chenlun` reconsolidation scene-description cases disappeared from the candidate set
+      - the surviving `chenlun_public_zh__4__callback_bridge__seed_v1` is structurally real but still needs a longer lookback bridge target in the excerpt window
+  - `scratch_validation_zh_cueguard_20260330`
+    - Chinese builder-only validation over `beiying_public_zh` + `chenlun_public_zh`
+    - result: `2` active candidate cases and `4` reserves instead of the earlier `5` active Chinese cases on the same two-book slice
+    - diagnosis:
+      - `beiying_public_zh__2__tension_reversal__seed_v1` stayed strong
+      - the weak `chenlun` scene-description / no-cue reconsolidation candidates disappeared from the active case set
+      - the active `chenlun` case shifted onto `chenlun_public_zh__4__callback_bridge__seed_v1`
+  - `closed_loop_zh_cueguard_20260330`
+    - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - diagnosis:
+      - the cue-guard patch held through the full scratch packet audit/adjudication/import loop
+      - the active Chinese packet stayed on `背影` plus the stronger `chenlun_public_zh__4__callback_bridge__seed_v1` case instead of the earlier weak scene-setting / reconsolidation tail
+  - `closed_loop_full_smoke_en_broader_auditcoherencefix_20260330`
+    - English `keep = 3`, `revise = 5`, `drop = 0`
+    - interpretation:
+      - this run is useful as the first post-fix packet, but comparing it directly to the pre-fix broader bilingual packet is not a clean reproducibility verdict because the audit contract changed
+      - the reproducibility question now needs a same-config repeat pair, not only a pre-fix versus post-fix comparison
+  - `closed_loop_full_smoke_en_broader_auditcoherencefix_repeat_20260330`
+    - English `keep = 1`, `revise = 7`, `drop = 0`
+    - diagnosis:
+      - the same-config repeat still held `source_input_drift = 0` while changing all `8` audit rows and `2` final actions
+      - this confirms the score-direction bug was only one part of the audit instability
+  - `closed_loop_full_smoke_bilingual_broader_auditcoherencefix_20260330`
+    - English `keep = 4`, `revise = 4`
+    - Chinese `keep = 1`, `revise = 1`, `drop = 0`
+    - diagnosis:
+      - the Chinese tail got materially cleaner after the cue-guard repair
+      - the shared English cases still held `source_input_drift = 0` while all `8` audit rows changed again, so the remaining blocker is audit/adjudication reproducibility rather than source-case construction alone
 - adjudication reproducibility tooling is now landed:
   - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
   - `reading-companion-backend/eval/attentional_v2/compare_packet_adjudication_runs.py`
@@ -161,7 +207,7 @@ Current interpretation:
 - the excerpt-boundary / fragment-quality bug was real and materially important
 - English question-aligned construction improved materially
 - Chinese construction also improved materially and can now produce a real prose `keep`
-- the next blocker for wider automation is no longer intake plumbing alone; it is bilingual reproducibility across both builder quality and regenerated audit/adjudication behavior
+- the next blocker for wider automation is no longer intake plumbing alone; it is scratch reproducibility across both builder quality and regenerated audit/adjudication behavior under the same contract
 
 ## What We Keep
 Preserve these current strengths:
