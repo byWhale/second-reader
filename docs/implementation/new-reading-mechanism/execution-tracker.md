@@ -390,6 +390,8 @@ Update when: status changes, blockers appear, or phases complete.
       - `run_case_design_audit.py` now carries `target_profile_id`, `selection_role`, and `prior_context_text` into the audit prompt payload
       - the callback audit contract now explicitly allows inline antecedents when they are intentionally self-contained and sharply traceable
       - inline-target callback cases now receive `2` extra primary-review replicas before consensus is frozen
+      - quota-only audit failures now receive up to `2` extra whole-case recovery passes before the case is frozen as failed
+      - audit summaries now record quota-recovery attempted/succeeded/remaining counts so the controller can distinguish cooldown pressure from case-quality defects
     - adjudication reproducibility tooling is now landed:
       - `reading-companion-backend/eval/attentional_v2/auto_review_packet.py`
       - `reading-companion-backend/eval/attentional_v2/compare_packet_adjudication_runs.py`
@@ -401,7 +403,7 @@ Update when: status changes, blockers appear, or phases complete.
     - use the landed callback-aware audit contract plus the compare tooling to rerun the narrow unchanged callback rows before widening again
     - only then widen the same artifact model across the broader managed source pool
   - active narrow reproducibility follow-up:
-    - job:
+    - original job:
       - `bgjob_callbackslice_auditv4_packet_20260331`
     - source dataset:
       - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331`
@@ -410,10 +412,17 @@ Update when: status changes, blockers appear, or phases complete.
     - targeted callback rows:
       - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1`
       - `on_liberty_public_en__10__callback_bridge__seed_v1`
-    - audit run:
+    - failed pre-patch audit run:
       - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/`
+    - replacement retry job:
+      - `bgjob_callbackslice_auditv4_packet_retry_quota_20260331`
+    - active retry audit run:
+      - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-020431/`
     - scope:
       - full mechanical packet lifecycle only, with explicit `audit=1` and `review=1` worker caps so the packet can run in parallel with the active mechanism-evidence lane without claiming the whole shared LLM budget
+    - interpretation:
+      - the first run is pre-patch quota evidence only: Henry completed, but `on_liberty_public_en__10__callback_bridge__seed_v1` failed before quota recovery existed
+      - the retry now resumes the same packet from `audit_packet` under the new recovery path, so that rerun is the real acceptance check before any widening
   - the loop boundary is now defined and partially materialized:
     - target-profile contract
     - opportunity-card contract

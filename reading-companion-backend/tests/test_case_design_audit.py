@@ -337,6 +337,100 @@ def test_invoke_review_with_meta_raises_after_exhausted_placeholder_retries(
         )
 
 
+def test_process_case_with_quota_recovery_retries_failed_case(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = iter(
+        [
+            {
+                "case_id": "demo_case",
+                "status": "failed",
+                "error": {
+                    "error_type": "AuditStageError",
+                    "error_message": "quota cooldown remained active",
+                },
+                "audit_metadata": {
+                    "llm_calls": {
+                        "primary_review_replica_1": {
+                            "problem_code": "llm_quota",
+                            "error_message": "quota cooldown remained active",
+                        }
+                    }
+                },
+            },
+            {
+                "case_id": "demo_case",
+                "status": "completed",
+                "factual_audit": {"ok": True},
+                "primary_review": {
+                    "decision": "keep",
+                    "bucket_fit": 4,
+                    "focus_clarity": 4,
+                    "excerpt_strength": 4,
+                },
+                "adversarial_review": {"risk_level": "low"},
+                "audit_metadata": {"llm_calls": {}},
+            },
+        ]
+    )
+
+    monkeypatch.setattr(audit, "process_case", lambda *args, **kwargs: next(rows))
+    monkeypatch.setattr(audit.time, "sleep", lambda _seconds: None)
+
+    row = audit.process_case_with_quota_recovery(
+        {"case_id": "demo_case"},
+        packet_id="demo_packet",
+        source_index={},
+        run_dir=Path("/tmp/demo"),
+        trace_context=audit.LLMTraceContext(),
+    )
+
+    assert row["status"] == "completed"
+    quota_recovery = row["audit_metadata"]["quota_recovery"]
+    assert quota_recovery["quota_recovery_attempted_count"] == 1
+    assert quota_recovery["quota_recovery_succeeded_count"] == 1
+    assert quota_recovery["quota_failure_remaining_count"] == 0
+    assert quota_recovery["quota_recovery_passes_used"] == 1
+
+
+def test_process_case_with_quota_recovery_records_remaining_quota_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    failed_row = {
+        "case_id": "demo_case",
+        "status": "failed",
+        "error": {
+            "error_type": "AuditStageError",
+            "error_message": "quota cooldown remained active",
+        },
+        "audit_metadata": {
+            "llm_calls": {
+                "primary_review_replica_1": {
+                    "problem_code": "llm_quota",
+                    "error_message": "quota cooldown remained active",
+                }
+            }
+        },
+    }
+    rows = iter([dict(failed_row), dict(failed_row), dict(failed_row)])
+
+    monkeypatch.setattr(audit, "process_case", lambda *args, **kwargs: next(rows))
+    monkeypatch.setattr(audit.time, "sleep", lambda _seconds: None)
+
+    row = audit.process_case_with_quota_recovery(
+        {"case_id": "demo_case"},
+        packet_id="demo_packet",
+        source_index={},
+        run_dir=Path("/tmp/demo"),
+        trace_context=audit.LLMTraceContext(),
+    )
+
+    assert row["status"] == "failed"
+    quota_recovery = row["audit_metadata"]["quota_recovery"]
+    assert quota_recovery["quota_recovery_attempted_count"] == 1
+    assert quota_recovery["quota_recovery_succeeded_count"] == 0
+    assert quota_recovery["quota_failure_remaining_count"] == 1
+    assert quota_recovery["quota_recovery_passes_used"] == audit.CASE_QUOTA_RECOVERY_PASSES
+
+
 def test_run_primary_uses_zero_temperature_scope_override(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: dict[str, object] = {}
 
@@ -570,6 +664,41 @@ def test_build_audit_prompt_input_payload_records_contract_and_hashes() -> None:
     assert payload["prompt_hashes"]["primary_user_prompt_hash"]
     assert payload["prompt_hashes"]["adversarial_system_prompt_hash"]
     assert payload["prompt_hashes"]["adversarial_user_prompt_hash"]
+
+
+def test_aggregate_includes_quota_recovery_counts() -> None:
+    summary = audit.aggregate(
+        [
+            {
+                "case_id": "demo_case",
+                "status": "completed",
+                "factual_audit": {"ok": True},
+                "primary_review": {
+                    "decision": "keep",
+                    "bucket_fit": 4,
+                    "focus_clarity": 4,
+                    "excerpt_strength": 4,
+                },
+                "adversarial_review": {"risk_level": "low"},
+                "audit_prompt_input_fingerprint": "abc",
+                "audit_metadata": {
+                    "quota_recovery": {
+                        "quota_recovery_attempted_count": 1,
+                        "quota_recovery_succeeded_count": 1,
+                        "quota_failure_remaining_count": 0,
+                        "quota_recovery_passes_used": 1,
+                    }
+                },
+            }
+        ],
+        total_case_count=1,
+        status="completed",
+    )
+
+    assert summary["quota_recovery_attempted_count"] == 1
+    assert summary["quota_recovery_succeeded_count"] == 1
+    assert summary["quota_failure_remaining_count"] == 0
+    assert summary["quota_recovery_passes_used"] == 1
 
 
 def _write_case_audit_run(tmp_path: Path, run_id: str, packet_id: str, rows: list[dict[str, object]]) -> Path:

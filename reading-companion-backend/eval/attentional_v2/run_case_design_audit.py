@@ -68,6 +68,7 @@ PRIMARY_REVIEW_CONSENSUS_POLICY = "majority_vote_median_scores_conservative_tieb
 PRIMARY_REVIEW_CALLBACK_ESCALATION_POLICY = (
     "majority_vote_median_scores_conservative_tiebreak_callback_inline_target_escalation"
 )
+CASE_QUOTA_RECOVERY_PASSES = 2
 
 PRIMARY_SYSTEM = """You audit benchmark case design for a reading-mechanism evaluation dataset.
 
@@ -959,6 +960,12 @@ def aggregate(rows: list[dict[str, Any]], *, total_case_count: int, status: str)
         for row in rows
         if str(row.get("case_id", "")).strip() and str(row.get("audit_prompt_input_fingerprint", "")).strip()
     }
+    quota_recovery_entries = [
+        quota_recovery
+        for row in rows
+        for quota_recovery in [((row.get("audit_metadata") or {}).get("quota_recovery") or {})]
+        if isinstance(quota_recovery, dict)
+    ]
     return {
         "status": status,
         "case_count": total_case_count,
@@ -971,6 +978,18 @@ def aggregate(rows: list[dict[str, Any]], *, total_case_count: int, status: str)
         "average_bucket_fit": round(mean(row["primary_review"]["bucket_fit"] for row in completed_rows), 3) if completed_rows else 0.0,
         "average_focus_clarity": round(mean(row["primary_review"]["focus_clarity"] for row in completed_rows), 3) if completed_rows else 0.0,
         "average_excerpt_strength": round(mean(row["primary_review"]["excerpt_strength"] for row in completed_rows), 3) if completed_rows else 0.0,
+        "quota_recovery_attempted_count": sum(
+            int(entry.get("quota_recovery_attempted_count", 0) or 0) for entry in quota_recovery_entries
+        ),
+        "quota_recovery_succeeded_count": sum(
+            int(entry.get("quota_recovery_succeeded_count", 0) or 0) for entry in quota_recovery_entries
+        ),
+        "quota_failure_remaining_count": sum(
+            int(entry.get("quota_failure_remaining_count", 0) or 0) for entry in quota_recovery_entries
+        ),
+        "quota_recovery_passes_used": sum(
+            int(entry.get("quota_recovery_passes_used", 0) or 0) for entry in quota_recovery_entries
+        ),
         "audit_prompt_contract_version": AUDIT_PROMPT_CONTRACT_VERSION,
         "case_input_fingerprints": dict(sorted(case_input_fingerprints.items())),
         "run_audit_prompt_input_fingerprint": audit_run_input_fingerprint(case_input_fingerprints),
@@ -993,6 +1012,9 @@ def render_report(rows: list[dict[str, Any]], summary: dict[str, Any], *, packet
         f"- average_bucket_fit: `{summary['average_bucket_fit']}`",
         f"- average_focus_clarity: `{summary['average_focus_clarity']}`",
         f"- average_excerpt_strength: `{summary['average_excerpt_strength']}`",
+        f"- quota_recovery_attempted_count: `{summary['quota_recovery_attempted_count']}`",
+        f"- quota_recovery_succeeded_count: `{summary['quota_recovery_succeeded_count']}`",
+        f"- quota_failure_remaining_count: `{summary['quota_failure_remaining_count']}`",
         "",
         "## Completed / Flagged Cases",
     ]
@@ -1050,6 +1072,52 @@ def write_summary_outputs(
 
 def ordered_rows(results_by_case_id: dict[str, dict[str, Any]], case_order: list[str]) -> list[dict[str, Any]]:
     return [results_by_case_id[case_id] for case_id in case_order if case_id in results_by_case_id]
+
+
+def _is_retryable_quota_case_result(row: dict[str, Any]) -> bool:
+    if str(row.get("status", "")).strip() != "failed":
+        return False
+    audit_metadata = row.get("audit_metadata") or {}
+    if not isinstance(audit_metadata, dict):
+        audit_metadata = {}
+    llm_calls = audit_metadata.get("llm_calls") or {}
+    if isinstance(llm_calls, dict):
+        for metadata in llm_calls.values():
+            if not isinstance(metadata, dict):
+                continue
+            if str(metadata.get("problem_code", "")).strip().lower() == "llm_quota":
+                return True
+            message = str(metadata.get("error_message", "")).strip().lower()
+            if any(token in message for token in ("quota", "rate limit", "cooldown")):
+                return True
+    error = row.get("error") or {}
+    if not isinstance(error, dict):
+        error = {}
+    message = str(error.get("error_message", "")).strip().lower()
+    return any(token in message for token in ("quota", "rate limit", "cooldown"))
+
+
+def _with_quota_recovery_metadata(
+    row: dict[str, Any],
+    *,
+    attempted: bool,
+    succeeded: bool,
+    failure_remaining: bool,
+    passes_used: int,
+) -> dict[str, Any]:
+    updated = dict(row)
+    audit_metadata = updated.get("audit_metadata") or {}
+    if not isinstance(audit_metadata, dict):
+        audit_metadata = {}
+    audit_metadata = dict(audit_metadata)
+    audit_metadata["quota_recovery"] = {
+        "quota_recovery_attempted_count": 1 if attempted else 0,
+        "quota_recovery_succeeded_count": 1 if succeeded else 0,
+        "quota_failure_remaining_count": 1 if failure_remaining else 0,
+        "quota_recovery_passes_used": passes_used,
+    }
+    updated["audit_metadata"] = audit_metadata
+    return updated
 
 
 def process_case(
@@ -1157,6 +1225,43 @@ def process_case(
         }
 
 
+def process_case_with_quota_recovery(
+    case: dict[str, Any],
+    *,
+    packet_id: str,
+    source_index: dict[str, dict[str, Any]],
+    run_dir: Path,
+    trace_context: LLMTraceContext,
+) -> dict[str, Any]:
+    row = process_case(
+        case,
+        packet_id=packet_id,
+        source_index=source_index,
+        run_dir=run_dir,
+        trace_context=trace_context,
+    )
+    attempted = False
+    passes_used = 0
+    while _is_retryable_quota_case_result(row) and passes_used < CASE_QUOTA_RECOVERY_PASSES:
+        attempted = True
+        passes_used += 1
+        time.sleep(min(1.0, 0.2 * passes_used))
+        row = process_case(
+            case,
+            packet_id=packet_id,
+            source_index=source_index,
+            run_dir=run_dir,
+            trace_context=trace_context,
+        )
+    return _with_quota_recovery_metadata(
+        row,
+        attempted=attempted,
+        succeeded=attempted and str(row.get("status", "")).strip() == "completed",
+        failure_remaining=attempted and _is_retryable_quota_case_result(row),
+        passes_used=passes_used,
+    )
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--packet-id")
@@ -1241,7 +1346,7 @@ def main() -> int:
         case_id = str(case.get("case_id", ""))
         future = submit_inherited_context(
             executor,
-            process_case,
+            process_case_with_quota_recovery,
             case,
             packet_id=packet_id,
             source_index=source_index,

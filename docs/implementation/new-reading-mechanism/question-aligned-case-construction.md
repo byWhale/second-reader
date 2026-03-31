@@ -273,6 +273,15 @@ Current real-run evidence:
         - `primary_problem_type_drift = 2`
         - `primary_score_drift = 4`
       - this is the best current audit reproducibility candidate
+  - bounded quota-recovery follow-up now landed locally:
+    - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+      - quota-only failed cases now receive up to `2` extra whole-case recovery passes before the audit leaves them failed
+      - per-run audit summaries now expose quota-recovery attempted/succeeded/remaining counts so operational cooldown pressure is visible at the controller layer
+    - focused validation:
+      - `reading-companion-backend/tests/test_case_design_audit.py`
+      - `reading-companion-backend/tests/test_case_design_audit_reproducibility.py`
+      - `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
+      - `36 passed`
   - one remaining English outlier still exposed a builder-side text-sanitation defect even after the audit-input fingerprints matched:
     - `education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1`
     - the emitted excerpt and selection-reason text still carried invisible Unicode whitespace from the source sentence
@@ -355,9 +364,11 @@ Current real-run evidence:
         - `tests/test_packet_adjudication_reproducibility.py`
         - `tests/test_closed_loop_benchmark_curation.py`
         - `72 passed`
-    - the next live validation run is now active:
-      - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331`
-      - the next acceptance check is whether Henry 29 and `on_liberty_public_en__4__callback_bridge__seed_v1` move from `revise` to `keep` without reviving weak callback rows
+    - the current live narrow reproducibility lane is the callback slice:
+      - original job: `bgjob_callbackslice_auditv4_packet_20260331`
+      - retry job: `bgjob_callbackslice_auditv4_packet_retry_quota_20260331`
+    - the first callbackslice run finished with Henry completed and `on_liberty_public_en__10__callback_bridge__seed_v1` failed under pre-patch quota exhaustion
+    - the retry now resumes the same packet under the new quota-recovery path, and that rerun is the acceptance check before we widen again
 
 Current interpretation:
 - the excerpt-boundary / fragment-quality bug was real and materially important

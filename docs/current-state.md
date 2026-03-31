@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-31T01:45:36Z`
+Last verified: `2026-03-31T02:05:12Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -258,6 +258,19 @@ Last verified: `2026-03-31T01:45:36Z`
     - the audit prompt contract is now `case_design_audit_v4`
     - callback audit prompts now carry `target_profile_id`, `selection_role`, and any carried `prior_context_text` instead of only the narrower case fields
     - primary/adversarial audit guidance now explicitly allows inline callback antecedents when the bridge remains sharply traceable, instead of treating inline placement as automatically defective
+- A bounded audit quota-recovery follow-up is now landed locally:
+  - code:
+    - `reading-companion-backend/eval/attentional_v2/run_case_design_audit.py`
+    - `reading-companion-backend/tests/test_case_design_audit.py`
+  - bounded changes:
+    - case audit now gives a quota-only failed case up to `2` extra whole-case recovery passes before freezing it as failed
+    - audit summaries now record quota-recovery attempted/succeeded/remaining counts instead of leaving that evidence only inside per-case traces
+    - this keeps temporary primary-tier cooldown exhaustion from being mistaken for callback-case quality truth
+  - local validation:
+    - `reading-companion-backend/tests/test_case_design_audit.py`
+    - `reading-companion-backend/tests/test_case_design_audit_reproducibility.py`
+    - `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
+    - focused result: `36 passed`
 - Root-launched backend path resolution is now hardened:
   - code:
     - `reading-companion-backend/src/config.py`
@@ -281,7 +294,7 @@ Last verified: `2026-03-31T01:45:36Z`
   - launch policy:
     - the replacement rerun is pinned to the generic `backup` tier for the full scope so the run can finish consistently without mid-run target switching
 - The next bounded callback reproducibility lane is now active under durable tracking:
-  - registered job:
+  - original registered job:
     - `bgjob_callbackslice_auditv4_packet_20260331`
   - packet:
     - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331`
@@ -292,15 +305,26 @@ Last verified: `2026-03-31T01:45:36Z`
     - `on_liberty_public_en__10__callback_bridge__seed_v1`
   - live audit run:
     - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/`
+  - current disposition:
+    - the original pre-patch run failed with `completed_case_count = 1` and `failed_case_count = 1`
+    - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1` completed under the v4 contract
+    - `on_liberty_public_en__10__callback_bridge__seed_v1` failed under primary-tier quota exhaustion before the new case-audit quota-recovery patch existed
+  - replacement registered job:
+    - `bgjob_callbackslice_auditv4_packet_retry_quota_20260331`
+  - replacement audit run:
+    - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-020431/`
   - launch policy:
     - full mechanical packet lifecycle only (`generate -> audit -> adjudicate -> import -> refresh -> summarize`)
     - explicit worker caps stay at `audit=1`, `review=1` so this packet can share the LLM budget safely with the active mechanism rerun
     - this is bounded reproducibility evidence only; no wider unattended automation or decision-bearing phase was auto-launched
     - inline-target callback cases now trigger a bounded primary-review replica escalation (`3` base replicas plus `2` extra replicas) before consensus is frozen
+  - live interpretation:
+    - the failed first run is pre-patch operational evidence, not final callback-quality truth
+    - the retry job resumes the same packet from `audit_packet` under the new audit quota-recovery path, so its result is the one that should decide whether callback wobble actually narrowed
   - local validation:
     - `reading-companion-backend/tests/test_case_design_audit.py`
     - `reading-companion-backend/tests/test_case_design_audit_reproducibility.py`
-    - focused result: `26 passed`
+    - focused result before the quota-recovery follow-up: `26 passed`
 - A bounded mechanism evidence-control mode is now landed in code:
   - code:
     - `reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py`
@@ -1078,7 +1102,8 @@ Last verified: `2026-03-31T01:45:36Z`
 - Keep the bounded controller as the active automation surface, but use the new callback-audit hardening before the next broader validation wave:
   - the completed v4 frozen-input pair is already the clean proof that final-action instability is no longer the primary blocker
   - the new live blocker is callback-case audit variance on structurally borderline rows, not missing controller plumbing
-  - the next bounded automation move should rerun the narrow same-input callback slice under the new audit contract, then widen back out only if the callback rows stop wobbling
+  - the next bounded automation move should finish or disposition the active narrow callback slice, then rerun that same slice under the new audit quota-recovery path if the pre-patch run ends in quota-shaped failure
+  - only after the callback rows stop wobbling under the new contract plus recovery path should the controller widen back out again
 - Keep the dataset-platform route phased rather than monolithic:
   - source-book intake and intermediate-artifact governance is now landed
   - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
