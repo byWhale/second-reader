@@ -9,7 +9,11 @@ This file is not authoritative. Durable current state must live in:
 - `docs/current-state.md`
 - `docs/tasks/registry.md`
 - `docs/tasks/registry.json`
+- `reading-companion-backend/state/job_registry/jobs/<job_id>.json`
+
+Derived active-job views may also help during a session:
 - `reading-companion-backend/state/job_registry/active_jobs.json`
+- `reading-companion-backend/state/job_registry/active_jobs.md`
 
 Before ending a task, move any durable information into those canonical files and clear this scratchpad.
 

@@ -401,6 +401,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - The operator-facing mirrors are:
   - `reading-companion-backend/state/job_registry/active_jobs.json`
   - `reading-companion-backend/state/job_registry/active_jobs.md`
+  - these mirrors should contain only still-active jobs, not completed or failed historical records
 - Terminal jobs should be archived into:
   - `reading-companion-backend/state/job_registry/history_jobs.jsonl`
 - Register a job when:

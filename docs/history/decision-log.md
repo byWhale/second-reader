@@ -7,7 +7,7 @@ Update when: a major product or engineering decision is made, reversed, or becom
 
 ## Entry 1
 **ID**: DEC-001
-**Status**: active
+**Status**: superseded by `DEC-039`
 
 **Decision / Inflection**: Converge on `sequential` as the primary product and engineering path.
 
@@ -917,7 +917,7 @@ Update when: a major product or engineering decision is made, reversed, or becom
 
 **Why this path won**: The project needed a lightweight but durable workflow boundary for agent-owned offline work. A separate background-job registry keeps product runtime jobs and offline evaluation jobs distinct while still giving future agents one source of truth for what is running, what should be checked next, and what decision the job belongs to. Pairing the machine-readable registry with a generated human summary preserves handoff readability without forcing agents to hand-edit dynamic state into docs.
 
-**What changed in the system**: Backend infrastructure now includes a shared background-job registry helper plus two scripts: one to create/update/archive job records and one to refresh and inspect them. The registry lives under `reading-companion-backend/state/job_registry/` with `active_jobs.json` as the source of truth, `active_jobs.md` as the handoff-facing mirror, and `history_jobs.jsonl` as the archive. Workspace and backend agent rules now require jobs expected to run longer than roughly `10-15` minutes to be registered, and require later agents to refresh the registry before starting overlapping long-running work.
+**What changed in the system**: Backend infrastructure now includes a shared background-job registry helper plus two scripts: one to create/update/archive job records and one to refresh and inspect them. The registry lives under `reading-companion-backend/state/job_registry/`. This entry's original `active_jobs.json` authority model was later superseded by `DEC-039`, which made per-job records under `jobs/<job_id>.json` canonical and left `active_jobs.json` / `active_jobs.md` as derived active-only mirrors. Workspace and backend agent rules now require jobs expected to run longer than roughly `10-15` minutes to be registered, and require later agents to refresh the registry before starting overlapping long-running work.
 
 **Why it matters later**: Future contributors will otherwise see the registry files and helper scripts without understanding why the project chose a separate eval/agent job ledger instead of overloading product runtime jobs. This entry records that the registry exists to preserve task linkage, check commands, and decision context across agent changes, not simply to list processes.
 

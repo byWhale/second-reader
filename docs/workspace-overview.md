@@ -92,7 +92,8 @@ Update when: workspace structure, ownership boundaries, or primary shared entryp
 - Treat `reading-companion-backend/state/dataset_build/` as the durable dataset-platform territory for source catalogs, intake runs, and later build-loop orchestration state.
 - Treat `reading-companion-backend/state/eval_local_datasets/` as the local-only mirror for evaluation packages that should not be checked into the repo because they contain copyrighted or otherwise private source text.
 - Treat `reading-companion-backend/state/job_registry/` as the durable state for long-running agent/eval jobs whose status must survive agent changes or handoffs.
-- Treat `reading-companion-backend/state/job_registry/active_jobs.json` as the only canonical source for mutable long-running job state.
+- Treat `reading-companion-backend/state/job_registry/jobs/<job_id>.json` as the canonical store for mutable long-running job state.
+- Treat `reading-companion-backend/state/job_registry/active_jobs.json` and `active_jobs.md` as derived active-only operator views.
 - Treat `reading-companion-backend/eval/datasets/` and `reading-companion-backend/eval/manifests/` as evaluation-package territory rather than as product runtime state.
 - Use `docs/backend-reading-mechanism.md` for shared mechanism boundaries and `docs/backend-reading-mechanisms/<mechanism>.md` for mechanism-private reading logic.
 - Treat `reading-companion-backend/output/<book_id>/public/` and `reading-companion-backend/output/<book_id>/_runtime/` as shared cross-mechanism territory.

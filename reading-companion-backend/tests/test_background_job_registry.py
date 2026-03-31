@@ -59,9 +59,8 @@ def test_background_job_registry_tracks_completed_job_and_writes_summary(tmp_pat
     assert job_record_file("bgjob_test_completed", tmp_path).exists()
 
     summary_text = active_jobs_summary_file(tmp_path).read_text(encoding="utf-8")
-    assert "bgjob_test_completed" in summary_text
-    assert "Full English chapter-core rerun" in summary_text
-    assert "expected_outputs_present" in summary_text
+    assert "No active background jobs are currently registered." in summary_text
+    assert "bgjob_test_completed" not in summary_text
 
     archived = archive_background_job(record["job_id"], root=tmp_path, archive_reason="finished")
     assert archived["archive_reason"] == "finished"
@@ -89,7 +88,7 @@ def test_background_job_registry_marks_dead_running_job_abandoned(tmp_path: Path
     assert refreshed[0]["status"] == "abandoned"
 
     registry = load_active_registry(tmp_path)
-    assert registry["jobs"][0]["status"] == "abandoned"
+    assert registry["jobs"] == []
     assert active_jobs_file(tmp_path).exists()
     assert job_registry_dir(tmp_path).exists()
 
@@ -118,6 +117,22 @@ def test_background_job_registry_infers_completed_without_status_file_when_outpu
     assert refreshed[0]["status"] == "completed"
     assert refreshed[0]["latest_observation"]["expected_outputs"][0]["exists"] is True
     assert refreshed[0]["latest_observation"]["check_result"]["ok"] is True
+
+
+def test_get_active_job_excludes_terminal_unarchived_records(tmp_path: Path) -> None:
+    upsert_background_job(
+        root=tmp_path,
+        job_id="bgjob_test_terminal_hidden",
+        task_ref="execution-tracker#chapter-rerun",
+        lane="mechanism_eval",
+        purpose="Completed eval run",
+        command="python eval/attentional_v2/run_chapter_comparison.py --pack en",
+        cwd=str(tmp_path),
+        status="completed",
+    )
+
+    assert get_active_job("bgjob_test_terminal_hidden", root=tmp_path) is None
+    assert load_active_registry(tmp_path)["jobs"] == []
 
 
 def test_background_job_registry_imports_product_shadow_into_canonical_store(tmp_path: Path) -> None:

@@ -129,6 +129,7 @@ then update this document in the same task.
 - The canonical source of truth for long-running jobs now lives under `reading-companion-backend/state/job_registry/jobs/<job_id>.json`.
   - generic offline jobs should prefer the registry wrapper launcher so the registry can record pid, exit code, logs, and success/failure evidence without custom status-file code
   - `active_jobs.json` and `active_jobs.md` are derived operator views, not the primary store
+  - those derived views are active-only mirrors: terminal jobs stay in their canonical per-job records and disappear from the active views unless they are relaunched
 - When a job process stays alive but runtime state stops updating, the backend pauses the job and emits system-side activity events such as `runtime_stalled` and `job_paused_by_runtime_guard`.
 - Raw stack traces remain in the internal technical diagnostic log; operator-facing summaries belong in the internal system activity stream.
 - New backend Python processes also inherit the structured LLM registry and its adaptive concurrency policy at startup.

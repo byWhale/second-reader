@@ -15,7 +15,7 @@ if str(ROOT) not in sys.path:
 from src.reading_runtime.background_job_registry import (  # noqa: E402
     TERMINAL_JOB_STATUSES,
     archive_background_job,
-    get_active_job,
+    get_job_record,
     upsert_background_job,
 )
 
@@ -67,7 +67,7 @@ def main() -> int:
         print(json.dumps({"archived": True, "job": archived}, ensure_ascii=False, indent=2))
         return 0
 
-    existing = get_active_job(args.job_id, root=root) if args.job_id else None
+    existing = get_job_record(args.job_id, root=root) if args.job_id else None
     if existing is None and args.job_id:
         create_mode = True
     else:

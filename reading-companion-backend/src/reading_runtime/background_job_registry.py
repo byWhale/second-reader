@@ -315,7 +315,10 @@ def list_job_records(root: Path | None = None, *, include_archived: bool = False
 def _should_show_in_active_views(record: dict[str, Any]) -> bool:
     if str(record.get("archived_at", "")).strip():
         return False
-    return bool(record.get("show_in_active_views", False))
+    if not bool(record.get("show_in_active_views", False)):
+        return False
+    status = str(record.get("status", "registered") or "registered").strip().lower()
+    return status not in TERMINAL_JOB_STATUSES
 
 
 def sync_registry_views(root: Path | None = None) -> dict[str, Any]:
