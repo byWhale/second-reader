@@ -99,6 +99,20 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the benchmark is good enough for early diagnosis
   - but not yet large enough for high-confidence cross-mechanism or default-cutover decisions
 
+## Bounded Dataset-Platform Strategy Rule
+- Dataset building, dataset hardening, and dataset automation are enabling lanes for evaluation, not independent success targets.
+- Once a benchmark family is good enough for diagnosis, the default next move is frozen-slice comparison rather than open-ended builder refinement.
+- A builder or packet-review hardening change should continue only when it improves at least one of:
+  - question coverage
+  - benchmark trust or reproducibility
+  - discriminative power between mechanisms
+  - time-to-next-comparison
+- Decisive evaluation lanes such as durable-trace / re-entry and runtime viability must remain visible and must not be postponed indefinitely by general builder work.
+- Stable evaluation practice should therefore separate two states clearly:
+  - builder work that is still removing a specific evaluation blocker
+  - comparison cadence that has resumed on a frozen slice after that blocker is bounded
+- Reports and implementation trackers should record when the project has crossed from bounded hardening back into frozen-slice comparison so later work does not mistake infrastructure refinement for the main evaluation goal.
+
 ## Chapter-Presence Interpretation Rule
 - Judged chapter-core comparisons should separate:
   - lower-volume but cumulative interpretive threading

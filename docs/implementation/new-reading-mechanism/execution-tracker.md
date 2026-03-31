@@ -19,6 +19,15 @@ Update when: status changes, blockers appear, or phases complete.
 - Current side branch:
   - none
   - the universal shared LLM invocation and traceability layer is landed, and the route has returned to active benchmark hardening
+- Current strategy discipline:
+  - dataset-builder and controller work are now bounded enabling lanes for evaluation rather than independent finish lines
+  - current builder/controller work stays in bounded-hardening mode, not open-ended capability expansion
+  - the only active builder-side reasons to continue are:
+    - callback-bridge excerpt shaping
+    - audit/adjudication reproducibility on same-input frozen cases
+  - after each bounded repair wave, freeze the affected slice and hand comparison cadence back to the mechanism-eval lane before opening another builder wave
+  - unattended automation should not widen further until it demonstrably shortens the loop back to trusted comparison
+  - durable-trace / re-entry and runtime-viability work remain decisive pending mechanism-eval lanes rather than optional later cleanup
 - Current blockers:
   - final end-to-end comparison still waits on:
     - follow-up after the first broader semantic comparison pass:

@@ -50,6 +50,17 @@ Current limitations:
 - the current private-library builder is now catalog-wired, but semantic case mining still does not start from explicit target phenomena
 - the builder stops after packaging instead of iterating from review outcomes
 
+## Current Strategy Discipline
+- The dataset platform is now in bounded-hardening mode rather than open-ended capability expansion.
+- Current builder/controller work is justified only when it removes a specific evaluation blocker and shortens the loop back to trusted comparison.
+- The only active builder-side reasons to continue right now are:
+  - callback-bridge excerpt shaping
+  - audit/adjudication reproducibility on same-input frozen cases
+- After each bounded repair wave, freeze the affected slice and hand control back to cross-mechanism comparison before opening another builder wave.
+- Unattended automation should not widen further until it demonstrably shortens time-to-next-comparison on a trusted frozen slice.
+- Durable-trace / re-entry and runtime-viability lanes remain decisive evaluation work.
+  - they must stay visible as pending mechanism-eval work rather than disappearing behind ongoing dataset-platform activity
+
 ## Closed Loop Target
 The full system should operate as one loop:
 

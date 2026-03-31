@@ -1173,3 +1173,29 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
 - `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
 - `docs/implementation/new-reading-mechanism/execution-tracker.md`
+
+## Entry 44
+**ID**: DEC-047
+**Status**: active
+
+**Decision / Inflection**: Treat the dataset builder as a bounded enabling system, and make frozen-slice comparison cadence the rule that pulls the project back to the main evaluation goal.
+
+**Period**: Late March 2026, after the question-aligned builder and bounded closed-loop controller had both landed and the main project risk shifted from missing infrastructure to infrastructure drift.
+
+**Problem**: The repo now had real dataset-platform capabilities: managed source intake, question-aligned case construction, packetized review, and a scratch-safe controller. But those wins created a new risk. Without an explicit strategy rule, the project could keep refining the builder, packet audits, and automation breadth indefinitely, while decisive mechanism-eval lanes such as durable-trace / re-entry and runtime viability stayed queued. The original goal is still cross-mechanism judgment and a stronger reading mechanism, not a perpetually improving builder.
+
+**Alternatives considered**: Keep treating builder progress as the implicit main mission until the dataset felt "good enough," force an immediate stop to dataset-platform work regardless of unresolved benchmark blockers, or leave the balance as an informal chat-only norm instead of writing it into the docs.
+
+**Why this path won**: The best tradeoff was to keep dataset-platform work but bound it tightly. Builder and packet-hardening work remain necessary whenever they remove a specific evaluation blocker or shorten time-to-next-comparison, but they are no longer allowed to expand by default. Once a benchmark slice is good enough for diagnosis, the next move is frozen-slice comparison cadence rather than another open-ended builder wave. This also preserves the distinction between "good enough for diagnosis" and "good enough for final cutover confidence."
+
+**What changed in the system**: The stable evaluation methodology now says explicitly that dataset building, dataset hardening, and automation are enabling lanes rather than independent success targets. The dataset-platform implementation docs now describe the current work as bounded hardening focused only on callback-bridge excerpt shaping and same-input audit/adjudication reproducibility. Current-state and task-routing docs now say the next default move after one bounded repair wave is to freeze a slice and hand comparison cadence back to the mechanism-eval lane, while durable-trace / re-entry and runtime-viability work remain visible as decisive pending evaluation lanes.
+
+**Why it matters later**: Future contributors might otherwise see the large amount of dataset-platform infrastructure and assume the project was still primarily trying to perfect the builder before resuming evaluation. This entry records the intended discipline clearly: infrastructure exists to serve mechanism comparison, and frozen-slice comparison cadence is the rule that prevents infrastructure drift.
+
+**Primary evidence**:
+- `docs/backend-reader-evaluation.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`

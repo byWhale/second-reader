@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-31T04:48:21Z`
+Last updated: `2026-03-31T11:46:43Z`
 
 ## Status Values
 - `active`
@@ -33,7 +33,7 @@ Last updated: `2026-03-31T04:48:21Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep `callbackfocusfix` as the strongest shared narrow callback-quality checkpoint, use `closed_loop_on_liberty_callbackpromptfix_20260331` plus the completed broader English callback-prompt rerun as proof that argumentative callback drafting now generalizes across the English slice, and rerun the unchanged callback rows exposed by `tensionfocusfix` under the hardened audit/adjudication path before treating `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` as the next bounded focus issue
+- Next: keep builder work in bounded-hardening mode only for callback-bridge shaping and same-input audit/adjudication reproducibility, complete one bounded repair wave on the unchanged callback rows exposed by `tensionfocusfix`, then freeze the resulting slice and hand comparison cadence back to the mechanism-eval lane before opening another builder focus
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)
@@ -52,7 +52,7 @@ Last updated: `2026-03-31T04:48:21Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the bounded controller as the active automation surface, treat the completed broader English callback-prompt rerun as proof that the callback repair generalizes across the two-source English slice, and run the next automatic controller-side step as the bounded reproducibility repair wave on the unchanged callback rows exposed by `tensionfocusfix` before any new widening
+- Next: keep the controller bounded and scratch-safe, use the next automatic step only for the current reproducibility repair wave on the unchanged callback rows, and do not widen unattended automation again until it demonstrably shortens the loop back to trusted frozen-slice comparison
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_bilingual_broader_callbackpromptfix_20260331` (`failed`)
@@ -93,7 +93,7 @@ Last updated: `2026-03-31T04:48:21Z`
 - Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - Blocked by: `TASK-BENCH-BACKLOG-RESCUE`
-- Next: launch the remaining runtime-viability gates only after the post-recovery benchmark gate decision is explicit
+- Next: treat this as the next required decisive mechanism-eval lane after the current bounded hardening wave freezes a comparison slice, and launch the durable-trace, re-entry, and runtime-viability evaluation once the post-recovery benchmark gate decision is explicit instead of letting dataset-platform work postpone it again
 
 ### `TASK-DOC-Q10` — Decide when to promote `attentional_v2` working design into stable docs
 - Status: `queued`

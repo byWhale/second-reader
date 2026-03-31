@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-31T04:48:21Z",
+  "updated_at": "2026-03-31T11:46:43Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -165,7 +165,8 @@
       ],
       "decision_refs": [
         "DEC-045",
-        "DEC-046"
+        "DEC-046",
+        "DEC-047"
       ],
       "job_refs": [
         "bgjob_closed_loop_en_broader_callbackpromptfix_20260331",
@@ -181,7 +182,7 @@
         "bgjob_callbackslice_auditv4_packet_retry_quota_20260331"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep callbackfocusfix as the strongest shared narrow callback-quality checkpoint, use closed_loop_on_liberty_callbackpromptfix_20260331 plus the completed broader English callback-prompt rerun as proof that argumentative callback drafting now generalizes across the English slice, and rerun the unchanged callback rows exposed by tensionfocusfix under the hardened audit/adjudication path before treating on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1 as the next bounded focus issue.",
+      "next_action": "Keep builder work in bounded-hardening mode only for callback-bridge shaping and same-input audit/adjudication reproducibility, complete one bounded repair wave on the unchanged callback rows exposed by tensionfocusfix, then freeze the resulting slice and hand comparison cadence back to the mechanism-eval lane before opening another builder focus.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -251,7 +252,7 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_callbackslice_auditv4_packet_retry_quota_20260331.log",
         "reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/run_state.json"
       ],
-      "last_updated": "2026-03-31T04:48:21Z",
+      "last_updated": "2026-03-31T11:46:43Z",
       "last_updated_by": "codex"
     },
     {
@@ -269,7 +270,8 @@
       ],
       "decision_refs": [
         "DEC-045",
-        "DEC-046"
+        "DEC-046",
+        "DEC-047"
       ],
       "job_refs": [
         "bgjob_closed_loop_en_broader_callbackpromptfix_20260331",
@@ -304,7 +306,7 @@
         "bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the bounded controller as the active automation surface, treat the completed broader English callback-prompt rerun as proof that the callback repair generalizes across the two-source English slice, and run the next automatic controller-side step as the bounded reproducibility repair wave on the unchanged callback rows exposed by tensionfocusfix before any new widening.",
+      "next_action": "Keep the controller bounded and scratch-safe, use the next automatic step only for the current reproducibility repair wave on the unchanged callback rows, and do not widen unattended automation again until it demonstrably shortens the loop back to trusted frozen-slice comparison.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -418,7 +420,7 @@
     "reading-companion-backend/state/job_registry/logs/bgjob_callbackslice_auditv4_packet_retry_quota_20260331.log",
     "reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/run_state.json"
   ],
-      "last_updated": "2026-03-31T04:48:21Z",
+      "last_updated": "2026-03-31T11:46:43Z",
       "last_updated_by": "codex"
     },
     {
@@ -435,18 +437,19 @@
       ],
       "decision_refs": [
         "DEC-014",
-        "DEC-015"
+        "DEC-015",
+        "DEC-047"
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Launch the remaining runtime-viability gates only after the post-recovery benchmark gate decision is explicit.",
+      "next_action": "Treat this as the next required decisive mechanism-eval lane after the current bounded hardening wave freezes a comparison slice, and launch the durable-trace, re-entry, and runtime-viability evaluation once the post-recovery benchmark gate decision is explicit instead of letting dataset-platform work postpone it again.",
       "blocked_by": [
         "TASK-BENCH-BACKLOG-RESCUE"
       ],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/execution-tracker.md"
       ],
-      "last_updated": "2026-03-29T03:33:02Z",
+      "last_updated": "2026-03-31T11:46:43Z",
       "last_updated_by": "codex"
     },
     {

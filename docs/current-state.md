@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-31T04:48:21Z`
+Last verified: `2026-03-31T11:46:43Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -17,6 +17,17 @@ Last verified: `2026-03-31T04:48:21Z`
 - In parallel, keep the dataset-platform route moving from landing to evidence-driven refinement:
   - use the recovered managed source catalog on this checkout instead of treating missing-catalog recovery as the active blocker
   - use the real scratch builder/controller evidence to improve case quality and bilingual reproducibility before widening automation further
+
+## Current Strategy
+- The project is no longer trying to perfect the dataset builder before resuming comparison work.
+- Dataset quality work, builder work, and automation work remain necessary, but they are support systems for cross-mechanism evaluation rather than replacement goals.
+- Current builder/controller work is in bounded-hardening mode only.
+  - the active builder-side reasons to continue are:
+    - callback-bridge excerpt shaping
+    - audit/adjudication reproducibility on same-input frozen cases
+- After each bounded repair wave, freeze the affected slice and return to mechanism comparison cadence before opening another builder wave.
+- Unattended automation should not widen further until it demonstrably shortens the loop back to trusted frozen-slice comparison.
+- Durable-trace / re-entry and runtime-viability lanes remain decisive pending evaluation work and must stay visible instead of disappearing behind dataset-platform activity.
 
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
@@ -1253,7 +1264,7 @@ Last verified: `2026-03-31T04:48:21Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-31T04:48:21Z",
+  "updated_at": "2026-03-31T11:46:43Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
