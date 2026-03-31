@@ -43,6 +43,7 @@ Thumbs.db
 data/
 output/
 eval/runs/
+eval/review_packets/pending/
 eval/review_packets/archive/*__scratch__*/
 state/job_registry/active_jobs.json
 state/job_registry/active_jobs.md

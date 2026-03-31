@@ -8,7 +8,10 @@ from eval.attentional_v2.question_aligned_case_construction import (
     TARGET_PROFILE_ORDER,
     MIN_PROFILE_ORDER_SELECTION_PRIORITY,
     _assembled_case,
+    _expand_excerpt_window,
     _judge_focus_draft,
+    _needs_preceding_sentence,
+    _refine_excerpt_window_for_profile,
     _resolve_callback_antecedent,
     _score_sentence_for_profile,
     _selection_reason_anchor_text,
@@ -306,6 +309,52 @@ def _sentences_zh_with_marker_only_callback_overlap() -> list[dict[str, str]]:
     ]
 
 
+def _sentences_en_with_context_dependent_tension_opener() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c11-s1",
+            "text": "That disputed influence had already been described as the force that pushed Mill's argument into a new register.",
+        },
+        {
+            "sentence_id": "c11-s2",
+            "text": "Whether this was an instance of her steadying influence, or whether it added one more unassimilated element to Mill's diverse intellectual sustenance, may be wisely left an open question.",
+        },
+        {
+            "sentence_id": "c11-s3",
+            "text": "We cannot, however, be wrong in attributing to her the parentage of one book of Mill.",
+        },
+        {
+            "sentence_id": "c11-s4",
+            "text": "It is true that Mill had before learnt that men and women ought to be equal in legal and domestic relations.",
+        },
+    ]
+
+
+def _sentences_en_with_argumentative_tension_followthrough() -> list[dict[str, str]]:
+    return [
+        {
+            "sentence_id": "c12-s1",
+            "text": "Be this as it may, she undoubtedly checked the half-recognised leanings of her husband in one important direction.",
+        },
+        {
+            "sentence_id": "c12-s2",
+            "text": "Whether this was an instance of her steadying influence, or whether it added one more unassimilated element to his argument, may be wisely left an open question.",
+        },
+        {
+            "sentence_id": "c12-s3",
+            "text": "We cannot, however, be wrong in attributing to her the parentage of one later claim.",
+        },
+        {
+            "sentence_id": "c12-s4",
+            "text": "It is true that he had already defended equality in general terms.",
+        },
+        {
+            "sentence_id": "c12-s5",
+            "text": "This was a point on which he had already argued with his father.",
+        },
+    ]
+
+
 def test_target_profile_id_for_case_row_supports_explicit_case_id_and_legacy_phenomena() -> None:
     assert (
         target_profile_id_for_case_row({"target_profile_id": "callback_bridge"})
@@ -458,6 +507,16 @@ def test_render_excerpt_sentences_normalizes_invisible_whitespace() -> None:
     assert "\u00a0" not in rendered
     assert "cause—the policy" in rendered
     assert "supposed … I really" in rendered
+
+
+def test_needs_preceding_sentence_flags_leading_backreference_openers() -> None:
+    assert (
+        _needs_preceding_sentence(
+            "Whether this was an instance of her steadying influence may be wisely left an open question."
+        )
+        is True
+    )
+    assert _needs_preceding_sentence("We cannot, however, be wrong in attributing this claim.") is False
 
 
 def test_assembled_case_uses_full_excerpt_sentence_bounds() -> None:
@@ -963,6 +1022,34 @@ def test_scope_selection_preserves_longer_lookback_for_callback_bridge(tmp_path:
     assert zh_case["start_sentence_id"] != "c3-s1"
 
 
+def test_expand_excerpt_window_pulls_in_preceding_sentence_for_whether_this_opener() -> None:
+    sentences = _sentences_en_with_context_dependent_tension_opener()
+
+    start, end = _expand_excerpt_window(sentences, start=1, end=4)
+
+    assert (start, end) == (0, 4)
+    rendered = render_excerpt_sentences(
+        sentence["text"] for sentence in sentences[start:end]
+    )
+    assert "That disputed influence had already been described" in rendered
+    assert "Whether this was an instance of her steadying influence" in rendered
+
+
+def test_refine_excerpt_window_expands_english_tension_followthrough() -> None:
+    sentences = _sentences_en_with_argumentative_tension_followthrough()
+
+    start, end = _refine_excerpt_window_for_profile(
+        profile_id="tension_reversal",
+        language="en",
+        sentences=sentences,
+        anchor_index=2,
+        start=1,
+        end=4,
+    )
+
+    assert (start, end) == (0, 5)
+
+
 def test_scope_selection_inlines_near_callback_antecedent_into_excerpt(tmp_path: Path) -> None:
     chapter_rows_by_language = {
         "en": [
@@ -1010,6 +1097,51 @@ def test_scope_selection_inlines_near_callback_antecedent_into_excerpt(tmp_path:
     assert en_case["start_sentence_id"] == "c5-s1"
     assert en_case["prior_context_sentence_ids"] == []
     assert "Surrenden" in en_case["excerpt_text"]
+
+
+def test_scope_selection_keeps_full_english_argumentative_tension_turn(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            _chapter_row(
+                source_id="book_en_tension",
+                language="en",
+                output_dir="outputs/book_en_tension",
+                chapter_id="12",
+                chapter_title="Chapter Twelve",
+                role="narrative_reflective",
+            )
+        ]
+    }
+    source_index = {
+        "book_en_tension": {
+            "source_id": "book_en_tension",
+            "type_tags": ["essay"],
+            "role_tags": ["narrative_reflective", "reference_heavy"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en_tension"): {
+            "chapters": [{"id": "12", "sentences": _sentences_en_with_argumentative_tension_followthrough()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="english_tension_scope",
+    )
+
+    en_case = scope["cases_by_language"]["en"][0]
+    assert en_case["target_profile_id"] == "tension_reversal"
+    assert en_case["start_sentence_id"] == "c12-s1"
+    assert en_case["end_sentence_id"] == "c12-s5"
+    assert "Be this as it may" in en_case["excerpt_text"]
+    assert "This was a point" in en_case["excerpt_text"]
 
 
 def test_callback_bridge_judge_focus_emphasizes_traceability_and_attribution(tmp_path: Path) -> None:
@@ -1084,6 +1216,79 @@ def test_callback_bridge_drafts_name_specific_earlier_target() -> None:
     assert "cause of my writing it" in selection_reason.lower()
     assert "specific earlier material" in judge_focus.lower()
     assert "cause of my writing it" in judge_focus.lower()
+
+
+def test_tension_reversal_drafts_specific_dual_claim_focus() -> None:
+    tension_target_text = (
+        "Whether this was an instance of her steadying influence, or whether it added "
+        "one more unassimilated element to his argument, may be wisely left an open "
+        "question. / We cannot, however, be wrong in attributing to her the parentage "
+        "of one later claim. / It is true that he had already defended equality in "
+        "general terms."
+    )
+
+    selection_reason = _selection_reason_draft(
+        profile_id="tension_reversal",
+        sentence_text="We cannot, however, be wrong in attributing to her the parentage of one later claim.",
+        tension_target_text=tension_target_text,
+    )
+    judge_focus = _judge_focus_draft(
+        profile_id="tension_reversal",
+        tension_target_text=tension_target_text,
+    )
+
+    assert "specific tension" in selection_reason.lower()
+    assert "steadying influence" in selection_reason.lower()
+    assert "later claim" in judge_focus.lower()
+    assert "already defended equality" in judge_focus.lower()
+
+
+def test_scope_selection_builds_specific_tension_focus_for_followthrough_window(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            _chapter_row(
+                source_id="book_en_tension",
+                language="en",
+                output_dir="outputs/book_en_tension",
+                chapter_id="12",
+                chapter_title="Chapter Twelve",
+                role="argumentative",
+            )
+        ]
+    }
+    source_index = {
+        "book_en_tension": {
+            "source_id": "book_en_tension",
+            "type_tags": ["essay"],
+            "role_tags": ["argumentative", "reference_heavy"],
+        }
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en_tension"): {
+            "chapters": [{"id": "12", "sentences": _sentences_en_with_argumentative_tension_followthrough()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="tension_scope_focus",
+    )
+
+    en_case = next(
+        case
+        for case in [*scope["cases_by_language"]["en"], *scope["reserve_cases_by_language"]["en"]]
+        if case["target_profile_id"] == "tension_reversal"
+    )
+    assert "specific tension" in en_case["selection_reason"].lower()
+    assert "steadying influence" in en_case["judge_focus"].lower()
+    assert "later claim" in en_case["judge_focus"].lower()
+    assert "already defended equality" in en_case["judge_focus"].lower()
 
 
 def test_scope_selection_rejects_callback_bridge_without_resolved_antecedent(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-30T23:06:06Z",
+  "updated_at": "2026-03-31T00:16:07Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -23,7 +23,7 @@
         "bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Use the completed judged follow-up rerun as the new mechanism-evidence baseline, then convert it into one bounded repair/generalization plan that preserves the walden one-axis threading win while checking which up_from_slavery improvements are robust enough to keep.",
+      "next_action": "Use the completed judged follow-up rerun as the new mechanism-evidence baseline, then run one bounded evidence-control rerun on the same two cases with judge-facing bundles filtered to substantive reading events only so we can separate real reading-quality gain from judge penalties on parse/wait/error clutter.",
       "blocked_by": [],
       "evidence_refs": [
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/summary/report.md",
@@ -38,11 +38,13 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_caseiso_judged_20260329.log",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_20260329/summary/aggregate.json",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_followup_20260330/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_followup_20260330/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/cases/up_from_slavery_public_en__10.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/outputs/walden_205_en__10/iterator_v1/_runtime/activity.jsonl",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_20260329/bundles/attentional_v2/walden_205_en__10.json"
       ],
-      "last_updated": "2026-03-30T13:50:41Z",
+      "last_updated": "2026-03-31T00:16:07Z",
       "last_updated_by": "codex"
     },
     {
@@ -163,10 +165,11 @@
         "bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331",
-        "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331"
+        "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331",
+        "bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep callbackinferencefix as the current best callback-quality evidence, and let the running callbackfocusfix rerun decide whether target-specific focus drafting moves Henry 29 and on_liberty_public_en__4__callback_bridge__seed_v1 from revise to keep; if it does not, the next bounded move is callback-antecedent specificity rather than broad builder redesign.",
+      "next_action": "Keep callbackfocusfix as the strongest current narrow callback-quality checkpoint, keep the new tension-turn patch because it turned on_liberty_public_en__5__tension_reversal__seed_v1 into a real keep, and now harden audit/adjudication reproducibility on the unchanged callback cases that drifted during tensionfocusfix.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -195,6 +198,9 @@
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackbridgefix_20260331/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackcontentfix_20260331/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackinferencefix_20260331/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackfocusfix_20260331/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_tensionwindowfix_20260331/closed_loop_benchmark_curation_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331/closed_loop_benchmark_curation_summary.json",
         "reading-companion-backend/state/dataset_build/build_runs/scratch_validation_callback_qualitycheck_20260331/build_summary.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_zh_cueguard_20260330.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_zh_cueguard_20260330.log",
@@ -208,6 +214,8 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331.log",
         "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331.log",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_full_smoke_zh_cuegate_20260330__initial_review__closed_loop_full_smoke_zh_cuegate_20260330/llm_review_report.md",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_zh_callbacklookback_20260330__initial_review__closed_loop_zh_callbacklookback_20260330/llm_review_report.md",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_zh_question_aligned_v1__scratch__closed_loop_zh_callbackpriorcontext_20260330__initial_review__closed_loop_zh_callbackpriorcontext_20260330/llm_review_report.md",
@@ -222,7 +230,7 @@
         "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
         "reading-companion-backend/tests/test_case_design_audit.py"
       ],
-      "last_updated": "2026-03-30T23:06:06Z",
+      "last_updated": "2026-03-31T00:16:07Z",
       "last_updated_by": "codex"
     },
     {
@@ -244,6 +252,7 @@
       ],
       "job_refs": [
         "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331",
+        "bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331",
@@ -270,7 +279,7 @@
         "bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Let the running callbackfocusfix rerun finish, because it is the first four-source validation after target-specific callback focus drafting; if it converts the remaining Henry and on_liberty callback revises into keeps without reviving weak rows, move the next automatic work up to broader controller hardening, otherwise do one more bounded callback-antecedent specificity patch before widening automation.",
+      "next_action": "Keep the bounded controller as the active automation surface, but do one bounded reproducibility repair wave on the unchanged callback cases exposed by tensionfocusfix before we widen unattended automation again.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -371,7 +380,7 @@
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-174858__ae50caff2084/summary.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-175048__ae50caff2084/summary.json"
       ],
-      "last_updated": "2026-03-30T23:06:06Z",
+      "last_updated": "2026-03-31T00:16:07Z",
       "last_updated_by": "codex"
     },
     {

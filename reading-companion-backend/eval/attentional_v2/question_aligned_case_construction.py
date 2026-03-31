@@ -124,6 +124,10 @@ INITIAL_FRAGMENT_RE = re.compile(r"^(?:[A-Z]\.)+$")
 LOWERCASE_START_RE = re.compile(r"^[a-z]")
 SHORT_COMMA_FRAGMENT_RE = re.compile(r"^[A-Z][^.!?]{0,60},[^.!?]{0,40}[.!?]$")
 ABBREVIATION_SUFFIX_RE = re.compile(r"(?:\b(?:Mr|Mrs|Ms|Dr|Prof|St|Jr|Sr)\.|\b(?:[A-Z]\.)+)$")
+LEADING_BACKREFERENCE_RE = re.compile(
+    r"^Whether\s+(?:this|that|these|those)\b",
+    re.IGNORECASE,
+)
 QUOTE_PAIRS = (
     ("“", "”"),
     ("‘", "’"),
@@ -562,6 +566,7 @@ def _build_opportunity_cards_for_chapter(
             callback_evidence: list[str] = []
             callback_antecedent_resolved: bool | None = None
             callback_target_text = ""
+            tension_target_text = ""
             if profile_id == "callback_bridge":
                 antecedent = _resolve_callback_antecedent(
                     sentences=sentences,
@@ -582,6 +587,14 @@ def _build_opportunity_cards_for_chapter(
                     else:
                         prior_context_sentence_ids = list(antecedent["sentence_ids"])
                         prior_context_excerpt_text = str(antecedent["excerpt_text"])
+            start, end = _refine_excerpt_window_for_profile(
+                profile_id=profile_id,
+                language=language,
+                sentences=sentences,
+                anchor_index=int(candidate["index"]),
+                start=start,
+                end=end,
+            )
             start, end = _expand_excerpt_window(sentences, start=start, end=end)
             window = sentences[start:end]
             if not window:
@@ -591,6 +604,11 @@ def _build_opportunity_cards_for_chapter(
             )
             if len(rendered_excerpt_text) < 80:
                 continue
+            if profile_id == "tension_reversal":
+                tension_target_text = _tension_target_prompt_text(
+                    window_texts=[item.get("text") or "" for item in window],
+                    language=language,
+                )
             complete_sentence_count = _complete_sentence_count(
                 item.get("text") or "" for item in window
             )
@@ -647,10 +665,12 @@ def _build_opportunity_cards_for_chapter(
                         profile_id=profile_id,
                         sentence_text=anchor_display_text,
                         callback_target_text=callback_target_text,
+                        tension_target_text=tension_target_text,
                     ),
                     "judge_focus_draft": _judge_focus_draft(
                         profile_id=profile_id,
                         callback_target_text=callback_target_text,
+                        tension_target_text=tension_target_text,
                     ),
                     "rejection_reasons": [],
                     "reserve_rank": 0,
@@ -954,11 +974,49 @@ def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -
     }
 
 
-def _callback_target_prompt_text(text: str) -> str:
+def _clip_prompt_text(text: str, *, max_length: int) -> str:
     cleaned = _normalize_sentence_text(text)
-    if len(cleaned) > 160:
-        cleaned = cleaned[:157].rstrip() + "..."
+    if len(cleaned) > max_length:
+        cleaned = cleaned[: max_length - 3].rstrip() + "..."
     return cleaned
+
+
+def _callback_target_prompt_text(text: str) -> str:
+    return _clip_prompt_text(text, max_length=160)
+
+
+def _tension_target_prompt_text(*, window_texts: list[str], language: str) -> str:
+    if language != "en":
+        return ""
+    rendered_parts = _rendered_excerpt_parts(window_texts)
+    if len(rendered_parts) < 3:
+        return ""
+    tension_index = next(
+        (
+            index
+            for index, part in enumerate(rendered_parts)
+            if "whether " in part.lower()
+        ),
+        -1,
+    )
+    if tension_index < 0 or tension_index + 2 >= len(rendered_parts):
+        return ""
+    first = rendered_parts[tension_index].lower()
+    third = rendered_parts[tension_index + 2].lower()
+    if "whether " not in first:
+        return ""
+    if not third.startswith(("it is true", "but ", "yet ", "however", "still ")):
+        return ""
+    first_part = rendered_parts[tension_index]
+    first_marker_index = first_part.lower().find("whether ")
+    if first_marker_index > 0:
+        first_part = first_part[first_marker_index:]
+    focus_parts = [
+        _clip_prompt_text(first_part, max_length=96),
+        _clip_prompt_text(rendered_parts[tension_index + 1], max_length=96),
+        _clip_prompt_text(rendered_parts[tension_index + 2], max_length=96),
+    ]
+    return _clip_prompt_text(" / ".join(focus_parts), max_length=240)
 
 
 def _selection_reason_draft(
@@ -966,15 +1024,19 @@ def _selection_reason_draft(
     profile_id: str,
     sentence_text: str,
     callback_target_text: str = "",
+    tension_target_text: str = "",
 ) -> str:
     profile = EXCERPT_TARGET_PROFILES[profile_id]
-    clipped = _normalize_sentence_text(sentence_text)
-    if len(clipped) > 160:
-        clipped = clipped[:157].rstrip() + "..."
+    clipped = _clip_prompt_text(sentence_text, max_length=160)
     if profile_id == "callback_bridge" and callback_target_text:
         return (
             f"{profile['selection_reason_template']} Earlier bridge target: "
             f"{callback_target_text}. Anchor line: {clipped}"
+        )
+    if profile_id == "tension_reversal" and tension_target_text:
+        return (
+            f"{profile['selection_reason_template']} Specific tension: "
+            f"{tension_target_text}. Anchor line: {clipped}"
         )
     return f"{profile['selection_reason_template']} Anchor line: {clipped}"
 
@@ -991,12 +1053,22 @@ def _selection_reason_anchor_text(*, anchor_text: str, window_texts: list[str]) 
     return cleaned_anchor
 
 
-def _judge_focus_draft(*, profile_id: str, callback_target_text: str = "") -> str:
+def _judge_focus_draft(
+    *,
+    profile_id: str,
+    callback_target_text: str = "",
+    tension_target_text: str = "",
+) -> str:
     if profile_id == "callback_bridge" and callback_target_text:
         return (
             "Can the reader trace the backward bridge to this specific earlier "
             f"material: {callback_target_text}, while keeping the attribution of "
             "the bridging claim clear and non-associative?"
+        )
+    if profile_id == "tension_reversal" and tension_target_text:
+        return (
+            "Does the mechanism keep this exact tension in view: "
+            f"{tension_target_text}, instead of flattening it into generic summary?"
         )
     return str(EXCERPT_TARGET_PROFILES[profile_id]["judge_focus_template"])
 
@@ -1214,6 +1286,7 @@ def _needs_preceding_sentence(text: str) -> bool:
     return bool(
         LOWERCASE_START_RE.match(cleaned)
         or _is_short_comma_fragment(cleaned)
+        or LEADING_BACKREFERENCE_RE.match(cleaned)
     )
 
 
@@ -1269,6 +1342,43 @@ def _expand_excerpt_window(sentences: list[dict[str, Any]], *, start: int, end: 
             break
         end += 1
     return start, min(end, len(sentences))
+
+
+def _refine_excerpt_window_for_profile(
+    *,
+    profile_id: str,
+    language: str,
+    sentences: list[dict[str, Any]],
+    anchor_index: int,
+    start: int,
+    end: int,
+) -> tuple[int, int]:
+    if profile_id != "tension_reversal" or language != "en":
+        return start, end
+
+    window_texts = [
+        _normalize_sentence_text(sentences[index].get("text") or "")
+        for index in range(start, end)
+    ]
+    if len(_rendered_excerpt_parts(window_texts)) > 3:
+        return start, end
+
+    anchor_text = _normalize_sentence_text(sentences[anchor_index].get("text") or "").lower()
+    if not any(marker in anchor_text for marker in ("however", "yet", "but", "still")):
+        return start, end
+
+    lowered_window = [text.lower() for text in window_texts]
+    has_dual_tension = any(
+        "whether" in text and "or whether" in text for text in lowered_window
+    )
+    has_argument_followthrough = any(
+        text.startswith("it is true") or text.startswith("this was")
+        for text in lowered_window
+    )
+    if not has_dual_tension or not has_argument_followthrough:
+        return start, end
+
+    return max(0, start - 1), min(len(sentences), end + 1)
 
 
 def _has_explicit_callback_marker(text: str, language: str) -> bool:

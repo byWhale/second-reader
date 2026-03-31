@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-30T23:06:06Z`
+Last verified: `2026-03-31T00:16:07Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -197,17 +197,58 @@ Last verified: `2026-03-30T23:06:06Z`
     - `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
     - `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
     - focused result: `72 passed`
-- One active callback-focus follow-up is now running:
+- The callback-focus follow-up is now completed:
   - job id:
     - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331`
-  - run dir:
-    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackfocusfix_20260331/`
-  - purpose:
-    - rerun the same four-source bilingual slice after making callback selection reasons and judge-focus prompts name the resolved earlier bridge target explicitly
-  - next evidence target:
-    - check whether Henry 29 and `on_liberty_public_en__4__callback_bridge__seed_v1` move from `revise` to `keep` without reviving weak callback rows
-  - boundary:
-    - this run is still scratch-safe evidence only; no promotion, reviewed-slice freezing, runtime-viability, or default-cutover work has been auto-launched
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackfocusfix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 7`, `revise = 1`, `drop = 0`
+    - Chinese `keep = 1`, `revise = 0`, `drop = 0`
+    - post-import English benchmark counts: `reviewed_active = 7`, `needs_revision = 1`
+    - post-import Chinese benchmark counts: `reviewed_active = 1`
+  - diagnosis:
+    - this is the current strongest narrow callback-quality checkpoint on the shared four-source bilingual slice
+    - explicit callback target naming improved the remaining callback lane without reopening weak Chinese rows
+    - this stayed scratch-safe evidence only; no promotion, reviewed-slice freezing, runtime-viability, or default-cutover work was auto-launched
+- A bounded tension-turn follow-up is now landed in code:
+  - code:
+    - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+  - bounded changes:
+    - English `tension_reversal` windows now expand around argumentative `whether this...` openings when the local follow-through is clearly part of the same turn
+    - leading `Whether this/that/...` openers now pull in the immediately preceding sentence as required context
+    - `selection_reason` and `judge_focus` now name the specific tension under review instead of using only the generic profile wording
+  - local validation:
+    - `reading-companion-backend/tests/test_question_aligned_case_construction.py`
+    - `reading-companion-backend/tests/test_case_design_audit.py`
+    - `reading-companion-backend/tests/test_case_design_audit_reproducibility.py`
+    - `reading-companion-backend/tests/test_packet_adjudication_reproducibility.py`
+    - `reading-companion-backend/tests/test_closed_loop_benchmark_curation.py`
+    - focused result: `78 passed`
+- The direct English tension-window follow-up is now completed:
+  - run id:
+    - `closed_loop_full_smoke_en_broader_tensionwindowfix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_tensionwindowfix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 5`, `revise = 3`, `drop = 0`
+  - diagnosis:
+    - the intended `on_liberty_public_en__5__tension_reversal__seed_v1` case now clears as `keep`
+    - the broader English packet still looked mixed because unchanged callback cases drifted at audit/adjudication, not because the tension-window repair damaged those builder rows
+- The broader bilingual tension-focus follow-up is now completed:
+  - job id:
+    - `bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 6`, `drop = 1`, `unclear = 1`, `revise = 0`
+    - Chinese `keep = 1`, `revise = 0`, `drop = 0`
+  - diagnosis:
+    - the intended `on_liberty_public_en__5__tension_reversal__seed_v1` win held in the broader bilingual slice
+    - the mixed packet outcome was not a clean builder regression signal:
+      - unchanged callback cases drifted during audit/adjudication even when the callback builder inputs themselves did not materially change
+      - the next blocker is bounded audit/review reproducibility on those unchanged callback cases before broader unattended widening
 - The focused English round-3 narrative/reference rerun is no longer running:
   - job id:
     - `bgjob_en_chapter_core_rerun_round3_parallel_20260329`
@@ -872,10 +913,9 @@ Last verified: `2026-03-30T23:06:06Z`
   - interpretation to carry forward:
     - the guarded rerun completed cleanly and reproduced the broader English `4 keep / 4 revise` split
     - the next dataset-platform step is comparison and reproducibility diagnosis, not more queue plumbing
-- One active offline background job is now running.
-  - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331` is the current callback-quality validation lane
-  - `callbackbridgefix`, `callbackcontentfix`, and `callbackinferencefix` now form the completed evidence ladder behind it
-  - the next inspect-and-decide checkpoint is whether target-specific callback focus drafting converts the remaining Henry / `on_liberty` revise cases into clean keeps
+- There are currently no active offline background jobs.
+  - the callback-quality and tension-turn validation lanes are both completed in durable repo state
+  - the next automatic dataset-platform move is not another broad rerun by default; it is a bounded audit/adjudication reproducibility hardening pass on the unchanged callback cases that drifted under the tension follow-up
 - The dataset-platform route is now underway, and it should keep reusing the machinery already landed rather than replace it:
   - keep the current strengths:
     - manifest-driven source promotion and canonical parsing from `corpus_builder.py`
@@ -936,9 +976,9 @@ Last verified: `2026-03-30T23:06:06Z`
 - Use the task registry plus the execution tracker as the route back into detailed mechanism work.
 
 ## Next
-- Convert the completed judged rerun into one bounded mechanism repair plan:
+- Convert the completed judged rerun into one bounded mechanism-evidence control pass:
   - preserve the `walden_205_en__10` single-axis threading behavior as a protected strength
-  - inspect `up_from_slavery_public_en__10` for sparse chapter presence and ambiguous chapter-label trust rather than treating it as a generic local-density problem
+  - rerun the same two judged cases with judge-facing bundles filtered down to substantive reading events so we can separate real reading-quality gain from judge penalties on parse/wait/error clutter
 - Use the cleanup follow-up summaries as the new benchmark-hardening truth:
   - the extra cleanup pass did not produce any `keep` decisions
   - the English `9` and Chinese `3` open cases were reaffirmed as `revise` / `drop` rather than promoted into `reviewed_active`
@@ -958,11 +998,19 @@ Last verified: `2026-03-30T23:06:06Z`
   - treat the completed `auditconsensusv3` compare result as the new live reproducibility baseline, because it brought `primary_decision_drift` back down to `2`, reduced `primary_problem_type_drift` to `2`, and aligned English final action counts across the English-only and bilingual runs
   - keep the new builder-side invisible-whitespace normalization as the current English case-quality repair, because it removed the zero-width / non-breaking whitespace corruption that was still leaking into the Henry Adams anchored-reaction case
   - keep the completed Henry Adams and broader-English whitespace-fix follow-ups as proof that the same anchored-reaction case now reviews as `keep` on the cleaned path and that the remaining English issue is a bounded callback-breadth outlier, not text corruption
+- Use the completed callback-focus and tension-focus follow-ups as the new narrow builder-quality truth:
+  - keep `callbackfocusfix` as the strongest current four-source bilingual callback checkpoint (`en: 7 keep / 1 revise`, `zh: 1 keep`)
+  - keep the new tension-specific window/focus patch, because it turned `on_liberty_public_en__5__tension_reversal__seed_v1` into a real `keep`
+  - treat the mixed `tensionfocusfix` bilingual packet as audit/adjudication drift on unchanged callback cases until the reproducibility tooling says otherwise
 - Keep the bounded controller as the active automation surface, but move the next automatic work from narrow audit hardening back into broader validation and unattended-loop boundary work:
   - the completed v4 frozen-input pair is already the clean proof that final-action instability is no longer the primary blocker
   - the completed `auditconsensusv3` pair is now the clean proof that live English audit drift is narrow enough to resume broader validation
   - the broader bilingual whitespace-fix rerun is now completed evidence, not an in-flight lane
   - its result says the next bounded automation move should be one callback-bridge-specific repair pass, because the remaining regressions are narrow (`education_of_henry_adams_public_en__29__callback_bridge__seed_v1`, `on_liberty_public_en__5__callback_bridge__seed_v1`, and the still-revise `chenlun_public_zh__4__callback_bridge__seed_v1`) rather than global
+- Before widening unattended automation again, run one bounded reproducibility repair wave on the unchanged callback cases:
+  - compare the completed callbackfocusfix and tensionfocusfix audit/adjudication artifacts directly
+  - harden whichever stage is still drifting on same-input callback rows
+  - only then relaunch a broader bilingual controller validation
 - Keep the dataset-platform route phased rather than monolithic:
   - source-book intake and intermediate-artifact governance is now landed
   - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
@@ -974,7 +1022,7 @@ Last verified: `2026-03-30T23:06:06Z`
 - Work from the recovered live local-only excerpt datasets:
   - the current follow-up cleanup pass has now dispositioned those cases mechanically, but it did not clear the open benchmark-status backlog
   - the `auditpair`, `auditcontractv2`, `auditcontractv3`, and `auditconsensusv3` waves all completed cleanly and their compare artifacts now form the durable audit-hardening evidence ladder
-  - the last persisted queue summary still shows `active_packet_count = 0` at `2026-03-30T20:05:14.323982Z`, and both whitespace-fix follow-up runs refreshed with `changed = false`, so no active packet remained open after import/archive
+  - the review queue remains empty (`active_packet_count = 0`), and the later callback/tension follow-ups also finished with no active packet left open after import/archive
 - Prepare a human-owned post-cleanup gate review from the recovered counts, the two new follow-up packet summaries, and the still-open benchmark statuses.
 - Keep benchmark promotion, reviewed-slice freezing, durable-trace, re-entry, runtime-viability, and any default-cutover decision paused until a human explicitly asks for them.
 
@@ -1006,7 +1054,7 @@ Last verified: `2026-03-30T23:06:06Z`
 - The adjudication-v4 frozen-input pair removed same-input action drift, but the broader English-only versus broader bilingual v4 runs still show `source_input_drift = 0`, `audit_input_drift = 5`, and `action_drift = 3` on the shared English case set.
 - The fresh audit-pair compare artifact now shows `audit_input_drift = 0` but `primary_score_drift = 8`, so the remaining live instability is audit-stage model variance rather than builder/input drift.
 - One remaining English outlier had invisible Unicode whitespace inside the emitted excerpt and selection-reason text even though the audit input fingerprints matched across runs; the builder-side normalization patch fixed that defect on the current builder path.
-- The current callback antecedent-quality rerun is the live bounded validation lane; the remaining risk is treating the completed callbackbridgefix result as the final callback verdict before the tighter antecedent-quality repair finishes.
+- The current strongest narrow callback result is `callbackfocusfix`, but the later tension follow-up showed that unchanged callback rows can still drift at audit/adjudication time even when the builder-side callback inputs stay effectively fixed.
 - Historical compatibility paths under `state/library_sources/<language>/private/...` are now cataloged successfully, but they remain compatibility inputs rather than the intended future operator workflow.
 - Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
@@ -1031,18 +1079,18 @@ Last verified: `2026-03-30T23:06:06Z`
 5. `docs/tasks/registry.md`
 6. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
 7. `reading-companion-backend/eval/review_packets/review_queue_summary.json`
-8. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_whitespacefix_20260331.json`
-9. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_whitespacefix_20260331/closed_loop_benchmark_curation_summary.json`
-10. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_whitespacefix_20260331__initial_review__closed_loop_full_smoke_en_broader_whitespacefix_20260331/llm_review_runs/llm_review__20260330-201515__9faa0f54f05d/cases/education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1.json`
-11. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331.json`
-12. `reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_bilingual_broader_callbackbridgefix_20260331.log`
-13. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_auditpair_20260331/case_audit_compare_against_bilingual.json`
+8. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331.json`
+9. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackfocusfix_20260331/closed_loop_benchmark_curation_summary.json`
+10. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331.json`
+11. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331/closed_loop_benchmark_curation_summary.json`
+12. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331__initial_review__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331/llm_review_runs/llm_review__20260331-000456__7fd494edee01/cases/on_liberty_public_en__5__tension_reversal__seed_v1.json`
+13. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_followup_20260330/summary/aggregate.json`
 14. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-30T23:06:06Z",
+  "updated_at": "2026-03-31T00:16:07Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
@@ -1051,9 +1099,7 @@ Last verified: `2026-03-30T23:06:06Z`
     "TASK-DATASET-FULL-AUTOMATION"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [
-    "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331"
-  ],
+  "active_job_ids": [],
   "open_decision_ids": [
     "OD-PRIVATE-LIBRARY-POST-RESCUE-GATE",
     "OD-BENCHMARK-SIZE",
