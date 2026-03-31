@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-31T01:35:14Z",
+  "updated_at": "2026-03-31T01:45:36Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -172,10 +172,11 @@
         "bgjob_closed_loop_bilingual_broader_callbackcontentfix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331",
-        "bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331"
+        "bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331",
+        "bgjob_callbackslice_auditv4_packet_20260331"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep callbackfocusfix as the strongest current narrow callback-quality checkpoint, keep the new tension-turn patch because it turned on_liberty_public_en__5__tension_reversal__seed_v1 into a real keep, and now rerun the narrow callback slice under the new callback-aware audit contract before widening again.",
+      "next_action": "Keep callbackfocusfix as the strongest current narrow callback-quality checkpoint, keep the new tension-turn patch because it turned on_liberty_public_en__5__tension_reversal__seed_v1 into a real keep, and inspect the active two-case callback packet rerun under the callback-aware audit contract before widening again.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -235,9 +236,12 @@
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330/llm_review_runs/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__initial_review__closed_loop_full_smoke_bilingual_broader_selectionfix_20260330__llm_review__20260330-121645/report.md",
         "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
         "reading-companion-backend/tests/test_case_design_audit.py",
-        "reading-companion-backend/tests/test_case_design_audit_reproducibility.py"
+        "reading-companion-backend/tests/test_case_design_audit_reproducibility.py",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_callbackslice_auditv4_packet_20260331.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_callbackslice_auditv4_packet_20260331.log",
+        "reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/run_state.json"
       ],
-      "last_updated": "2026-03-31T01:09:07Z",
+      "last_updated": "2026-03-31T01:45:36Z",
       "last_updated_by": "codex"
     },
     {
@@ -258,6 +262,7 @@
         "DEC-046"
       ],
       "job_refs": [
+        "bgjob_callbackslice_auditv4_packet_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331",
         "bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331",
         "bgjob_closed_loop_bilingual_broader_callbackinferencefix_20260331",
@@ -286,7 +291,7 @@
         "bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the bounded controller as the active automation surface, but use the landed callback-audit reproducibility hardening on the same narrow callback slice before widening unattended automation again.",
+      "next_action": "Keep the bounded controller as the active automation surface, let the active two-case callback packet measure whether callback-case audit/adjudication wobble narrows under the v4 audit contract, and widen unattended automation only if that bounded packet comes back stable.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -388,9 +393,12 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_packet_adjudication_probe_en_compactrepeat_compactauditv2_20260330.log",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-163116__ae50caff2084/summary.json",
         "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-174858__ae50caff2084/summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-175048__ae50caff2084/summary.json"
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330__initial_review__closed_loop_full_smoke_en_broader_compactadjudication_repeat_20260330/llm_review_runs/llm_review__20260330-175048__ae50caff2084/summary.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_callbackslice_auditv4_packet_20260331.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_callbackslice_auditv4_packet_20260331.log",
+        "reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/run_state.json"
       ],
-      "last_updated": "2026-03-31T01:09:07Z",
+      "last_updated": "2026-03-31T01:45:36Z",
       "last_updated_by": "codex"
     },
     {

@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-31T01:35:14Z`
+Last verified: `2026-03-31T01:45:36Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -280,6 +280,22 @@ Last verified: `2026-03-31T01:35:14Z`
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/`
   - launch policy:
     - the replacement rerun is pinned to the generic `backup` tier for the full scope so the run can finish consistently without mid-run target switching
+- The next bounded callback reproducibility lane is now active under durable tracking:
+  - registered job:
+    - `bgjob_callbackslice_auditv4_packet_20260331`
+  - packet:
+    - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331`
+  - source dataset:
+    - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331`
+  - targeted cases:
+    - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1`
+    - `on_liberty_public_en__10__callback_bridge__seed_v1`
+  - live audit run:
+    - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/`
+  - launch policy:
+    - full mechanical packet lifecycle only (`generate -> audit -> adjudicate -> import -> refresh -> summarize`)
+    - explicit worker caps stay at `audit=1`, `review=1` so this packet can share the LLM budget safely with the active mechanism rerun
+    - this is bounded reproducibility evidence only; no wider unattended automation or decision-bearing phase was auto-launched
     - inline-target callback cases now trigger a bounded primary-review replica escalation (`3` base replicas plus `2` extra replicas) before consensus is frozen
   - local validation:
     - `reading-companion-backend/tests/test_case_design_audit.py`

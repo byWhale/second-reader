@@ -400,6 +400,20 @@ Update when: status changes, blockers appear, or phases complete.
     - finish the remaining Chinese callback excerpt shaping so the stronger late-scene opportunity remains the primary pick cleanly
     - use the landed callback-aware audit contract plus the compare tooling to rerun the narrow unchanged callback rows before widening again
     - only then widen the same artifact model across the broader managed source pool
+  - active narrow reproducibility follow-up:
+    - job:
+      - `bgjob_callbackslice_auditv4_packet_20260331`
+    - source dataset:
+      - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331`
+    - packet:
+      - `attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331`
+    - targeted callback rows:
+      - `education_of_henry_adams_public_en__29__callback_bridge__seed_v1`
+      - `on_liberty_public_en__10__callback_bridge__seed_v1`
+    - audit run:
+      - `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-014454/`
+    - scope:
+      - full mechanical packet lifecycle only, with explicit `audit=1` and `review=1` worker caps so the packet can run in parallel with the active mechanism-evidence lane without claiming the whole shared LLM budget
   - the loop boundary is now defined and partially materialized:
     - target-profile contract
     - opportunity-card contract
