@@ -417,6 +417,87 @@ def test_agent_traceability_checker_allows_empty_blocked_and_active_job_lists(tm
     assert "active_job_ids" not in result.stdout
 
 
+def test_agent_traceability_checker_allows_archived_job_refs(tmp_path: Path):
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    _init_repo(repo_root)
+
+    _write(
+        repo_root / "docs/current-state.md",
+        "\n".join(
+            [
+                "# Current State",
+                "",
+                "## Current Objective",
+                "- Recover live state from the repo without chat history.",
+                "",
+                "## Now",
+                "- Review the active task and running job.",
+                "",
+                "## Next",
+                "- Finish the active job and clear blockers.",
+                "",
+                "## Blocked",
+                "- No blocked tasks right now.",
+                "",
+                "## Open Decisions",
+                "- No open decisions right now.",
+                "",
+                "## Active Risks",
+                "- Drift between task state and job state.",
+                "",
+                "## Recommended Reading Path",
+                "1. AGENTS.md",
+                "2. README.md",
+                "",
+                "## Machine-Readable Appendix",
+                "```json",
+                json.dumps(
+                    {
+                        "updated_at": "2026-03-28T05:59:20Z",
+                        "last_updated_by": "codex",
+                        "active_task_ids": ["TASK-1"],
+                        "blocked_task_ids": [],
+                        "active_job_ids": [],
+                        "open_decision_ids": [],
+                        "detail_refs": ["docs/detail.md"],
+                        "truth_refs": ["docs/truth.md", "docs/tasks/registry.json"],
+                    },
+                    ensure_ascii=False,
+                    indent=2,
+                ),
+                "```",
+                "",
+            ]
+        ),
+    )
+    _write_json(
+        repo_root / "reading-companion-backend/state/job_registry/active_jobs.json",
+        {
+            "version": 1,
+            "updated_at": "2026-03-28T05:59:20Z",
+            "jobs": [],
+        },
+    )
+    _write_json(
+        repo_root / "reading-companion-backend/state/job_registry/jobs/JOB-1.json",
+        {
+            "job_id": "JOB-1",
+            "task_ref": "TASK-1",
+            "purpose": "Historical finished job",
+            "status": "completed",
+            "archived_at": "2026-03-28T06:10:00Z",
+            "archive_reason": "finished",
+        },
+    )
+
+    result = _run_traceability(repo_root)
+
+    assert result.returncode == 0
+    assert "no issues detected" in result.stdout
+    assert "unknown job id" not in result.stdout
+
+
 def test_agent_context_script_prints_canonical_summary(tmp_path: Path):
     repo_root = tmp_path / "repo"
     repo_root.mkdir()

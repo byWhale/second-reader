@@ -446,6 +446,34 @@ Update when: status changes, blockers appear, or phases complete.
       - `on_liberty_public_en__4__callback_bridge__seed_v1` now clears as a real `keep` on the targeted source slice
       - `on_liberty_public_en__10__callback_bridge__reserve_v1` stays available as a sharpened reserve rather than the active callback export for this slice
       - the remaining narrow revise is `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1`, so the next widening move should no longer be blocked on callback prompt drift alone
+  - broader English callback-prompt validation is now completed under durable tracking:
+    - job:
+      - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331`
+    - run:
+      - `closed_loop_full_smoke_en_broader_callbackpromptfix_20260331`
+    - result:
+      - English `keep = 7`
+      - English `revise = 1`
+      - English `drop = 0`
+      - post-import benchmark counts: `reviewed_active = 7`, `needs_revision = 1`
+    - interpretation:
+      - the repaired argumentative callback drafting now holds across the full two-source English slice instead of only on the narrow On Liberty probe
+      - the remaining English outlier is still a bounded focus-framing issue rather than a callback-prompt failure
+  - a later broader bilingual callback-prompt launch ended as an operational stop:
+    - job:
+      - `bgjob_closed_loop_bilingual_broader_callbackpromptfix_20260331`
+    - terminal status:
+      - `status = failed`
+      - `exit_code = -15`
+      - `ended_at = 2026-03-31T04:47:10.473081Z`
+    - observed progress:
+      - packet export completed for both languages
+      - English audit reached `4/8` completed cases before the wrapped command exited
+      - the exported scratch packets were moved out of the live pending queue into the run-local `abandoned_review_packets/` folder
+      - the visible review queue returned to `active_packet_count = 0`
+    - interpretation:
+      - this is operational stop evidence only, not a new bilingual quality result
+      - the stronger bilingual quality truth still comes from `callbackfocusfix`, with `tensionfocusfix` preserved as the drift warning
   - the loop boundary is now defined and partially materialized:
     - target-profile contract
     - opportunity-card contract
@@ -478,7 +506,7 @@ Update when: status changes, blockers appear, or phases complete.
     - keep the bounded controller as the active automation surface
     - do not widen to the multi-iteration unattended scheduler until repeated bilingual scratch runs are more reproducible
     - separate builder-quality gains from audit/adjudication variability before trusting unattended widening
-    - the next automatic controller-side step is a bounded reproducibility repair wave on the unchanged callback cases exposed by `tensionfocusfix`, not another broad rerun by default
+    - the next automatic controller-side step is the bounded reproducibility repair wave on the unchanged callback cases exposed by `tensionfocusfix`, not another broad rerun by default
 - [x] Make source-book intake and intermediate-artifact management clear and durable.
   - keep canonical managed copies of original books inside project-owned storage instead of relying on external source paths as the long-term truth
   - define one documented drop-folder workflow for future book additions so new intake can be fetched and processed reproducibly
@@ -1104,16 +1132,30 @@ Update when: status changes, blockers appear, or phases complete.
   - stop reason:
     - the run never reached a trustworthy aggregate summary because `attentional_v2` on `walden_205_en__10` exhausted the `runtime_reader_default` quota wait budget while the shared `MiniMax-M2.7-highspeed` cooldown was still active
     - treat this as an operational quota/tier-selection failure, not as a new mechanism-quality verdict
-- The replacement substantive rerun is now registered and running on the generic backup tier:
+- The replacement substantive rerun is now completed on the generic backup tier:
   - registry job:
     - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331`
   - run id:
     - `attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331`
+  - terminal status:
+    - `status = completed`
+    - `exit_code = 0`
+    - `ended_at = 2026-03-31T03:47:46.607780Z`
   - launch note:
-    - this relaunch uses `LLM_FORCE_TIER_ID=backup` for the full scope so the rerun stays whole-job pinned while avoiding another highspeed cooldown stop
+    - this relaunch used `LLM_FORCE_TIER_ID=backup` for the full scope so the rerun stayed whole-job pinned while avoiding another highspeed cooldown stop
+  - landed outputs:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/report.md`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
+  - result:
+    - `local_impact`: split `1-1`, average scores `4.1` vs `3.7` in favor of `attentional_v2`
+    - `system_regression`: `iterator_v1 = 1`, `tie = 1`, average scores `2.7` vs `3.2`
+  - interpretation:
+    - the backup-tier rerun resolved the operational quota stop without changing the underlying mixed mechanism picture
+    - `up_from_slavery_public_en__10` still exposes the chapter-arc accumulation weakness
+    - `walden_205_en__10` still preserves a chapter-spanning strength but not a decisive overall system-regression edge
 - Root-launched backend scripts now resolve `BACKEND_RUNTIME_ROOT` relative to `reading-companion-backend/`:
   - this keeps future reruns from leaking runtime lock/state artifacts into workspace-root `state/` when operators launch them from the shared workspace root
 - Immediate next move:
   - keep the dataset-growth decision human-owned; do not treat the bounded repair as automatic permission to reopen promotion
-  - prioritize the active backup-tier substantive rerun as the next mechanism-evidence checkpoint
+  - treat the completed backup-tier substantive rerun as parked evidence rather than an active launch lane
   - keep the next English cleanup pass on the recovered live local-only dataset separate from this mechanism-evidence lane

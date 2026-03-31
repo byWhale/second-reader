@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-03-31T02:30:53Z`
+Last verified: `2026-03-31T04:48:21Z`
 
 ## Current Objective
 - Keep Phase 9 of the new reading mechanism project recoverable and decision-ready:
@@ -20,7 +20,7 @@ Last verified: `2026-03-31T02:30:53Z`
 
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
-- The English chapter-core retry-2 closeout is still the last completed comparison baseline:
+- The English chapter-core retry-2 closeout remains the last broader multi-case comparison baseline, and the completed backup-tier substantive rerun is now the latest focused two-case mechanism-evidence checkpoint:
   - run:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/`
   - round-1 vs retry-2 shift:
@@ -32,6 +32,18 @@ Last verified: `2026-03-31T02:30:53Z`
   - live queue record:
     - `docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md`
     - `docs/implementation/new-reading-mechanism/execution-tracker.md`
+  - focused two-case substantive rerun:
+    - job id:
+      - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331`
+    - summary:
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
+    - result:
+      - `local_impact`: split `1-1`, average scores `4.1` vs `3.7` in favor of `attentional_v2`
+      - `system_regression`: `iterator_v1 = 1`, `tie = 1`, average scores `2.7` vs `3.2`
+    - interpretation:
+      - the backup-tier rerun removed the earlier quota-stop and preserved the real mixed mechanism picture instead of changing project direction
+      - `up_from_slavery_public_en__10` improved on local passage reading but still lost on chapter-scale accumulation
+      - `walden_205_en__10` held as a chapter-spanning strength without converting into a clean overall system-regression win
 - The bounded narrative/reference-heavy Phase 4 repair is landed in code for:
   - `up_from_slavery_public_en__10`
   - `walden_205_en__10`
@@ -281,7 +293,7 @@ Last verified: `2026-03-31T02:30:53Z`
   - bounded change:
     - relative `BACKEND_RUNTIME_ROOT` values now resolve from `reading-companion-backend/`, matching the existing relative LLM config path behavior
     - this stops workspace-root runtime spill such as accidental `state/llm_gateway/providers/*.lock` files when backend scripts are launched from the workspace root
-- The substantive-evidence rerun lane is active again under durable tracking:
+- The substantive-evidence rerun lane is now completed under durable tracking:
   - the unregistered highspeed attempt:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_20260331/`
   - current disposition:
@@ -291,8 +303,17 @@ Last verified: `2026-03-31T02:30:53Z`
     - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331`
   - replacement run:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/`
-  - launch policy:
-    - the replacement rerun is pinned to the generic `backup` tier for the full scope so the run can finish consistently without mid-run target switching
+  - terminal status:
+    - registry now reports `status = completed`, `exit_code = 0`, and `ended_at = 2026-03-31T03:47:46.607780Z`
+    - the rerun stayed whole-job pinned to the generic `backup` tier and finished cleanly without mid-run target switching
+  - landed outputs:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/report.md`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/case_results.jsonl`
+  - current interpretation:
+    - the rerun confirms the operational tier-routing fix worked and should be treated as evidence only
+    - `up_from_slavery_public_en__10` still exposes the chapter-arc / accumulation weakness in `attentional_v2`
+    - `walden_205_en__10` still preserves a chapter-spanning reading strength, but not a decisive system-regression win
 - The bounded callback reproducibility retry is now completed under durable tracking:
   - original registered job:
     - `bgjob_callbackslice_auditv4_packet_20260331`
@@ -357,6 +378,17 @@ Last verified: `2026-03-31T02:30:53Z`
     - the repaired argumentative callback drafting now clears `on_liberty_public_en__4__callback_bridge__seed_v1` as a real `keep` on a one-source scratch slice
     - `on_liberty_public_en__10__callback_bridge__reserve_v1` remains available as a sharpened reserve rather than the active callback export for this source slice
     - the remaining revise in this narrow run is no longer callback-specific: `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` still needs tighter focus framing
+- The broader English callback-prompt follow-up is now completed:
+  - job id:
+    - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331`
+  - summary:
+    - `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_callbackpromptfix_20260331/closed_loop_benchmark_curation_summary.json`
+  - result:
+    - English `keep = 7`, `revise = 1`, `drop = 0`
+    - post-import English benchmark counts: `reviewed_active = 7`, `needs_revision = 1`
+  - diagnosis:
+    - the repaired argumentative callback drafting now holds across the broader two-source English slice rather than only on the one-source On Liberty probe
+    - the remaining English holdout is still a bounded focus-framing issue, not a callback-prompt collapse
 - A bounded mechanism evidence-control mode is now landed in code:
   - code:
     - `reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py`
@@ -1043,8 +1075,9 @@ Last verified: `2026-03-31T02:30:53Z`
     - the guarded rerun completed cleanly and reproduced the broader English `4 keep / 4 revise` split
     - the next dataset-platform step is comparison and reproducibility diagnosis, not more queue plumbing
 - There are currently no active offline background jobs.
-  - the callback-quality and tension-turn validation lanes are both completed in durable repo state
-  - the next automatic dataset-platform move is not another broad rerun by default; it is a bounded audit/adjudication reproducibility hardening pass on the unchanged callback cases that drifted under the tension follow-up
+  - the broader English callback-prompt rerun finished cleanly at `7 keep / 1 revise`
+  - the later bilingual `callbackpromptfix` launch was retired as superseded scratch work after exporting packets because later callback/tension follow-ups already produced stronger durable bilingual evidence
+  - the retired scratch packets were moved out of the live pending queue into the run-local state area, and the visible review queue remains at `active_packet_count = 0`
 - The dataset-platform route is now underway, and it should keep reusing the machinery already landed rather than replace it:
   - keep the current strengths:
     - manifest-driven source promotion and canonical parsing from `corpus_builder.py`
@@ -1105,9 +1138,9 @@ Last verified: `2026-03-31T02:30:53Z`
 - Use the task registry plus the execution tracker as the route back into detailed mechanism work.
 
 ## Next
-- Inspect the bounded mechanism-evidence control rerun after the new substantive judge-evidence mode finishes:
-  - preserve the `walden_205_en__10` single-axis threading behavior as a protected strength
-  - check whether the `up_from_slavery_public_en__10` loss narrows once parse/wait/error clutter is removed from the judge-facing bundle
+- Use the completed backup-tier substantive rerun as the parked focused mechanism-evidence checkpoint:
+  - preserve the `walden_205_en__10` chapter-spanning threading behavior as a protected strength
+  - keep `up_from_slavery_public_en__10` as the bounded chapter-arc weakness instead of reopening mechanism-eval fanout automatically
 - Use the cleanup follow-up summaries as the new benchmark-hardening truth:
   - the extra cleanup pass did not produce any `keep` decisions
   - the English `9` and Chinese `3` open cases were reaffirmed as `revise` / `drop` rather than promoted into `reviewed_active`
@@ -1135,7 +1168,10 @@ Last verified: `2026-03-31T02:30:53Z`
   - the completed v4 frozen-input pair is already the clean proof that final-action instability is no longer the primary blocker
   - the remaining uncertainty is broader-slice generalization and any surviving focus drift, not missing controller plumbing
   - the callback retry plus the one-source On Liberty callback-prompt follow-up now clear the narrow callback blocker on the targeted slice
-  - the next bounded automation move should widen the current argumentative callback drafting across a broader English or bilingual scratch slice, then treat `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` as a separate focus-framing follow-up if it still survives
+  - the completed broader English callback-prompt rerun now proves the repair holds on the full two-source English slice
+  - the next automatic controller-side step is the bounded reproducibility repair wave on the unchanged callback rows exposed by `tensionfocusfix`, not another broad rerun by default
+  - only after that reproducibility check holds should we consider another bilingual widening pass
+  - only if `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` still survives after that should it become the next bounded focus-framing follow-up
 - Keep the dataset-platform route phased rather than monolithic:
   - source-book intake and intermediate-artifact governance is now landed
   - the first Question-Aligned Case Construction landing on top of the current corpus/review schema is now landed
@@ -1154,7 +1190,7 @@ Last verified: `2026-03-31T02:30:53Z`
 ## Blocked
 - Formal curated promotion from the modern private-library supplement remains paused until the remaining open cases are dispositioned and a human explicitly reopens the post-recovery gate discussion.
 - Reviewed-slice freezing remains paused until a human explicitly chooses to freeze a slice.
-- Durable-trace, re-entry, and runtime-viability remain intentionally queued until the failed rerun is dispositioned and the post-recovery benchmark gate becomes an explicit human-owned decision.
+- Durable-trace, re-entry, and runtime-viability remain intentionally queued until the post-recovery benchmark gate becomes an explicit human-owned decision.
 - The later frontend/API retirement of section-first chapter/detail and marks surfaces remains blocked on benchmark stabilization plus stable doc promotion timing.
 - `Q10` remains open: when the detailed `attentional_v2` working design should be promoted from temp docs into stable mechanism docs.
 
@@ -1189,7 +1225,6 @@ Last verified: `2026-03-31T02:30:53Z`
 
 ## Active Task IDs
 - `TASK-BENCH-BACKLOG-RESCUE`
-- `TASK-MECH-EN-RERUN`
 - `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION`
 - `TASK-DATASET-FULL-AUTOMATION`
 
@@ -1208,18 +1243,20 @@ Last verified: `2026-03-31T02:30:53Z`
 9. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_callbackfocusfix_20260331/closed_loop_benchmark_curation_summary.json`
 10. `reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_bilingual_broader_tensionfocusfix_20260331.json`
 11. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331/closed_loop_benchmark_curation_summary.json`
-12. `reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331__initial_review__closed_loop_full_smoke_bilingual_broader_tensionfocusfix_20260331/llm_review_runs/llm_review__20260331-000456__7fd494edee01/cases/on_liberty_public_en__5__tension_reversal__seed_v1.json`
-13. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_narrative_reference_repair_parallel_caseiso_judged_followup_20260330/summary/aggregate.json`
-14. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
+12. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_callbackpromptfix_20260331/closed_loop_benchmark_curation_summary.json`
+13. `reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__closed_loop_full_smoke_en_broader_callbackpromptfix_20260331__initial_review__closed_loop_full_smoke_en_broader_callbackpromptfix_20260331__20260331-042216/run_state.json`
+14. `reading-companion-backend/state/dataset_build/build_runs/closed_loop_on_liberty_callbackpromptfix_20260331/closed_loop_benchmark_curation_summary.json`
+15. `reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331.json`
+16. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
+17. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-03-31T00:16:07Z",
+  "updated_at": "2026-03-31T04:48:21Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-BENCH-BACKLOG-RESCUE",
-    "TASK-MECH-EN-RERUN",
     "TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION",
     "TASK-DATASET-FULL-AUTOMATION"
   ],
@@ -1293,6 +1330,12 @@ Last verified: `2026-03-31T02:30:53Z`
     "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_parallel_20260329.log",
     "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_en_recovery_20260329/dataset_review_pipeline_summary.json",
     "reading-companion-backend/eval/review_packets/archive/attentional_v2_private_library_cleanup_zh_recovery_20260329/dataset_review_pipeline_summary.json",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331.log",
+    "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/report.md",
+    "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_callbackpromptfix_20260331.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_callbackpromptfix_20260331.log",
     "reading-companion-backend/state/job_registry/jobs/bgjob_closed_loop_en_broader_adjudicationv4_20260331.json",
     "reading-companion-backend/state/job_registry/logs/bgjob_closed_loop_en_broader_adjudicationv4_20260331.log",
     "reading-companion-backend/state/dataset_build/build_runs/closed_loop_full_smoke_en_broader_adjudicationv4_20260331/closed_loop_benchmark_curation_summary.json",

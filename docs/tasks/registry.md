@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-03-31T02:30:53Z`
+Last updated: `2026-03-31T04:48:21Z`
 
 ## Status Values
 - `active`
@@ -28,23 +28,14 @@ Last updated: `2026-03-31T02:30:53Z`
 - Next: keep the post-cleanup gate on `hold`, treat the `0`-new-keep follow-up result as the new benchmark-hardening truth, and only reopen promotion after a human explicitly chooses that route or a more substantive backlog-clearing move lands
 - Jobs: none
 
-### `TASK-MECH-EN-RERUN` — Run the focused English round-3 narrative/reference rerun
-- Status: `active`
-- Lane: `mechanism_eval`
-- Priority: `high`
-- Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: use the completed judged follow-up rerun as the mechanism-evidence baseline, treat the unregistered highspeed substantive attempt as an operational quota failure rather than a new mechanism result, and inspect the registered backup-tier substantive rerun once it finishes so we can separate real reading-quality gain from judge penalties on parse/wait/error clutter
-- Jobs:
-  - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330` (`completed`)
-  - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331` (`running`)
-
 ### `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION` — Build question-aligned case construction for evaluation datasets
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep `callbackfocusfix` as the strongest shared narrow callback-quality checkpoint, treat the completed callbackslice retry as the new callback reproducibility truth, use `closed_loop_on_liberty_callbackpromptfix_20260331` as proof that argumentative callback drafting now clears `on_liberty_public_en__4__callback_bridge__seed_v1`, and widen that draft change back across a broader slice before treating `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` as the next bounded focus issue
+- Next: keep `callbackfocusfix` as the strongest shared narrow callback-quality checkpoint, use `closed_loop_on_liberty_callbackpromptfix_20260331` plus the completed broader English callback-prompt rerun as proof that argumentative callback drafting now generalizes across the English slice, and rerun the unchanged callback rows exposed by `tensionfocusfix` under the hardened audit/adjudication path before treating `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` as the next bounded focus issue
 - Jobs:
+  - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)
   - `bgjob_closed_loop_zh_callbackpriorcontext_20260330` (`completed`)
   - `bgjob_closed_loop_zh_cueguard_20260330` (`completed`)
@@ -61,8 +52,10 @@ Last updated: `2026-03-31T02:30:53Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the bounded controller as the active automation surface, use the completed callbackslice retry plus `closed_loop_on_liberty_callbackpromptfix_20260331` as proof that the narrow callback blocker is no longer the first widening constraint, and run the next broader validation wave before deciding whether the remaining `on_liberty_public_en__5__anchored_reaction_selectivity__seed_v1` focus issue needs its own bounded repair
+- Next: keep the bounded controller as the active automation surface, treat the completed broader English callback-prompt rerun as proof that the callback repair generalizes across the two-source English slice, and run the next automatic controller-side step as the bounded reproducibility repair wave on the unchanged callback rows exposed by `tensionfocusfix` before any new widening
 - Jobs:
+  - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
+  - `bgjob_closed_loop_bilingual_broader_callbackpromptfix_20260331` (`failed`)
   - `bgjob_callbackslice_auditv4_packet_20260331` (`failed`)
   - `bgjob_callbackslice_auditv4_packet_retry_quota_20260331` (`completed`)
   - `bgjob_closed_loop_bilingual_broader_callbackfocusfix_20260331` (`completed`)
@@ -99,8 +92,8 @@ Last updated: `2026-03-31T02:30:53Z`
 - Lane: `mechanism_eval`
 - Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Blocked by: `TASK-BENCH-BACKLOG-RESCUE`, `TASK-MECH-EN-RERUN`
-- Next: launch the remaining runtime-viability gates only after the failed rerun is dispositioned and the post-recovery benchmark gate decision is explicit
+- Blocked by: `TASK-BENCH-BACKLOG-RESCUE`
+- Next: launch the remaining runtime-viability gates only after the post-recovery benchmark gate decision is explicit
 
 ### `TASK-DOC-Q10` — Decide when to promote `attentional_v2` working design into stable docs
 - Status: `queued`
@@ -135,6 +128,16 @@ Last updated: `2026-03-31T02:30:53Z`
 - Detail: `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
 - Next: keep the recorded `hold_for_backlog_rescue` decision in force until a human explicitly reopens the post-recovery gate discussion
 - Jobs: none
+
+### `TASK-MECH-EN-RERUN` — Run the focused English round-3 narrative/reference rerun
+- Status: `done`
+- Lane: `mechanism_eval`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
+- Next: treat the completed backup-tier substantive rerun as evidence only; preserve the `walden` strength, keep the `up_from_slavery` chapter-arc weakness explicit, and do not launch default-cutover or promotion work automatically
+- Jobs:
+  - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_followup_20260330` (`completed`)
+  - `bgjob_en_chapter_core_rerun_round3_caseiso_judged_substantive_backup_20260331` (`completed`)
 
 ### `TASK-AGENT-SWITCHING-SYSTEM` — Land the repo-first agent-switching memory system
 - Status: `done`

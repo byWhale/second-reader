@@ -14,6 +14,7 @@ DEFAULT_ROOT_DIR = Path(__file__).resolve().parents[1]
 CURRENT_STATE_PATH = Path("docs/current-state.md")
 TASK_REGISTRY_PATH = Path("docs/tasks/registry.json")
 ACTIVE_JOBS_PATH = Path("reading-companion-backend/state/job_registry/active_jobs.json")
+JOB_RECORDS_DIR = Path("reading-companion-backend/state/job_registry/jobs")
 DECISION_LOG_PATH = Path("docs/history/decision-log.md")
 HANDOFF_PATH = Path("docs/agent-handoff.md")
 SOURCE_OF_TRUTH_PATH = Path("docs/source-of-truth-map.md")
@@ -78,6 +79,21 @@ def _load_json(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _load_job_records(path: Path) -> dict[str, dict[str, object]]:
+    jobs_by_id: dict[str, dict[str, object]] = {}
+    if not path.exists():
+        return jobs_by_id
+    for job_path in sorted(path.glob("*.json")):
+        payload = json.loads(job_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            continue
+        job_id = str(payload.get("job_id", "")).strip()
+        if not job_id:
+            continue
+        jobs_by_id[job_id] = payload
+    return jobs_by_id
+
+
 def _path_exists(repo_root: Path, ref: str) -> bool:
     ref = str(ref or "").strip()
     if not ref:
@@ -139,6 +155,7 @@ def main() -> int:
     current_state_path = repo_root / CURRENT_STATE_PATH
     task_registry_path = repo_root / TASK_REGISTRY_PATH
     active_jobs_path = repo_root / ACTIVE_JOBS_PATH
+    job_records_dir = repo_root / JOB_RECORDS_DIR
     decision_log_path = repo_root / DECISION_LOG_PATH
     handoff_path = repo_root / HANDOFF_PATH
     source_of_truth_path = repo_root / SOURCE_OF_TRUTH_PATH
@@ -168,9 +185,10 @@ def main() -> int:
     if not isinstance(jobs, list):
         raise RuntimeError(f"Expected 'jobs' list in {active_jobs_path}.")
 
-    jobs_by_id = {
+    active_jobs_by_id = {
         str(job.get("job_id")): job for job in jobs if isinstance(job, dict) and str(job.get("job_id", "")).strip()
     }
+    known_jobs_by_id = {**_load_job_records(job_records_dir), **active_jobs_by_id}
     tasks_by_id: dict[str, dict[str, object]] = {}
     duplicate_task_ids: set[str] = set()
 
@@ -227,7 +245,7 @@ def main() -> int:
         else:
             for job_ref in job_refs:
                 job_text = str(job_ref).strip()
-                if job_text and job_text not in jobs_by_id:
+                if job_text and job_text not in known_jobs_by_id:
                     warnings.append(f"Task '{task_id}' points to unknown job id '{job_text}'.")
 
         if not str(task.get("last_updated", "")).strip():
@@ -289,7 +307,7 @@ def main() -> int:
     if isinstance(active_job_ids, list):
         for job_id in active_job_ids:
             job_text = str(job_id).strip()
-            job = jobs_by_id.get(job_text)
+            job = active_jobs_by_id.get(job_text)
             if job is None:
                 warnings.append(f"docs/current-state.md references unknown active job id '{job_text}'.")
                 continue
