@@ -104,19 +104,19 @@ The benchmark family now has two tracked generations:
 The `v2` generation is the current serious public-first bilingual benchmark layer.
 
 ## Current Reviewed-Slice Status
-The current reviewed excerpt slice is still much smaller than the full curated `v2` pack:
+The current reviewed excerpt slice is still much smaller than the full curated `v2` pack, but it is no longer at the earlier `3/2` signal-check stage:
 - English reviewed-active excerpt cases:
-  - `3`
+  - `9`
 - Chinese reviewed-active excerpt cases:
-  - `2`
+  - `9`
 
 Current frozen reviewed round:
-- `attentional_v2_excerpt_en_curated_v2_llm_reviewed_round2`
-- `attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round2`
+- `attentional_v2_excerpt_en_curated_v2_llm_reviewed_round3`
+- `attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round3`
 
 Interpretation:
-- this reviewed slice is useful for signal-check reruns
-- it is not yet large enough to safely drive broad mechanism tuning or broader semantic comparison
+- this reviewed slice is now large enough for small targeted local-reading checks and interview-legible public evidence
+- it is still not large enough to safely drive broad mechanism tuning, wide comparison sweeps, or default-cutover confidence by itself
 
 ## Package Contract
 Every concrete package should contain:
