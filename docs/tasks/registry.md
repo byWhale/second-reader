@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-01T05:05:59Z`
+Last updated: `2026-04-01T13:06:11Z`
 
 ## Status Values
 - `active`
@@ -20,16 +20,18 @@ Last updated: `2026-04-01T05:05:59Z`
 
 ## Active
 
-### `TASK-RUNTIME-VIABILITY-GATES` — Run durable-trace, re-entry, and runtime-viability evaluation
+### `TASK-RUNTIME-VIABILITY-GATES` — Keep the minimal eval core focused on three north-star dimensions
 - Status: `active`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: let `bgjob_runtime_viability_gate_serialfix_20260401` finish as the clean serial rerun, treat `bgjob_runtime_viability_gate_20260401` and `bgjob_durable_trace_reentry_gate_20260401` as diagnostic-only first launches, then start the durable-trace / re-entry rerun on a clean provider window; keep promotion on `hold`, and do not reopen new general builder or automation waves first
+- Next: keep the active eval scope compressed to only three north-star dimensions: `selective_legibility`, `coherent_accumulation`, and `insight_and_clarification`; use the existing chapter-scale comparison checkpoints as the current accumulation baseline, treat honesty / integrity / compatibility as cheap sanity guards rather than primary success targets, and keep runtime-viability together with durable-trace / re-entry and broader local pairwise comparison paused unless one of the three kept dimensions later requires them
 - Jobs:
   - `bgjob_durable_trace_reentry_gate_20260401` (`failed`)
+  - `bgjob_durable_trace_reentry_gate_parallel3_20260401` (`completed`)
+  - `bgjob_durable_trace_reentry_gate_personal_serial_20260401` (`abandoned`)
   - `bgjob_runtime_viability_gate_20260401` (`completed`)
-  - `bgjob_runtime_viability_gate_serialfix_20260401` (`running`)
+  - `bgjob_runtime_viability_gate_serialfix_20260401` (`completed`)
 
 ## Waiting
 
@@ -38,7 +40,7 @@ Last updated: `2026-04-01T05:05:59Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-RUNTIME-VIABILITY-GATES` is active; only resume if later decisive eval work exposes a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
+- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-RUNTIME-VIABILITY-GATES` is active; with current model cost pressure, do not relaunch comparison-driven widening outside the mechanism mainline; only resume if later decisive eval work exposes a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)
@@ -59,7 +61,7 @@ Last updated: `2026-04-01T05:05:59Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the bounded controller scratch-safe and reusable, but do not widen automation while decisive mechanism-eval work is active; resume only if later work needs one explicitly scoped audit-stage-only reproducibility pass or another concrete support-lane unblocker
+- Next: keep the bounded controller scratch-safe and reusable, but do not widen automation while decisive mechanism-eval work is active; with current model cost pressure, do not spend on non-mainline comparison support loops; resume only if later work needs one explicitly scoped audit-stage-only reproducibility pass or another concrete support-lane unblocker
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_bilingual_broader_callbackpromptfix_20260331` (`failed`)

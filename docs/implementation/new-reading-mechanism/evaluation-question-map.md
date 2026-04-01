@@ -85,16 +85,50 @@ Update when: a new evaluation question is added, a question changes owner, or a 
 - The practical next control step is:
   - keep excerpt hardening bounded to the cases that still block trusted comparison
   - return the main cadence to chapter-corpus and runtime/resume questions once that blocker is either accepted or cleared
+- `2026-04-01` minimum-focus compression for the current project stage:
+  - keep as the only primary eval dimensions:
+    - `reader_character.selective_legibility`
+      - can be answered with the smallest local reading pack that still shows whether the mechanism notices worthwhile things and expresses them clearly
+    - `reader_character.coherent_accumulation`
+      - is still best answered by `EQ-CM-003`
+      - chapter-scale accumulation remains the clearest "why the new mechanism is better or worse" interview question
+    - `reader_value.insight_and_clarification`
+      - should be judged as real clarifying value, not as generic pleasantness or verbosity
+  - keep only as cheap sanity guards, not as primary success targets:
+    - `EQ-AV2-001`
+    - `EQ-GATE-001`
+    - `EQ-GATE-002`
+  - pause as active judged targets:
+    - `EQ-CM-001`
+    - `EQ-CM-002`
+    - `EQ-CM-004`
+    - `EQ-CM-005`
+    - `EQ-AV2-002`
+    - `EQ-AV2-003`
+    - `EQ-AV2-004`
+    - `EQ-AV2-005`
+    - `EQ-AV2-006`
+    - `EQ-AV2-007`
+    - `EQ-AV2-008`
+    - `EQ-GATE-003`
+  - interpretation:
+    - this project no longer aims to answer every evaluation question before moving forward
+    - it aims to answer only the three north-star dimensions that most directly support product improvement and a strong interview explanation of mechanism tradeoffs
 - `2026-04-01`: MVP gate runners are now landed and the first diagnostic launches have completed.
   - `reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py`
   - `reading-companion-backend/eval/attentional_v2/run_runtime_viability.py`
   - first diagnostic launches:
     - `bgjob_durable_trace_reentry_gate_20260401` failed before summary output because case failures were not yet isolated
     - `bgjob_runtime_viability_gate_20260401` completed, but the result mix is diagnostic-only because unsupported-plan, quota, and runtime failures are still entangled
-  - active follow-up:
+  - completed follow-up:
     - `bgjob_runtime_viability_gate_serialfix_20260401`
-  - queued next:
-    - rerun durable-trace / re-entry after the serial runtime rerun finishes on the shared provider budget
+    - unsupported-plan/model entanglement is cleared, but the fresh runtime summary still shows shared quota cooldown as the dominant blocker
+  - completed next-lane probe:
+    - `bgjob_durable_trace_reentry_gate_parallel3_20260401`
+    - the durable-trace / re-entry rerun completed with `0` evaluated cases and `8` partial failures, so it is provider-pressure evidence rather than usable comparison evidence
+    - repeated direct probes against `MiniMax-M2.7-highspeed` still return raw `429 rate_limit_error: usage limit exceeded (2056)`
+    - local same-target concurrency is now capped at `2`
+    - the next durable rerun default is reset back to `--case-workers 1`
 - After the first corrected local run, there is now one more explicit rule:
   - broader semantic comparison work should not be treated as authoritative until the weak local excerpt buckets have gone through dataset-quality hardening
   - see [dataset-quality-hardening.md](/Users/baiweijiang/Documents/Projects/reading-companion/docs/implementation/new-reading-mechanism/dataset-quality-hardening.md)

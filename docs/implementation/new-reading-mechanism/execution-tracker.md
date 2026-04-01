@@ -26,11 +26,24 @@ Update when: status changes, blockers appear, or phases complete.
     - callbackslice bounded variance is accepted for frozen-slice comparison cadence
     - current benchmark size is treated as adequate for the next decisive lane only, not for default-cutover confidence
   - current builder/controller work stays available as a bounded support lane, not as the active mainline
-  - unattended automation should not widen further while durable-trace / re-entry / runtime-viability are the active lane
-  - durable-trace / re-entry and runtime-viability are now the active decisive mechanism-eval lane rather than a later optional cleanup
+  - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
+  - durable-trace / re-entry and runtime viability are now both paused on cost grounds rather than treated as the next automatic lane
+  - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
+    - keep broader comparison checkpoints as baseline references, not active rerun targets
+    - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
+  - the active eval set is now intentionally compressed to three north-star dimensions only:
+    - `reader_character.selective_legibility`
+    - `reader_character.coherent_accumulation`
+    - `reader_value.insight_and_clarification`
+  - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets
 - Current blockers:
   - the post-recovery gate review no longer blocks the next decisive lane:
-    - the next mainline move is to run durable-trace / re-entry and runtime-viability evaluation
+    - the next mainline move is to spend only on the compressed minimum eval set
+  - broader non-mainline comparison work is intentionally paused under the current cost posture:
+    - do not reopen those lanes unless decisive mechanism-eval work later needs them or the budget posture changes
+  - runtime viability, broader local pairwise comparison, durable-trace / re-entry comparison, and most judged attribution families are no longer active default targets:
+    - reuse existing evidence first
+    - reopen only when one of the three kept dimensions cannot be answered clearly without them
   - final end-to-end comparison still waits on:
     - follow-up after the first broader semantic comparison pass:
       - `local_reading_behavior` is now clearly weaker than `iterator_v1` on the English chapter pack
@@ -110,7 +123,7 @@ Update when: status changes, blockers appear, or phases complete.
           - the archived-packet adjudication probe held packet inputs fixed with `same_packet_input_fingerprint = true` and `audit_input_drift = 0`, but still showed `action_drift = 1`
           - the same-packet audit rerun held packet, case, context, prompt, and audit inputs fixed with `audit_input_drift = 0`, but still showed `primary_decision_drift = 1` and `primary_score_drift = 2`
           - the compare-layer `source_input_drift = 2` on the adjudication probe is bookkeeping noise from mixed `source_row_fingerprint` semantics between live and replayed probe payloads, not real builder/input drift
-          - current disposition after the gate review: do not open another builder repair wave from this evidence, do not widen automation, accept the current bounded variance for frozen-slice comparison cadence, and return the main cadence to durable-trace / re-entry / runtime-viability
+          - current disposition after the gate review: do not open another builder repair wave from this evidence, do not widen automation, accept the current bounded variance for frozen-slice comparison cadence, and keep the main cadence on decisive mechanism-eval rather than widening support work
     - fresh live gate counts on the recovered local-only `v2` datasets remain:
       - English: `7` `reviewed_active`, `3` `needs_revision`, `6` `needs_replacement`, `154` `unset`
       - Chinese: `13` `reviewed_active`, `1` `needs_revision`, `2` `needs_replacement`, `40` `unset`
@@ -732,6 +745,9 @@ Update when: status changes, blockers appear, or phases complete.
   - MVP runner landed:
     - `reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py`
     - `reading-companion-backend/tests/test_run_durable_trace_reentry.py`
+  - current disposition:
+    - paused by policy because durable-trace / re-entry evaluation is too token-expensive for the current budget posture
+    - do not relaunch this target family unless that cost decision changes explicitly
   - first diagnostic launch:
     - job id:
       - `bgjob_durable_trace_reentry_gate_20260401`
@@ -742,8 +758,26 @@ Update when: status changes, blockers appear, or phases complete.
   - landed follow-up hardening:
     - per-case worker failures now write partial case payloads instead of aborting the whole lane
     - missing `runtime_shell.json` now self-heals during attentional position persistence
-  - next launch:
-    - rerun after the current runtime-viability serial rerun finishes so both lanes do not compete on the same MiniMax target
+  - latest attempted relaunch before the pause:
+    - the completed rerun at higher case parallelism is now recorded at:
+      - `bgjob_durable_trace_reentry_gate_parallel3_20260401`
+    - run id:
+      - `attentional_v2_durable_trace_reentry_gate_parallel3_20260401`
+    - result:
+      - `evaluated_case_count = 0`
+      - `failed_case_count = 8`
+      - all cases landed as `partial_failure`
+    - interpretation:
+      - this run is provider-pressure evidence, not usable durable semantic evidence
+      - repeated direct probes against `MiniMax-M2.7-highspeed` stayed at raw `429 rate_limit_error: usage limit exceeded (2056)` on that old target
+      - local target/profile concurrency is now capped at `2` for the same API target
+    - the replacement direct probe against `MiniMax-M2.7-personal` succeeded with provider `200`
+    - last relaunched job before the policy stop:
+      - `bgjob_durable_trace_reentry_gate_personal_serial_20260401`
+    - terminal status:
+      - `abandoned`
+    - stop reason:
+      - intentionally stopped because durable-trace / re-entry is no longer worth the token spend
 - [ ] Run runtime-viability evaluation
   - MVP runner landed:
     - `reading-companion-backend/eval/attentional_v2/run_runtime_viability.py`
@@ -757,10 +791,19 @@ Update when: status changes, blockers appear, or phases complete.
       - completed, but mixed unsupported-plan, quota, and runtime failures make it diagnostic-only evidence
   - landed follow-up hardening:
     - provider "plan/model not supported" failures are now classified as access/auth problems instead of quota pressure
-  - active background job:
+  - completed clean rerun:
     - `bgjob_runtime_viability_gate_serialfix_20260401`
-  - active run id:
+  - run id:
     - `attentional_v2_runtime_viability_gate_serialfix_20260401`
+  - result:
+    - `attentional_v2`: `1/8` success, average duration `597.528s`
+    - `iterator_v1`: `2/8` success, average duration `1.902s`
+    - unsupported-plan/model confusion is no longer the main blocker
+    - dominant remaining failure mode is shared quota cooldown on `MiniMax-M2.7-highspeed`
+  - interpretation:
+    - the runtime runner now finishes cleanly and emits usable summary artifacts
+    - the current runtime gate still does not pass because completion remains too fragile under the real provider budget
+    - if further mechanism-eval spend is justified, the next decisive move should stay on runtime viability or another more decision-relevant gate, not another general dataset-builder wave
 - [ ] Decide whether the current benchmark family is still too small for high-confidence cross-mechanism judgment after the reviewed-slice rerun
 - [ ] If needed, expand the semantic benchmark family before default-cutover work:
   - curated excerpt cases toward roughly `25-30` per language

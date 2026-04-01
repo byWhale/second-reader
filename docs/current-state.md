@@ -7,12 +7,12 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-01T05:05:59Z`
+Last verified: `2026-04-01T13:06:11Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
   - preserve the recorded `Path A` gate outcome in repo-local state
-  - return the active cadence to durable-trace / re-entry / runtime-viability evaluation
+  - keep the active cadence on the minimum reader-character proof plus cheap trust gates, with durable-trace / re-entry and runtime viability now paused for cost
   - keep benchmark promotion closed unless genuinely new benchmark-strengthening evidence lands
 - Keep the dataset-platform route available as support infrastructure rather than as the current primary workstream:
   - retain the landed question-aligned builder and bounded controller as reusable support lanes
@@ -26,8 +26,20 @@ Last verified: `2026-04-01T05:05:59Z`
   - `OD-BENCHMARK-SIZE = adequate_for_next_decisive_lane_only + expand_before_default_cutover_only`
 - Dataset quality work, builder work, and automation work remain support systems for cross-mechanism evaluation rather than replacement goals.
 - The current callback slice is accepted for frozen-slice comparison cadence.
-- Do not open new general builder or automation waves ahead of durable-trace / re-entry / runtime-viability.
+- Do not open new general builder or automation waves ahead of the remaining decisive mechanism-eval lane.
 - Benchmark expansion remains a later requirement before any default-cutover decision, not a blocker for the current decisive lane.
+- Because current model-call cost is too high, pause new comparison work that sits outside the mechanism mainline for now:
+  - keep the existing broader comparison checkpoints as reference baselines only
+  - keep active spend focused on decisive mechanism-eval runs and the minimum support diagnostics they still require
+- Because durable-trace / re-entry evaluation itself is now judged too token-expensive, pause that target family as well:
+  - do not relaunch durable-trace or re-entry judged runs unless the cost posture changes explicitly
+  - keep the existing durable-trace evidence only as historical diagnostic context
+- Compress the active eval set to three north-star dimensions only:
+  - `reader_character.selective_legibility`
+  - `reader_character.coherent_accumulation`
+  - `reader_value.insight_and_clarification`
+- Treat cheap honesty / integrity / compatibility checks as sanity guards rather than as primary eval success targets.
+- Treat runtime viability, broader local pairwise comparison, durable-trace / re-entry comparison, and most mechanism-specific judged attribution families as paused unless one of the three kept dimensions later requires them.
 
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
@@ -1214,19 +1226,50 @@ Last verified: `2026-04-01T05:05:59Z`
   - accept the callback slice for frozen-slice comparison cadence
   - treat current benchmark size as adequate for the next decisive lane only
   - record the chosen route as `Path A`
-- Keep `TASK-RUNTIME-VIABILITY-GATES` on the decisive lane with one clean serial rerun first:
+- Keep `TASK-RUNTIME-VIABILITY-GATES` on the decisive lane after the clean serial runtime rerun:
   - completed diagnostic runs:
     - `bgjob_durable_trace_reentry_gate_20260401` failed before summary output because case failures were not yet isolated
     - `bgjob_runtime_viability_gate_20260401` completed, but its mixed unsupported-plan, quota, and runtime failures are diagnostic evidence only
-  - active rerun:
+  - completed rerun:
     - `bgjob_runtime_viability_gate_serialfix_20260401`
     - runner:
       - `reading-companion-backend/eval/attentional_v2/run_runtime_viability.py`
     - run dir:
       - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/`
-  - next after that rerun:
-    - launch the durable-trace / re-entry rerun on a clean provider window instead of competing with the runtime lane on the same target
+    - summary:
+      - `attentional_v2`: `1/8` success, average duration `597.528s`
+      - `iterator_v1`: `2/8` success, average duration `1.902s`
+      - unsupported-plan/model entanglement is cleared from the main diagnosis
+      - dominant remaining failure mode is shared quota cooldown on `MiniMax-M2.7-highspeed`
+    - current interpretation:
+      - the runner and provider-error classification repairs worked
+      - this is still not a passing runtime gate because most cases did not complete under the current real provider budget
+      - the active blocker is provider-budget pressure and runtime viability, not benchmark semantics or the removed expired-model config
+  - durable-trace / re-entry target family is now paused for token-cost reasons:
+    - the completed durable-trace / re-entry rerun with `--case-workers 3` is low-signal provider-pressure evidence, not usable semantic comparison evidence:
+      - job:
+        - `bgjob_durable_trace_reentry_gate_parallel3_20260401`
+      - run id:
+        - `attentional_v2_durable_trace_reentry_gate_parallel3_20260401`
+      - summary:
+        - `evaluated_case_count = 0`
+        - `failed_case_count = 8`
+        - all cases ended as `partial_failure`
+    - repeated one-off direct API probes against `MiniMax-M2.7-highspeed` remained provider raw `429 rate_limit_error: usage limit exceeded (2056)` on the old target
+    - local operator config is now capped so the same API target can fan out to at most `2` concurrent calls across target/profile policy
+    - the last personal-target serial rerun was intentionally stopped after launch because this target family is no longer worth its token spend:
+      - job:
+        - `bgjob_durable_trace_reentry_gate_personal_serial_20260401`
+      - terminal status:
+        - `abandoned`
+      - reason:
+        - durable-trace / re-entry evaluation is paused by policy, not blocked by provider availability
+    - do not relaunch durable-trace / re-entry runs from the current checkout unless the token-cost decision changes
   - keep the current chapter-scale and callbackslice evidence as the accepted comparison baseline for this lane
+  - keep comparison work outside the mechanism mainline paused under the current cost posture:
+    - do not launch new broader cross-mechanism comparison packs or other comparison widening outside the decisive mechanism lane
+    - reuse the existing broader comparison checkpoints as reference only until runtime viability improves or the cost posture changes
+  - keep runtime-viability as the remaining live gate target if further mechanism-eval spending is needed at all
 - Keep the completed backup-tier substantive rerun as the current focused mechanism-evidence checkpoint:
   - preserve `walden_205_en__10` as a protected chapter-spanning strength
   - preserve `up_from_slavery_public_en__10` as the bounded chapter-arc weakness that still needs to be visible in later comparison interpretation
@@ -1242,7 +1285,7 @@ Last verified: `2026-04-01T05:05:59Z`
   - run `make library-source-intake`
 
 ## Blocked
-- No gate-review blocker remains ahead of durable-trace / re-entry / runtime-viability.
+- No gate-review blocker remains ahead of the remaining decisive mechanism-eval lane.
 - Formal curated promotion from the modern private-library supplement remains intentionally paused under the recorded `hold_for_backlog_rescue` outcome and requires genuinely new benchmark-strengthening evidence before reopening.
 - The later frontend/API retirement of section-first chapter/detail and marks surfaces remains blocked on benchmark stabilization plus stable doc promotion timing.
 
@@ -1263,7 +1306,7 @@ Last verified: `2026-04-01T05:05:59Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
-- The local operator config currently routes all decisive eval traffic through one MiniMax highspeed target, so runtime-viability and durable-trace reruns should not be launched in parallel unless the provider budget/config changes.
+- The local operator config currently routes all decisive eval traffic through one MiniMax personal target, so any further runtime-viability spend should remain serialized unless the provider budget/config changes.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
@@ -1286,7 +1329,7 @@ Last verified: `2026-04-01T05:05:59Z`
 - `TASK-RUNTIME-VIABILITY-GATES`
 
 ## Active Job IDs
-- `bgjob_runtime_viability_gate_serialfix_20260401`
+- none
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -1302,22 +1345,21 @@ Last verified: `2026-04-01T05:05:59Z`
 11. `docs/backend-sequential-lifecycle.md`
 12. `docs/runtime-modes.md`
 13. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
-14. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json`
-15. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json`
-16. `reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_20260401.json`
+14. `reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_personal_serial_20260401.json`
+15. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json`
+16. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json`
+17. `reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_20260401.json`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-01T05:05:59Z",
+  "updated_at": "2026-04-01T12:52:40Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-RUNTIME-VIABILITY-GATES"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [
-    "bgjob_runtime_viability_gate_serialfix_20260401"
-  ],
+  "active_job_ids": [],
   "open_decision_ids": [
     "Q10"
   ],
