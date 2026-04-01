@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-01T13:06:11Z`
+Last verified: `2026-04-01T15:10:50Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
@@ -38,6 +38,9 @@ Last verified: `2026-04-01T13:06:11Z`
   - `reader_character.selective_legibility`
   - `reader_character.coherent_accumulation`
   - `reader_value.insight_and_clarification`
+- Treat book source origin as operational provenance only:
+  - do not design benchmark strata around `public`, `private`, `manual download`, `agent-downloaded`, or similar source-channel labels
+  - when choosing or freezing benchmark cases, stratify by target pressure, language, reading role, genre/book type, and chapter-vs-excerpt scale instead
 - Treat cheap honesty / integrity / compatibility checks as sanity guards rather than as primary eval success targets.
 - Treat runtime viability, broader local pairwise comparison, durable-trace / re-entry comparison, and most mechanism-specific judged attribution families as paused unless one of the three kept dimensions later requires them.
 
@@ -1319,7 +1322,8 @@ Last verified: `2026-04-01T13:06:11Z`
 - One remaining English outlier had invisible Unicode whitespace inside the emitted excerpt and selection-reason text even though the audit input fingerprints matched across runs; the builder-side normalization patch fixed that defect on the current builder path.
 - The current strongest narrow callback result is `callbackfocusfix`, but the later tension follow-up showed that unchanged callback rows can still drift at audit/adjudication time even when the builder-side callback inputs stay effectively fixed.
 - Historical compatibility paths under `state/library_sources/<language>/private/...` are now cataloged successfully, but they remain compatibility inputs rather than the intended future operator workflow.
-- Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming rather than as a strategic instruction to optimize around public/private separation.
+- Historical `private_library` naming still appears in dataset ids, manifests, and older evidence files; future agents should treat that as compatibility naming only.
+- Historical source-origin labels such as `public`, `private`, `manual`, or `open-access` remain useful for provenance and storage policy, but they must not be treated as benchmark-design categories or product-value distinctions.
 - Current public chapter/detail surfaces still carry section-shaped compatibility assumptions that may not fit the new mechanism directly.
 - Route mismatches between frontend routes and backend-returned targets can still regress the canonical product path.
 - Resume behavior remains sensitive to artifact placement under `reading-companion-backend/output/` and `reading-companion-backend/state/`.

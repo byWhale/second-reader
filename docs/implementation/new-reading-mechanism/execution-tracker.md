@@ -21,6 +21,9 @@ Update when: status changes, blockers appear, or phases complete.
   - the universal shared LLM invocation and traceability layer is landed, and the post-recovery gate review has now returned the route to decisive mechanism-eval work
 - Current strategy discipline:
   - dataset-builder and controller work are now bounded enabling lanes for evaluation rather than independent finish lines
+  - book source origin is now explicitly treated as operational provenance rather than as a benchmark-design axis:
+    - do not organize the active evaluation plan around `public` / `private` / download-channel labels
+    - when freezing or expanding benchmark slices, stratify by target pressure, language, reading role, genre/book type, and chapter-vs-excerpt scale instead
   - the post-recovery gate review is now closed on `Path A`:
     - benchmark promotion stays `hold_for_backlog_rescue`
     - callbackslice bounded variance is accepted for frozen-slice comparison cadence

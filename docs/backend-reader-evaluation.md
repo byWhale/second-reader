@@ -608,6 +608,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 
 ## Dataset Organization Rules
 - Organize benchmark inputs by evidence family first, not by whichever mechanism happens to be under active development.
+- Organize benchmark inputs by evaluation-relevant structure, not by book-acquisition history.
+  - benchmark stratification may use dimensions such as target pressure, language, reading role, genre/book type, or chapter/excerpt scale
+  - benchmark stratification must not use source-origin labels such as `public`, `private`, `manual download`, or `agent-downloaded` as if they were product-meaningful categories
 - The primary tracked dataset families under `reading-companion-backend/eval/datasets/` are:
   - `excerpt_cases/`
   - `chapter_corpora/`
@@ -637,7 +640,11 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
     - for repo-safe packages under `reading-companion-backend/eval/datasets/`
   - `local-only`
     - for packages kept under `reading-companion-backend/state/eval_local_datasets/`
-- Do not let `storage_mode` create a fake conceptual split such as "public benchmark" versus "private benchmark" when the evaluation question and package role are the same.
+- Do not let `storage_mode` create a fake conceptual split based on source origin when the evaluation question and package role are the same.
+- Do not let source-origin metadata create a fake conceptual split either.
+  - whether a book was downloaded manually, obtained by the agent, or happens to be open-access is provenance/compliance metadata only
+  - those facts may matter for storage, distribution, and repo-check-in policy
+  - they do not define different reader-value categories and should not be used as benchmark strata by default
 
 ### Expectations For Evaluation Reports
 - Per-run or per-change reports should state:

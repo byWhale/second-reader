@@ -12,6 +12,10 @@ Update when: package naming changes, new dataset families are added, or the bili
   - build one `attentional_v2` benchmark family per evidence family and language track
   - let each package declare or imply `storage_mode = tracked` or `storage_mode = local-only`
   - keep the same family-first structure under `reading-companion-backend/state/eval_local_datasets/` whenever the package contains copyrighted or otherwise private source text
+- Source-origin subtraction rule:
+  - source origin is operational provenance only
+  - whether a book was downloaded manually, obtained by the agent, or happens to be open-access must not be treated as a benchmark-design axis
+  - benchmark design should instead stratify by evaluation target, language, reading role, genre/book type, and chapter-vs-excerpt scale
 
 ## Family Mapping
 ### `excerpt_cases`
@@ -101,7 +105,7 @@ The benchmark family now has two tracked generations:
 - Shared:
   - `attentional_v2_compat_shared_v2`
 
-The `v2` generation is the current serious public-first bilingual benchmark layer.
+The `v2` generation is the current serious tracked bilingual benchmark layer.
 
 ## Current Reviewed-Slice Status
 The current reviewed excerpt slice is still much smaller than the full curated `v2` pack, but it is no longer at the earlier `3/2` signal-check stage:
@@ -115,7 +119,7 @@ Current frozen reviewed round:
 - `attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round3`
 
 Interpretation:
-- this reviewed slice is now large enough for small targeted local-reading checks and interview-legible public evidence
+- this reviewed slice is now large enough for small targeted local-reading checks and interview-legible tracked evidence
 - it is still not large enough to safely drive broad mechanism tuning, wide comparison sweeps, or default-cutover confidence by itself
 
 ## Package Contract
@@ -189,7 +193,7 @@ The project should have these family roots available now:
 - `reading-companion-backend/eval/datasets/compatibility_fixtures/`
 - `reading-companion-backend/eval/datasets/templates/`
 
-The local-only mirror should also exist for private packages:
+The local-only mirror should also exist for packages that cannot live in the tracked tree:
 - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/`
 - `reading-companion-backend/state/eval_local_datasets/chapter_corpora/`
 - `reading-companion-backend/state/eval_local_datasets/runtime_fixtures/`
@@ -202,8 +206,10 @@ The manifest side should have these roots available now:
 - `reading-companion-backend/eval/manifests/splits/`
 - `reading-companion-backend/eval/manifests/local_refs/`
 
-## Public-First Large `v2` Build
-The current public-first large corpus expansion is now complete.
+## Tracked `v2` Build
+The current tracked `v2` corpus expansion is now complete.
+- historical `public_first_large` naming still appears in scripts, manifest ids, and older evidence files
+- treat that naming as compatibility history, not as a benchmark-design rule
 
 ### Builder and validator
 - builder:
@@ -226,8 +232,8 @@ The current public-first large corpus expansion is now complete.
   - `attentional_v2_public_benchmark_pool_bilingual_v2_splits`
 
 ### Current tracked `v2` counts
-- `24` new public/open-access candidates screened
-- `12` newly promoted public/open-access books
+- `24` additional candidates screened in this tracked build
+- `12` books promoted into the tracked corpus
 - `22` books in the combined tracked public pool
 - `18` English chapter rows
 - `18` Chinese chapter rows
@@ -288,7 +294,7 @@ If the current tracked curated + seed `v2` pool is insufficient:
 - keep the added bilingual coverage balanced instead of growing one language track alone
 
 ## Immediate Next Step
-- Treat the tracked `v2` public benchmark family as ready for real evaluation work.
+- Treat the tracked `v2` benchmark family as ready for real evaluation work.
 - Use the local-only supplement only to fill any remaining uncovered phenomenon bucket, not as the main acquisition path.
 - Stop expanding the corpus by default.
 - Start the first serious evaluation runs:
@@ -433,10 +439,11 @@ Important status nuance:
 
 ## Local-Only Supplement Status
 The current active `storage_mode = local-only` supplement is now the combined private-library `v2` pool built from:
-- the earlier private Downloads EPUB batch
+- the earlier Downloads EPUB batch
 - the newer `/Users/baiweijiang/Documents/BOOK` batch
 
 The earlier Downloads-only `v1` supplement still exists as historical seed infrastructure, but the combined private-library `v2` build is now the operative local-only source pool for later benchmark promotion work.
+- the historical `private_library` name is a compatibility identifier for this storage-mode family, not a product or benchmark category
 
 For future additions, new local books should enter through the managed inbox first:
 - `reading-companion-backend/state/library_inbox/`
@@ -451,7 +458,7 @@ And records them in:
 - `reading-companion-backend/state/dataset_build/source_intake_runs/`
 
 The current private-library supplement builder now consumes that managed source catalog plus canonical `state/library_sources/` copies instead of reading directly from external `/BOOK` or `Downloads` roots.
-The current `private_library` names remain historical identifiers for the existing local supplement family; they are not the preferred future platform boundary.
+The current `private_library` names remain historical identifiers for the existing local supplement family; they must not be used as benchmark strata or product-value labels.
 
 - tracked manifests:
   - `reading-companion-backend/eval/manifests/source_books/attentional_v2_private_library_screen_v2.json`
@@ -472,7 +479,7 @@ The current `private_library` names remain historical identifiers for the existi
   - `reading-companion-backend/state/eval_local_datasets/compatibility_fixtures/attentional_v2_private_library_compat_shared_v2/`
 
 Current counts:
-- total registered private-library books:
+- total registered books in this local supplement family:
   - `29`
 - language mix:
   - English:
@@ -505,10 +512,11 @@ Important status nuance:
 - these `storage_mode = local-only` packages are structurally real and grounded in canonical parse
 - their text-bearing payloads intentionally remain outside the tracked repo dataset tree
 - the local-only excerpt cases remain seed/support material until curated and reviewed for formal promotion
-- because the user asked that all currently supplied private books be included, the combined `v2` supplement is intentionally larger than the original smaller Downloads-only seed slice
-- after the tracked `v2` public benchmark build, these local-only packages should still be treated as the promotion source for later gap-filling rather than as the default tracked benchmark layer itself
+- because the user asked that all currently supplied local books be included, the combined `v2` supplement is intentionally larger than the original smaller Downloads-only seed slice
+- after the tracked `v2` benchmark build, these local-only packages should still be treated as the promotion source for later gap-filling rather than as the default tracked benchmark layer itself
 
-## Private Local Supplement Rule
+## Local Supplement Rule
 - Use the tracked `eval/datasets/` tree for `storage_mode = tracked` packages.
 - Use `state/eval_local_datasets/` for `storage_mode = local-only` packages, including local excerpt packages that carry copyrighted source text.
 - Keep the family roots, package contract, and manifest shape aligned across both trees so later evaluation code can treat them as one benchmark family with two storage modes.
+- Do not treat the local supplement as a different reader-value domain just because older manifests or dataset ids still contain `private` naming.
