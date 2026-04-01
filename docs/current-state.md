@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-01T00:01:22Z`
+Last verified: `2026-04-01T05:05:59Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
@@ -1203,6 +1203,10 @@ Last verified: `2026-04-01T00:01:22Z`
       - this is a first bounded controller, not yet the final unattended multi-iteration scheduler
   - the unattended loop boundary is now more concrete, but the final scheduler should still wait until real scratch runs confirm the Phase 2 artifacts and first bounded controller are trustworthy
 - Use the task registry plus the execution tracker as the route back into detailed mechanism work.
+- The decisive eval lane has now been hardened in code after the first MVP launches exposed runner and provider-diagnosis weaknesses:
+  - `reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py` now isolates case-level failures and still writes partial case/summary artifacts
+  - `reading-companion-backend/src/reading_runtime/llm_gateway.py` now classifies provider "plan/model not supported" failures as access/auth problems rather than quota pressure
+  - `reading-companion-backend/src/attentional_v2/resume.py` now recreates the thin `runtime_shell.json` envelope if it is missing during position persistence
 
 ## Next
 - Use the completed gate review as the durable route-back-to-mainline decision:
@@ -1210,9 +1214,18 @@ Last verified: `2026-04-01T00:01:22Z`
   - accept the callback slice for frozen-slice comparison cadence
   - treat current benchmark size as adequate for the next decisive lane only
   - record the chosen route as `Path A`
-- Launch `TASK-RUNTIME-VIABILITY-GATES` now:
-  - run durable-trace / re-entry evaluation
-  - run runtime-viability evaluation
+- Keep `TASK-RUNTIME-VIABILITY-GATES` on the decisive lane with one clean serial rerun first:
+  - completed diagnostic runs:
+    - `bgjob_durable_trace_reentry_gate_20260401` failed before summary output because case failures were not yet isolated
+    - `bgjob_runtime_viability_gate_20260401` completed, but its mixed unsupported-plan, quota, and runtime failures are diagnostic evidence only
+  - active rerun:
+    - `bgjob_runtime_viability_gate_serialfix_20260401`
+    - runner:
+      - `reading-companion-backend/eval/attentional_v2/run_runtime_viability.py`
+    - run dir:
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/`
+  - next after that rerun:
+    - launch the durable-trace / re-entry rerun on a clean provider window instead of competing with the runtime lane on the same target
   - keep the current chapter-scale and callbackslice evidence as the accepted comparison baseline for this lane
 - Keep the completed backup-tier substantive rerun as the current focused mechanism-evidence checkpoint:
   - preserve `walden_205_en__10` as a protected chapter-spanning strength
@@ -1250,6 +1263,7 @@ Last verified: `2026-04-01T00:01:22Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
+- The local operator config currently routes all decisive eval traffic through one MiniMax highspeed target, so runtime-viability and durable-trace reruns should not be launched in parallel unless the provider budget/config changes.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
@@ -1272,7 +1286,7 @@ Last verified: `2026-04-01T00:01:22Z`
 - `TASK-RUNTIME-VIABILITY-GATES`
 
 ## Active Job IDs
-- none
+- `bgjob_runtime_viability_gate_serialfix_20260401`
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -1288,19 +1302,22 @@ Last verified: `2026-04-01T00:01:22Z`
 11. `docs/backend-sequential-lifecycle.md`
 12. `docs/runtime-modes.md`
 13. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
-14. `reading-companion-backend/state/job_registry/jobs/bgjob_callbackslice_probeonly_20260331.json`
-15. `reading-companion-backend/state/job_registry/jobs/bgjob_callbackslice_auditrerun_20260331.json`
+14. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json`
+15. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json`
+16. `reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_20260401.json`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-01T00:01:22Z",
+  "updated_at": "2026-04-01T05:05:59Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-RUNTIME-VIABILITY-GATES"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [],
+  "active_job_ids": [
+    "bgjob_runtime_viability_gate_serialfix_20260401"
+  ],
   "open_decision_ids": [
     "Q10"
   ],

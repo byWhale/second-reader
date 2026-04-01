@@ -8,6 +8,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import traceback
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import nullcontext
@@ -346,8 +348,54 @@ def _score_average(side_scores: dict[str, int]) -> float:
     return round(mean(values), 3) if values else 0.0
 
 
+def _mechanism_failure_judgment(error: str) -> dict[str, Any]:
+    judgment = _default_judgment()
+    judgment["reason"] = _clean_text(error) or "mechanism_failure"
+    return judgment
+
+
 def _log_case_progress(case: ChapterCase, message: str) -> None:
     print(f"[durable case {case.chapter_case_id}] {message}", flush=True)
+
+
+def _base_case_payload(case: ChapterCase, runtime_fixtures: list[RuntimeFixture]) -> dict[str, Any]:
+    return {
+        "chapter_case_id": case.chapter_case_id,
+        "language_track": case.language_track,
+        "selection_role": case.selection_role,
+        "book_title": case.book_title,
+        "author": case.author,
+        "source_id": case.source_id,
+        "chapter_id": case.chapter_id,
+        "chapter_title": case.chapter_title,
+        "runtime_fixture_ids": [fixture.fixture_id for fixture in runtime_fixtures],
+    }
+
+
+def _case_failure_payload(
+    case: ChapterCase,
+    *,
+    runtime_fixtures: list[RuntimeFixture],
+    stage: str,
+    error_message: str,
+    mechanisms: dict[str, Any] | None = None,
+    reentry_audits: dict[str, dict[str, Any]] | None = None,
+    traceback_text: str = "",
+) -> dict[str, Any]:
+    error_payload: dict[str, Any] = {
+        "stage": stage,
+        "error": error_message,
+    }
+    if traceback_text:
+        error_payload["traceback"] = traceback_text
+    return {
+        **_base_case_payload(case, runtime_fixtures),
+        "case_status": "failed",
+        "errors": [error_payload],
+        "mechanisms": mechanisms or {},
+        "durable_trace": _default_judgment(),
+        "reentry_audits": reentry_audits or {},
+    }
 
 
 def _run_mechanism_for_case(
@@ -368,26 +416,42 @@ def _run_mechanism_for_case(
     _log_case_progress(case, f"[mechanism-start] {mechanism_key}")
     shutil.rmtree(isolated_output_dir, ignore_errors=True)
     isolated_output_dir.parent.mkdir(parents=True, exist_ok=True)
-    with override_output_dir(isolated_output_dir):
-        result = mechanism.read_book(
-            ReadRequest(
-                book_path=book_path,
-                chapter_number=int(case.chapter_id),
-                continue_mode=False,
-                user_intent=DEFAULT_USER_INTENT,
-                language_mode=case.language_track,
-                task_mode="sequential",
-                mechanism_key=mechanism_key,
-                mechanism_config={"persist_normalized_eval_bundle": True},
+    started = time.perf_counter()
+    bundle: dict[str, Any] = {}
+    error = ""
+    output_dir = isolated_output_dir
+    mechanism_label = mechanism.label
+    success = False
+    try:
+        with override_output_dir(isolated_output_dir):
+            result = mechanism.read_book(
+                ReadRequest(
+                    book_path=book_path,
+                    chapter_number=int(case.chapter_id),
+                    continue_mode=False,
+                    user_intent=DEFAULT_USER_INTENT,
+                    language_mode=case.language_track,
+                    task_mode="sequential",
+                    mechanism_key=mechanism_key,
+                    mechanism_config={"persist_normalized_eval_bundle": True},
+                )
             )
-        )
-    bundle = dict(result.normalized_eval_bundle or {})
+        bundle = dict(result.normalized_eval_bundle or {})
+        output_dir = result.output_dir
+        mechanism_label = result.mechanism.label
+        success = True
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
+    duration_seconds = round(time.perf_counter() - started, 3)
     _json_dump(run_root / "bundles" / mechanism_key / f"{case.chapter_case_id}.json", bundle)
-    _log_case_progress(case, f"[mechanism-completed] {mechanism_key}")
+    _log_case_progress(case, f"[mechanism-completed] {mechanism_key} success={success}")
     return {
         "mechanism_key": mechanism_key,
-        "mechanism_label": result.mechanism.label,
-        "output_dir": str(result.output_dir),
+        "mechanism_label": mechanism_label,
+        "output_dir": str(output_dir),
+        "success": success,
+        "error": error,
+        "duration_seconds": duration_seconds,
         "bundle_summary": _summarize_bundle(bundle),
     }
 
@@ -400,6 +464,9 @@ def _judge_durable_trace(
     run_root: Path,
     judge_mode: str,
 ) -> dict[str, Any]:
+    if not bool(attentional.get("success")) or not bool(iterator.get("success")):
+        error_parts = [str(side.get("error", "")).strip() for side in (attentional, iterator) if str(side.get("error", "")).strip()]
+        return _mechanism_failure_judgment("; ".join(error_parts))
     if judge_mode == "none":
         return _default_judgment()
     try:
@@ -440,11 +507,23 @@ def _run_reentry_audits(
     attentional_output_dir: Path,
     run_root: Path,
     runtime_fixtures: list[RuntimeFixture],
+    attentional_success: bool,
+    attentional_error: str,
 ) -> dict[str, dict[str, Any]]:
     audits: dict[str, dict[str, Any]] = {}
     for fixture in runtime_fixtures:
         requested_resume_kind = RESUME_KIND_MAP.get(fixture.resume_kind)
         if not requested_resume_kind:
+            continue
+        if not attentional_success:
+            audits[fixture.resume_kind] = {
+                "requested_resume_kind": requested_resume_kind,
+                "error": _clean_text(attentional_error) or "attentional_mechanism_failed",
+                "compatibility_status": "mechanism_failure",
+                "resume_window_sentence_count": 0,
+                "reconstructed_hot_state": False,
+                "target_sentence_index": fixture.target_sentence_index,
+            }
             continue
         audit_dir = run_root / "reentry" / case.chapter_case_id / fixture.resume_kind
         shutil.rmtree(audit_dir, ignore_errors=True)
@@ -508,22 +587,34 @@ def _evaluate_case(
         attentional_output_dir=Path(mechanism_results["attentional_v2"]["output_dir"]),
         run_root=run_root,
         runtime_fixtures=runtime_fixtures,
+        attentional_success=bool(mechanism_results["attentional_v2"].get("success")),
+        attentional_error=str(mechanism_results["attentional_v2"].get("error", "")),
     )
+    mechanism_failures = {
+        key: str(value.get("error", "")).strip()
+        for key, value in mechanism_results.items()
+        if not bool(value.get("success")) and str(value.get("error", "")).strip()
+    }
+    errors = [
+        {
+            "stage": f"{mechanism_key}_run",
+            "error": error_message,
+        }
+        for mechanism_key, error_message in mechanism_failures.items()
+    ]
     _log_case_progress(case, "[case-completed]")
     return {
-        "chapter_case_id": case.chapter_case_id,
-        "language_track": case.language_track,
-        "selection_role": case.selection_role,
-        "book_title": case.book_title,
-        "author": case.author,
-        "source_id": case.source_id,
-        "chapter_id": case.chapter_id,
-        "chapter_title": case.chapter_title,
-        "runtime_fixture_ids": [fixture.fixture_id for fixture in runtime_fixtures],
+        **_base_case_payload(case, runtime_fixtures),
+        "case_status": "completed" if not mechanism_failures else "partial_failure",
+        "case_error": "; ".join(mechanism_failures.values()),
+        "errors": errors,
         "mechanisms": {
             key: {
                 "mechanism_label": value["mechanism_label"],
                 "output_dir": value["output_dir"],
+                "success": bool(value.get("success")),
+                "error": str(value.get("error", "")),
+                "duration_seconds": float(value.get("duration_seconds", 0.0) or 0.0),
                 "bundle_summary": value["bundle_summary"],
             }
             for key, value in mechanism_results.items()
@@ -533,17 +624,54 @@ def _evaluate_case(
     }
 
 
+def _case_failure_result(
+    case: ChapterCase,
+    *,
+    runtime_fixtures: list[RuntimeFixture],
+    error: str,
+) -> dict[str, Any]:
+    return {
+        **_base_case_payload(case, runtime_fixtures),
+        "case_status": "runner_error",
+        "case_error": _clean_text(error),
+        "errors": [{"stage": "case_runner", "error": _clean_text(error)}],
+        "mechanisms": {},
+        "durable_trace": _mechanism_failure_judgment(error),
+        "reentry_audits": {
+            fixture.resume_kind: {
+                "requested_resume_kind": RESUME_KIND_MAP.get(fixture.resume_kind, ""),
+                "error": _clean_text(error),
+                "compatibility_status": "runner_error",
+                "resume_window_sentence_count": 0,
+                "reconstructed_hot_state": False,
+                "target_sentence_index": fixture.target_sentence_index,
+            }
+            for fixture in runtime_fixtures
+            if RESUME_KIND_MAP.get(fixture.resume_kind)
+        },
+    }
+
+
 def _run_case_worker(payload_path: Path, result_path: Path) -> int:
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
     case = ChapterCase(**dict(payload["case"]))
     runtime_fixtures = [RuntimeFixture(**dict(item)) for item in payload.get("runtime_fixtures", [])]
-    result = _evaluate_case(
-        case,
-        source=dict(payload["source"]),
-        run_root=Path(str(payload["run_root"])),
-        judge_mode=str(payload["judge_mode"]),
-        runtime_fixtures=runtime_fixtures,
-    )
+    try:
+        result = _evaluate_case(
+            case,
+            source=dict(payload["source"]),
+            run_root=Path(str(payload["run_root"])),
+            judge_mode=str(payload["judge_mode"]),
+            runtime_fixtures=runtime_fixtures,
+        )
+    except Exception as exc:
+        result = _case_failure_payload(
+            case,
+            runtime_fixtures=runtime_fixtures,
+            stage="case_worker",
+            error_message=f"{type(exc).__name__}: {exc}",
+            traceback_text=traceback.format_exc(),
+        )
     _write_json_payload(result_path, result)
     return 0
 
@@ -578,16 +706,34 @@ def _run_case_subprocess(
             "--worker-result",
             str(result_path),
         ]
-        subprocess.run(command, cwd=str(ROOT), check=True)
-        return json.loads(result_path.read_text(encoding="utf-8"))
+        completed = subprocess.run(command, cwd=str(ROOT), check=False)
+        if result_path.exists():
+            return json.loads(result_path.read_text(encoding="utf-8"))
+        return _case_failure_payload(
+            case,
+            runtime_fixtures=runtime_fixtures,
+            stage="case_subprocess",
+            error_message=f"case worker exited with code {completed.returncode}",
+        )
 
 
 def _aggregate(case_results: list[dict[str, Any]]) -> dict[str, Any]:
-    durable_rows = [item["durable_trace"] for item in case_results]
+    completed_case_results = [
+        item for item in case_results if _clean_text(item.get("case_status") or "completed") == "completed"
+    ]
+    failed_case_results = [
+        item for item in case_results if _clean_text(item.get("case_status") or "completed") != "completed"
+    ]
+    durable_rows = [item["durable_trace"] for item in completed_case_results]
     winner_counts = Counter(result["winner"] for result in durable_rows)
     aggregate: dict[str, Any] = {
         "case_count": len(case_results),
+        "evaluated_case_count": len(completed_case_results),
+        "failed_case_count": len(failed_case_results),
+        "failed_case_ids": [str(item.get("chapter_case_id", "")) for item in failed_case_results],
+        "case_status_counts": dict(Counter(_clean_text(item.get("case_status", "completed")) for item in case_results)),
         "durable_trace_summary": {
+            "evaluated_case_count": len(durable_rows),
             "winner_counts": dict(winner_counts),
             "attentional_v2_win_or_tie_rate": round(
                 (winner_counts.get("attentional_v2", 0) + winner_counts.get("tie", 0)) / max(1, len(durable_rows)),
@@ -646,6 +792,12 @@ def _build_markdown_report(*, run_id: str, selected_cases: list[ChapterCase], ag
     lines.append("")
     lines.append("## Aggregate Findings")
     lines.append("")
+    lines.append(f"- Case statuses: `{json.dumps(aggregate['case_status_counts'], ensure_ascii=False, sort_keys=True)}`")
+    lines.append(f"- Evaluated case count: `{aggregate['evaluated_case_count']}`")
+    lines.append(f"- Failed case count: `{aggregate['failed_case_count']}`")
+    if aggregate["failed_case_ids"]:
+        lines.append(f"- Failed case ids: `{json.dumps(aggregate['failed_case_ids'], ensure_ascii=False)}`")
+    lines.append("")
     durable_summary = aggregate["durable_trace_summary"]
     lines.append("### `durable_trace`")
     lines.append(f"- Winner counts: `{json.dumps(durable_summary['winner_counts'], ensure_ascii=False, sort_keys=True)}`")
@@ -662,7 +814,28 @@ def _build_markdown_report(*, run_id: str, selected_cases: list[ChapterCase], ag
     lines.append("## Case Highlights")
     lines.append("")
     for case_result in case_results:
-        lines.append(f"- `{case_result['chapter_case_id']}` durable winner=`{case_result['durable_trace']['winner']}`")
+        case_status = _clean_text(case_result.get("case_status") or "completed")
+        if case_status == "completed":
+            lines.append(f"- `{case_result['chapter_case_id']}` status=`completed` durable winner=`{case_result['durable_trace']['winner']}`")
+        else:
+            lines.append(
+                f"- `{case_result['chapter_case_id']}` status=`{case_status}` case_error=`{_clean_text(case_result.get('case_error'))}`"
+            )
+        if _clean_text(case_result.get("case_error")):
+            lines.append(f"  - case_error=`{_clean_text(case_result.get('case_error'))}`")
+        for error in case_result.get("errors", []) or []:
+            if not isinstance(error, dict):
+                continue
+            lines.append(
+                f"  - error `{_clean_text(error.get('stage')) or 'unknown'}`: `{_clean_text(error.get('error')) or 'unknown failure'}`"
+            )
+        for mechanism_key in MECHANISM_KEYS:
+            mechanism = dict(case_result.get("mechanisms", {}).get(mechanism_key) or {})
+            if not mechanism:
+                continue
+            lines.append(
+                f"  - `{mechanism_key}` success=`{bool(mechanism.get('success'))}` duration_seconds=`{mechanism.get('duration_seconds', 0)}` error=`{_clean_text(mechanism.get('error'))}`"
+            )
         for kind, audit in dict(case_result.get("reentry_audits") or {}).items():
             lines.append(
                 f"  - `{kind}` compatibility=`{audit.get('compatibility_status', '')}` window=`{audit.get('resume_window_sentence_count', 0)}`"
@@ -751,7 +924,14 @@ def run_benchmark(
             ] = case
         for future in as_completed(future_to_case):
             case = future_to_case[future]
-            case_payload = future.result()
+            try:
+                case_payload = future.result()
+            except Exception as exc:
+                case_payload = _case_failure_result(
+                    case,
+                    runtime_fixtures=fixtures_by_case_id.get(case.chapter_case_id, []),
+                    error=f"{type(exc).__name__}: {exc}",
+                )
             results_by_case_id[case.chapter_case_id] = case_payload
             _json_dump(run_root / "cases" / f"{case.chapter_case_id}.json", case_payload)
             print(f"[completed] {case.chapter_case_id}", flush=True)

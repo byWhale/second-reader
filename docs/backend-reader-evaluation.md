@@ -151,6 +151,10 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - New eval/review runners should default to shared-policy worker counts instead of hardcoded local worker limits.
   - case-level fanout is preferred when cases are independent
   - deterministic artifact ordering must still be preserved in final summaries and reports
+- Decisive eval runners should isolate case-level mechanism, provider, and harness failures instead of aborting the whole lane on the first broken case.
+  - preserve per-case failure payloads explicitly
+  - still emit aggregate/report outputs from the cases that did complete
+  - treat a run with no aggregate/report as harness failure, not as usable evaluation evidence
 - Global derived artifacts should be coordinated explicitly during concurrent work.
   - packet-local and run-local artifacts should stay owned by each job
   - shared summaries should usually be refreshed once after concurrent imports or job completions finish

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-01T00:01:22Z`
+Last updated: `2026-04-01T05:05:59Z`
 
 ## Status Values
 - `active`
@@ -25,8 +25,11 @@ Last updated: `2026-04-01T00:01:22Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: register and run the durable-trace / re-entry and runtime-viability lanes now that the post-recovery gate review is closed on `Path A`; use the accepted frozen callback slice and current chapter-scale evidence as the baseline, keep promotion on `hold`, and do not reopen new general builder or automation waves first
-- Jobs: none
+- Next: let `bgjob_runtime_viability_gate_serialfix_20260401` finish as the clean serial rerun, treat `bgjob_runtime_viability_gate_20260401` and `bgjob_durable_trace_reentry_gate_20260401` as diagnostic-only first launches, then start the durable-trace / re-entry rerun on a clean provider window; keep promotion on `hold`, and do not reopen new general builder or automation waves first
+- Jobs:
+  - `bgjob_durable_trace_reentry_gate_20260401` (`failed`)
+  - `bgjob_runtime_viability_gate_20260401` (`completed`)
+  - `bgjob_runtime_viability_gate_serialfix_20260401` (`running`)
 
 ## Waiting
 

@@ -12,6 +12,7 @@ from src.reading_runtime.artifacts import runtime_shell_file
 from src.reading_runtime.shell_state import (
     build_checkpoint_summary,
     empty_cursor,
+    ensure_runtime_shell,
     load_runtime_shell,
     save_runtime_shell,
     write_checkpoint_summary,
@@ -43,6 +44,7 @@ from .schemas import (
     build_default_reader_policy,
 )
 from .storage import (
+    ATTENTIONAL_V2_MECHANISM_KEY,
     anchor_memory_file,
     full_checkpoint_file,
     knowledge_activations_file,
@@ -214,7 +216,12 @@ def persist_reading_position(
     )
     save_json(local_continuity_file(output_dir), continuity)
 
-    shell = load_runtime_shell(runtime_shell_file(output_dir))
+    shell = ensure_runtime_shell(
+        output_dir,
+        mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
+        mechanism_version=str(local_buffer.get("mechanism_version", "") or ATTENTIONAL_V2_MECHANISM_VERSION),
+        policy_version=ATTENTIONAL_V2_POLICY_VERSION,
+    )
     shell["cursor"] = build_shared_cursor(
         chapter_id=chapter_id,
         chapter_ref=chapter_ref,

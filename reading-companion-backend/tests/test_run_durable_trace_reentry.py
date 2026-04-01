@@ -281,6 +281,52 @@ def test_run_benchmark_keeps_single_worker_case_eval_in_process(monkeypatch, tmp
     assert (run_root / "cases" / "case_b.json").exists()
 
 
+def test_run_benchmark_records_parallel_case_failures_without_aborting(monkeypatch, tmp_path: Path) -> None:
+    chapter_dir, runtime_dir, source_manifest, case_ids = _bootstrap_datasets(tmp_path)
+    monkeypatch.setattr(durable_trace, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=2))
+
+    def fake_run_case_subprocess(
+        case: durable_trace.ChapterCase,
+        *,
+        source: dict[str, Any],
+        run_root: Path,
+        judge_mode: str,
+        runtime_fixtures: list[durable_trace.RuntimeFixture],
+    ) -> dict[str, Any]:
+        assert source["source_id"] == case.source_id
+        assert run_root.parent == tmp_path / "runs"
+        assert judge_mode == "none"
+        assert runtime_fixtures
+        if case.chapter_case_id == "case_b":
+            raise RuntimeError("worker exploded")
+        return _case_result(case)
+
+    monkeypatch.setattr(durable_trace, "_run_case_subprocess", fake_run_case_subprocess)
+
+    summary = durable_trace.run_benchmark(
+        chapter_dataset_dirs=[chapter_dir],
+        runtime_fixture_dirs=[runtime_dir],
+        source_manifest_path=source_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="demo_durable_failure_isolation",
+        judge_mode="none",
+        case_ids=case_ids,
+        case_workers=2,
+    )
+
+    aggregate = summary["aggregate"]
+    assert aggregate["case_count"] == 2
+    assert aggregate["evaluated_case_count"] == 1
+    assert aggregate["failed_case_count"] == 1
+    assert aggregate["failed_case_ids"] == ["case_b"]
+    assert aggregate["case_status_counts"] == {"completed": 1, "runner_error": 1}
+    assert aggregate["durable_trace_summary"]["winner_counts"] == {"attentional_v2": 1}
+    failed_case = json.loads((Path(summary["run_root"]) / "cases" / "case_b.json").read_text(encoding="utf-8"))
+    assert failed_case["case_status"] == "runner_error"
+    assert failed_case["case_error"] == "RuntimeError: worker exploded"
+    assert failed_case["durable_trace"]["reason"] == "RuntimeError: worker exploded"
+
+
 def test_aggregate_reports_durable_trace_and_reentry_summaries(tmp_path: Path) -> None:
     chapter_dir, runtime_dir, source_manifest, _ = _bootstrap_datasets(tmp_path)
     manifest = json.loads((chapter_dir / "chapters.jsonl").read_text(encoding="utf-8").splitlines()[0])
@@ -311,3 +357,54 @@ def test_aggregate_reports_durable_trace_and_reentry_summaries(tmp_path: Path) -
     assert aggregate["case_count"] == 1
     assert aggregate["durable_trace_summary"]["winner_counts"]["attentional_v2"] == 1
     assert aggregate["reentry_summary"]["warm"]["compatibility_status_counts"]["compatible"] == 1
+
+
+def test_run_benchmark_keeps_partial_summary_when_one_case_fails(monkeypatch, tmp_path: Path) -> None:
+    chapter_dir, runtime_dir, source_manifest, case_ids = _bootstrap_datasets(tmp_path)
+    monkeypatch.setattr(durable_trace, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
+
+    def fake_evaluate_case(
+        case: durable_trace.ChapterCase,
+        *,
+        source: dict[str, Any],
+        run_root: Path,
+        judge_mode: str,
+        runtime_fixtures: list[durable_trace.RuntimeFixture],
+    ) -> dict[str, Any]:
+        assert source["source_id"] == case.source_id
+        assert run_root.parent == tmp_path / "runs"
+        assert judge_mode == "none"
+        assert runtime_fixtures
+        if case.chapter_case_id == "case_b":
+            raise RuntimeError("boom on case_b")
+        return _case_result(case)
+
+    monkeypatch.setattr(durable_trace, "_evaluate_case", fake_evaluate_case)
+    monkeypatch.setattr(
+        durable_trace,
+        "_run_case_subprocess",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("_run_case_subprocess should not be used")),
+    )
+
+    summary = durable_trace.run_benchmark(
+        chapter_dataset_dirs=[chapter_dir],
+        runtime_fixture_dirs=[runtime_dir],
+        source_manifest_path=source_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="demo_durable_partial_failure",
+        judge_mode="none",
+        case_ids=case_ids,
+        case_workers=1,
+    )
+
+    run_root = Path(summary["run_root"])
+    case_b_payload = json.loads((run_root / "cases" / "case_b.json").read_text(encoding="utf-8"))
+
+    assert summary["aggregate"]["case_count"] == 2
+    assert summary["aggregate"]["evaluated_case_count"] == 1
+    assert summary["aggregate"]["failed_case_count"] == 1
+    assert summary["aggregate"]["failed_case_ids"] == ["case_b"]
+    assert case_b_payload["case_status"] == "runner_error"
+    assert "boom on case_b" in case_b_payload["case_error"]
+    assert (run_root / "summary" / "aggregate.json").exists()
+    assert (run_root / "summary" / "report.md").exists()

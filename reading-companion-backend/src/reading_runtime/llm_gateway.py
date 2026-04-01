@@ -175,9 +175,39 @@ def _classify_llm_problem(exc: Exception) -> CurrentReadingProblemCode:
     message = str(exc).lower()
     if any(token in message for token in ("timed out", "timeout", "read timeout", "deadline exceeded")):
         return "llm_timeout"
-    if any(token in message for token in ("authentication", "unauthorized", "forbidden", "invalid api key", "invalid x-api-key", "missing api key")):
+    if any(
+        token in message
+        for token in (
+            "not support model",
+            "not support current model",
+            "unsupported model",
+            "model is not available",
+            "model not found",
+            "unknown model",
+            "authentication",
+            "unauthorized",
+            "forbidden",
+            "invalid api key",
+            "invalid x-api-key",
+            "missing api key",
+            "access denied",
+            "permission denied",
+            "unsupported model",
+            "model_not_found",
+            "not support model",
+            "does not support model",
+            "not supported on your current plan",
+            "not available for your account",
+            "you do not have access",
+            "you don't have access",
+            "do not have access",
+            "does not have access",
+            "doesn't have access",
+            "not enabled for your account",
+        )
+    ):
         return "llm_auth"
-    if any(token in message for token in ("quota", "insufficient", "billing", "credit balance", "rate limit", "429")):
+    if any(token in message for token in ("quota", "insufficient_quota", "billing", "credit balance", "rate limit", "429")):
         return "llm_quota"
     return "network_blocked"
 

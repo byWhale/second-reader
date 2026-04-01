@@ -77,6 +77,8 @@ class _RecordingAdapter:
         action = self.behavior.get(api_key, "ok")
         if action == "auth_error":
             raise RuntimeError("invalid api key")
+        if action == "unsupported_model":
+            raise RuntimeError("your current token plan not support model, MiniMax-M2.7 (2061)")
         if action == "timeout":
             raise RuntimeError("timed out")
         payload = self.response_content.replace("__API_KEY__", api_key)
@@ -146,6 +148,10 @@ class _SequencedRecordingAdapter(_RecordingAdapter):
             raise RuntimeError("429 rate limit")
         if action == "auth_error":
             raise RuntimeError("invalid api key")
+        if action == "unsupported_model":
+            raise RuntimeError(
+                "Error code: 500 - {'type': 'error', 'error': {'type': 'api_error', 'message': 'your current token plan not support model, MiniMax-M2.7 (2061)'}}"
+            )
         if action == "timeout":
             raise RuntimeError("timed out")
         if action == "malformed":
@@ -1278,6 +1284,43 @@ def test_standard_trace_records_malformed_json_error_details(
     assert standard_rows[-1]["problem_code"] == "network_blocked"
     assert standard_rows[-1]["error_type"] == "RuntimeError"
     assert standard_rows[-1]["error_message"] == "malformed json payload"
+
+
+def test_unsupported_model_plan_is_classified_as_llm_auth(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    _set_targets_and_bindings(
+        monkeypatch,
+        targets={
+            "targets": [
+                {
+                    "target_id": "minimax_runtime",
+                    "contract": "anthropic",
+                    "base_url": "https://api.minimaxi.com/anthropic",
+                    "model": "MiniMax-M2.7",
+                    "credentials": [{"credential_id": "primary", "api_key": "runtime-key"}],
+                    "retry_attempts": 1,
+                }
+            ]
+        },
+        bindings=_required_bindings("minimax_runtime"),
+    )
+    adapter = _SequencedRecordingAdapter(["unsupported_model"])
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    output_dir = tmp_path / "output" / "unsupported-model"
+    with llm_invocation_scope(
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        trace_context=runtime_trace_context(output_dir, mechanism_key="iterator_v1"),
+    ):
+        with pytest.raises(ReaderLLMError) as excinfo:
+            invoke_json("system", "user", {})
+
+    assert excinfo.value.problem_code == "llm_auth"
+    standard_rows = _read_jsonl(runtime_artifacts.llm_standard_trace_file(output_dir))
+    assert standard_rows[-1]["problem_code"] == "llm_auth"
+    assert len(adapter.calls) == 1
 
 
 def test_eval_trace_context_writes_eval_run_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

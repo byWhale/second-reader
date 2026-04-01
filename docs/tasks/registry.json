@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-01T00:01:22Z",
+  "updated_at": "2026-04-01T05:05:59Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -72,7 +72,10 @@
         "DEC-018",
         "DEC-019"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_durable_trace_reentry_gate_20260401",
+        "bgjob_runtime_viability_gate_20260401"
+      ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
       "next_action": "Keep the recorded hold_for_backlog_rescue outcome in force, do not reopen promotion without genuinely new benchmark-strengthening evidence, and treat the completed gate review as the route-back-to-mainline checkpoint.",
       "blocked_by": [],
@@ -463,16 +466,32 @@
         "DEC-015",
         "DEC-047"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_durable_trace_reentry_gate_20260401",
+        "bgjob_runtime_viability_gate_20260401",
+        "bgjob_runtime_viability_gate_serialfix_20260401"
+      ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Register and run the durable-trace / re-entry and runtime-viability lanes now that the post-recovery gate review is closed on Path A; use the accepted frozen callback slice and current chapter-scale evidence as the baseline, keep promotion on hold, and do not reopen new general builder or automation waves first.",
+      "next_action": "Let bgjob_runtime_viability_gate_serialfix_20260401 finish as the clean serial rerun, treat bgjob_runtime_viability_gate_20260401 and bgjob_durable_trace_reentry_gate_20260401 as diagnostic-only first launches, then start the durable-trace / re-entry rerun on a clean provider window; keep promotion on hold, and do not reopen new general builder or automation waves first.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/execution-tracker.md",
         "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
-        "docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md"
+        "docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md",
+        "reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py",
+        "reading-companion-backend/eval/attentional_v2/run_runtime_viability.py",
+        "reading-companion-backend/src/reading_runtime/llm_gateway.py",
+        "reading-companion-backend/src/attentional_v2/resume.py",
+        "docs/backend-reader-evaluation.md",
+        "reading-companion-backend/tests/test_run_durable_trace_reentry.py",
+        "reading-companion-backend/tests/test_run_runtime_viability.py",
+        "reading-companion-backend/tests/test_llm_gateway.py",
+        "reading-companion-backend/tests/test_attentional_v2_resume.py",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_20260401.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json"
       ],
-      "last_updated": "2026-04-01T00:01:22Z",
+      "last_updated": "2026-04-01T05:05:59Z",
       "last_updated_by": "codex"
     },
     {

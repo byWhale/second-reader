@@ -729,7 +729,38 @@ Update when: status changes, blockers appear, or phases complete.
     - the micro-selectivity repair generalized enough to improve the English local split, but not enough to erase the remaining local-reading gap
     - `attentional_v2` is now stronger on English chapter-scale span trajectory as well as on the earlier Chinese span result
 - [ ] Run durable-trace and re-entry evaluation
+  - MVP runner landed:
+    - `reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py`
+    - `reading-companion-backend/tests/test_run_durable_trace_reentry.py`
+  - first diagnostic launch:
+    - job id:
+      - `bgjob_durable_trace_reentry_gate_20260401`
+    - run id:
+      - `attentional_v2_durable_trace_reentry_gate_20260401`
+    - outcome:
+      - failed before aggregate/report output because case-level failures were not yet isolated
+  - landed follow-up hardening:
+    - per-case worker failures now write partial case payloads instead of aborting the whole lane
+    - missing `runtime_shell.json` now self-heals during attentional position persistence
+  - next launch:
+    - rerun after the current runtime-viability serial rerun finishes so both lanes do not compete on the same MiniMax target
 - [ ] Run runtime-viability evaluation
+  - MVP runner landed:
+    - `reading-companion-backend/eval/attentional_v2/run_runtime_viability.py`
+    - `reading-companion-backend/tests/test_run_runtime_viability.py`
+  - first diagnostic launch:
+    - job id:
+      - `bgjob_runtime_viability_gate_20260401`
+    - run id:
+      - `attentional_v2_runtime_viability_gate_20260401`
+    - outcome:
+      - completed, but mixed unsupported-plan, quota, and runtime failures make it diagnostic-only evidence
+  - landed follow-up hardening:
+    - provider "plan/model not supported" failures are now classified as access/auth problems instead of quota pressure
+  - active background job:
+    - `bgjob_runtime_viability_gate_serialfix_20260401`
+  - active run id:
+    - `attentional_v2_runtime_viability_gate_serialfix_20260401`
 - [ ] Decide whether the current benchmark family is still too small for high-confidence cross-mechanism judgment after the reviewed-slice rerun
 - [ ] If needed, expand the semantic benchmark family before default-cutover work:
   - curated excerpt cases toward roughly `25-30` per language

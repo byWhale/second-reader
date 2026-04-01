@@ -160,6 +160,30 @@ def test_checkpoint_and_warm_resume_restore_exact_hot_state(tmp_path: Path):
     assert event_stream_file(output_dir).read_text(encoding="utf-8") == ""
 
 
+def test_persist_reading_position_recreates_missing_runtime_shell(tmp_path: Path):
+    """Persist should recreate the thin runtime shell if a local eval run deleted it."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    runtime_shell_file(output_dir).unlink()
+
+    local_buffer = _build_buffer(total_sentences=6, closed_breaks=[3])
+    persist_reading_position(
+        output_dir,
+        chapter_id=1,
+        chapter_ref="Chapter 1",
+        local_buffer=local_buffer,
+        status="running",
+        phase="reading",
+    )
+
+    shell = load_runtime_shell(runtime_shell_file(output_dir))
+    assert shell["mechanism_key"] == "attentional_v2"
+    assert shell["status"] == "running"
+    assert shell["phase"] == "reading"
+    assert shell["cursor"]["sentence_id"] == "c1-s6"
+
+
 def test_cold_resume_expands_to_open_meaning_unit_start(tmp_path: Path):
     """Cold resume should backfill to the start of the current open meaning unit when needed."""
 
@@ -195,6 +219,23 @@ def test_reconstitution_resume_uses_recent_meaning_units_with_cap(tmp_path: Path
     assert resumed["resume_window_sentence_ids"] == [f"c1-s{sentence_index}" for sentence_index in range(21, 51)]
     assert len(resumed["resume_window_sentence_ids"]) == 30
     assert resumed["local_buffer"]["is_reconstructed"] is True
+
+
+def test_persist_reading_position_recreates_missing_runtime_shell(tmp_path: Path):
+    """Persisting position should recover the thin runtime shell when it is absent."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    runtime_shell_file(output_dir).unlink()
+    local_buffer = _build_buffer(total_sentences=6, closed_breaks=[3])
+
+    persist_reading_position(output_dir, chapter_id=1, chapter_ref="Chapter 1", local_buffer=local_buffer)
+
+    shell = load_runtime_shell(runtime_shell_file(output_dir))
+    assert shell["mechanism_key"] == "attentional_v2"
+    assert shell["cursor"]["sentence_id"] == "c1-s6"
+    assert shell["status"] == "initialized"
+    assert shell["phase"] == "preparing"
 
 
 def test_incompatible_checkpoint_falls_back_to_live_warm_resume(tmp_path: Path):
