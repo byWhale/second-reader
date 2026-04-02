@@ -1,0 +1,111 @@
+{
+  "case_id": "rulin_waishi_24032_zh__6__tension_reversal__v2",
+  "raw_model_payload": {
+    "benchmark_readiness": "unclear",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "weak",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "text_noise"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The factual audit flags an excerpt_text_mismatch, meaning the provided excerpt diverges from the verified source. This corrupts the evidentiary foundation and prevents reliable assessment of whether the tension_reversal mechanism is genuinely demonstrated. The case shows promise (coherent selection reason, proportionate tension in the excerpt as provided), but excerpt_integrity is weak and focus_clarity is only partial because the mismatch undermines the judgment. Recommend restoring the verified source text and reassessing. If the corrected excerpt maintains a genuine tension reversal (humble self-presentation versus unexpected social elevation), the case could become ready."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "unclear",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "weak",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "text_noise"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The factual audit flags an excerpt_text_mismatch, meaning the provided excerpt diverges from the verified source. This corrupts the evidentiary foundation and prevents reliable assessment of whether the tension_reversal mechanism is genuinely demonstrated. The case shows promise (coherent selection reason, proportionate tension in the excerpt as provided), but excerpt_integrity is weak and focus_clarity is only partial because the mismatch undermines the judgment. Recommend restoring the verified source text and reassessing. If the corrected excerpt maintains a genuine tension reversal (humble self-presentation versus unexpected social elevation), the case could become ready."
+  },
+  "adjudication_input_fingerprint": "9571f4d26480aed7c9e028197ba8b38b2cda26a1ee376fd20b5f2d46434e2e9a",
+  "source_row_fingerprint": "ca7bf60ba9ae48c65974a8ae5f9043f0a67ddf67392d0fa6e5fa9d1d1e07cede",
+  "packet_source_row_fingerprint": "ca7bf60ba9ae48c65974a8ae5f9043f0a67ddf67392d0fa6e5fa9d1d1e07cede",
+  "prompt_case_fingerprint": "00c24a499a8f9e150eb407910c2d9ce60f62c665962809956b7b6abd203f17ea",
+  "audit_row_fingerprint": "64f6f2d4b75c5c7de31824307f3ad4de02aea21c81b69be3245c10646b9081ed",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "2a4bd3672aa67d92644e4af9456f7f7004f3c5fefa388bf4305ab7f4e80e900c"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "healthy_tier_selection",
+  "selection_override_source": "",
+  "trace_call_id": "0b18191fa2c441078f75807a44d3cdf9",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402__20260402-055104",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "rulin_waishi_24032_zh__6__tension_reversal__v2",
+      "case_title": "儒林外史 / 第二十一回 冒姓字小子求名 念親戚老夫臥病 / tension_reversal",
+      "book_title": "儒林外史",
+      "author": "吳敬梓",
+      "chapter_id": "6",
+      "chapter_title": "第二十一回 冒姓字小子求名 念親戚老夫臥病",
+      "target_profile_id": "",
+      "selection_role": "",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [],
+      "type_tags": [],
+      "selection_reason": "Selected to test whether the mechanism notices the passage's pressure or reversal without overblowing it.",
+      "judge_focus": "Does the mechanism stay with the passage's tension and make a proportionate reading move?",
+      "excerpt_text": "浦郎把自己小名去了一個“郎”字，寫道：“一方陰文圖書，刻‘牛浦之印’；一方陽文，刻“布衣’二字。”\n郭鐵筆接在手內，將眼上下把浦郎一看，說道：“先生便是牛布衣么？”\n浦郎答道：“布衣是賤字。”\n郭鐵筆慌忙爬出柜台來重新作揖，請坐，奉過茶來，說道：“久已聞得有位牛布衣住在甘露庵，容易不肯會人，相交的都是貴官長者，失敬！\n失敬！"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": false,
+        "issues": [
+          "excerpt_text_mismatch"
+        ]
+      },
+      "primary_review": {
+        "decision": "revise",
+        "problem_types": [
+          "ambiguous_focus"
+        ],
+        "bucket_fit_band": "adequate",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "2a4bd3672aa67d92644e4af9456f7f7004f3c5fefa388bf4305ab7f4e80e900c"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

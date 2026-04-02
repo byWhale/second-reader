@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-04-02T05:59:35.307824Z",
+  "dataset_id": "attentional_v2_excerpt_zh_curated_v2",
+  "family": "excerpt_cases",
+  "storage_mode": "tracked",
+  "selection_mode": "first_review",
+  "packet_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402",
+  "packet_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402",
+  "executed_stages": [
+    "generate_packet",
+    "audit_packet",
+    "adjudicate_packet",
+    "import_packet",
+    "refresh_queue_summary",
+    "final_summary"
+  ],
+  "action_counts": {
+    "drop": 0,
+    "keep": 2,
+    "revise": 1,
+    "unclear": 0
+  },
+  "post_import_benchmark_status_counts": {
+    "builder_active": 1,
+    "needs_replacement": 1,
+    "needs_revision": 3,
+    "reviewed_active": 11
+  },
+  "decision_bearing_followup_launched": false,
+  "decision_note": "No decision-bearing next phase was launched. Benchmark promotion, reviewed-slice freezing, durable-trace, re-entry, and runtime-viability remain human-owned follow-up work."
+}

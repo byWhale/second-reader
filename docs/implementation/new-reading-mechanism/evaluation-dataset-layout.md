@@ -110,16 +110,13 @@ The `v2` generation is the current serious tracked bilingual benchmark layer.
 ## Current Reviewed-Slice Status
 The current reviewed excerpt slice is still much smaller than the full curated `v2` pack, but it is no longer at the earlier `3/2` signal-check stage:
 - English reviewed-active excerpt cases:
-  - `9`
+  - `10`
 - Chinese reviewed-active excerpt cases:
-  - `9`
-
-Current frozen reviewed round:
-- `attentional_v2_excerpt_en_curated_v2_llm_reviewed_round3`
-- `attentional_v2_excerpt_zh_curated_v2_llm_reviewed_round3`
+  - `12`
 
 Interpretation:
 - this reviewed slice is now large enough for small targeted local-reading checks and interview-legible tracked evidence
+- the current formal-benchmark-v1 draft now freezes `18` of those reviewed excerpt cases plus `16` chapter cases for a `34 / 40` ready draft
 - it is still not large enough to safely drive broad mechanism tuning, wide comparison sweeps, or default-cutover confidence by itself
 
 ## Package Contract
@@ -317,9 +314,9 @@ Working rule:
 ### Unique-case budget
 | Slice | Primary targets | Unique cases | EN | ZH | Ready now | Gap |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| `excerpt_core` | `selective_legibility`, `insight_and_clarification` | 24 | 12 | 12 | 14 | 10 |
+| `excerpt_core` | `selective_legibility`, `insight_and_clarification` | 24 | 12 | 12 | 18 | 6 |
 | `chapter_core` | `coherent_accumulation` | 16 | 8 | 8 | 16 | 0 |
-| `total` | formal benchmark v1 | 40 | 20 | 20 | 30 | 10 |
+| `total` | formal benchmark v1 | 40 | 20 | 20 | 34 | 6 |
 
 Interpretation:
 - the chapter side is already large enough to freeze a serious first formal slice
@@ -336,17 +333,18 @@ Interpretation:
 ### Excerpt-core quota by target pressure
 | Excerpt pressure | Total | EN | ZH | Ready now | Gap |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `distinction_definition` | 6 | 3 | 3 | 3 | 3 |
-| `tension_reversal` | 6 | 3 | 3 | 4 | 2 |
-| `anchored_reaction_selectivity` | 6 | 3 | 3 | 3 | 3 |
-| `callback_bridge_or_modest_cross_span_link` | 4 | 2 | 2 | 5 | 0 |
+| `distinction_definition` | 6 | 3 | 3 | 5 | 1 |
+| `tension_reversal` | 6 | 3 | 3 | 5 | 1 |
+| `anchored_reaction_selectivity` | 6 | 3 | 3 | 4 | 2 |
+| `callback_bridge_or_modest_cross_span_link` | 4 | 2 | 2 | 4 | 0 |
 | clarification wildcard / under-covered pressure | 2 | 1 | 1 | 0 | 2 |
 
 Interpretation:
 - the current reviewed excerpt slice is already strong enough on modest cross-span-link pressure
 - the real excerpt gap is concentrated in:
-  - more `distinction_definition`
-  - more `anchored_reaction_selectivity`
+  - one more ZH `distinction_definition`
+  - one more EN `tension_reversal`
+  - more EN `anchored_reaction_selectivity`
   - two clarification-bearing wildcard cases that improve benchmark realism rather than repeating the same literary/classic pressure
 
 ### Chapter-core quota by reading role
@@ -377,8 +375,20 @@ Interpretation:
 ### Formal Freeze Order
 1. Freeze `chapter_core` first because it already meets quota and is the clearest serious lane for `coherent_accumulation`.
 2. Freeze as much of `excerpt_core` as the current reviewed slice already supports.
-3. Fill only the `10` excerpt-case gap against the pressure table above.
+3. Fill only the `6` remaining excerpt-case gap against the pressure table above.
 4. Tag the `16` clarification-bearing excerpt cases explicitly before the next formal rerun.
+
+Current explicit-freeze artifacts:
+- draft split manifest:
+  - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
+- implementation closeout and gap map:
+  - `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
+- first tracked builder-active wave artifacts:
+  - `reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402/dataset_review_pipeline_summary.json`
+  - `reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402/dataset_review_pipeline_summary.json`
+- bounded rerun closeout artifacts:
+  - `reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_rerun_women_20260402/dataset_review_pipeline_summary.json`
+  - `reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_rerun_rulin_20260402/dataset_review_pipeline_summary.json`
 
 ## Expansion Reminder For Later Confidence
 - The current `v2` benchmark family is intended to be:

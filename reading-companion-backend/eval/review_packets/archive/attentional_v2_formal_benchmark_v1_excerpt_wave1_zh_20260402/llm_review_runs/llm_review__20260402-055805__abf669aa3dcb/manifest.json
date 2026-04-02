@@ -1,0 +1,24 @@
+{
+  "packet_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402",
+  "run_id": "llm_review__20260402-055805__abf669aa3dcb",
+  "run_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/pending/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402/llm_review_runs/llm_review__20260402-055805__abf669aa3dcb",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v2",
+  "adjudication_contract_version": "packet_adjudication_rubric_v4",
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402__20260402-055104",
+  "case_count": 3,
+  "adjudication_input_fingerprint": "78dc3d6270f3cb941ac9ce12022acf719dcc641a661ad4962e2026c92fc358f4",
+  "case_input_fingerprints": {
+    "ouyou_zaji_public_zh__4__distinction_definition__v2": "54d5b4eb41eb7104da62e62eab3f9b4783c085af44670b55b66dc0ae5edbbee5",
+    "rulin_waishi_24032_zh__6__tension_reversal__v2": "9571f4d26480aed7c9e028197ba8b38b2cda26a1ee376fd20b5f2d46434e2e9a",
+    "ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2": "fdfc2a3a7d3fc0c8144d2c8f911550ace3ba49d6ce71cd84c1e4eb14ae8df618"
+  },
+  "probe_only": false,
+  "input_payload_source": "live_audit_rows",
+  "reused_input_run_id": "",
+  "quota_recovery_attempted_count": 0,
+  "quota_recovery_succeeded_count": 0,
+  "quota_failure_remaining_count": 0,
+  "quota_recovery_passes_used": 0,
+  "generated_at": "2026-04-02T05:59:35.089160Z"
+}

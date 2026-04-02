@@ -31,7 +31,13 @@ def _write_jsonl(path: Path, rows: list[dict[str, object]]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def _bootstrap_dataset(root: Path, *, dataset_id: str = "demo_dataset") -> Path:
+def _bootstrap_dataset(
+    root: Path,
+    *,
+    dataset_id: str = "demo_dataset",
+    benchmark_status: str = "needs_revision",
+    review_status: str = "builder_curated",
+) -> Path:
     dataset_dir = root / "eval" / "datasets" / "excerpt_cases" / dataset_id
     dataset_dir.mkdir(parents=True, exist_ok=True)
     _write_json(
@@ -49,8 +55,8 @@ def _bootstrap_dataset(root: Path, *, dataset_id: str = "demo_dataset") -> Path:
         [
             {
                 "case_id": "demo_case_1",
-                "benchmark_status": "needs_revision",
-                "review_status": "builder_curated",
+                "benchmark_status": benchmark_status,
+                "review_status": review_status,
                 "book_title": "Demo Book",
                 "author": "Demo Author",
                 "chapter_id": "1",
@@ -69,25 +75,40 @@ def _bootstrap_dataset(root: Path, *, dataset_id: str = "demo_dataset") -> Path:
     return dataset_dir
 
 
-def _packet_manifest(root: Path, *, dataset_id: str, packet_id: str) -> dict[str, object]:
-    return {
+def _packet_manifest(
+    root: Path,
+    *,
+    dataset_id: str,
+    packet_id: str,
+    packet_kind: str = "revision_replacement",
+) -> dict[str, object]:
+    manifest = {
         "packet_id": packet_id,
-        "packet_kind": "revision_replacement",
         "created_at": "2026-03-28T00:00:00Z",
         "dataset_id": dataset_id,
         "family": "excerpt_cases",
         "storage_mode": "tracked",
         "dataset_manifest_path": f"eval/datasets/excerpt_cases/{dataset_id}/manifest.json",
         "dataset_primary_file_path": f"eval/datasets/excerpt_cases/{dataset_id}/cases.jsonl",
-        "selection_filters": {
+        "case_count": 1,
+        "import_contract_version": "1",
+    }
+    if packet_kind == "first_review":
+        manifest["selection_filters"] = {
+            "buckets": [],
+            "limit": 0,
+            "only_unreviewed": True,
+            "case_ids": ["demo_case_1"],
+        }
+    else:
+        manifest["packet_kind"] = "revision_replacement"
+        manifest["selection_filters"] = {
             "statuses": ["needs_revision"],
             "limit": 0,
             "case_ids": ["demo_case_1"],
-        },
-        "case_count": 1,
-        "status_counts": {"needs_revision": 1},
-        "import_contract_version": "1",
-    }
+        }
+        manifest["status_counts"] = {"needs_revision": 1}
+    return manifest
 
 
 def _write_review_csv(packet_dir: Path, *, action: str = "") -> None:
@@ -103,10 +124,19 @@ def _write_review_csv(packet_dir: Path, *, action: str = "") -> None:
     (packet_dir / "cases.review.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _write_pending_packet(root: Path, *, dataset_id: str, packet_id: str) -> Path:
+def _write_pending_packet(
+    root: Path,
+    *,
+    dataset_id: str,
+    packet_id: str,
+    packet_kind: str = "revision_replacement",
+) -> Path:
     packet_dir = root / "eval" / "review_packets" / "pending" / packet_id
     packet_dir.mkdir(parents=True, exist_ok=True)
-    _write_json(packet_dir / "packet_manifest.json", _packet_manifest(root, dataset_id=dataset_id, packet_id=packet_id))
+    _write_json(
+        packet_dir / "packet_manifest.json",
+        _packet_manifest(root, dataset_id=dataset_id, packet_id=packet_id, packet_kind=packet_kind),
+    )
     _write_review_csv(packet_dir)
     (packet_dir / "cases.preview.md").write_text("# Preview\n", encoding="utf-8")
     _write_jsonl(
@@ -284,6 +314,15 @@ class FakePipelineRunner:
             packet_id = _arg_value(command, "--packet-id")
             _write_pending_packet(self.root, dataset_id=self.dataset_id, packet_id=packet_id)
             return
+        if module == "eval.attentional_v2.export_dataset_review_packet":
+            packet_id = _arg_value(command, "--packet-id")
+            _write_pending_packet(
+                self.root,
+                dataset_id=self.dataset_id,
+                packet_id=packet_id,
+                packet_kind="first_review",
+            )
+            return
         if module == "eval.attentional_v2.run_case_design_audit":
             packet_dir = Path(_arg_value(command, "--packet-dir"))
             packet_id = json.loads((packet_dir / "packet_manifest.json").read_text(encoding="utf-8"))["packet_id"]
@@ -384,6 +423,69 @@ def test_full_happy_path_over_temp_fixture_tree(tmp_path: Path) -> None:
         "eval.attentional_v2.import_dataset_review_packet",
         "eval.attentional_v2.build_review_queue_summary",
     ]
+
+
+def test_first_review_happy_path_uses_export_packet_runner(tmp_path: Path) -> None:
+    _bootstrap_dataset(tmp_path, benchmark_status="builder_active")
+    args = build_parser().parse_args(
+        [
+            "--dataset-id",
+            "demo_dataset",
+            "--family",
+            "excerpt_cases",
+            "--storage-mode",
+            "tracked",
+            "--selection-mode",
+            "first_review",
+            "--case-id",
+            "demo_case_1",
+            "--packet-id",
+            "packet_first_review",
+        ]
+    )
+    runner = FakePipelineRunner(tmp_path, dataset_id="demo_dataset")
+
+    payload = run_pipeline(args, paths=PipelinePaths.from_root(tmp_path), command_runner=runner)
+
+    archive_dir = tmp_path / "eval" / "review_packets" / "archive" / "packet_first_review"
+    assert payload["status"] == "ok"
+    assert payload["selection_mode"] == "first_review"
+    assert archive_dir.exists()
+    assert [_command_module(command) for command in runner.calls] == [
+        "eval.attentional_v2.export_dataset_review_packet",
+        "eval.attentional_v2.run_case_design_audit",
+        "eval.attentional_v2.auto_review_packet",
+        "eval.attentional_v2.import_dataset_review_packet",
+        "eval.attentional_v2.build_review_queue_summary",
+    ]
+    generate_command = runner.calls[0]
+    assert "--only-unreviewed" in generate_command
+    assert _arg_value(generate_command, "--case-id") == "demo_case_1"
+
+
+def test_first_review_requires_explicit_case_ids(tmp_path: Path) -> None:
+    _bootstrap_dataset(tmp_path, benchmark_status="builder_active")
+    args = build_parser().parse_args(
+        [
+            "--dataset-id",
+            "demo_dataset",
+            "--family",
+            "excerpt_cases",
+            "--storage-mode",
+            "tracked",
+            "--selection-mode",
+            "first_review",
+            "--packet-id",
+            "packet_missing_cases",
+        ]
+    )
+
+    with pytest.raises(ValueError, match="requires at least one --case-id"):
+        run_pipeline(
+            args,
+            paths=PipelinePaths.from_root(tmp_path),
+            command_runner=lambda _command, _cwd: (_ for _ in ()).throw(AssertionError("command runner should not execute")),
+        )
 
 
 def test_resume_from_existing_pending_packet(tmp_path: Path) -> None:

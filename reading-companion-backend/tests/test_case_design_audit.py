@@ -633,6 +633,42 @@ def test_find_span_and_context_prefers_builder_supplied_prior_context_ids(tmp_pa
     assert context["lookback_sentences"] == ["Earlier vow."]
 
 
+def test_normalize_excerpt_text_for_compare_collapses_formatting_only_differences() -> None:
+    expected = "Mrs.\nTouchett had once been like Isabel\uFEFF—so it seemed."
+    reconstructed = "Mrs. Touchett had once been like Isabel—so it seemed."
+
+    assert audit.normalize_excerpt_text_for_compare(expected) == audit.normalize_excerpt_text_for_compare(
+        reconstructed
+    )
+
+
+def test_factual_audit_ignores_formatting_only_excerpt_differences(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        audit,
+        "find_span_and_context",
+        lambda _case, _source_index: (
+            {
+                "source_id": "demo_source",
+                "output_dir": "/tmp/demo",
+                "book_document_path": "/tmp/demo/public/book_document.json",
+                "excerpt_text_reconstructed": "Mrs. Touchett had once been like Isabel—so it seemed.",
+                "expected_excerpt_text": "Mrs.\nTouchett had once been like Isabel\uFEFF—so it seemed.",
+                "prior_context_sentence_ids": [],
+            },
+            {"lookback_sentences": [], "excerpt_sentences": [], "lookahead_sentences": []},
+        ),
+    )
+
+    factual = audit.factual_audit(
+        {"case_id": "demo_case", "source_id": "demo_source"},
+        {"demo_source": {"source_id": "demo_source", "output_dir": "/tmp/demo"}},
+    )
+
+    assert factual["ok"] is True
+    assert factual["issues"] == []
+    assert factual["normalized_expected_excerpt_text"] == factual["normalized_excerpt_text_reconstructed"]
+
+
 def test_build_audit_prompt_input_payload_records_contract_and_hashes() -> None:
     payload = audit.build_audit_prompt_input_payload(
         {

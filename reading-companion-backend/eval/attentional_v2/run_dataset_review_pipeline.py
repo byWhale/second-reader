@@ -52,6 +52,8 @@ ACTIVE_PACKET_STAGES = {"audit_packet", "adjudicate_packet", "import_packet"}
 SUMMARY_JSON_NAME = "dataset_review_pipeline_summary.json"
 SUMMARY_MD_NAME = "dataset_review_pipeline_summary.md"
 DEFAULT_STATUSES = ("needs_revision", "needs_replacement")
+SELECTION_MODE_CHOICES = ("revision_replacement", "first_review")
+DEFAULT_SELECTION_MODE = SELECTION_MODE_CHOICES[0]
 NO_DECISION_NOTE = (
     "No decision-bearing next phase was launched. Benchmark promotion, reviewed-slice freezing, "
     "durable-trace, re-entry, and runtime-viability remain human-owned follow-up work."
@@ -90,6 +92,7 @@ class PipelineState:
     dataset_id: str
     family: str
     storage_mode: str
+    selection_mode: str = DEFAULT_SELECTION_MODE
     packet_id: str | None = None
     packet_dir: Path | None = None
     executed_stages: list[str] = field(default_factory=list)
@@ -102,9 +105,10 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def default_pipeline_packet_id(dataset_id: str) -> str:
+def default_pipeline_packet_id(dataset_id: str, *, selection_mode: str) -> str:
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-    return f"{dataset_id}__revision_replacement__{timestamp}"
+    suffix = "first_review" if selection_mode == "first_review" else "revision_replacement"
+    return f"{dataset_id}__{suffix}__{timestamp}"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -112,6 +116,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dataset-id", required=True)
     parser.add_argument("--family", required=True, choices=FAMILY_CHOICES)
     parser.add_argument("--storage-mode", required=True, choices=STORAGE_MODE_CHOICES)
+    parser.add_argument(
+        "--selection-mode",
+        default=DEFAULT_SELECTION_MODE,
+        choices=SELECTION_MODE_CHOICES,
+        help="How generate_packet selects cases. revision_replacement targets backlog statuses; first_review exports unreviewed builder-active cases by explicit case id.",
+    )
     parser.add_argument(
         "--status",
         action="append",
@@ -187,6 +197,16 @@ def normalize_case_ids(raw_case_ids: list[str]) -> list[str]:
     return [case_id.strip() for case_id in raw_case_ids if case_id.strip()]
 
 
+def validate_selection_args(args: argparse.Namespace) -> None:
+    if args.selection_mode != "first_review":
+        return
+    statuses = [status.strip() for status in (args.statuses or []) if status.strip()]
+    if statuses:
+        raise ValueError("--status is only supported for revision_replacement selection mode.")
+    if not normalize_case_ids(args.case_ids):
+        raise ValueError("first_review selection mode requires at least one --case-id.")
+
+
 def packet_dir_for_id(paths: PipelinePaths, packet_id: str, *, archived: bool) -> Path:
     root = paths.archive_packet_root if archived else paths.pending_packet_root
     return root / packet_id
@@ -239,21 +259,37 @@ def default_command_runner(command: list[str], cwd: Path) -> None:
 def command_for_stage(stage: str, *, args: argparse.Namespace, state: PipelineState) -> list[str] | None:
     python = sys.executable
     if stage == "generate_packet":
-        command = [
-            python,
-            "-m",
-            "eval.attentional_v2.generate_revision_replacement_packet",
-            "--dataset-id",
-            state.dataset_id,
-            "--family",
-            state.family,
-            "--storage-mode",
-            state.storage_mode,
-            "--packet-id",
-            str(state.packet_id or ""),
-        ]
-        for status in normalize_statuses(args.statuses):
-            command.extend(["--status", status])
+        if args.selection_mode == "first_review":
+            command = [
+                python,
+                "-m",
+                "eval.attentional_v2.export_dataset_review_packet",
+                "--dataset-id",
+                state.dataset_id,
+                "--family",
+                state.family,
+                "--storage-mode",
+                state.storage_mode,
+                "--packet-id",
+                str(state.packet_id or ""),
+                "--only-unreviewed",
+            ]
+        else:
+            command = [
+                python,
+                "-m",
+                "eval.attentional_v2.generate_revision_replacement_packet",
+                "--dataset-id",
+                state.dataset_id,
+                "--family",
+                state.family,
+                "--storage-mode",
+                state.storage_mode,
+                "--packet-id",
+                str(state.packet_id or ""),
+            ]
+            for status in normalize_statuses(args.statuses):
+                command.extend(["--status", status])
         for case_id in normalize_case_ids(args.case_ids):
             command.extend(["--case-id", case_id])
         if args.limit > 0:
@@ -497,6 +533,7 @@ def render_pipeline_summary_markdown(summary: dict[str, Any]) -> str:
         f"- dataset_id: `{summary['dataset_id']}`",
         f"- family: `{summary['family']}`",
         f"- storage_mode: `{summary['storage_mode']}`",
+        f"- selection_mode: `{summary['selection_mode']}`",
         f"- packet_dir: `{summary['packet_dir']}`",
         f"- executed_stages: `{', '.join(summary['executed_stages'])}`",
         f"- action_counts: `{json.dumps(summary['action_counts'], ensure_ascii=False, sort_keys=True)}`",
@@ -521,6 +558,7 @@ def write_final_summary(paths: PipelinePaths, state: PipelineState) -> dict[str,
         "dataset_id": state.dataset_id,
         "family": state.family,
         "storage_mode": state.storage_mode,
+        "selection_mode": state.selection_mode,
         "packet_id": state.packet_id,
         "packet_dir": str(packet_dir),
         "executed_stages": list(state.executed_stages),
@@ -554,14 +592,19 @@ def run_pipeline(
 ) -> dict[str, Any]:
     paths = paths or PipelinePaths.from_root(ROOT)
     stages = requested_stages(args.from_stage, args.through_stage)
+    validate_selection_args(args)
     state = PipelineState(
         dataset_id=args.dataset_id,
         family=args.family,
         storage_mode=args.storage_mode,
+        selection_mode=args.selection_mode,
     )
 
     if stages[0] == "generate_packet":
-        state.packet_id = args.packet_id.strip() or default_pipeline_packet_id(args.dataset_id)
+        state.packet_id = args.packet_id.strip() or default_pipeline_packet_id(
+            args.dataset_id,
+            selection_mode=args.selection_mode,
+        )
         state.packet_dir = packet_dir_for_id(paths, state.packet_id, archived=False)
         validate_generate_prerequisites(paths, state, packet_dir_arg=args.packet_dir)
     elif stages == ["refresh_queue_summary"] and not args.packet_id.strip() and not args.packet_dir.strip():
@@ -642,6 +685,7 @@ def run_pipeline(
     return {
         "status": "dry_run_ok" if args.dry_run else "ok",
         "dataset_id": state.dataset_id,
+        "selection_mode": state.selection_mode,
         "packet_id": state.packet_id,
         "packet_dir": str(state.packet_dir) if state.packet_dir else "",
         "executed_stages": list(state.executed_stages),

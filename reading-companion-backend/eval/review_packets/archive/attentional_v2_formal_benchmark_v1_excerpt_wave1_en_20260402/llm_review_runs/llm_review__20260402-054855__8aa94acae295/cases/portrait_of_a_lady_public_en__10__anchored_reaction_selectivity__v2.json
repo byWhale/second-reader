@@ -1,0 +1,112 @@
+{
+  "case_id": "portrait_of_a_lady_public_en__10__anchored_reaction_selectivity__v2",
+  "raw_model_payload": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "weak",
+    "excerpt_integrity": "weak",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "text_noise",
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The factual audit found an excerpt_text_mismatch, which is a concrete excerpt integrity defect that must be corrected. Additionally, the judge focus ('Is the visible reaction anchored, selective, and worth keeping on reread?') is too diffuse—it asks three loosely-related questions without isolating a single mechanism behavior. The primary reviewer's 'ambiguous_focus' flag is valid. The case shows promise: the contrast between Mrs. Touchett and Isabel and the old man's benevolent feelings are legible, suggesting the reaction-anchor and selective-legibility phenomena are present in the source text. However, the excerpt needs verification against the source, and the judge focus should be sharpened to test one specific mechanism claim rather than three simultaneously."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "weak",
+    "excerpt_integrity": "weak",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "text_noise",
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The factual audit found an excerpt_text_mismatch, which is a concrete excerpt integrity defect that must be corrected. Additionally, the judge focus ('Is the visible reaction anchored, selective, and worth keeping on reread?') is too diffuse—it asks three loosely-related questions without isolating a single mechanism behavior. The primary reviewer's 'ambiguous_focus' flag is valid. The case shows promise: the contrast between Mrs. Touchett and Isabel and the old man's benevolent feelings are legible, suggesting the reaction-anchor and selective-legibility phenomena are present in the source text. However, the excerpt needs verification against the source, and the judge focus should be sharpened to test one specific mechanism claim rather than three simultaneously."
+  },
+  "adjudication_input_fingerprint": "8758e87fbcea4d16c04995530beec64327c686bd505555e2f19c1891ffb73d54",
+  "source_row_fingerprint": "d65b50b3775683e7882020face9327eab2eb8b4d1bb1666fbcb86f9fd7e7ad20",
+  "packet_source_row_fingerprint": "d65b50b3775683e7882020face9327eab2eb8b4d1bb1666fbcb86f9fd7e7ad20",
+  "prompt_case_fingerprint": "db5e23ec9fdee69406984a3c8233d39a47d6b1b3c7a25042397e7d75c5f362e4",
+  "audit_row_fingerprint": "73bd7869ddb1990b5d06f562e8733ee644bd4a1b4ffb9446a578fbbbdcc7a270",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "f95ec948b2ca80aef6e9a4ce565d00a6f455448b0e47bcb8aceda9ee365be31a"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "healthy_tier_selection",
+  "selection_override_source": "",
+  "trace_call_id": "032222ef973041e5927f464249739540",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402__20260402-054238",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "portrait_of_a_lady_public_en__10__anchored_reaction_selectivity__v2",
+      "case_title": "The Portrait of a Lady / VI / anchored_reaction_selectivity",
+      "book_title": "The Portrait of a Lady",
+      "author": "Henry James",
+      "chapter_id": "10",
+      "chapter_title": "VI",
+      "target_profile_id": "",
+      "selection_role": "",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [],
+      "type_tags": [],
+      "selection_reason": "Selected to test whether the mechanism emits a visible reaction only when the line genuinely earns it.",
+      "judge_focus": "Is the visible reaction anchored, selective, and worth keeping on reread?",
+      "excerpt_text": "It was because she was fresh and natural and quick to understand, to speak﻿—so many characteristics of her niece﻿—that he had fallen in love with Mrs.\nTouchett.\nHe never expressed this analogy to the girl herself, however; for if Mrs.\nTouchett had once been like Isabel, Isabel was not at all like Mrs.\nTouchett.\nThe old man was full of kindness for her; it was a long time, as he said, since they had had any young life in the house; and our rustling, quickly-moving, clear-voiced heroine was as agreeable to his sense as the sound of flowing water.\nHe wanted to do something for her and wished she would ask it of him."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": false,
+        "issues": [
+          "excerpt_text_mismatch"
+        ]
+      },
+      "primary_review": {
+        "decision": "drop",
+        "problem_types": [
+          "ambiguous_focus"
+        ],
+        "bucket_fit_band": "adequate",
+        "focus_clarity_band": "weak",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "f95ec948b2ca80aef6e9a4ce565d00a6f455448b0e47bcb8aceda9ee365be31a"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

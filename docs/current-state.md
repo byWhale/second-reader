@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-01T15:25:03Z`
+Last verified: `2026-04-02T06:16:49Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
@@ -45,8 +45,28 @@ Last verified: `2026-04-01T15:25:03Z`
   - `40` unique cases total
   - `24` excerpt cases for `selective_legibility` plus the clarification subset
   - `16` chapter cases for `coherent_accumulation`
-  - current ready estimate: `30`
-  - current gap estimate: `10`, concentrated on the excerpt side rather than the chapter side
+  - current ready estimate: `34`
+  - current gap estimate: `6`, concentrated on the excerpt side rather than the chapter side
+  - explicit freeze artifacts now exist at:
+    - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
+    - `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
+  - the chapter lane is now concretely drafted as a `16`-case explicit freeze
+  - the first tracked `5`-case builder-active excerpt wave plus the bounded reruns are now completed:
+    - EN packet `attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402`: `0 keep`, `2 revise`
+    - ZH packet `attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402`: `2 keep`, `1 revise`
+    - direct wave-1 reviewed-active additions:
+      - `ouyou_zaji_public_zh__4__distinction_definition__v2`
+      - `ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2`
+    - bounded rerun additions after the excerpt-normalization repair:
+      - `women_and_economics_public_en__9__distinction_definition__v2`
+      - `rulin_waishi_24032_zh__6__tension_reversal__v2`
+  - the bounded factual-audit repair is now landed:
+    - excerpt comparison now strips harmless `Cf` formatting characters and collapses whitespace / newline differences before judging `excerpt_text_mismatch`
+    - the two formatting-blocked reruns now clear factual audit and import cleanly as `reviewed_active`
+  - the next dataset move is now bounded and concrete:
+    - freeze those two rerun keeps into the formal benchmark draft
+    - do not spend another immediate builder-active rerun on `portrait_of_a_lady_public_en__10__anchored_reaction_selectivity__v2`
+    - use the planned Henry Adams local promotions as the next clean EN tension / anchored support lane
 - Treat cheap honesty / integrity / compatibility checks as sanity guards rather than as primary eval success targets.
 - Treat runtime viability, broader local pairwise comparison, durable-trace / re-entry comparison, and most mechanism-specific judged attribution families as paused unless one of the three kept dimensions later requires them.
 

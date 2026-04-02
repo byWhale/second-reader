@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-01T15:25:03Z",
+  "updated_at": "2026-04-02T06:16:49Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -471,16 +471,22 @@
         "bgjob_durable_trace_reentry_gate_parallel3_20260401",
         "bgjob_durable_trace_reentry_gate_personal_serial_20260401",
         "bgjob_runtime_viability_gate_20260401",
-        "bgjob_runtime_viability_gate_serialfix_20260401"
+        "bgjob_runtime_viability_gate_serialfix_20260401",
+        "bgjob_formal_benchmark_v1_excerpt_wave1_en_20260402",
+        "bgjob_formal_benchmark_v1_excerpt_wave1_zh_20260402",
+        "bgjob_formal_benchmark_v1_excerpt_rerun_women_20260402",
+        "bgjob_formal_benchmark_v1_excerpt_rerun_rulin_20260402"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the active eval scope compressed to only three north-star dimensions; freeze the new formal benchmark-v1 quota without any source-origin strata (24 excerpt cases, 16 chapter cases, 40 total), use target pressure plus language plus reading role plus genre/book type plus chapter-vs-excerpt scale as the benchmark design axes, freeze explicit case-id lists instead of relying on auto-selected cores, and fill only the remaining excerpt-side quota gaps before the next formal rerun.",
+      "next_action": "Use the updated explicit freeze draft at reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json; treat chapter_core as frozen in draft form and excerpt_core as 18/24 ready after the completed first tracked wave plus bounded reruns; keep ouyou_zaji_public_zh__4__distinction_definition__v2, ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2, women_and_economics_public_en__9__distinction_definition__v2, and rulin_waishi_24032_zh__6__tension_reversal__v2 in the frozen-now slice; keep portrait_of_a_lady_public_en__10__anchored_reaction_selectivity__v2 deferred; and use the planned Henry Adams local promotions as the next clean EN tension / anchored support lane.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/execution-tracker.md",
         "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md",
+        "docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md",
         "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
         "docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md",
+        "reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json",
         "reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py",
         "reading-companion-backend/eval/attentional_v2/run_runtime_viability.py",
         "reading-companion-backend/src/reading_runtime/llm_gateway.py",
@@ -495,12 +501,26 @@
         "reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_personal_serial_20260401.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_wave1_en_20260402.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_wave1_zh_20260402.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_rerun_women_20260402.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_rerun_rulin_20260402.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_durable_trace_reentry_gate_parallel3_20260401/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_durable_trace_reentry_gate_parallel3_20260401/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/summary/report.md",
-        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/summary/aggregate.json"
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/summary/aggregate.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_rerun_women_20260402/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_rerun_rulin_20260402/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402/llm_review_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402/llm_review_summary.json",
+        "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
+        "reading-companion-backend/eval/attentional_v2/run_dataset_review_pipeline.py",
+        "reading-companion-backend/tests/test_case_design_audit.py",
+        "reading-companion-backend/tests/test_dataset_review_pipeline.py"
       ],
-      "last_updated": "2026-04-01T15:25:03Z",
+      "last_updated": "2026-04-02T06:16:49Z",
       "last_updated_by": "codex"
     },
     {

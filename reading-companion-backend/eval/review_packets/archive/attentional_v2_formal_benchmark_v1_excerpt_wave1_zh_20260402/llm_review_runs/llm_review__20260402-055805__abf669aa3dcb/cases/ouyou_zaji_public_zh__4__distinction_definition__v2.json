@@ -1,0 +1,105 @@
+{
+  "case_id": "ouyou_zaji_public_zh__4__distinction_definition__v2",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All gates pass cleanly: factual audit is clean, primary review indicates strong fit across bucket/focus/excerpt, and adversarial review shows no high risk. The excerpt presents a genuine distinction (St. Mark's Square as both 'most lively' and 'most magnificent') that requires the mechanism to hold both characterizations without flattening them into generic paraphrase. No concrete defects in the excerpt itself warrant revision or rejection."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All gates pass cleanly: factual audit is clean, primary review indicates strong fit across bucket/focus/excerpt, and adversarial review shows no high risk. The excerpt presents a genuine distinction (St. Mark's Square as both 'most lively' and 'most magnificent') that requires the mechanism to hold both characterizations without flattening them into generic paraphrase. No concrete defects in the excerpt itself warrant revision or rejection."
+  },
+  "adjudication_input_fingerprint": "54d5b4eb41eb7104da62e62eab3f9b4783c085af44670b55b66dc0ae5edbbee5",
+  "source_row_fingerprint": "d9ada4839c2bca7ab1ef77d8a768394a0030823dcab4392463bdb3d00af334f3",
+  "packet_source_row_fingerprint": "d9ada4839c2bca7ab1ef77d8a768394a0030823dcab4392463bdb3d00af334f3",
+  "prompt_case_fingerprint": "50a72c291cecd95d3c048aade3ffe501aaeb134dc3df0afad2feb748f92dbbf9",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "95344fc4155ffb0e3da15c8d942a77a1c493b37dd5f999ca9359247df2227e6e"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "healthy_tier_selection",
+  "selection_override_source": "",
+  "trace_call_id": "ad8e406297ee4d2caa7d5403c3026c39",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402__20260402-055104",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "ouyou_zaji_public_zh__4__distinction_definition__v2",
+      "case_title": "歐遊雜記 / 威尼斯 / distinction_definition",
+      "book_title": "歐遊雜記",
+      "author": "朱自清",
+      "chapter_id": "4",
+      "chapter_title": "威尼斯",
+      "target_profile_id": "",
+      "selection_role": "",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "distinction",
+        "definition_pressure",
+        "anchored_reaction"
+      ],
+      "role_tags": [],
+      "type_tags": [],
+      "selection_reason": "Selected to test whether the mechanism can close around a live distinction instead of flattening the passage into generic paraphrase.",
+      "judge_focus": "Does the mechanism identify the key distinction cleanly and stay answerable to the specific passage?",
+      "excerpt_text": "海水那麼綠，那麼釅，會帶你到夢中去。\n威尼斯不單是明媚，在聖馬克方場走走就知道。\n這個方場南面臨著一道運河；場中偏東南便是那可以望遠的鐘樓。\n威尼斯最熱鬧的地方是這兒，最華妙莊嚴的地方也是這兒。\n除了西邊，圍著的都是三百年以上的建築，東邊居中是聖馬克堂，卻有了八九百年——鐘樓便在它的右首。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "95344fc4155ffb0e3da15c8d942a77a1c493b37dd5f999ca9359247df2227e6e"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

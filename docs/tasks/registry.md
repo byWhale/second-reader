@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-01T15:25:03Z`
+Last updated: `2026-04-02T06:16:49Z`
 
 ## Status Values
 - `active`
@@ -25,13 +25,17 @@ Last updated: `2026-04-01T15:25:03Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the active eval scope compressed to only three north-star dimensions; freeze the new formal benchmark-v1 quota without any source-origin strata (`24` excerpt cases, `16` chapter cases, `40` total), use target pressure + language + reading role + genre/book type + chapter-vs-excerpt scale as the benchmark design axes, freeze explicit case-id lists instead of relying on auto-selected cores, and fill only the remaining excerpt-side quota gaps before the next formal rerun
+- Next: use the updated explicit freeze draft at `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`; treat `chapter_core` as frozen in draft form and `excerpt_core` as `18 / 24` ready after the completed first tracked wave plus bounded reruns; keep `ouyou_zaji_public_zh__4__distinction_definition__v2`, `ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2`, `women_and_economics_public_en__9__distinction_definition__v2`, and `rulin_waishi_24032_zh__6__tension_reversal__v2` in the frozen-now slice; keep `portrait_of_a_lady_public_en__10__anchored_reaction_selectivity__v2` deferred; and use the planned Henry Adams local promotions as the next clean EN tension / anchored support lane
 - Jobs:
   - `bgjob_durable_trace_reentry_gate_20260401` (`failed`)
   - `bgjob_durable_trace_reentry_gate_parallel3_20260401` (`completed`)
   - `bgjob_durable_trace_reentry_gate_personal_serial_20260401` (`abandoned`)
   - `bgjob_runtime_viability_gate_20260401` (`completed`)
   - `bgjob_runtime_viability_gate_serialfix_20260401` (`completed`)
+  - `bgjob_formal_benchmark_v1_excerpt_wave1_en_20260402` (`completed`)
+  - `bgjob_formal_benchmark_v1_excerpt_wave1_zh_20260402` (`completed`)
+  - `bgjob_formal_benchmark_v1_excerpt_rerun_women_20260402` (`completed`)
+  - `bgjob_formal_benchmark_v1_excerpt_rerun_rulin_20260402` (`completed`)
 
 ## Waiting
 

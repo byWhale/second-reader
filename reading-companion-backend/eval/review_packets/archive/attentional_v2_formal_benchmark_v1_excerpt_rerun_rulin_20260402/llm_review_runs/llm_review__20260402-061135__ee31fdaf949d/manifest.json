@@ -1,0 +1,22 @@
+{
+  "packet_id": "attentional_v2_formal_benchmark_v1_excerpt_rerun_rulin_20260402",
+  "run_id": "llm_review__20260402-061135__ee31fdaf949d",
+  "run_dir": "/Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend/eval/review_packets/pending/attentional_v2_formal_benchmark_v1_excerpt_rerun_rulin_20260402/llm_review_runs/llm_review__20260402-061135__ee31fdaf949d",
+  "review_origin": "llm",
+  "review_policy": "llm_multi_prompt_adjudication_v2",
+  "adjudication_contract_version": "packet_adjudication_rubric_v4",
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_rerun_rulin_20260402__20260402-060929",
+  "case_count": 1,
+  "adjudication_input_fingerprint": "91c78623d46914c793ba3b3162d07db7a53751636e5735e20db6d818b15a3dc6",
+  "case_input_fingerprints": {
+    "rulin_waishi_24032_zh__6__tension_reversal__v2": "6390f14d36e2cb86cab24096f520ad2794de9b35a605c4e13f8221675dadd24d"
+  },
+  "probe_only": false,
+  "input_payload_source": "live_audit_rows",
+  "reused_input_run_id": "",
+  "quota_recovery_attempted_count": 0,
+  "quota_recovery_succeeded_count": 0,
+  "quota_failure_remaining_count": 0,
+  "quota_recovery_passes_used": 0,
+  "generated_at": "2026-04-02T06:11:53.378924Z"
+}

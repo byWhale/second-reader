@@ -1,0 +1,104 @@
+{
+  "case_id": "ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt demonstrates the anchored reaction mechanism cleanly: the narrator's visible reaction (忍不住笑, 連忙把嘴唇咬住) is earned by the specific absurdity of 雪漁's genealogical claim, and the selective legibility is evident in the narrator's self-restraint rather than open laughter. The visible thought (暗想) adds a layer of ironic distance. All audits pass with no issues, and the case exemplifies the stated selection reason without noise or ambiguity."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt demonstrates the anchored reaction mechanism cleanly: the narrator's visible reaction (忍不住笑, 連忙把嘴唇咬住) is earned by the specific absurdity of 雪漁's genealogical claim, and the selective legibility is evident in the narrator's self-restraint rather than open laughter. The visible thought (暗想) adds a layer of ironic distance. All audits pass with no issues, and the case exemplifies the stated selection reason without noise or ambiguity."
+  },
+  "adjudication_input_fingerprint": "fdfc2a3a7d3fc0c8144d2c8f911550ace3ba49d6ce71cd84c1e4eb14ae8df618",
+  "source_row_fingerprint": "9c1b6a174a111807b35df9b632e0a42387c1d734287807ae712261b8675f51ba",
+  "packet_source_row_fingerprint": "9c1b6a174a111807b35df9b632e0a42387c1d734287807ae712261b8675f51ba",
+  "prompt_case_fingerprint": "445abf1916b80729e36187666a9e8b0a783c9b8963d5a6ec576b09c0d3ac2305",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "d81ba72640b395404e0ea11bec32dcda19b6cad502a9feaceb599bdbba04fa9f"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "healthy_tier_selection",
+  "selection_override_source": "",
+  "trace_call_id": "95cc287ea50a43949e6ca10855699be1",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402__20260402-055104",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2",
+      "case_title": "二十年目睹之怪現狀 / 第三十七回 說大話謬引同宗 寫佳畫偏留笑柄 / anchored_reaction_selectivity",
+      "book_title": "二十年目睹之怪現狀",
+      "author": "吳趼人",
+      "chapter_id": "37",
+      "chapter_title": "第三十七回 說大話謬引同宗 寫佳畫偏留笑柄",
+      "target_profile_id": "",
+      "selection_role": "",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [],
+      "type_tags": [],
+      "selection_reason": "Selected to test whether the mechanism emits a visible reaction only when the line genuinely earns it.",
+      "judge_focus": "Is the visible reaction anchored, selective, and worth keeping on reread?",
+      "excerpt_text": "」我道：「足下倒說的蘇州口音。\n」雪漁道：「我們這一支從明朝萬曆年間，由湖南搬到無錫；康熙末年，再由無錫搬到蘇州：到我已經八代了。\n」我聽了，就同在上海花多福家聽那種怪論一般，忍不住笑，連忙把嘴唇咬住。\n暗想今天又遇見一位奇人了，不知蔡侶笙聽了，還是怒還是笑。\n因忍著笑道：「適在尊寓，拜觀大作，佩服得很！"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "d81ba72640b395404e0ea11bec32dcda19b6cad502a9feaceb599bdbba04fa9f"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

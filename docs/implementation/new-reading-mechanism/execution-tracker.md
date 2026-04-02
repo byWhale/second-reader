@@ -38,6 +38,34 @@ Update when: status changes, blockers appear, or phases complete.
     - `reader_character.selective_legibility`
     - `reader_character.coherent_accumulation`
     - `reader_value.insight_and_clarification`
+  - explicit formal-benchmark freeze artifacts are now landed for the reduced scope:
+    - split manifest:
+      - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
+    - implementation draft:
+      - `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
+    - practical consequence:
+      - `chapter_core` is now concrete enough to treat as frozen in draft form
+      - excerpt work should proceed only as quota-filling review waves, not as open-ended builder exploration
+    - first tracked builder-active excerpt wave plus the bounded reruns are now completed:
+      - EN packet `attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402`: `0 keep`, `2 revise`
+      - ZH packet `attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402`: `2 keep`, `1 revise`
+      - direct wave-1 frozen-now excerpt additions:
+        - `ouyou_zaji_public_zh__4__distinction_definition__v2`
+        - `ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2`
+      - bounded rerun additions after the excerpt-normalization repair:
+        - `women_and_economics_public_en__9__distinction_definition__v2`
+        - `rulin_waishi_24032_zh__6__tension_reversal__v2`
+      - excerpt freeze status is now:
+        - `chapter_core = 16 / 16`
+        - `excerpt_core = 18 / 24`
+        - `formal benchmark total = 34 / 40`
+      - the bounded factual-audit repair is now landed in code:
+        - excerpt comparison strips harmless `Cf` formatting characters and collapses whitespace / newline differences before judging `excerpt_text_mismatch`
+        - targeted validation now passes in `reading-companion-backend/tests/test_case_design_audit.py` and `reading-companion-backend/tests/test_dataset_review_pipeline.py`
+      - immediate next support move:
+        - freeze those two rerun keeps into the formal benchmark draft
+        - do not spend another immediate builder-active rerun on `portrait_of_a_lady_public_en__10__anchored_reaction_selectivity__v2`
+        - use the planned Henry Adams local promotions as the next clean EN tension / anchored support lane
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets
 - Current blockers:
   - the post-recovery gate review no longer blocks the next decisive lane:

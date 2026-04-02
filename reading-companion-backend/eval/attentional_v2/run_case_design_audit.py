@@ -18,7 +18,9 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import time
+import unicodedata
 from collections import Counter
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
@@ -373,6 +375,14 @@ def find_span_and_context(case: dict[str, Any], source_index: dict[str, dict[str
     raise ValueError(f"Chapter missing for {case.get('case_id')}")
 
 
+def normalize_excerpt_text_for_compare(text: Any) -> str:
+    normalized = unicodedata.normalize("NFKC", str(text or "").strip())
+    normalized = "".join(char for char in normalized if unicodedata.category(char) != "Cf")
+    normalized = normalized.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
+
+
 def factual_audit(case: dict[str, Any], source_index: dict[str, dict[str, Any]]) -> dict[str, Any]:
     source = source_index.get(str(case.get("source_id", "")))
     if not source:
@@ -389,8 +399,10 @@ def factual_audit(case: dict[str, Any], source_index: dict[str, dict[str, Any]])
         }
     excerpt_text = span_info["expected_excerpt_text"]
     reconstructed = span_info["excerpt_text_reconstructed"]
+    normalized_expected = normalize_excerpt_text_for_compare(excerpt_text)
+    normalized_reconstructed = normalize_excerpt_text_for_compare(reconstructed)
     issues: list[str] = []
-    if excerpt_text != reconstructed:
+    if normalized_expected != normalized_reconstructed:
         issues.append("excerpt_text_mismatch")
     lowered = excerpt_text.lower()
     if any(marker in lowered for marker in BOILERPLATE_MARKERS):
@@ -398,6 +410,8 @@ def factual_audit(case: dict[str, Any], source_index: dict[str, dict[str, Any]])
     return {
         "ok": not issues,
         "issues": issues,
+        "normalized_expected_excerpt_text": normalized_expected,
+        "normalized_excerpt_text_reconstructed": normalized_reconstructed,
         **span_info,
     }
 

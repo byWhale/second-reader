@@ -1,0 +1,105 @@
+{
+  "case_id": "women_and_economics_public_en__9__distinction_definition__v2",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents multiple clear distinctions (permitted vs. forbidden, private body-service vs. professional expansion, individual labor vs. class-based industry) that provide robust material for testing whether mechanisms can identify and stay grounded in live distinctions rather than flattening to generic paraphrase. All audit gates pass cleanly: factual audit is clear, primary review recommends keep with strong bands across the board, and adversarial review shows no high-risk flags. The selection reason and judge focus are well-aligned with what the excerpt offers."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents multiple clear distinctions (permitted vs. forbidden, private body-service vs. professional expansion, individual labor vs. class-based industry) that provide robust material for testing whether mechanisms can identify and stay grounded in live distinctions rather than flattening to generic paraphrase. All audit gates pass cleanly: factual audit is clear, primary review recommends keep with strong bands across the board, and adversarial review shows no high-risk flags. The selection reason and judge focus are well-aligned with what the excerpt offers."
+  },
+  "adjudication_input_fingerprint": "f79b781597e0898d8c5b2219f28ac6a29e7d25920d8839492171e9fa23b2af9a",
+  "source_row_fingerprint": "9826154dc071ca174842dfce10840e6948551180bedf3f4a6b14e9a47839e9b5",
+  "packet_source_row_fingerprint": "9826154dc071ca174842dfce10840e6948551180bedf3f4a6b14e9a47839e9b5",
+  "prompt_case_fingerprint": "5eb1b92e9a456df159f1f5d6c974a60fc69f1a925542380e9d6ff2ca270f799c",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "efe42d6ecf7945e51facbf8e1b93cb9d249e29061e037161ad6a81b7bc272358"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "healthy_tier_selection",
+  "selection_override_source": "",
+  "trace_call_id": "0facec2801764a32bda7dd122b390bd3",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_formal_benchmark_v1_excerpt_rerun_women_20260402__20260402-060929",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "women_and_economics_public_en__9__distinction_definition__v2",
+      "case_title": "Women and Economics / IV / distinction_definition",
+      "book_title": "Women and Economics",
+      "author": "Charlotte Perkins Gilman",
+      "chapter_id": "9",
+      "chapter_title": "IV",
+      "target_profile_id": "",
+      "selection_role": "",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "distinction",
+        "definition_pressure",
+        "anchored_reaction"
+      ],
+      "role_tags": [],
+      "type_tags": [],
+      "selection_reason": "Selected to test whether the mechanism can close around a live distinction instead of flattening the passage into generic paraphrase.",
+      "judge_focus": "Does the mechanism identify the key distinction cleanly and stay answerable to the specific passage?",
+      "excerpt_text": "But in the ever-growing human impulse to create, the power and will to make, to do, to express one’s new spirit in new forms﻿—here she has been utterly debarred.\nShe might work as she had worked from the beginning﻿—at the primitive labors of the household; but in the inevitable expansion of even those industries to professional levels we have striven to hold her back.\nTo work with her own hands, for nothing, in direct body-service to her own family﻿—this has been permitted﻿—yes, compelled.\nBut to be and do anything further from this she has been forbidden.\nHer labor has not only been limited in kind, but in degree.\nWhatever she has been allowed to do must be done in private and alone, the firsthand industries of savage times.\nOur growth in industry has been not only in kind, but in class."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "efe42d6ecf7945e51facbf8e1b93cb9d249e29061e037161ad6a81b7bc272358"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}
