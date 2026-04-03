@@ -37,6 +37,12 @@ Update when: status changes, blockers appear, or phases complete.
     - already running jobs do not pick up later config or env changes; retargeting requires a fresh launch
     - heavy judged cross-mechanism comparison jobs should force `MiniMax-M2.7-highspeed`
     - lighter support lanes such as no-judge smoke, dataset review, and packet adjudication should force `MiniMax-M2.7-personal`
+    - local operator config is now aligned with that plan:
+      - `config/llm_targets.local.json` raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
+      - `config/llm_profile_bindings.local.json` keeps `MiniMax-M2.7-personal` as the default primary tier and adds `MiniMax-M2.7-highspeed` as an allowed backup tier for `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust`
+    - this membership fix matters:
+      - the first highspeed chapter target-split retry failed immediately with `LLMRegistryError: Profile runtime_reader_default does not define target MiniMax-M2.7-highspeed.`
+      - after the backup-tier fix, explicit highspeed forcing now works through the project gateway
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
@@ -104,6 +110,10 @@ Update when: status changes, blockers appear, or phases complete.
           LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal \
           .venv/bin/python scripts/run_registered_job.py ...
           ```
+      - current live Phase 9 operator state is now:
+        - the pre-sharding launch pair `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` and `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` was intentionally abandoned so both lanes could pick up the new routing
+        - the current excerpt smoke lane is `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
+        - the current chapter decisive lane is `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets
 - Current blockers:
   - the post-recovery gate review no longer blocks the next decisive lane:

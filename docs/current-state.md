@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-03T08:13:56Z`
+Last verified: `2026-04-03T08:44:30Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
@@ -86,24 +86,47 @@ Last verified: `2026-04-03T08:13:56Z`
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
 - The formal benchmark gap-fill closeout is finished:
   - `reading-companion-backend/eval/review_packets/review_queue_summary.json` is back to `active_packet_count = 0`
-  - the next decisive `chapter_core` formal comparison lane is now actively running:
+  - the first directly launched Phase 9 chapter and excerpt jobs were intentionally abandoned on `2026-04-03`:
+    - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403`
+    - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403`
+    - reason:
+      - already running jobs could not pick up the new per-process target sharding after config changes
+  - the first highspeed target-split chapter attempt also failed fast:
     - job id:
-      - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403`
-    - run id:
-      - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_chapter_core_decisive_20260403`
-    - current intent:
-      - use the explicit frozen `16` chapter cases rather than the runner's default `8`-case auto-core
-      - treat `system_regression` as the primary `coherent_accumulation` surface and `local_impact` as secondary support
-  - the excerpt lane is now in active smoke state rather than only implementation state:
-    - job id:
-      - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403`
-    - run id:
-      - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_excerpt_smoke_20260403`
-    - current intent:
-      - validate the new formal excerpt runner with `judge_mode = none`
-      - keep the next judged excerpt run blocked until the chapter decisive lane finishes and the smoke writes stable per-case plus summary outputs
-  - the currently running Phase 9 jobs were both launched before the new target-sharding rule and therefore still route through `MiniMax-M2.7-personal`
-  - future Phase 9 launch discipline is now:
+      - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403`
+    - failure:
+      - `LLMRegistryError: Profile runtime_reader_default does not define target MiniMax-M2.7-highspeed.`
+    - repair now landed:
+      - `reading-companion-backend/config/llm_targets.local.json` now raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
+      - `reading-companion-backend/config/llm_profile_bindings.local.json` now keeps `MiniMax-M2.7-personal` as the default primary tier and adds `MiniMax-M2.7-highspeed` as an allowed backup tier for:
+        - `runtime_reader_default`
+        - `dataset_review_high_trust`
+        - `eval_judge_high_trust`
+      - practical effect:
+        - default local routing still stays on personal
+        - explicit `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed` now works through the project gateway instead of failing the membership check
+  - the current Phase 9 live jobs are now:
+    - chapter decisive lane:
+      - job id:
+        - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
+      - run id:
+        - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
+      - target:
+        - forced to `MiniMax-M2.7-highspeed`
+      - current intent:
+        - use the explicit frozen `16` chapter cases rather than the runner's default `8`-case auto-core
+        - treat `system_regression` as the primary `coherent_accumulation` surface and `local_impact` as secondary support
+    - excerpt smoke lane:
+      - job id:
+        - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
+      - run id:
+        - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
+      - target:
+        - forced to `MiniMax-M2.7-personal`
+      - current intent:
+        - validate the new formal excerpt runner with `judge_mode = none`
+        - keep the next judged excerpt run blocked until the chapter decisive lane finishes and the smoke writes stable per-case plus summary outputs
+  - future Phase 9 launch discipline remains:
     - heavy cross-mechanism comparison jobs such as formal `run_chapter_comparison` and judged `run_excerpt_comparison` must launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed`
     - lighter support lanes such as no-judge excerpt smoke, dataset review, and packet adjudication must launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
     - because `LLM_FORCE_TARGET_ID` is process-wide and the registry is cached in-process, changing config files or env vars after launch does not retarget an already running background job

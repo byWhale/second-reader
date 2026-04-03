@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-03T08:13:56Z`
+Last updated: `2026-04-03T08:44:30Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-03T08:13:56Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: use the updated explicit freeze draft at `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`; the first formal benchmark-v1 freeze is now `40 / 40` with `chapter_core = 16 / 16` and `excerpt_core = 24 / 24`; the formal `chapter_core` decisive comparison is now running as `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403`; the excerpt smoke is now running as `bgjob_formal_benchmark_v1_excerpt_smoke_20260403`; keep durable-trace and runtime-viability paused; and for every future Phase 9 launch use explicit process-level target sharding with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed` for heavy judged comparison jobs and `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal` for lighter support or no-judge jobs; do not launch the judged excerpt lane until the chapter decisive run finishes cleanly
+- Next: use the updated explicit freeze draft at `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`; the first formal benchmark-v1 freeze is now `40 / 40` with `chapter_core = 16 / 16` and `excerpt_core = 24 / 24`; the pre-sharding jobs `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` and `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` were intentionally abandoned because already running jobs could not pick up the new routing; the first highspeed chapter target-split attempt `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403` failed fast because `runtime_reader_default` did not yet define `MiniMax-M2.7-highspeed`; that local profile-membership fix is now landed; the active chapter decisive comparison is now `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`; the active excerpt smoke is now `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`; keep durable-trace and runtime-viability paused; and for future Phase 9 launches keep explicit process-level target sharding with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed` for heavy judged comparison jobs and `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal` for lighter support or no-judge jobs; do not launch the judged excerpt lane until the chapter decisive run finishes cleanly
 - Jobs:
   - `bgjob_durable_trace_reentry_gate_20260401` (`failed`)
   - `bgjob_durable_trace_reentry_gate_parallel3_20260401` (`completed`)
@@ -40,8 +40,11 @@ Last updated: `2026-04-03T08:13:56Z`
   - `bgjob_formal_benchmark_v1_gapfill_zh_local_20260403` (`completed`)
   - `bgjob_formal_benchmark_v1_gapfill_henry_20260403` (`completed`)
   - `bgjob_formal_benchmark_v1_gapfill_henry16_anchor_20260403` (`completed`)
-  - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` (`running`)
-  - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` (`running`)
+  - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` (`abandoned`)
+  - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` (`abandoned`)
+  - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403` (`failed`)
+  - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403` (`running`)
+  - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403` (`running`)
 
 ## Waiting
 
