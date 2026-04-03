@@ -65,9 +65,13 @@ def _bootstrap_formal_manifest(tmp_path: Path, *, selective: list[str], clarific
     _write_json(
         formal_manifest,
         {
+            "source_refs": {
+                "excerpt_case_datasets": ["state/eval_local_datasets/excerpt_cases/demo_dataset"],
+                "source_manifests": ["eval/manifests/source_books/demo_sources.json"],
+            },
             "splits": {
-                "excerpt_core_frozen_now_draft": {"all": selective},
-                "excerpt_core_clarification_subset_frozen_draft": {"all": clarification},
+                "excerpt_core_primary_frozen_draft": {"all": selective},
+                "insight_and_clarification_subset_frozen_draft": {"all": clarification},
             }
         },
     )
@@ -223,14 +227,37 @@ def test_load_source_index_merges_public_and_local_refs(tmp_path: Path) -> None:
     assert source_index["source_local"]["relative_local_path"] == "state/library_sources/source_local.epub"
 
 
-def test_actual_clarification_subset_has_expected_size_and_language_balance() -> None:
-    payload = excerpt_comparison._load_formal_manifest(excerpt_comparison.DEFAULT_FORMAL_MANIFEST)
-    target_case_ids = excerpt_comparison._target_case_ids_from_manifest(payload, target_slice="insight_and_clarification")
-    clarification_case_ids = target_case_ids["insight_and_clarification"]
+def test_manifest_dataset_and_source_refs_can_drive_runner_defaults(tmp_path: Path) -> None:
+    formal_manifest = _bootstrap_formal_manifest(
+        tmp_path,
+        selective=["case_a"],
+        clarification=["case_a"],
+    )
 
-    assert len(clarification_case_ids) == 16
-    assert sum(1 for case_id in clarification_case_ids if "_en__" in case_id) == 8
-    assert sum(1 for case_id in clarification_case_ids if "_zh__" in case_id) == 8
+    payload = excerpt_comparison._load_formal_manifest(formal_manifest)
+
+    dataset_dirs = excerpt_comparison._dataset_dirs_from_manifest(payload)
+    source_manifest_paths = excerpt_comparison._source_manifest_paths_from_manifest(payload)
+
+    assert dataset_dirs == [
+        (excerpt_comparison.ROOT / "state" / "eval_local_datasets" / "excerpt_cases" / "demo_dataset").resolve()
+    ]
+    assert source_manifest_paths == [
+        (excerpt_comparison.ROOT / "eval" / "manifests" / "source_books" / "demo_sources.json").resolve()
+    ]
+
+
+def test_default_active_benchmark_manifest_tracks_four_selected_chapters() -> None:
+    payload = excerpt_comparison._load_formal_manifest(excerpt_comparison.DEFAULT_FORMAL_MANIFEST)
+    chapter_case_ids = payload["splits"]["chapter_core_frozen_draft"]["all"]
+
+    assert chapter_case_ids == [
+        "supremacy_private_en__13",
+        "steve_jobs_private_en__17",
+        "zouchu_weiyi_zhenliguan_private_zh__14",
+        "meiguoren_de_xingge_private_zh__19",
+    ]
+    assert payload["quota_status"]["excerpt_primary"]["target_total"] == 40
 
 
 def test_run_benchmark_reuses_one_unit_run_for_cases_in_same_chapter(monkeypatch, tmp_path: Path) -> None:

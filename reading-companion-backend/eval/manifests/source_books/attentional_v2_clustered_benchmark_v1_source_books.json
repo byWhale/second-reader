@@ -1,0 +1,57 @@
+{
+  "manifest_id": "attentional_v2_clustered_benchmark_v1_source_books",
+  "description": "Tracked source-book scaffold for the clustered benchmark v1 replacement. This keeps the four selected benchmark chapters addressable before the clustered excerpt freeze is fully populated.",
+  "summary": {
+    "book_count_total": 4,
+    "language_counts": {
+      "en": 2,
+      "zh": 2
+    }
+  },
+  "books": [
+    {
+      "source_id": "supremacy_private_en",
+      "title": "Supremacy",
+      "author": "Parmy Olson",
+      "language": "en",
+      "storage_mode": "local-only",
+      "relative_local_path": "state/library_sources/en/private/supremacy.epub",
+      "selected_chapter_case_id": "supremacy_private_en__13",
+      "selected_chapter_id": "13",
+      "selected_chapter_title": "Chapter 7. Playing Games"
+    },
+    {
+      "source_id": "steve_jobs_private_en",
+      "title": "Steve Jobs",
+      "author": "Walter Isaacson",
+      "language": "en",
+      "storage_mode": "local-only",
+      "relative_local_path": "state/library_sources/en/private/steve_jobs.epub",
+      "selected_chapter_case_id": "steve_jobs_private_en__17",
+      "selected_chapter_id": "17",
+      "selected_chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces"
+    },
+    {
+      "source_id": "zouchu_weiyi_zhenliguan_private_zh",
+      "title": "走出唯一真理观",
+      "author": "陈嘉映",
+      "language": "zh",
+      "storage_mode": "local-only",
+      "relative_local_path": "state/library_sources/zh/private/zouchu_weiyi_zhenliguan.epub",
+      "selected_chapter_case_id": "zouchu_weiyi_zhenliguan_private_zh__14",
+      "selected_chapter_id": "14",
+      "selected_chapter_title": "说理与对话"
+    },
+    {
+      "source_id": "meiguoren_de_xingge_private_zh",
+      "title": "美国人的性格",
+      "author": "费孝通",
+      "language": "zh",
+      "storage_mode": "local-only",
+      "relative_local_path": "state/library_sources/zh/private/meiguorendexingge.epub",
+      "selected_chapter_case_id": "meiguoren_de_xingge_private_zh__19",
+      "selected_chapter_id": "19",
+      "selected_chapter_title": "5 幸福单车的脱节"
+    }
+  ]
+}

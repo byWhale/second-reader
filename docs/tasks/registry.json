@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-03T08:44:30Z",
+  "updated_at": "2026-04-03T13:05:01Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -266,7 +266,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-020431/run_state.json",
         "reading-companion-backend/eval/runs/attentional_v2/case_audits/attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__callbackslice_auditv4_20260331__20260331-122848/run_state.json"
       ],
-      "next_action": "Keep the landed builder available as support infrastructure, but do not open a new general builder wave while TASK-RUNTIME-VIABILITY-GATES is active; with current model cost pressure, do not relaunch comparison-driven widening outside the mechanism mainline; only resume if later decisive eval work exposes a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested.",
+      "next_action": "Keep the landed builder available as support infrastructure, but do not open a new general builder wave while TASK-PHASE9-CLUSTERED-BENCHMARK is active; the current builder output is already being consumed by the clustered first-review/freeze path; only resume broader construction work if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested.",
       "last_updated": "2026-04-01T11:50:52Z",
       "last_updated_by": "codex"
     },
@@ -450,11 +450,55 @@
       "last_updated_by": "codex"
     },
     {
-      "id": "TASK-RUNTIME-VIABILITY-GATES",
-      "title": "Keep the minimal eval core focused on three north-star dimensions",
+      "id": "TASK-PHASE9-CLUSTERED-BENCHMARK",
+      "title": "Freeze clustered benchmark v1 as the active Phase 9 evaluation surface",
       "status": "active",
-      "lane": "mechanism_eval",
+      "lane": "dataset_platform",
       "priority": "high",
+      "detail_ref": "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
+      "truth_refs": [
+        "docs/backend-reader-evaluation.md",
+        "docs/workspace-overview.md"
+      ],
+      "decision_refs": [
+        "DEC-045",
+        "DEC-047",
+        "DEC-048"
+      ],
+      "job_refs": [
+        "bgjob_clustered_benchmark_v1_first_review_en_20260403",
+        "bgjob_clustered_benchmark_v1_first_review_zh_20260403"
+      ],
+      "acceptance_ref": "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
+      "next_action": "Keep the live English and Chinese first-review jobs running on the smoke2 scratch primaries; after both archive summaries land, accept only keep cases without blocking problem types, top up deficit chapters from reserves only, freeze toward 10 primaries plus 2 reserves per chapter, and then relaunch decisive chapter/excerpt evaluation against the clustered active benchmark rather than the historical broad formal freeze.",
+      "blocked_by": [],
+      "evidence_refs": [
+        "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
+        "docs/implementation/new-reading-mechanism/execution-tracker.md",
+        "reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json",
+        "reading-companion-backend/eval/manifests/source_books/attentional_v2_clustered_benchmark_v1_source_books.json",
+        "reading-companion-backend/eval/manifests/local_refs/attentional_v2_clustered_benchmark_v1_local_refs.json",
+        "reading-companion-backend/eval/manifests/corpora/attentional_v2_clustered_benchmark_v1_corpus.json",
+        "reading-companion-backend/state/dataset_build/build_runs/clustered_benchmark_v1_smoke2_20260403/build_summary.json",
+        "reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py",
+        "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
+        "reading-companion-backend/eval/attentional_v2/run_closed_loop_benchmark_curation.py",
+        "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py",
+        "reading-companion-backend/tests/test_question_aligned_case_construction.py",
+        "reading-companion-backend/tests/test_private_library_supplement.py",
+        "reading-companion-backend/tests/test_run_excerpt_comparison.py",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_clustered_benchmark_v1_first_review_en_20260403.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_clustered_benchmark_v1_first_review_zh_20260403.json"
+      ],
+      "last_updated": "2026-04-03T13:05:01Z",
+      "last_updated_by": "codex"
+    },
+    {
+      "id": "TASK-RUNTIME-VIABILITY-GATES",
+      "title": "Keep runtime viability and non-mainline comparison lanes paused under the reduced eval scope",
+      "status": "parked",
+      "lane": "mechanism_eval",
+      "priority": "medium",
       "detail_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
       "truth_refs": [
         "docs/backend-reader-evaluation.md",
@@ -471,76 +515,29 @@
         "bgjob_durable_trace_reentry_gate_parallel3_20260401",
         "bgjob_durable_trace_reentry_gate_personal_serial_20260401",
         "bgjob_runtime_viability_gate_20260401",
-        "bgjob_runtime_viability_gate_serialfix_20260401",
-        "bgjob_formal_benchmark_v1_excerpt_wave1_en_20260402",
-        "bgjob_formal_benchmark_v1_excerpt_wave1_zh_20260402",
-        "bgjob_formal_benchmark_v1_excerpt_rerun_women_20260402",
-        "bgjob_formal_benchmark_v1_excerpt_rerun_rulin_20260402",
-        "bgjob_formal_benchmark_v1_gapfill_en_local_20260403",
-        "bgjob_formal_benchmark_v1_gapfill_zh_local_20260403",
-        "bgjob_formal_benchmark_v1_gapfill_henry_20260403",
-        "bgjob_formal_benchmark_v1_gapfill_henry16_anchor_20260403",
-        "bgjob_formal_benchmark_v1_chapter_core_decisive_20260403",
-        "bgjob_formal_benchmark_v1_excerpt_smoke_20260403",
-        "bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403",
-        "bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403",
-        "bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403"
+        "bgjob_runtime_viability_gate_serialfix_20260401"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Use the updated explicit freeze draft at reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json; the first formal benchmark-v1 freeze is now 40/40 with chapter_core = 16/16 and excerpt_core = 24/24; the pre-sharding jobs bgjob_formal_benchmark_v1_chapter_core_decisive_20260403 and bgjob_formal_benchmark_v1_excerpt_smoke_20260403 were intentionally abandoned because already running jobs could not pick up the new routing; the first highspeed chapter target-split attempt bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403 failed fast because runtime_reader_default did not yet define MiniMax-M2.7-highspeed; that local profile-membership fix is now landed; the active chapter decisive comparison is now bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403; the active excerpt smoke is now bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403; keep durable-trace and runtime-viability paused; and for future Phase 9 launches keep explicit process-level target sharding with LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed for heavy judged comparison jobs and LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal for lighter support or no-judge jobs; do not launch the judged excerpt lane until the chapter decisive run finishes cleanly.",
+      "next_action": "Reuse the existing runtime-viability and durable-trace evidence; do not relaunch those lanes unless one of the three kept north-star dimensions later requires them or the cost posture changes explicitly.",
       "blocked_by": [],
       "evidence_refs": [
+        "docs/backend-reader-evaluation.md",
         "docs/implementation/new-reading-mechanism/execution-tracker.md",
-        "docs/implementation/new-reading-mechanism/evaluation-dataset-layout.md",
-        "docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md",
-        "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
-        "docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md",
-        "reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json",
         "reading-companion-backend/eval/attentional_v2/run_durable_trace_reentry.py",
         "reading-companion-backend/eval/attentional_v2/run_runtime_viability.py",
-        "reading-companion-backend/src/reading_runtime/llm_gateway.py",
-        "reading-companion-backend/src/attentional_v2/resume.py",
-        "docs/backend-reader-evaluation.md",
         "reading-companion-backend/tests/test_run_durable_trace_reentry.py",
         "reading-companion-backend/tests/test_run_runtime_viability.py",
-        "reading-companion-backend/tests/test_llm_gateway.py",
-        "reading-companion-backend/tests/test_attentional_v2_resume.py",
         "reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_20260401.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_parallel3_20260401.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_personal_serial_20260401.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_wave1_en_20260402.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_wave1_zh_20260402.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_rerun_women_20260402.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_rerun_rulin_20260402.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_smoke_20260403.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403.json",
-        "reading-companion-backend/state/job_registry/jobs/bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_durable_trace_reentry_gate_parallel3_20260401/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_durable_trace_reentry_gate_parallel3_20260401/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/summary/report.md",
-        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/summary/aggregate.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_rerun_women_20260402/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_rerun_rulin_20260402/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402/llm_review_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402/llm_review_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_gapfill_en_local_20260403/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_gapfill_zh_local_20260403/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/attentional_v2_formal_benchmark_v1_gapfill_henry16_anchor_20260403/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/state/dataset_build/build_runs/formal_benchmark_v1_gapfill_henry_20260403/closed_loop_benchmark_curation_summary.json",
-        "reading-companion-backend/eval/review_packets/review_queue_summary.json",
-        "reading-companion-backend/eval/attentional_v2/run_case_design_audit.py",
-        "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py",
-        "reading-companion-backend/eval/attentional_v2/run_dataset_review_pipeline.py",
-        "reading-companion-backend/tests/test_case_design_audit.py",
-        "reading-companion-backend/tests/test_dataset_review_pipeline.py",
-        "reading-companion-backend/tests/test_run_excerpt_comparison.py"
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/summary/aggregate.json"
       ],
-      "last_updated": "2026-04-03T08:44:30Z",
+      "last_updated": "2026-04-03T13:05:01Z",
       "last_updated_by": "codex"
     },
     {
@@ -562,7 +559,7 @@
       "acceptance_ref": "docs/implementation/new-reading-mechanism/open-questions.md",
       "next_action": "Resolve Q10 after benchmark stabilization is strong enough that stable mechanism behavior can be frozen intentionally.",
       "blocked_by": [
-        "TASK-RUNTIME-VIABILITY-GATES"
+        "TASK-PHASE9-CLUSTERED-BENCHMARK"
       ],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/open-questions.md",
@@ -593,7 +590,7 @@
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
       "next_action": "Begin only after the benchmark direction, runtime viability work, and stable-doc promotion timing are intentionally settled.",
       "blocked_by": [
-        "TASK-RUNTIME-VIABILITY-GATES",
+        "TASK-PHASE9-CLUSTERED-BENCHMARK",
         "TASK-DOC-Q10"
       ],
       "evidence_refs": [

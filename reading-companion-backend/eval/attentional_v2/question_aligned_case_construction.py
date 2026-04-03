@@ -31,6 +31,16 @@ TARGET_PROFILE_ORDER = (
     "anchored_reaction_selectivity",
     "reconsolidation_later_reinterpretation",
 )
+DEFAULT_SELECTION_MODE = "default"
+CLUSTERED_SELECTION_MODE = "clustered"
+SELECTION_MODE_VALUES = (DEFAULT_SELECTION_MODE, CLUSTERED_SELECTION_MODE)
+CLUSTERED_TARGET_PROFILE_ORDER = (
+    "distinction_definition",
+    "tension_reversal",
+    "callback_bridge",
+    "anchored_reaction_selectivity",
+)
+DEFAULT_CLUSTERED_MIN_ANCHOR_DISTANCE = 3
 
 EXCERPT_TARGET_PROFILES = {
     "distinction_definition": {
@@ -225,10 +235,29 @@ NORMALIZED_SPACE_EQUIVALENTS = frozenset({" ", "\t", "\r", "\n", "\f", "\v", "\u
 INVISIBLE_FORMAT_CHARACTERS = frozenset({"\u200b", "\u200c", "\u200d", "\ufeff", "\u2060"})
 
 
-def excerpt_target_profiles() -> list[dict[str, Any]]:
+def excerpt_target_profiles(
+    target_profile_ids: tuple[str, ...] | None = None,
+) -> list[dict[str, Any]]:
     """Return the stable ordered target-profile list for excerpt construction."""
 
-    return [deepcopy(EXCERPT_TARGET_PROFILES[target_id]) for target_id in TARGET_PROFILE_ORDER]
+    return [
+        deepcopy(EXCERPT_TARGET_PROFILES[target_id])
+        for target_id in _resolved_target_profile_ids(target_profile_ids)
+    ]
+
+
+def _resolved_target_profile_ids(
+    target_profile_ids: tuple[str, ...] | None,
+) -> tuple[str, ...]:
+    if target_profile_ids is None:
+        return tuple(TARGET_PROFILE_ORDER)
+    resolved = tuple(
+        dict.fromkeys(str(target_id).strip() for target_id in target_profile_ids if str(target_id).strip())
+    )
+    invalid = sorted(target_id for target_id in resolved if target_id not in EXCERPT_TARGET_PROFILES)
+    if invalid:
+        raise ValueError(f"Unsupported target profile ids: {', '.join(invalid)}")
+    return resolved
 
 
 def _normalize_sentence_text(text: Any) -> str:
@@ -315,9 +344,25 @@ def build_question_aligned_excerpt_scope(
     scope_id: str,
     cases_per_chapter: int = 1,
     reserves_per_chapter: int = 1,
+    target_profile_ids: tuple[str, ...] | None = None,
+    selection_mode: str = DEFAULT_SELECTION_MODE,
+    same_profile_anchor_distance: int = DEFAULT_CLUSTERED_MIN_ANCHOR_DISTANCE,
 ) -> dict[str, Any]:
     """Build opportunity cards, candidate cases, reserves, and adequacy for one excerpt scope."""
 
+    resolved_target_profile_ids = _resolved_target_profile_ids(target_profile_ids)
+    if selection_mode not in SELECTION_MODE_VALUES:
+        raise ValueError(
+            f"Unsupported selection mode: {selection_mode}. Expected one of {', '.join(SELECTION_MODE_VALUES)}."
+        )
+    max_window_refinement_candidates_per_profile = (
+        max(
+            MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE,
+            int(cases_per_chapter) + int(reserves_per_chapter),
+        )
+        if selection_mode == CLUSTERED_SELECTION_MODE
+        else MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE
+    )
     feedback_summary = summarize_existing_case_feedback(existing_rows_by_language)
     opportunities_by_language: dict[str, list[dict[str, Any]]] = defaultdict(list)
     all_opportunities: list[dict[str, Any]] = []
@@ -338,6 +383,8 @@ def build_question_aligned_excerpt_scope(
                 source=source,
                 chapter=chapter,
                 feedback=feedback_summary.get(language, {}),
+                target_profile_ids=resolved_target_profile_ids,
+                max_window_refinement_candidates_per_profile=max_window_refinement_candidates_per_profile,
             )
             opportunities_by_language[language].extend(chapter_opportunities)
             all_opportunities.extend(chapter_opportunities)
@@ -349,6 +396,9 @@ def build_question_aligned_excerpt_scope(
             opportunities_by_language.get(language, []),
             cases_per_chapter=cases_per_chapter,
             reserves_per_chapter=reserves_per_chapter,
+            target_profile_ids=resolved_target_profile_ids,
+            selection_mode=selection_mode,
+            same_profile_anchor_distance=same_profile_anchor_distance,
         )
         cases_by_language[language] = cases
         reserves_by_language[language] = reserves
@@ -359,10 +409,12 @@ def build_question_aligned_excerpt_scope(
         candidate_cases_by_language=cases_by_language,
         reserve_cases_by_language=reserves_by_language,
         dataset_ids_by_language=dataset_ids_by_language or {},
+        target_profile_ids=resolved_target_profile_ids,
     )
     return {
         "scope_id": scope_id,
-        "target_profiles": excerpt_target_profiles(),
+        "selection_mode": selection_mode,
+        "target_profiles": excerpt_target_profiles(resolved_target_profile_ids),
         "feedback_summary": feedback_summary,
         "opportunity_cards": sorted(
             all_opportunities,
@@ -370,6 +422,8 @@ def build_question_aligned_excerpt_scope(
                 str(item["language_track"]),
                 str(item["chapter_case_id"]),
                 -float(item["construction_priority"]),
+                -float(item.get("judgeability_score", 0.0)),
+                int(item.get("anchor_sentence_index", 0) or 0),
                 str(item["target_profile_ids"][0]),
             ),
         ),
@@ -386,9 +440,11 @@ def build_excerpt_adequacy_report(
     candidate_cases_by_language: dict[str, list[dict[str, Any]]],
     reserve_cases_by_language: dict[str, list[dict[str, Any]]],
     dataset_ids_by_language: dict[str, str],
+    target_profile_ids: tuple[str, ...] | None = None,
 ) -> dict[str, Any]:
     """Build an adequacy report that the later unattended loop can consume."""
 
+    resolved_target_profile_ids = _resolved_target_profile_ids(target_profile_ids)
     existing_summary = summarize_existing_case_feedback(existing_rows_by_language)
     target_profile_coverage: dict[str, dict[str, dict[str, int]]] = {}
     reserve_depth: dict[str, dict[str, int]] = {}
@@ -411,10 +467,10 @@ def build_excerpt_adequacy_report(
         }
         reserve_depth[language] = {
             profile_id: sum(1 for row in reserve_rows if str(row.get("target_profile_id", "")) == profile_id)
-            for profile_id in TARGET_PROFILE_ORDER
+            for profile_id in resolved_target_profile_ids
         }
         target_profile_coverage[language] = {}
-        for profile_id in TARGET_PROFILE_ORDER:
+        for profile_id in resolved_target_profile_ids:
             existing_counts = existing_summary[language]["profiles"][profile_id]
             candidate_count = sum(1 for row in candidate_rows if str(row.get("target_profile_id", "")) == profile_id)
             reserve_count = sum(1 for row in reserve_rows if str(row.get("target_profile_id", "")) == profile_id)
@@ -507,6 +563,8 @@ def _build_opportunity_cards_for_chapter(
     source: dict[str, Any],
     chapter: dict[str, Any],
     feedback: dict[str, Any],
+    target_profile_ids: tuple[str, ...],
+    max_window_refinement_candidates_per_profile: int,
 ) -> list[dict[str, Any]]:
     sentences = list(chapter.get("sentences") or [])
     if len(sentences) < 3:
@@ -525,7 +583,7 @@ def _build_opportunity_cards_for_chapter(
             prior_tokens |= _tokenize(sentence_text, language)
             continue
         position_bucket = _position_bucket(index=index, total=total_sentences)
-        for profile_id in TARGET_PROFILE_ORDER:
+        for profile_id in target_profile_ids:
             score_payload = _score_sentence_for_profile(
                 profile_id=profile_id,
                 sentence_text=sentence_text,
@@ -555,7 +613,7 @@ def _build_opportunity_cards_for_chapter(
         top_candidates = sorted(
             candidates,
             key=lambda item: (-float(item["construction_priority"]), int(item["index"])),
-        )[:MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE]
+        )[:max_window_refinement_candidates_per_profile]
         for rank, candidate in enumerate(top_candidates, start=1):
             profile = EXCERPT_TARGET_PROFILES[profile_id]
             radius = int(profile["radius_en"] if language == "en" else profile["radius_zh"])
@@ -651,6 +709,9 @@ def _build_opportunity_cards_for_chapter(
                     "excerpt_sentence_ids": [item["sentence_id"] for item in window],
                     "anchor_sentence_ids": [anchor_sentence_id],
                     "support_sentence_ids": [item["sentence_id"] for item in window if item["sentence_id"] != anchor_sentence_id],
+                    "excerpt_start_index": start,
+                    "excerpt_end_index": end - 1,
+                    "anchor_sentence_index": int(candidate["index"]),
                     "prior_context_sentence_ids": prior_context_sentence_ids,
                     "prior_context_excerpt_text": prior_context_excerpt_text,
                     "anchor_excerpt_text": str(candidate.get("sentence_text") or ""),
@@ -796,17 +857,38 @@ def _select_cases_and_reserves(
     *,
     cases_per_chapter: int,
     reserves_per_chapter: int,
+    target_profile_ids: tuple[str, ...] | None = None,
+    selection_mode: str = DEFAULT_SELECTION_MODE,
+    same_profile_anchor_distance: int = DEFAULT_CLUSTERED_MIN_ANCHOR_DISTANCE,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    resolved_target_profile_ids = _resolved_target_profile_ids(target_profile_ids)
+    if selection_mode not in SELECTION_MODE_VALUES:
+        raise ValueError(
+            f"Unsupported selection mode: {selection_mode}. Expected one of {', '.join(SELECTION_MODE_VALUES)}."
+        )
+    filtered_opportunities = [
+        item
+        for item in opportunities
+        if str((item.get("target_profile_ids") or [""])[0]) in resolved_target_profile_ids
+    ]
+    if selection_mode == CLUSTERED_SELECTION_MODE:
+        return _select_cases_and_reserves_clustered(
+            filtered_opportunities,
+            cases_per_chapter=cases_per_chapter,
+            reserves_per_chapter=reserves_per_chapter,
+            same_profile_anchor_distance=same_profile_anchor_distance,
+        )
+
     selected_ids: set[str] = set()
     selected_signatures: set[tuple[str, str, str, str]] = set()
     selected_chapters: dict[str, int] = defaultdict(int)
     selected_profiles_per_chapter: dict[str, set[str]] = defaultdict(set)
     cases: list[dict[str, Any]] = []
 
-    for profile_id in TARGET_PROFILE_ORDER:
+    for profile_id in resolved_target_profile_ids:
         profile_candidates = [
             item
-            for item in opportunities
+            for item in filtered_opportunities
             if str(item["target_profile_ids"][0]) == profile_id
         ]
         for item in sorted(
@@ -830,7 +912,7 @@ def _select_cases_and_reserves(
             break
 
     for item in sorted(
-        opportunities,
+        filtered_opportunities,
         key=lambda candidate: (
             str(candidate["chapter_case_id"]),
             -float(candidate["construction_priority"]),
@@ -861,7 +943,7 @@ def _select_cases_and_reserves(
     reserve_signatures = set(selected_signatures)
     reserve_counts: dict[str, int] = defaultdict(int)
     for item in sorted(
-        opportunities,
+        filtered_opportunities,
         key=lambda candidate: (
             str(candidate["chapter_case_id"]),
             -float(candidate["construction_priority"]),
@@ -886,7 +968,171 @@ def _select_cases_and_reserves(
     return cases, reserves
 
 
-def _assembled_case(opportunity: dict[str, Any]) -> dict[str, Any]:
+def _select_cases_and_reserves_clustered(
+    opportunities: list[dict[str, Any]],
+    *,
+    cases_per_chapter: int,
+    reserves_per_chapter: int,
+    same_profile_anchor_distance: int,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for item in opportunities:
+        grouped[str(item["chapter_case_id"])].append(item)
+
+    cases: list[dict[str, Any]] = []
+    reserves: list[dict[str, Any]] = []
+    family_case_ranks: dict[str, int] = defaultdict(int)
+    family_reserve_ranks: dict[str, int] = defaultdict(int)
+
+    for chapter_key in sorted(grouped):
+        chapter_items = sorted(grouped[chapter_key], key=_clustered_selection_sort_key)
+        selected_opportunities: list[dict[str, Any]] = []
+        reserve_opportunities: list[dict[str, Any]] = []
+
+        for item in chapter_items:
+            if len(selected_opportunities) >= cases_per_chapter:
+                break
+            if not _clustered_candidate_allowed(
+                candidate=item,
+                existing=selected_opportunities,
+                same_profile_anchor_distance=same_profile_anchor_distance,
+            ):
+                continue
+            selected_opportunities.append(item)
+            family_key = str(_replacement_family_id(item))
+            family_case_ranks[family_key] += 1
+            cases.append(
+                _assembled_case(
+                    item,
+                    selection_mode=CLUSTERED_SELECTION_MODE,
+                    case_rank=family_case_ranks[family_key],
+                )
+            )
+
+        for item in chapter_items:
+            if len(reserve_opportunities) >= reserves_per_chapter:
+                break
+            if item in selected_opportunities:
+                continue
+            if not _clustered_candidate_allowed(
+                candidate=item,
+                existing=selected_opportunities + reserve_opportunities,
+                same_profile_anchor_distance=same_profile_anchor_distance,
+            ):
+                continue
+            reserve_opportunities.append(item)
+            family_key = str(_replacement_family_id(item))
+            family_reserve_ranks[family_key] += 1
+            reserves.append(
+                _assembled_reserve_case(
+                    item,
+                    reserve_rank=len(reserve_opportunities),
+                    selection_mode=CLUSTERED_SELECTION_MODE,
+                    family_reserve_rank=family_reserve_ranks[family_key],
+                )
+            )
+
+    cases.sort(
+        key=lambda row: (
+            str(row["output_language"]),
+            str(row["source_id"]),
+            int(row["chapter_number"]),
+            int(row.get("anchor_sentence_index", 0) or 0),
+            str(row["case_id"]),
+        )
+    )
+    reserves.sort(
+        key=lambda row: (
+            str(row["output_language"]),
+            str(row["source_id"]),
+            int(row["chapter_number"]),
+            int(row.get("anchor_sentence_index", 0) or 0),
+            int(row["reserve_rank"]),
+            str(row["case_id"]),
+        )
+    )
+    return cases, reserves
+
+
+def _clustered_selection_sort_key(candidate: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        -float(candidate.get("construction_priority", 0.0)),
+        -float(candidate.get("judgeability_score", 0.0)),
+        str(candidate.get("chapter_case_id", "")),
+        int(candidate.get("anchor_sentence_index", 0) or 0),
+        int(candidate.get("excerpt_start_index", 0) or 0),
+        str(candidate.get("opportunity_id", "")),
+    )
+
+
+def _replacement_family_id(opportunity: dict[str, Any]) -> str:
+    profile_id = str((opportunity.get("target_profile_ids") or [""])[0])
+    return f"{opportunity['source_id']}::{opportunity['chapter_id']}::{profile_id}"
+
+
+def _clustered_span_signature(opportunity: dict[str, Any]) -> tuple[str, str, tuple[str, ...], str]:
+    excerpt_sentence_ids = tuple(str(item) for item in opportunity.get("excerpt_sentence_ids") or [])
+    if excerpt_sentence_ids:
+        return (
+            str(opportunity.get("source_id") or ""),
+            str(opportunity.get("chapter_id") or ""),
+            excerpt_sentence_ids,
+            "",
+        )
+    excerpt_text = _normalize_sentence_text(opportunity.get("context_excerpt_text") or "")
+    return (
+        str(opportunity.get("source_id") or ""),
+        str(opportunity.get("chapter_id") or ""),
+        (),
+        excerpt_text,
+    )
+
+
+def _clustered_anchor_id(opportunity: dict[str, Any]) -> str:
+    anchor_ids = list(opportunity.get("anchor_sentence_ids") or [])
+    return str(anchor_ids[0]) if anchor_ids else ""
+
+
+def _clustered_windows_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    left_start = int(left.get("excerpt_start_index", 0) or 0)
+    left_end = int(left.get("excerpt_end_index", 0) or 0)
+    right_start = int(right.get("excerpt_start_index", 0) or 0)
+    right_end = int(right.get("excerpt_end_index", 0) or 0)
+    return not (left_end < right_start or right_end < left_start)
+
+
+def _clustered_candidate_allowed(
+    *,
+    candidate: dict[str, Any],
+    existing: list[dict[str, Any]],
+    same_profile_anchor_distance: int,
+) -> bool:
+    candidate_profile = str((candidate.get("target_profile_ids") or [""])[0])
+    candidate_span = _clustered_span_signature(candidate)
+    candidate_anchor_id = _clustered_anchor_id(candidate)
+    candidate_anchor_index = int(candidate.get("anchor_sentence_index", 0) or 0)
+    for prior in existing:
+        if _clustered_span_signature(prior) == candidate_span:
+            return False
+        if candidate_anchor_id and _clustered_anchor_id(prior) == candidate_anchor_id:
+            return False
+        prior_profile = str((prior.get("target_profile_ids") or [""])[0])
+        if prior_profile != candidate_profile:
+            continue
+        if _clustered_windows_overlap(prior, candidate):
+            return False
+        prior_anchor_index = int(prior.get("anchor_sentence_index", 0) or 0)
+        if prior_anchor_index and candidate_anchor_index and abs(prior_anchor_index - candidate_anchor_index) < same_profile_anchor_distance:
+            return False
+    return True
+
+
+def _assembled_case(
+    opportunity: dict[str, Any],
+    *,
+    selection_mode: str = DEFAULT_SELECTION_MODE,
+    case_rank: int = 1,
+) -> dict[str, Any]:
     profile_id = str(opportunity["target_profile_ids"][0])
     profile = EXCERPT_TARGET_PROFILES[profile_id]
     excerpt_sentence_ids = list(opportunity.get("excerpt_sentence_ids") or [])
@@ -894,8 +1140,9 @@ def _assembled_case(opportunity: dict[str, Any]) -> dict[str, Any]:
     end_sentence_id = excerpt_sentence_ids[-1] if excerpt_sentence_ids else (
         opportunity["support_sentence_ids"][-1] if opportunity["support_sentence_ids"] else opportunity["anchor_sentence_ids"][0]
     )
+    case_id_suffix = f"seed_{case_rank}" if selection_mode == CLUSTERED_SELECTION_MODE else "seed_v1"
     return {
-        "case_id": f"{opportunity['source_id']}__{opportunity['chapter_id']}__{profile_id}__seed_v1",
+        "case_id": f"{opportunity['source_id']}__{opportunity['chapter_id']}__{profile_id}__{case_id_suffix}",
         "case_title": f"{opportunity['book_title']} / {opportunity['chapter_title']} / {profile_id}",
         "split": "private_library_seed_v2",
         "curation_status": "question_aligned_builder_seed_v1",
@@ -909,6 +1156,7 @@ def _assembled_case(opportunity: dict[str, Any]) -> dict[str, Any]:
         "chapter_title": opportunity["chapter_title"],
         "start_sentence_id": start_sentence_id,
         "end_sentence_id": end_sentence_id,
+        "anchor_sentence_index": int(opportunity.get("anchor_sentence_index", 0) or 0),
         "excerpt_text": str(opportunity["context_excerpt_text"]).strip(),
         "excerpt_sentence_ids": excerpt_sentence_ids,
         "prior_context_sentence_ids": list(opportunity.get("prior_context_sentence_ids") or []),
@@ -920,7 +1168,7 @@ def _assembled_case(opportunity: dict[str, Any]) -> dict[str, Any]:
         "judge_focus": _normalize_sentence_text(opportunity["judge_focus_draft"]),
         "target_profile_id": profile_id,
         "opportunity_id": opportunity["opportunity_id"],
-        "replacement_family_id": f"{opportunity['source_id']}::{opportunity['chapter_id']}::{profile_id}",
+        "replacement_family_id": _replacement_family_id(opportunity),
         "reserve_group_id": f"{opportunity['source_id']}::{opportunity['chapter_id']}",
         "construction_priority": round(float(opportunity["construction_priority"]), 3),
         "judgeability_score": round(float(opportunity["judgeability_score"]), 3),
@@ -936,7 +1184,13 @@ def _assembled_case(opportunity: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -> dict[str, Any]:
+def _assembled_reserve_case(
+    opportunity: dict[str, Any],
+    *,
+    reserve_rank: int,
+    selection_mode: str = DEFAULT_SELECTION_MODE,
+    family_reserve_rank: int = 1,
+) -> dict[str, Any]:
     profile_id = str(opportunity["target_profile_ids"][0])
     profile = EXCERPT_TARGET_PROFILES[profile_id]
     excerpt_sentence_ids = list(opportunity.get("excerpt_sentence_ids") or [])
@@ -944,8 +1198,13 @@ def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -
     end_sentence_id = excerpt_sentence_ids[-1] if excerpt_sentence_ids else (
         opportunity["support_sentence_ids"][-1] if opportunity["support_sentence_ids"] else opportunity["anchor_sentence_ids"][0]
     )
+    case_id_suffix = (
+        f"reserve_{family_reserve_rank}"
+        if selection_mode == CLUSTERED_SELECTION_MODE
+        else "reserve_v1"
+    )
     return {
-        "case_id": f"{opportunity['source_id']}__{opportunity['chapter_id']}__{profile_id}__reserve_v1",
+        "case_id": f"{opportunity['source_id']}__{opportunity['chapter_id']}__{profile_id}__{case_id_suffix}",
         "case_title": f"{opportunity['book_title']} / {opportunity['chapter_title']} / {profile_id} / reserve",
         "split": "private_library_reserve_v1",
         "curation_status": "question_aligned_reserve_v1",
@@ -959,6 +1218,7 @@ def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -
         "chapter_title": opportunity["chapter_title"],
         "start_sentence_id": start_sentence_id,
         "end_sentence_id": end_sentence_id,
+        "anchor_sentence_index": int(opportunity.get("anchor_sentence_index", 0) or 0),
         "excerpt_text": str(opportunity["context_excerpt_text"]).strip(),
         "excerpt_sentence_ids": excerpt_sentence_ids,
         "prior_context_sentence_ids": list(opportunity.get("prior_context_sentence_ids") or []),
@@ -970,7 +1230,7 @@ def _assembled_reserve_case(opportunity: dict[str, Any], *, reserve_rank: int) -
         "judge_focus": _normalize_sentence_text(opportunity["judge_focus_draft"]),
         "target_profile_id": profile_id,
         "opportunity_id": opportunity["opportunity_id"],
-        "replacement_family_id": f"{opportunity['source_id']}::{opportunity['chapter_id']}::{profile_id}",
+        "replacement_family_id": _replacement_family_id(opportunity),
         "reserve_group_id": f"{opportunity['source_id']}::{opportunity['chapter_id']}",
         "reserve_rank": reserve_rank,
         "selection_role": opportunity["selection_role"],

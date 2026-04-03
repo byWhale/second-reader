@@ -1,0 +1,14 @@
+{
+  "manifest_id": "attentional_v2_clustered_benchmark_v1_corpus",
+  "description": "The four chapter clusters selected for the active clustered benchmark v1 replacement.",
+  "language_tracks": {
+    "en": [
+      "supremacy_private_en",
+      "steve_jobs_private_en"
+    ],
+    "zh": [
+      "meiguoren_de_xingge_private_zh",
+      "zouchu_weiyi_zhenliguan_private_zh"
+    ]
+  }
+}

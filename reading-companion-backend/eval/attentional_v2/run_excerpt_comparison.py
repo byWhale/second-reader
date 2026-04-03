@@ -43,7 +43,10 @@ DEFAULT_SOURCE_MANIFESTS = (
     ROOT / "eval" / "manifests" / "source_books" / "attentional_v2_public_benchmark_pool_v2.json",
     ROOT / "eval" / "manifests" / "local_refs" / "attentional_v2_private_library_v2.json",
 )
-DEFAULT_FORMAL_MANIFEST = ROOT / "eval" / "manifests" / "splits" / "attentional_v2_formal_benchmark_v1_draft.json"
+DEFAULT_ACTIVE_BENCHMARK_MANIFEST = (
+    ROOT / "eval" / "manifests" / "splits" / "attentional_v2_clustered_benchmark_v1_draft.json"
+)
+DEFAULT_FORMAL_MANIFEST = DEFAULT_ACTIVE_BENCHMARK_MANIFEST
 DEFAULT_RUNS_ROOT = ROOT / "eval" / "runs" / "attentional_v2"
 DEFAULT_TARGET = validate_target_slug("excerpt_comparison")
 DEFAULT_METHODS = normalize_methods([DETERMINISTIC_METRICS, PAIRWISE_JUDGE, RUBRIC_JUDGE])
@@ -54,8 +57,14 @@ DEFAULT_USER_INTENT = (
 MECHANISM_KEYS = ("attentional_v2", "iterator_v1")
 TARGET_SLICE_VALUES = ("selective_legibility", "insight_and_clarification", "both")
 TARGET_FIELD_BY_SLICE = {
-    "selective_legibility": "excerpt_core_frozen_now_draft",
-    "insight_and_clarification": "excerpt_core_clarification_subset_frozen_draft",
+    "selective_legibility": (
+        "excerpt_core_primary_frozen_draft",
+        "excerpt_core_frozen_now_draft",
+    ),
+    "insight_and_clarification": (
+        "insight_and_clarification_subset_frozen_draft",
+        "excerpt_core_clarification_subset_frozen_draft",
+    ),
 }
 
 SELECTIVE_SCORE_KEYS = (
@@ -294,6 +303,47 @@ def _load_formal_manifest(manifest_path: Path) -> dict[str, Any]:
     return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
+def _manifest_paths_from_entries(entries: list[object]) -> list[Path]:
+    resolved: list[Path] = []
+    for item in entries:
+        cleaned = _clean_text(item)
+        if not cleaned:
+            continue
+        raw_path = Path(cleaned)
+        if raw_path.is_absolute():
+            resolved.append(raw_path.resolve())
+            continue
+        if cleaned.startswith("reading-companion-backend/"):
+            resolved.append((ROOT.parent / cleaned).resolve())
+            continue
+        resolved.append((ROOT / cleaned).resolve())
+    return resolved
+
+
+def _dataset_dirs_from_manifest(formal_manifest: dict[str, Any]) -> list[Path]:
+    source_refs = dict(formal_manifest.get("source_refs") or {})
+    for key in (
+        "excerpt_case_datasets",
+        "active_excerpt_dataset_roots",
+        "tracked_excerpt_reviewed_round3",
+        "tracked_excerpt_curated_v2",
+        "local_reviewed_excerpt_pools",
+    ):
+        resolved = _manifest_paths_from_entries(list(source_refs.get(key) or []))
+        if resolved:
+            return resolved
+    return list(DEFAULT_DATASET_DIRS)
+
+
+def _source_manifest_paths_from_manifest(formal_manifest: dict[str, Any]) -> list[Path]:
+    source_refs = dict(formal_manifest.get("source_refs") or {})
+    for key in ("source_manifests", "source_manifest_paths"):
+        resolved = _manifest_paths_from_entries(list(source_refs.get(key) or []))
+        if resolved:
+            return resolved
+    return list(DEFAULT_SOURCE_MANIFESTS)
+
+
 def _target_case_ids_from_manifest(formal_manifest: dict[str, Any], *, target_slice: str) -> dict[str, list[str]]:
     if target_slice not in TARGET_SLICE_VALUES:
         raise ValueError(f"unsupported target slice: {target_slice}")
@@ -303,11 +353,22 @@ def _target_case_ids_from_manifest(formal_manifest: dict[str, Any], *, target_sl
         requested = (target_slice,)
     target_case_ids: dict[str, list[str]] = {}
     for target_name in requested:
-        split_name = TARGET_FIELD_BY_SLICE[target_name]
-        split_payload = dict(formal_manifest.get("splits", {}).get(split_name) or {})
+        split_name = ""
+        split_payload: dict[str, Any] = {}
+        for candidate_split_name in TARGET_FIELD_BY_SLICE[target_name]:
+            candidate_payload = dict(formal_manifest.get("splits", {}).get(candidate_split_name) or {})
+            all_case_ids = [str(item) for item in candidate_payload.get("all", []) if str(item).strip()]
+            if all_case_ids:
+                split_name = candidate_split_name
+                split_payload = candidate_payload
+                break
+            if not split_name and candidate_payload:
+                split_name = candidate_split_name
+                split_payload = candidate_payload
         all_case_ids = [str(item) for item in split_payload.get("all", []) if str(item).strip()]
         if not all_case_ids:
-            raise ValueError(f"formal manifest split is empty: {split_name}")
+            candidate_names = ", ".join(TARGET_FIELD_BY_SLICE[target_name])
+            raise ValueError(f"benchmark manifest split is empty for {target_name}: {candidate_names}")
         target_case_ids[target_name] = all_case_ids
     return target_case_ids
 
@@ -1401,13 +1462,13 @@ def _parse_args() -> argparse.Namespace:
         "--dataset-dir",
         action="append",
         default=[],
-        help="Excerpt dataset directory. Defaults to tracked EN/ZH curated v2 plus local EN/ZH reviewed v2.",
+        help="Excerpt dataset directory. Defaults to the active benchmark manifest's dataset roots.",
     )
     parser.add_argument(
         "--source-manifest",
         action="append",
         default=[],
-        help="Source manifest path. Defaults to the tracked public benchmark pool plus private-library local refs.",
+        help="Source manifest path. Defaults to the active benchmark manifest's source manifests.",
     )
     parser.add_argument("--formal-manifest", default=str(DEFAULT_FORMAL_MANIFEST))
     parser.add_argument("--runs-root", default=str(DEFAULT_RUNS_ROOT))
@@ -1430,15 +1491,25 @@ def main() -> int:
         if not args.worker_result:
             raise ValueError("--worker-result is required when --worker-payload is set")
         return _run_payload_worker(Path(args.worker_payload).resolve(), Path(args.worker_result).resolve())
-    dataset_dirs = [Path(item).resolve() for item in args.dataset_dir] if args.dataset_dir else list(DEFAULT_DATASET_DIRS)
-    source_manifest_paths = [Path(item).resolve() for item in args.source_manifest] if args.source_manifest else list(DEFAULT_SOURCE_MANIFESTS)
+    formal_manifest_path = Path(args.formal_manifest).resolve()
+    formal_manifest = _load_formal_manifest(formal_manifest_path)
+    dataset_dirs = (
+        [Path(item).resolve() for item in args.dataset_dir]
+        if args.dataset_dir
+        else _dataset_dirs_from_manifest(formal_manifest)
+    )
+    source_manifest_paths = (
+        [Path(item).resolve() for item in args.source_manifest]
+        if args.source_manifest
+        else _source_manifest_paths_from_manifest(formal_manifest)
+    )
     case_ids = [item.strip() for item in args.case_id if str(item).strip()]
     if args.case_ids:
         case_ids.extend([item.strip() for item in str(args.case_ids).split(",") if item.strip()])
     summary = run_benchmark(
         dataset_dirs=dataset_dirs,
         source_manifest_paths=source_manifest_paths,
-        formal_manifest_path=Path(args.formal_manifest).resolve(),
+        formal_manifest_path=formal_manifest_path,
         runs_root=Path(args.runs_root).resolve(),
         run_id=args.run_id or None,
         target_slice=args.target_slice,

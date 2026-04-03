@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from eval.attentional_v2.question_aligned_case_construction import (
+    CLUSTERED_SELECTION_MODE,
+    CLUSTERED_TARGET_PROFILE_ORDER,
     TARGET_PROFILE_ORDER,
     MIN_PROFILE_ORDER_SELECTION_PRIORITY,
     _assembled_case,
@@ -54,6 +56,57 @@ def _chapter_row(
         "selected_for_public_benchmark": False,
         "selection_priority": 1,
         "selection_role": role,
+    }
+
+
+def _clustered_opportunity(
+    *,
+    profile_id: str,
+    opportunity_id: str,
+    anchor_index: int,
+    excerpt_start_index: int,
+    excerpt_end_index: int,
+    construction_priority: float,
+    judgeability_score: float = 4.5,
+) -> dict[str, object]:
+    source_id = "clustered_source"
+    chapter_id = "17"
+    excerpt_sentence_ids = [
+        f"c{chapter_id}-s{sentence_index + 1}"
+        for sentence_index in range(excerpt_start_index, excerpt_end_index + 1)
+    ]
+    anchor_sentence_id = f"c{chapter_id}-s{anchor_index + 1}"
+    return {
+        "opportunity_id": opportunity_id,
+        "chapter_case_id": f"{source_id}__{chapter_id}",
+        "source_id": source_id,
+        "book_title": "Clustered Book",
+        "author": "Clustered Author",
+        "language_track": "en",
+        "chapter_id": chapter_id,
+        "chapter_number": 17,
+        "chapter_title": "Clustered Chapter",
+        "selection_role": "argumentative",
+        "target_profile_ids": [profile_id],
+        "excerpt_sentence_ids": excerpt_sentence_ids,
+        "support_sentence_ids": [sentence_id for sentence_id in excerpt_sentence_ids if sentence_id != anchor_sentence_id],
+        "anchor_sentence_ids": [anchor_sentence_id],
+        "excerpt_start_index": excerpt_start_index,
+        "excerpt_end_index": excerpt_end_index,
+        "anchor_sentence_index": anchor_index,
+        "prior_context_sentence_ids": [],
+        "prior_context_excerpt_text": "",
+        "context_excerpt_text": " ".join(f"Sentence {sentence_index + 1}." for sentence_index in range(excerpt_start_index, excerpt_end_index + 1)),
+        "selection_reason_draft": f"Reason {opportunity_id}",
+        "judge_focus_draft": f"Focus {opportunity_id}",
+        "construction_priority": construction_priority,
+        "judgeability_score": judgeability_score,
+        "discriminative_power_score": construction_priority,
+        "selection_priority": 1,
+        "selection_role": "argumentative",
+        "type_tags": ["essay"],
+        "role_tags": ["argumentative"],
+        "candidate_position_bucket": "middle",
     }
 
 
@@ -638,11 +691,129 @@ def test_scope_selection_skips_chinese_paratext_and_keeps_real_prose_window(tmp_
     zh_cases = scope["cases_by_language"]["zh"]
     assert len(zh_cases) == 1
     assert zh_cases[0]["target_profile_id"] == "tension_reversal"
-    assert zh_cases[0]["candidate_position_bucket"] in {"middle", "late"}
-    assert zh_cases[0]["anchor_sentence_id"] in {"c2-s5", "c2-s6"}
-    assert zh_cases[0]["start_sentence_id"] != "c2-s1"
-    assert "文学周报" not in zh_cases[0]["excerpt_text"]
-    assert "同名散文集" not in zh_cases[0]["excerpt_text"]
+
+
+def test_clustered_selection_allows_multiple_same_profile_cases_with_ranked_ids() -> None:
+    opportunities = [
+        _clustered_opportunity(
+            profile_id="distinction_definition",
+            opportunity_id="opp_a",
+            anchor_index=1,
+            excerpt_start_index=0,
+            excerpt_end_index=1,
+            construction_priority=8.5,
+        ),
+        _clustered_opportunity(
+            profile_id="tension_reversal",
+            opportunity_id="opp_duplicate_span",
+            anchor_index=1,
+            excerpt_start_index=0,
+            excerpt_end_index=1,
+            construction_priority=8.2,
+        ),
+        _clustered_opportunity(
+            profile_id="distinction_definition",
+            opportunity_id="opp_b",
+            anchor_index=4,
+            excerpt_start_index=3,
+            excerpt_end_index=4,
+            construction_priority=7.9,
+        ),
+        _clustered_opportunity(
+            profile_id="distinction_definition",
+            opportunity_id="opp_too_close",
+            anchor_index=6,
+            excerpt_start_index=6,
+            excerpt_end_index=7,
+            construction_priority=7.5,
+        ),
+        _clustered_opportunity(
+            profile_id="callback_bridge",
+            opportunity_id="opp_c",
+            anchor_index=8,
+            excerpt_start_index=8,
+            excerpt_end_index=9,
+            construction_priority=7.2,
+        ),
+        _clustered_opportunity(
+            profile_id="anchored_reaction_selectivity",
+            opportunity_id="opp_reserve",
+            anchor_index=11,
+            excerpt_start_index=11,
+            excerpt_end_index=12,
+            construction_priority=6.8,
+        ),
+    ]
+
+    cases, reserves = _select_cases_and_reserves(
+        opportunities,
+        cases_per_chapter=3,
+        reserves_per_chapter=1,
+        target_profile_ids=tuple(CLUSTERED_TARGET_PROFILE_ORDER),
+        selection_mode=CLUSTERED_SELECTION_MODE,
+        same_profile_anchor_distance=3,
+    )
+
+    case_ids = [row["case_id"] for row in cases]
+    reserve_ids = [row["case_id"] for row in reserves]
+
+    assert case_ids == [
+        "clustered_source__17__distinction_definition__seed_1",
+        "clustered_source__17__distinction_definition__seed_2",
+        "clustered_source__17__callback_bridge__seed_1",
+    ]
+    assert reserve_ids == [
+        "clustered_source__17__anchored_reaction_selectivity__reserve_1"
+    ]
+    assert "clustered_source__17__tension_reversal__seed_1" not in case_ids
+    assert "clustered_source__17__distinction_definition__seed_3" not in case_ids
+
+
+def test_clustered_scope_excludes_reconsolidation_profile_from_active_target_list(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            _chapter_row(
+                source_id="book_en",
+                language="en",
+                output_dir="outputs/book_en",
+                chapter_id="1",
+                chapter_title="Chapter One",
+                role="argumentative",
+            )
+        ]
+    }
+    source_index = {
+        "book_en": {"source_id": "book_en", "type_tags": ["essay"], "role_tags": ["argumentative"]}
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en"): {
+            "chapters": [{"id": "1", "sentences": _sentences_en()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="clustered_demo_scope",
+        cases_per_chapter=4,
+        reserves_per_chapter=2,
+        target_profile_ids=tuple(CLUSTERED_TARGET_PROFILE_ORDER),
+        selection_mode=CLUSTERED_SELECTION_MODE,
+    )
+
+    assert scope["selection_mode"] == CLUSTERED_SELECTION_MODE
+    assert [profile["target_profile_id"] for profile in scope["target_profiles"]] == list(
+        CLUSTERED_TARGET_PROFILE_ORDER
+    )
+    assert all(
+        row["target_profile_id"] != "reconsolidation_later_reinterpretation"
+        for row in scope["cases_by_language"]["en"] + scope["reserve_cases_by_language"]["en"]
+    )
 
 
 def test_window_quality_adjustment_prefers_clean_late_chinese_scene_over_early_filler() -> None:

@@ -1,0 +1,66 @@
+{
+  "manifest_id": "attentional_v2_clustered_benchmark_v1_local_refs",
+  "description": "Local source-file and local dataset-package references for the clustered benchmark v1 replacement.",
+  "source_refs": [
+    {
+      "source_id": "supremacy_private_en",
+      "relative_local_path": "state/library_sources/en/private/supremacy.epub"
+    },
+    {
+      "source_id": "steve_jobs_private_en",
+      "relative_local_path": "state/library_sources/en/private/steve_jobs.epub"
+    },
+    {
+      "source_id": "zouchu_weiyi_zhenliguan_private_zh",
+      "relative_local_path": "state/library_sources/zh/private/zouchu_weiyi_zhenliguan.epub"
+    },
+    {
+      "source_id": "meiguoren_de_xingge_private_zh",
+      "relative_local_path": "state/library_sources/zh/private/meiguorendexingge.epub"
+    }
+  ],
+  "local_dataset_packages": [
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_chapters_en",
+      "family": "chapter_corpora",
+      "language_track": "en",
+      "relative_local_path": "state/eval_local_datasets/chapter_corpora/attentional_v2_clustered_benchmark_v1_chapters_en"
+    },
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_chapters_zh",
+      "family": "chapter_corpora",
+      "language_track": "zh",
+      "relative_local_path": "state/eval_local_datasets/chapter_corpora/attentional_v2_clustered_benchmark_v1_chapters_zh"
+    },
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_runtime_en",
+      "family": "runtime_fixtures",
+      "language_track": "en",
+      "relative_local_path": "state/eval_local_datasets/runtime_fixtures/attentional_v2_clustered_benchmark_v1_runtime_en"
+    },
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_runtime_zh",
+      "family": "runtime_fixtures",
+      "language_track": "zh",
+      "relative_local_path": "state/eval_local_datasets/runtime_fixtures/attentional_v2_clustered_benchmark_v1_runtime_zh"
+    },
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_excerpt_en",
+      "family": "excerpt_cases",
+      "language_track": "en",
+      "relative_local_path": "state/eval_local_datasets/excerpt_cases/attentional_v2_clustered_benchmark_v1_excerpt_en"
+    },
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_excerpt_zh",
+      "family": "excerpt_cases",
+      "language_track": "zh",
+      "relative_local_path": "state/eval_local_datasets/excerpt_cases/attentional_v2_clustered_benchmark_v1_excerpt_zh"
+    },
+    {
+      "dataset_id": "attentional_v2_clustered_benchmark_v1_compat_shared",
+      "family": "compatibility_fixtures",
+      "language_track": "shared",
+      "relative_local_path": "state/eval_local_datasets/compatibility_fixtures/attentional_v2_clustered_benchmark_v1_compat_shared"
+    }
+  ]
+}

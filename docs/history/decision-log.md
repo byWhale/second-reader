@@ -1199,3 +1199,32 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/tasks/registry.json`
 - `docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md`
 - `docs/implementation/new-reading-mechanism/execution-tracker.md`
+
+## Entry 45
+**ID**: DEC-048
+**Status**: active
+
+**Decision / Inflection**: Replace the older broad `40 / 40` formal benchmark as the active Phase 9 benchmark pointer with a four-chapter clustered benchmark v1, and treat the older broad freeze as historical evidence only.
+
+**Period**: Early April 2026, after the eval scope had already been reduced to three north-star dimensions and the project had enough builder/review infrastructure to stop widening blindly.
+
+**Problem**: The project still needed serious mechanism evidence, but the broad formal benchmark shape was too slow for fast iteration. Too many excerpt judgments were effectively paying for whole-chapter reads one at a time across a wide book spread. That made the path back to the next mechanism decision too slow, while also encouraging continued dataset growth as a substitute for evaluation. The project needed a benchmark shape that stayed honest and reviewable but got much more value out of each chapter read.
+
+**Alternatives considered**: Keep the broad formal freeze as the active benchmark and simply rerun it more patiently, keep expanding the broad benchmark until it felt unquestionably large enough, or hand-design a brand-new review stack just for clustered evaluation instead of reusing the existing builder and packet-review machinery.
+
+**Why this path won**: The clustered shape makes one chapter read support many excerpt judgments, which is exactly the right tradeoff under the current time and cost posture. Four carefully chosen chapters preserve language balance and meaningful pressure variety while making the benchmark far more iteration-friendly and easier to explain in an interview. Reusing the existing question-aligned builder, audit, adjudication, and import pipeline also keeps the system legible: the change is in benchmark shape and clustered duplicate control, not in inventing a second review universe.
+
+**What changed in the system**: The active benchmark pointer now lives in `attentional_v2_clustered_benchmark_v1_draft.json` plus `clustered-benchmark-v1-draft.md`. The builder gained clustered mode with explicit chapter whitelisting, multiple same-profile cases per chapter, stronger same-chapter dedup rules, and ranked same-profile ids such as `__seed_1` and `__reserve_1`. The excerpt comparison runner now defaults to the clustered manifest. The earlier broad formal freeze remains preserved in the repo, but the later formal decisive chapter/excerpt jobs were abandoned once the active pointer changed. A real smoke build over the four chosen chapters produced `24 + 24` primary candidates and `8 + 8` reserves, and the first bilingual review wave was launched directly from that clustered scratch output.
+
+**Why it matters later**: Future contributors will otherwise see both the broad formal freeze and the clustered benchmark and wonder whether the latter was just an experiment. This entry records that the swap was deliberate. The active benchmark is now optimized for fast iteration and interview-legible mechanism evidence, while the broader formal freeze remains as recoverable historical evidence rather than as the live decision surface.
+
+**Primary evidence**:
+- `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
+- `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
+- `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`
+- `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+- `reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py`
+- `reading-companion-backend/state/dataset_build/build_runs/clustered_benchmark_v1_smoke2_20260403/build_summary.json`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`

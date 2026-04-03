@@ -41,7 +41,11 @@ try:
         write_jsonl,
     )
     from .ingest_library_sources import SourceIntakePaths, run_library_source_bootstrap
-    from .question_aligned_case_construction import build_question_aligned_excerpt_scope
+    from .question_aligned_case_construction import (
+        CLUSTERED_SELECTION_MODE,
+        CLUSTERED_TARGET_PROFILE_ORDER,
+        build_question_aligned_excerpt_scope,
+    )
 except ImportError:  # pragma: no cover - script execution path
     from corpus_builder import (
         ROOT,
@@ -59,7 +63,11 @@ except ImportError:  # pragma: no cover - script execution path
         write_jsonl,
     )
     from ingest_library_sources import SourceIntakePaths, run_library_source_bootstrap
-    from question_aligned_case_construction import build_question_aligned_excerpt_scope
+    from question_aligned_case_construction import (
+        CLUSTERED_SELECTION_MODE,
+        CLUSTERED_TARGET_PROFILE_ORDER,
+        build_question_aligned_excerpt_scope,
+    )
 
 SOURCE_MANIFEST_ID = "attentional_v2_private_library_screen_v2"
 LOCAL_REFS_MANIFEST_ID = "attentional_v2_private_library_v2_local_refs"
@@ -81,15 +89,52 @@ LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS = {
     "zh": "attentional_v2_private_library_excerpt_zh_v2",
 }
 SCRATCH_RUN_ROOT = ROOT / "state" / "dataset_build" / "build_runs"
+DEFAULT_BENCHMARK_MODE = "default"
+CLUSTERED_BENCHMARK_MODE = "clustered_benchmark_v1"
+BENCHMARK_MODE_VALUES = (DEFAULT_BENCHMARK_MODE, CLUSTERED_BENCHMARK_MODE)
+CLUSTERED_BENCHMARK_CHAPTER_CASE_IDS = (
+    "supremacy_private_en__13",
+    "steve_jobs_private_en__17",
+    "zouchu_weiyi_zhenliguan_private_zh__14",
+    "meiguoren_de_xingge_private_zh__19",
+)
+CLUSTERED_CASES_PER_CHAPTER = 12
+CLUSTERED_RESERVES_PER_CHAPTER = 4
+CLUSTERED_SOURCE_MANIFEST_ID = "attentional_v2_clustered_benchmark_v1_source_books"
+CLUSTERED_LOCAL_REFS_MANIFEST_ID = "attentional_v2_clustered_benchmark_v1_local_refs"
+CLUSTERED_CORPUS_MANIFEST_ID = "attentional_v2_clustered_benchmark_v1_corpus"
+CLUSTERED_SPLITS_MANIFEST_ID = "attentional_v2_clustered_benchmark_v1_splits"
+CLUSTERED_QUESTION_ALIGNED_SCOPE_ID = "attentional_v2_clustered_benchmark_v1_excerpt_scope"
+CLUSTERED_LIVE_PACKAGE_IDS = {
+    "chapter_corpora": {
+        "en": "attentional_v2_clustered_benchmark_v1_chapters_en",
+        "zh": "attentional_v2_clustered_benchmark_v1_chapters_zh",
+    },
+    "runtime_fixtures": {
+        "en": "attentional_v2_clustered_benchmark_v1_runtime_en",
+        "zh": "attentional_v2_clustered_benchmark_v1_runtime_zh",
+    },
+    "excerpt_cases": {
+        "en": "attentional_v2_clustered_benchmark_v1_excerpt_en",
+        "zh": "attentional_v2_clustered_benchmark_v1_excerpt_zh",
+    },
+    "compatibility_fixtures": {
+        "shared": "attentional_v2_clustered_benchmark_v1_compat_shared",
+    },
+}
 
 
 @dataclass(frozen=True)
 class SupplementBuildOptions:
     run_id: str = ""
     scratch: bool = False
+    benchmark_mode: str = DEFAULT_BENCHMARK_MODE
     source_ids: tuple[str, ...] = ()
+    chapter_case_ids: tuple[str, ...] = ()
     languages: tuple[str, ...] = ()
     limit_sources: int = 0
+    cases_per_chapter: int = 0
+    reserves_per_chapter: int = 0
     feedback_dataset_ids: dict[str, str] | None = None
     tracked_override_manifest_path: str = ""
     use_tracked_overrides: bool = True
@@ -115,12 +160,18 @@ class SupplementBuildConfig:
     root: Path
     run_id: str
     scratch: bool
+    benchmark_mode: str
     catalog_path: Path
     tracked_override_manifest_path: Path | None
     feedback_dataset_ids: dict[str, str]
     source_ids: tuple[str, ...]
+    chapter_case_ids: tuple[str, ...]
     languages: tuple[str, ...]
     limit_sources: int
+    cases_per_chapter: int
+    reserves_per_chapter: int
+    target_profile_ids: tuple[str, ...]
+    max_chapters_per_source: int
     manifest_root: Path
     dataset_build_artifact_root: Path
     local_dataset_root: Path
@@ -190,7 +241,37 @@ def _suffix_id(value: str, run_id: str) -> str:
     return f"{value}__scratch__{run_id}"
 
 
-def live_build_ids() -> SupplementBuildIds:
+def _benchmark_mode(value: str) -> str:
+    cleaned = str(value or "").strip() or DEFAULT_BENCHMARK_MODE
+    if cleaned not in BENCHMARK_MODE_VALUES:
+        raise ValueError(f"Unsupported benchmark mode: {cleaned}")
+    return cleaned
+
+
+def _normalized_chapter_case_ids(values: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(str(value).strip() for value in values if str(value).strip()))
+
+
+def _chapter_source_id(chapter_case_id: str) -> str:
+    prefix, _separator, _chapter_id = str(chapter_case_id).rpartition("__")
+    return prefix or str(chapter_case_id)
+
+
+def live_build_ids(benchmark_mode: str = DEFAULT_BENCHMARK_MODE) -> SupplementBuildIds:
+    benchmark_mode = _benchmark_mode(benchmark_mode)
+    if benchmark_mode == CLUSTERED_BENCHMARK_MODE:
+        return SupplementBuildIds(
+            source_manifest_id=CLUSTERED_SOURCE_MANIFEST_ID,
+            source_manifest_file_stem=CLUSTERED_SOURCE_MANIFEST_ID,
+            local_refs_manifest_id=CLUSTERED_LOCAL_REFS_MANIFEST_ID,
+            local_refs_manifest_file_stem=CLUSTERED_LOCAL_REFS_MANIFEST_ID,
+            corpus_manifest_id=CLUSTERED_CORPUS_MANIFEST_ID,
+            corpus_manifest_file_stem=CLUSTERED_CORPUS_MANIFEST_ID,
+            splits_manifest_id=CLUSTERED_SPLITS_MANIFEST_ID,
+            splits_manifest_file_stem=CLUSTERED_SPLITS_MANIFEST_ID,
+            question_aligned_scope_id=CLUSTERED_QUESTION_ALIGNED_SCOPE_ID,
+            package_ids=_copy_package_ids(CLUSTERED_LIVE_PACKAGE_IDS),
+        )
     return SupplementBuildIds(
         source_manifest_id=SOURCE_MANIFEST_ID,
         source_manifest_file_stem=SOURCE_MANIFEST_ID,
@@ -205,8 +286,8 @@ def live_build_ids() -> SupplementBuildIds:
     )
 
 
-def namespaced_build_ids(run_id: str) -> SupplementBuildIds:
-    live_ids = live_build_ids()
+def namespaced_build_ids(run_id: str, benchmark_mode: str = DEFAULT_BENCHMARK_MODE) -> SupplementBuildIds:
+    live_ids = live_build_ids(benchmark_mode)
     return SupplementBuildIds(
         source_manifest_id=_suffix_id(live_ids.source_manifest_id, run_id),
         source_manifest_file_stem=_suffix_id(live_ids.source_manifest_file_stem, run_id),
@@ -482,9 +563,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scratch", action="store_true", help="Write a run-scoped scratch namespace instead of the live dataset ids.")
     parser.add_argument("--run-id", default="", help="Optional build run id. Scratch builds default to a generated timestamp.")
+    parser.add_argument("--benchmark-mode", choices=BENCHMARK_MODE_VALUES, default=DEFAULT_BENCHMARK_MODE)
     parser.add_argument("--source-id", action="append", default=[], dest="source_ids")
+    parser.add_argument("--chapter-case-id", action="append", default=[], dest="chapter_case_ids")
     parser.add_argument("--language", action="append", default=[], dest="languages")
     parser.add_argument("--limit-sources", type=int, default=0)
+    parser.add_argument("--cases-per-chapter", type=int, default=0)
+    parser.add_argument("--reserves-per-chapter", type=int, default=0)
     parser.add_argument("--feedback-dataset-id-en", default="")
     parser.add_argument("--feedback-dataset-id-zh", default="")
     parser.add_argument("--no-feedback", action="store_true")
@@ -508,6 +593,11 @@ def build_options_from_args(args: argparse.Namespace) -> SupplementBuildOptions:
             "Do not combine --no-tracked-overrides with --tracked-override-manifest-path."
         )
 
+    benchmark_mode = _benchmark_mode(getattr(args, "benchmark_mode", DEFAULT_BENCHMARK_MODE))
+    chapter_case_ids = _normalized_chapter_case_ids(tuple(getattr(args, "chapter_case_ids", ()) or ()))
+    cases_per_chapter = int(getattr(args, "cases_per_chapter", 0) or 0)
+    reserves_per_chapter = int(getattr(args, "reserves_per_chapter", 0) or 0)
+
     feedback_dataset_ids: dict[str, str] | None
     if args.no_feedback:
         feedback_dataset_ids = {}
@@ -521,9 +611,13 @@ def build_options_from_args(args: argparse.Namespace) -> SupplementBuildOptions:
     return SupplementBuildOptions(
         run_id=str(args.run_id).strip(),
         scratch=bool(args.scratch),
+        benchmark_mode=benchmark_mode,
         source_ids=tuple(str(value).strip() for value in args.source_ids if str(value).strip()),
+        chapter_case_ids=chapter_case_ids,
         languages=tuple(str(value).strip() for value in args.languages if str(value).strip()),
         limit_sources=int(args.limit_sources),
+        cases_per_chapter=cases_per_chapter,
+        reserves_per_chapter=reserves_per_chapter,
         feedback_dataset_ids=feedback_dataset_ids,
         tracked_override_manifest_path=str(args.tracked_override_manifest_path).strip(),
         use_tracked_overrides=not bool(args.no_tracked_overrides),
@@ -546,13 +640,39 @@ def resolve_build_config(
     catalog_path = resolved_root / "state" / "dataset_build" / "source_catalog.json"
     if options.limit_sources < 0:
         raise ValueError("--limit-sources must be 0 or greater.")
+    if options.cases_per_chapter < 0:
+        raise ValueError("--cases-per-chapter must be 0 or greater.")
+    if options.reserves_per_chapter < 0:
+        raise ValueError("--reserves-per-chapter must be 0 or greater.")
+
+    benchmark_mode = _benchmark_mode(options.benchmark_mode)
+    chapter_case_ids = (
+        _normalized_chapter_case_ids(options.chapter_case_ids)
+        if options.chapter_case_ids
+        else tuple(CLUSTERED_BENCHMARK_CHAPTER_CASE_IDS if benchmark_mode == CLUSTERED_BENCHMARK_MODE else ())
+    )
+    cases_per_chapter = (
+        int(options.cases_per_chapter)
+        if options.cases_per_chapter > 0
+        else (CLUSTERED_CASES_PER_CHAPTER if benchmark_mode == CLUSTERED_BENCHMARK_MODE else 1)
+    )
+    reserves_per_chapter = (
+        int(options.reserves_per_chapter)
+        if options.reserves_per_chapter > 0
+        else (CLUSTERED_RESERVES_PER_CHAPTER if benchmark_mode == CLUSTERED_BENCHMARK_MODE else 1)
+    )
+    target_profile_ids = (
+        tuple(CLUSTERED_TARGET_PROFILE_ORDER)
+        if benchmark_mode == CLUSTERED_BENCHMARK_MODE
+        else tuple()
+    )
 
     run_id = (
         _sanitize_run_id(options.run_id or default_run_id())
         if options.scratch
         else (_sanitize_run_id(options.run_id) if options.run_id else "")
     )
-    ids = namespaced_build_ids(run_id) if options.scratch else live_build_ids()
+    ids = namespaced_build_ids(run_id, benchmark_mode) if options.scratch else live_build_ids(benchmark_mode)
     run_root = (
         resolved_root / "state" / "dataset_build" / "build_runs" / run_id
         if run_id
@@ -570,6 +690,7 @@ def resolve_build_config(
         root=resolved_root,
         run_id=run_id,
         scratch=bool(options.scratch),
+        benchmark_mode=benchmark_mode,
         catalog_path=catalog_path,
         tracked_override_manifest_path=tracked_override_manifest_path,
         feedback_dataset_ids=(
@@ -578,8 +699,13 @@ def resolve_build_config(
             else dict(options.feedback_dataset_ids)
         ),
         source_ids=tuple(dict.fromkeys(str(value).strip() for value in options.source_ids if str(value).strip())),
+        chapter_case_ids=chapter_case_ids,
         languages=_normalized_language_tuple(options.languages),
         limit_sources=int(options.limit_sources),
+        cases_per_chapter=cases_per_chapter,
+        reserves_per_chapter=reserves_per_chapter,
+        target_profile_ids=target_profile_ids,
+        max_chapters_per_source=0 if chapter_case_ids else MAX_CHAPTERS_PER_SOURCE,
         manifest_root=(
             (run_root / "manifests").resolve()
             if options.scratch and run_root is not None
@@ -607,6 +733,7 @@ def filter_source_items(
     items: list[dict[str, Any]],
     *,
     source_ids: tuple[str, ...],
+    chapter_case_ids: tuple[str, ...],
     languages: tuple[str, ...],
     limit_sources: int,
 ) -> list[dict[str, Any]]:
@@ -617,10 +744,16 @@ def filter_source_items(
     if missing_source_ids:
         raise ValueError(f"Unknown --source-id values: {', '.join(missing_source_ids)}")
 
+    allowed_source_ids = (
+        {_chapter_source_id(chapter_case_id) for chapter_case_id in chapter_case_ids}
+        if chapter_case_ids
+        else set()
+    )
     filtered = [
         item
         for item in items
         if (not source_ids or str(item["spec"].source_id) in source_ids)
+        and (not allowed_source_ids or str(item["spec"].source_id) in allowed_source_ids)
         and (not languages or str(item["spec"].language) in languages)
     ]
     if limit_sources > 0:
@@ -779,6 +912,7 @@ def collect_source_build_state(config: SupplementBuildConfig) -> SupplementBuild
     items = filter_source_items(
         items,
         source_ids=config.source_ids,
+        chapter_case_ids=config.chapter_case_ids,
         languages=config.languages,
         limit_sources=config.limit_sources,
     )
@@ -786,6 +920,8 @@ def collect_source_build_state(config: SupplementBuildConfig) -> SupplementBuild
     source_records: list[dict[str, Any]] = []
     source_refs: list[dict[str, Any]] = []
     chapter_rows_by_language: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    requested_chapter_case_ids = set(config.chapter_case_ids)
+    found_chapter_case_ids: set[str] = set()
 
     for item in items:
         spec: CandidateSpec = item["spec"]
@@ -820,15 +956,27 @@ def collect_source_build_state(config: SupplementBuildConfig) -> SupplementBuild
             }
         )
 
-        candidate_rows = list(record.get("candidate_chapters") or [])[:MAX_CHAPTERS_PER_SOURCE]
+        candidate_rows = list(record.get("candidate_chapters") or [])
         primary_role = _primary_selection_role(list(record.get("role_tags") or []))
+        selected_rows_for_source: list[dict[str, Any]] = []
         for candidate in candidate_rows:
             row = chapter_row_from_candidate(record, candidate)
+            if requested_chapter_case_ids and str(row["chapter_case_id"]) not in requested_chapter_case_ids:
+                continue
             row["selection_status"] = "private_library_candidate_v2"
             row["selection_role"] = primary_role
             row["corpus_lane"] = str(record["corpus_lane"])
             row["acquisition_batch_id"] = item["acquisition_batch_id"]
-            chapter_rows_by_language[str(record["language"])].append(row)
+            selected_rows_for_source.append(row)
+            found_chapter_case_ids.add(str(row["chapter_case_id"]))
+        if not requested_chapter_case_ids and config.max_chapters_per_source > 0:
+            selected_rows_for_source = selected_rows_for_source[: config.max_chapters_per_source]
+        chapter_rows_by_language[str(record["language"])].extend(selected_rows_for_source)
+
+    if requested_chapter_case_ids:
+        missing = sorted(requested_chapter_case_ids - found_chapter_case_ids)
+        if missing:
+            raise ValueError(f"Unknown --chapter-case-id values: {', '.join(missing)}")
 
     runtime_rows_by_language = {
         language: _choose_runtime_seed_rows(rows) for language, rows in chapter_rows_by_language.items()
@@ -1151,13 +1299,21 @@ def build_summary_payload(
         "scratch": config.scratch,
         "run_id": config.run_id,
         "run_root": _relative_to_root(config.run_root, root=config.root) if config.run_root is not None else "",
+        "benchmark_mode": config.benchmark_mode,
         "source_catalog_bootstrap": bootstrap_summary,
         "selected_source_ids": [str(record["source_id"]) for record in state.source_records],
+        "selected_chapter_case_ids": list(config.chapter_case_ids),
         "selected_languages": sorted({str(record["language"]) for record in state.source_records}),
         "source_filters": {
             "source_ids": list(config.source_ids),
+            "chapter_case_ids": list(config.chapter_case_ids),
             "languages": list(config.languages),
             "limit_sources": config.limit_sources,
+        },
+        "construction_targets": {
+            "cases_per_chapter": config.cases_per_chapter,
+            "reserves_per_chapter": config.reserves_per_chapter,
+            "target_profile_ids": list(config.target_profile_ids),
         },
         "dataset_ids": _copy_package_ids(config.ids.package_ids),
         "feedback_dataset_ids": dict(sorted(config.feedback_dataset_ids.items())),
@@ -1209,8 +1365,10 @@ def render_build_summary_markdown(summary: dict[str, Any]) -> str:
             f"- scratch: `{summary['scratch']}`",
             f"- run_id: `{summary['run_id']}`",
             f"- run_root: `{summary['run_root']}`",
+            f"- benchmark_mode: `{summary['benchmark_mode']}`",
             f"- source_catalog_bootstrap: `{json.dumps(summary['source_catalog_bootstrap'], ensure_ascii=False, sort_keys=True)}`",
             f"- selected_source_ids: `{', '.join(summary['selected_source_ids'])}`",
+            f"- selected_chapter_case_ids: `{', '.join(summary['selected_chapter_case_ids'])}`",
             f"- selected_languages: `{', '.join(summary['selected_languages'])}`",
             f"- dataset_ids: `{json.dumps(summary['dataset_ids'], ensure_ascii=False, sort_keys=True)}`",
             f"- feedback_dataset_ids: `{json.dumps(summary['feedback_dataset_ids'], ensure_ascii=False, sort_keys=True)}`",
@@ -1266,6 +1424,14 @@ def build_private_library_supplement(
         root=config.root,
         document_loader=load_book_document,
         scope_id=config.ids.question_aligned_scope_id,
+        cases_per_chapter=config.cases_per_chapter,
+        reserves_per_chapter=config.reserves_per_chapter,
+        target_profile_ids=config.target_profile_ids or None,
+        selection_mode=(
+            CLUSTERED_SELECTION_MODE
+            if config.benchmark_mode == CLUSTERED_BENCHMARK_MODE
+            else DEFAULT_BENCHMARK_MODE
+        ),
     )
     question_aligned_artifact_refs = write_question_aligned_artifacts(
         question_aligned_scope,

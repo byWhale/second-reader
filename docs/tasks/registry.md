@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-03T08:44:30Z`
+Last updated: `2026-04-03T13:05:01Z`
 
 ## Status Values
 - `active`
@@ -20,31 +20,30 @@ Last updated: `2026-04-03T08:44:30Z`
 
 ## Active
 
-### `TASK-RUNTIME-VIABILITY-GATES` — Keep the minimal eval core focused on three north-star dimensions
+### `TASK-PHASE9-CLUSTERED-BENCHMARK` — Freeze clustered benchmark v1 as the active Phase 9 evaluation surface
 - Status: `active`
-- Lane: `mechanism_eval`
+- Lane: `dataset_platform`
 - Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
+- Next: keep the live English and Chinese first-review jobs running on the smoke2 scratch primaries; after both archive summaries land, accept only `keep` cases without blocking problem types, top up deficit chapters from reserves only, freeze toward `10` primaries plus `2` reserves per chapter, and then relaunch decisive chapter/excerpt evaluation against the clustered active benchmark rather than the historical broad formal freeze
+- Jobs:
+  - `bgjob_clustered_benchmark_v1_first_review_en_20260403` (`running`)
+  - `bgjob_clustered_benchmark_v1_first_review_zh_20260403` (`running`)
+
+## Parked
+
+### `TASK-RUNTIME-VIABILITY-GATES` — Keep runtime viability and non-mainline comparison lanes paused under the reduced eval scope
+- Status: `parked`
+- Lane: `mechanism_eval`
+- Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: use the updated explicit freeze draft at `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`; the first formal benchmark-v1 freeze is now `40 / 40` with `chapter_core = 16 / 16` and `excerpt_core = 24 / 24`; the pre-sharding jobs `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` and `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` were intentionally abandoned because already running jobs could not pick up the new routing; the first highspeed chapter target-split attempt `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403` failed fast because `runtime_reader_default` did not yet define `MiniMax-M2.7-highspeed`; that local profile-membership fix is now landed; the active chapter decisive comparison is now `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`; the active excerpt smoke is now `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`; keep durable-trace and runtime-viability paused; and for future Phase 9 launches keep explicit process-level target sharding with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed` for heavy judged comparison jobs and `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal` for lighter support or no-judge jobs; do not launch the judged excerpt lane until the chapter decisive run finishes cleanly
+- Next: reuse the existing runtime-viability and durable-trace evidence; do not relaunch those lanes unless one of the three kept north-star dimensions later requires them or the cost posture changes explicitly
 - Jobs:
   - `bgjob_durable_trace_reentry_gate_20260401` (`failed`)
   - `bgjob_durable_trace_reentry_gate_parallel3_20260401` (`completed`)
   - `bgjob_durable_trace_reentry_gate_personal_serial_20260401` (`abandoned`)
   - `bgjob_runtime_viability_gate_20260401` (`completed`)
   - `bgjob_runtime_viability_gate_serialfix_20260401` (`completed`)
-  - `bgjob_formal_benchmark_v1_excerpt_wave1_en_20260402` (`completed`)
-  - `bgjob_formal_benchmark_v1_excerpt_wave1_zh_20260402` (`completed`)
-  - `bgjob_formal_benchmark_v1_excerpt_rerun_women_20260402` (`completed`)
-  - `bgjob_formal_benchmark_v1_excerpt_rerun_rulin_20260402` (`completed`)
-  - `bgjob_formal_benchmark_v1_gapfill_en_local_20260403` (`completed`)
-  - `bgjob_formal_benchmark_v1_gapfill_zh_local_20260403` (`completed`)
-  - `bgjob_formal_benchmark_v1_gapfill_henry_20260403` (`completed`)
-  - `bgjob_formal_benchmark_v1_gapfill_henry16_anchor_20260403` (`completed`)
-  - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` (`abandoned`)
-  - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` (`abandoned`)
-  - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403` (`failed`)
-  - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403` (`running`)
-  - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403` (`running`)
 
 ## Waiting
 
@@ -53,7 +52,7 @@ Last updated: `2026-04-03T08:44:30Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-RUNTIME-VIABILITY-GATES` is active; with current model cost pressure, do not relaunch comparison-driven widening outside the mechanism mainline; only resume if later decisive eval work exposes a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
+- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-PHASE9-CLUSTERED-BENCHMARK` is active; the current builder output is already being consumed by the clustered first-review/freeze path; only resume broader construction work if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)
@@ -116,7 +115,7 @@ Last updated: `2026-04-03T08:44:30Z`
 - Lane: `documentation`
 - Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/open-questions.md`
-- Blocked by: `TASK-RUNTIME-VIABILITY-GATES`
+- Blocked by: `TASK-PHASE9-CLUSTERED-BENCHMARK`
 - Next: resolve `Q10` once benchmark stabilization has settled enough to freeze stable mechanism behavior intentionally
 
 ### `TASK-FE-SECTION-RETIREMENT` — Retire section-first chapter/detail and marks surfaces
@@ -124,7 +123,7 @@ Last updated: `2026-04-03T08:44:30Z`
 - Lane: `migration`
 - Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Blocked by: `TASK-RUNTIME-VIABILITY-GATES`, `TASK-DOC-Q10`
+- Blocked by: `TASK-PHASE9-CLUSTERED-BENCHMARK`, `TASK-DOC-Q10`
 - Next: start only after benchmark direction, runtime viability work, and stable-doc promotion timing are intentionally fixed
 
 ## Done

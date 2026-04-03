@@ -1,0 +1,139 @@
+{
+  "manifest_id": "attentional_v2_clustered_benchmark_v1_draft",
+  "description": "Active chapter-clustered benchmark draft for fast iteration on the reduced three-target evaluation scope.",
+  "targets": [
+    "reader_character.selective_legibility",
+    "reader_character.coherent_accumulation",
+    "reader_value.insight_and_clarification"
+  ],
+  "benchmark_shape": {
+    "kind": "chapter_clustered",
+    "chapter_clusters": 4,
+    "excerpt_primary_target_total": 40,
+    "reserve_target_total": 8,
+    "primary_target_per_chapter": 10,
+    "reserve_target_per_chapter": 2
+  },
+  "source_origin_rule": "Do not use public/private/manual/agent-downloaded provenance as benchmark strata.",
+  "source_refs": {
+    "source_manifests": [
+      "eval/manifests/source_books/attentional_v2_clustered_benchmark_v1_source_books.json",
+      "eval/manifests/local_refs/attentional_v2_clustered_benchmark_v1_local_refs.json"
+    ],
+    "chapter_corpora": [
+      "state/eval_local_datasets/chapter_corpora/attentional_v2_clustered_benchmark_v1_chapters_en",
+      "state/eval_local_datasets/chapter_corpora/attentional_v2_clustered_benchmark_v1_chapters_zh"
+    ],
+    "excerpt_case_datasets": [
+      "state/eval_local_datasets/excerpt_cases/attentional_v2_clustered_benchmark_v1_excerpt_en",
+      "state/eval_local_datasets/excerpt_cases/attentional_v2_clustered_benchmark_v1_excerpt_zh"
+    ]
+  },
+  "quota_status": {
+    "chapter_core": {
+      "target_total": 4,
+      "ready_now": 4,
+      "gap": 0
+    },
+    "excerpt_primary": {
+      "target_total": 40,
+      "ready_now": 0,
+      "gap": 40
+    },
+    "reserve": {
+      "target_total": 8,
+      "ready_now": 0,
+      "gap": 8
+    }
+  },
+  "selected_chapter_clusters": [
+    {
+      "chapter_case_id": "supremacy_private_en__13",
+      "source_id": "supremacy_private_en",
+      "chapter_id": "13",
+      "language_track": "en",
+      "book_title": "Supremacy",
+      "chapter_title": "Chapter 7. Playing Games"
+    },
+    {
+      "chapter_case_id": "steve_jobs_private_en__17",
+      "source_id": "steve_jobs_private_en",
+      "chapter_id": "17",
+      "language_track": "en",
+      "book_title": "Steve Jobs",
+      "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces"
+    },
+    {
+      "chapter_case_id": "zouchu_weiyi_zhenliguan_private_zh__14",
+      "source_id": "zouchu_weiyi_zhenliguan_private_zh",
+      "chapter_id": "14",
+      "language_track": "zh",
+      "book_title": "走出唯一真理观",
+      "chapter_title": "说理与对话"
+    },
+    {
+      "chapter_case_id": "meiguoren_de_xingge_private_zh__19",
+      "source_id": "meiguoren_de_xingge_private_zh",
+      "chapter_id": "19",
+      "language_track": "zh",
+      "book_title": "美国人的性格",
+      "chapter_title": "5 幸福单车的脱节"
+    }
+  ],
+  "splits": {
+    "chapter_core_frozen_draft": {
+      "by_cluster": {
+        "supremacy_private_en__13": [
+          "supremacy_private_en__13"
+        ],
+        "steve_jobs_private_en__17": [
+          "steve_jobs_private_en__17"
+        ],
+        "zouchu_weiyi_zhenliguan_private_zh__14": [
+          "zouchu_weiyi_zhenliguan_private_zh__14"
+        ],
+        "meiguoren_de_xingge_private_zh__19": [
+          "meiguoren_de_xingge_private_zh__19"
+        ]
+      },
+      "all": [
+        "supremacy_private_en__13",
+        "steve_jobs_private_en__17",
+        "zouchu_weiyi_zhenliguan_private_zh__14",
+        "meiguoren_de_xingge_private_zh__19"
+      ]
+    },
+    "excerpt_core_primary_frozen_draft": {
+      "by_chapter": {
+        "supremacy_private_en__13": [],
+        "steve_jobs_private_en__17": [],
+        "zouchu_weiyi_zhenliguan_private_zh__14": [],
+        "meiguoren_de_xingge_private_zh__19": []
+      },
+      "by_pressure": {
+        "distinction_definition": [],
+        "tension_reversal": [],
+        "callback_bridge": [],
+        "anchored_reaction_selectivity": []
+      },
+      "all": []
+    },
+    "insight_and_clarification_subset_frozen_draft": {
+      "by_pressure": {
+        "distinction_definition": [],
+        "tension_reversal": [],
+        "callback_bridge": []
+      },
+      "all": []
+    },
+    "reserve_target_draft": {
+      "by_chapter": {
+        "supremacy_private_en__13": [],
+        "steve_jobs_private_en__17": [],
+        "zouchu_weiyi_zhenliguan_private_zh__14": [],
+        "meiguoren_de_xingge_private_zh__19": []
+      },
+      "all": []
+    }
+  }
+}

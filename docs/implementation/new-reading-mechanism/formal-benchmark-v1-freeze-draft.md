@@ -1,17 +1,21 @@
 # Formal Benchmark V1 Freeze Draft
 
-Purpose: record the explicit `40`-case freeze draft for the reduced three-target formal benchmark and the evidence that closed the last excerpt gaps.
-Use when: checking the current frozen `chapter_core` and `excerpt_core`, verifying why each remaining gap was closed, or deciding what not to reopen automatically.
-Not for: stable evaluation methodology, default-cutover claims, or one-off packet implementation details.
-Update when: the explicit freeze changes, a frozen case is swapped, or the benchmark moves beyond this first `40 / 40` draft.
+Historical status: archived benchmark evidence. The active benchmark pointer now lives in `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`.
+
+Purpose: preserve the explicit `40`-case freeze draft for the earlier broad formal benchmark and the evidence that closed its last excerpt gaps.
+Use when: checking the archived `40 / 40` composition, recovering why those earlier formal gaps were closed, or comparing the older broad freeze against the newer clustered benchmark direction.
+Not for: the active benchmark pointer, stable evaluation methodology, default-cutover claims, or one-off packet implementation details.
+Update when: the archived record needs clarification or new historical cross-links are added.
 
 ## Scope
-- Active formal benchmark targets:
+- Historical formal benchmark targets:
   - `reader_character.selective_legibility`
   - `reader_character.coherent_accumulation`
   - `reader_value.insight_and_clarification`
 - Canonical machine-readable companion:
   - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
+- Active benchmark successor:
+  - `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
 - Working rule:
   - this draft freezes explicit case ids instead of relying on auto-core selection
   - source origin remains provenance only and must not define the benchmark shape
@@ -200,9 +204,13 @@ Closeout interpretation:
 - `public/private` stayed operational provenance only; the frozen composition is shaped by pressure, language, and scale rather than source channel
 
 ## Operating Rule After Freeze
-- treat this `40 / 40` draft as the active formal benchmark until a later deliberate swap is documented
+- treat this `40 / 40` draft as historical evidence only
+- the active Phase 9 benchmark pointer now lives at:
+  - `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
+- the active implementation note now lives at:
+  - `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
 - do not launch a new general builder wave, promotion reopening, durable-trace work, or runtime-viability work from this closeout alone
-- next evaluation spend should use this frozen benchmark for the cheapest decisive mechanism-eval lane rather than returning to open-ended dataset construction
+- do not relaunch the abandoned formal decisive chapter/excerpt jobs by default now that the active benchmark pointer has moved
 - future Phase 9 launch commands should shard targets by process:
   - heavy judged comparison jobs should launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed`
   - lighter support or no-judge jobs should launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`

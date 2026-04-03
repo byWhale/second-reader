@@ -7,6 +7,10 @@ from pathlib import Path
 
 from eval.attentional_v2 import build_private_library_supplement as builder_module
 from eval.attentional_v2.build_private_library_supplement import (
+    CLUSTERED_BENCHMARK_CHAPTER_CASE_IDS,
+    CLUSTERED_BENCHMARK_MODE,
+    CLUSTERED_CASES_PER_CHAPTER,
+    CLUSTERED_RESERVES_PER_CHAPTER,
     SupplementBuildOptions,
     build_private_library_splits,
     load_private_library_source_items,
@@ -208,6 +212,120 @@ def test_resolve_build_config_scratch_redirects_ids_and_paths(tmp_path: Path) ->
         == "attentional_v2_private_library_excerpt_en_question_aligned_v1__scratch__scratch_demo"
     )
     assert config.feedback_dataset_ids == {}
+
+
+def test_resolve_build_config_clustered_mode_uses_cluster_defaults(tmp_path: Path) -> None:
+    config = resolve_build_config(
+        SupplementBuildOptions(
+            benchmark_mode=CLUSTERED_BENCHMARK_MODE,
+            scratch=True,
+            run_id="clustered_demo",
+            feedback_dataset_ids={},
+        ),
+        root=tmp_path,
+        manifest_root=tmp_path / "eval" / "manifests",
+        local_dataset_root=tmp_path / "state" / "eval_local_datasets",
+    )
+
+    assert config.benchmark_mode == CLUSTERED_BENCHMARK_MODE
+    assert config.chapter_case_ids == CLUSTERED_BENCHMARK_CHAPTER_CASE_IDS
+    assert config.cases_per_chapter == CLUSTERED_CASES_PER_CHAPTER
+    assert config.reserves_per_chapter == CLUSTERED_RESERVES_PER_CHAPTER
+    assert config.max_chapters_per_source == 0
+    assert (
+        config.ids.package_ids["excerpt_cases"]["en"]
+        == "attentional_v2_clustered_benchmark_v1_excerpt_en__scratch__clustered_demo"
+    )
+
+
+def test_collect_source_build_state_honors_explicit_chapter_case_ids(tmp_path: Path, monkeypatch) -> None:
+    root = tmp_path
+    source_path = root / "state" / "library_sources" / "en" / "demo.epub"
+    _write(source_path, "demo")
+
+    monkeypatch.setattr(
+        builder_module,
+        "load_private_library_source_items",
+        lambda **_kwargs: [
+            {
+                "spec": CandidateSpec(
+                    source_id="demo_private_en",
+                    title="Demo Book",
+                    author="Demo Author",
+                    language="en",
+                    origin="managed-library-source",
+                    storage_mode="local-only",
+                    promoted_local_path="en/demo.epub",
+                    acquisition={"kind": "managed_source_catalog"},
+                    type_tags=["essay"],
+                    role_tags=["argumentative"],
+                    selection_priority=1,
+                    notes=[],
+                ),
+                "source_path": source_path,
+                "acquisition_batch_id": "batch_a",
+                "origin_filename": "demo.epub",
+                "relative_local_path": "state/library_sources/en/demo.epub",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        builder_module,
+        "screen_source_book",
+        lambda **_kwargs: {
+            "source_id": "demo_private_en",
+            "title": "Demo Book",
+            "author": "Demo Author",
+            "language": "en",
+            "type_tags": ["essay"],
+            "role_tags": ["argumentative"],
+            "relative_local_path": "state/library_sources/en/demo.epub",
+            "sha256": "abc",
+            "file_size": 4,
+            "output_dir": "outputs/demo_private_en",
+            "corpus_lane": "chapter_corpus_eligible",
+            "selection_priority": 1,
+            "candidate_chapters": [
+                {
+                    "chapter_id": "17",
+                    "chapter_number": 17,
+                    "chapter_title": "Keep Me",
+                    "sentence_count": 80,
+                    "paragraph_count": 16,
+                    "position_bucket": "middle",
+                    "score": 4.5,
+                },
+                {
+                    "chapter_id": "24",
+                    "chapter_number": 24,
+                    "chapter_title": "Drop Me",
+                    "sentence_count": 84,
+                    "paragraph_count": 20,
+                    "position_bucket": "late",
+                    "score": 4.2,
+                },
+            ],
+        },
+    )
+
+    config = resolve_build_config(
+        SupplementBuildOptions(
+            scratch=True,
+            run_id="clustered_chapter_filter",
+            benchmark_mode=CLUSTERED_BENCHMARK_MODE,
+            chapter_case_ids=("demo_private_en__17",),
+            feedback_dataset_ids={},
+        ),
+        root=root,
+        manifest_root=root / "eval" / "manifests",
+        local_dataset_root=root / "state" / "eval_local_datasets",
+    )
+
+    state = builder_module.collect_source_build_state(config)
+
+    assert [row["chapter_case_id"] for row in state.chapter_rows_by_language["en"]] == [
+        "demo_private_en__17"
+    ]
 
 
 def test_main_wires_question_aligned_excerpt_outputs_without_using_old_seed_builder(

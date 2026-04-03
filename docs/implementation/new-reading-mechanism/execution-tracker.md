@@ -50,70 +50,63 @@ Update when: status changes, blockers appear, or phases complete.
     - `reader_character.selective_legibility`
     - `reader_character.coherent_accumulation`
     - `reader_value.insight_and_clarification`
-  - explicit formal-benchmark freeze artifacts are now landed for the reduced scope:
-    - split manifest:
-      - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
-    - implementation draft:
-      - `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
-    - practical consequence:
-      - `chapter_core` remains frozen in draft form at `16 / 16`
-      - excerpt work stayed bounded to quota-filling review waves instead of reopening builder exploration
-    - first tracked builder-active excerpt wave plus the bounded reruns are completed:
-      - EN packet `attentional_v2_formal_benchmark_v1_excerpt_wave1_en_20260402`: `0 keep`, `2 revise`
-      - ZH packet `attentional_v2_formal_benchmark_v1_excerpt_wave1_zh_20260402`: `2 keep`, `1 revise`
-      - direct wave-1 frozen-now excerpt additions:
-        - `ouyou_zaji_public_zh__4__distinction_definition__v2`
-        - `ershinian_mudu_public_zh__37__anchored_reaction_selectivity__v2`
-      - bounded rerun additions after the excerpt-normalization repair:
-        - `women_and_economics_public_en__9__distinction_definition__v2`
-        - `rulin_waishi_24032_zh__6__tension_reversal__v2`
-      - the bounded factual-audit repair is now landed in code:
-        - excerpt comparison strips harmless `Cf` formatting characters and collapses whitespace / newline differences before judging `excerpt_text_mismatch`
-        - targeted validation now passes in `reading-companion-backend/tests/test_case_design_audit.py` and `reading-companion-backend/tests/test_dataset_review_pipeline.py`
-    - the `2026-04-03` formal benchmark gap-fill closeout is now completed:
-      - EN local reviewed packet `attentional_v2_formal_benchmark_v1_gapfill_en_local_20260403`: `keep = 2`
-        - accepted:
-          - `steve_jobs_private_en__43__seed_1`
-          - `evicted_private_en__29__seed_1`
-      - ZH local reviewed packet `attentional_v2_formal_benchmark_v1_gapfill_zh_local_20260403`: `keep = 2`
-        - accepted:
-          - `zouchu_weiyi_zhenliguan_private_zh__14__seed_1`
-          - `meiguoren_de_xingge_private_zh__19__seed_2`
-      - Henry source-scoped rerun `formal_benchmark_v1_gapfill_henry_20260403`: `keep = 3`, `revise = 1`
-        - accepted for freeze:
-          - `education_of_henry_adams_public_en__8__tension_reversal__seed_v1`
-        - non-selected outcomes:
-          - `education_of_henry_adams_public_en__29__anchored_reaction_selectivity__seed_v1` stayed `keep` but was surplus to quota
-          - `education_of_henry_adams_public_en__16__callback_bridge__seed_v1` was `revise` with `ambiguous_focus`
-      - Henry single-case rerun `attentional_v2_formal_benchmark_v1_gapfill_henry16_anchor_20260403`: `keep = 1`
-        - accepted:
-          - `education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1`
-      - no fallback jobs were needed
-      - excerpt freeze status is now:
-        - `chapter_core = 16 / 16`
-        - `excerpt_core = 24 / 24`
-        - `formal benchmark total = 40 / 40`
-      - immediate next support move:
-        - treat the formal benchmark-v1 dataset gap-fill as complete
-        - do not reopen a general builder wave or promotion review from this closeout alone
-        - spend next on the cheapest decisive mechanism-eval lane over the frozen benchmark
-      - future launch templates for that spend are now:
-        - heavy judged comparison lane:
-          ```bash
-          cd /Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend && \
-          LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed \
-          .venv/bin/python scripts/run_registered_job.py ...
-          ```
-        - lighter support or no-judge lane:
-          ```bash
-          cd /Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend && \
-          LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal \
-          .venv/bin/python scripts/run_registered_job.py ...
-          ```
-      - current live Phase 9 operator state is now:
-        - the pre-sharding launch pair `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403` and `bgjob_formal_benchmark_v1_excerpt_smoke_20260403` was intentionally abandoned so both lanes could pick up the new routing
-        - the current excerpt smoke lane is `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
-        - the current chapter decisive lane is `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
+  - the active benchmark pointer has now shifted from the older broad formal freeze to the clustered benchmark v1 draft:
+    - active split manifest:
+      - `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
+    - active implementation draft:
+      - `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
+    - active chapter clusters:
+      - `supremacy_private_en__13`
+      - `steve_jobs_private_en__17`
+      - `zouchu_weiyi_zhenliguan_private_zh__14`
+      - `meiguoren_de_xingge_private_zh__19`
+    - target shape:
+      - `chapter_core = 4`
+      - `excerpt_primary target = 40`
+      - `reserve target = 8`
+    - code support now landed:
+      - clustered builder mode with explicit `--chapter-case-id`
+      - multiple same-profile cases per chapter
+      - stronger same-chapter duplicate control
+      - ranked clustered case ids such as `__seed_1` and `__reserve_1`
+      - active excerpt runner default now points at the clustered benchmark manifest and manifest-driven dataset/source refs
+    - real scratch smoke is now completed:
+      - run id:
+        - `clustered_benchmark_v1_smoke2_20260403`
+      - result:
+        - `24` EN primary candidates
+        - `24` ZH primary candidates
+        - `8` EN reserves
+        - `8` ZH reserves
+      - interpretation:
+        - the builder now truly limits construction to the four selected chapters
+        - widening the per-profile opportunity search was necessary to reach the intended `12 + 4` scratch output per chapter
+        - candidate pressure balance is still uneven, so benchmark quality now depends on review plus freeze rather than raw builder counts alone
+    - the earlier `40 / 40` formal benchmark remains historical evidence only:
+      - historical split manifest:
+        - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
+      - historical note:
+        - `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
+    - first review wave is now live:
+      - English:
+        - job id:
+          - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
+        - packet id:
+          - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403`
+      - Chinese:
+        - job id:
+          - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
+        - packet id:
+          - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403`
+      - both jobs force `MiniMax-M2.7-personal` with `--audit-max-workers 1 --review-max-workers 1`
+    - the older formal decisive chapter/excerpt jobs were deliberately abandoned after the benchmark-pointer swap:
+      - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
+      - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
+    - immediate next support move:
+      - wait for the clustered first-review archive summaries
+      - freeze toward `10` primaries plus `2` reserves per chapter
+      - pull reserve rows only where a chapter still falls short after primary review
+      - only then relaunch the next decisive judged eval lane on the new active benchmark
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets
 - Current blockers:
   - the post-recovery gate review no longer blocks the next decisive lane:

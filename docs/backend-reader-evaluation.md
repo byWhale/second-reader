@@ -99,6 +99,16 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the benchmark is good enough for early diagnosis
   - but not yet large enough for high-confidence cross-mechanism or default-cutover decisions
 
+## Active Benchmark Pointer Rule
+- Stable docs may name one active benchmark pointer while keeping earlier benchmark packages as historical evidence.
+- An active benchmark does not need to maximize breadth if the current project constraint is iteration speed under real token and time pressure.
+- A chapter-clustered benchmark is acceptable when it improves time-to-next-comparison by letting one chapter read support multiple excerpt judgments.
+- The clustered shape should still be explicit and reviewable:
+  - selected chapters must be named directly
+  - excerpt and reserve quotas must be documented
+  - the active benchmark doc must say clearly whether excerpt membership is still draft, partial, or frozen
+- Historical broad freezes should remain readable, but they should not keep acting as the active benchmark pointer once a deliberate replacement has been recorded.
+
 ## Bounded Dataset-Platform Strategy Rule
 - Dataset building, dataset hardening, and dataset automation are enabling lanes for evaluation, not independent success targets.
 - Once a benchmark family is good enough for diagnosis, the default next move is frozen-slice comparison rather than open-ended builder refinement.

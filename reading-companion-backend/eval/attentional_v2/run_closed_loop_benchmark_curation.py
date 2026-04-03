@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .build_private_library_supplement import (
+    BENCHMARK_MODE_VALUES,
     SupplementBuildOptions,
     build_options_from_args as build_builder_options_from_args,
     build_private_library_supplement,
@@ -197,9 +198,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--build-mode", choices=("scratch", "live"), default="scratch")
     parser.add_argument("--run-id", default="")
+    parser.add_argument("--benchmark-mode", choices=BENCHMARK_MODE_VALUES, default="default")
     parser.add_argument("--source-id", action="append", default=[], dest="source_ids")
+    parser.add_argument("--chapter-case-id", action="append", default=[], dest="chapter_case_ids")
     parser.add_argument("--language", action="append", default=[], dest="languages")
     parser.add_argument("--limit-sources", type=int, default=0)
+    parser.add_argument("--cases-per-chapter", type=int, default=0)
+    parser.add_argument("--reserves-per-chapter", type=int, default=0)
     parser.add_argument("--feedback-dataset-id-en", default="")
     parser.add_argument("--feedback-dataset-id-zh", default="")
     parser.add_argument("--no-feedback", action="store_true")
@@ -245,9 +250,13 @@ def builder_options_from_closed_loop_args(args: argparse.Namespace, *, run_id: s
     builder_args = argparse.Namespace(
         scratch=args.build_mode == "scratch",
         run_id=run_id,
+        benchmark_mode=args.benchmark_mode,
         source_ids=args.source_ids,
+        chapter_case_ids=args.chapter_case_ids,
         languages=args.languages,
         limit_sources=args.limit_sources,
+        cases_per_chapter=args.cases_per_chapter,
+        reserves_per_chapter=args.reserves_per_chapter,
         feedback_dataset_id_en=args.feedback_dataset_id_en,
         feedback_dataset_id_zh=args.feedback_dataset_id_zh,
         no_feedback=args.no_feedback,
@@ -323,15 +332,23 @@ def builder_command_preview(args: argparse.Namespace, *, run_id: str) -> list[st
         "eval.attentional_v2.build_private_library_supplement",
         "--run-id",
         run_id,
+        "--benchmark-mode",
+        str(args.benchmark_mode),
     ]
     if args.build_mode == "scratch":
         command.append("--scratch")
     for source_id in args.source_ids:
         command.extend(["--source-id", str(source_id)])
+    for chapter_case_id in args.chapter_case_ids:
+        command.extend(["--chapter-case-id", str(chapter_case_id)])
     for language in args.languages:
         command.extend(["--language", str(language)])
     if args.limit_sources > 0:
         command.extend(["--limit-sources", str(args.limit_sources)])
+    if args.cases_per_chapter > 0:
+        command.extend(["--cases-per-chapter", str(args.cases_per_chapter)])
+    if args.reserves_per_chapter > 0:
+        command.extend(["--reserves-per-chapter", str(args.reserves_per_chapter)])
     if args.no_feedback:
         command.append("--no-feedback")
     else:

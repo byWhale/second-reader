@@ -7,12 +7,13 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-03T08:44:30Z`
+Last verified: `2026-04-03T13:05:01Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
   - preserve the recorded `Path A` gate outcome in repo-local state
-  - use the now-closed `40 / 40` formal benchmark-v1 draft as the bounded evidence base for the next minimum reader-character proof
+  - switch the active benchmark pointer from the older broad formal freeze to the new chapter-clustered benchmark v1 draft
+  - use the clustered benchmark build-review-freeze loop as the bounded route back to the next minimum reader-character proof
   - keep the active cadence on the minimum reader-character proof plus cheap trust gates, with durable-trace / re-entry and runtime viability now paused for cost
   - keep benchmark promotion closed unless genuinely new benchmark-strengthening evidence lands
 - Keep the dataset-platform route available as support infrastructure rather than as the current primary workstream:
@@ -42,94 +43,90 @@ Last verified: `2026-04-03T08:44:30Z`
 - Treat book source origin as operational provenance only:
   - do not design benchmark strata around `public`, `private`, `manual download`, `agent-downloaded`, or similar source-channel labels
   - when choosing or freezing benchmark cases, stratify by target pressure, language, reading role, genre/book type, and chapter-vs-excerpt scale instead
-- The current formal benchmark-v1 freeze is now:
-  - `40` unique cases total
-  - `24` excerpt cases for `selective_legibility` plus the clarification subset
-  - `16` chapter cases for `coherent_accumulation`
-  - current ready estimate: `40`
-  - current gap estimate: `0`
-  - explicit freeze artifacts now exist at:
+- The active benchmark pointer is now the clustered benchmark v1 draft:
+  - active manifest:
+    - `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
+  - active implementation note:
+    - `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
+  - active `chapter_core`:
+    - `supremacy_private_en__13`
+    - `steve_jobs_private_en__17`
+    - `zouchu_weiyi_zhenliguan_private_zh__14`
+    - `meiguoren_de_xingge_private_zh__19`
+  - active target shape:
+    - `chapter_core = 4`
+    - `excerpt_primary target = 40`
+    - `reserve target = 8`
+  - clustered scratch smoke is now landed in real repo artifacts:
+    - run id:
+      - `clustered_benchmark_v1_smoke2_20260403`
+    - summary:
+      - `reading-companion-backend/state/dataset_build/build_runs/clustered_benchmark_v1_smoke2_20260403/build_summary.json`
+    - current scratch output:
+      - `24` EN candidate primaries
+      - `24` ZH candidate primaries
+      - `8` EN reserves
+      - `8` ZH reserves
+    - practical interpretation:
+      - the clustered builder now really constructs only the selected four chapters
+      - the wider clustered search was necessary to reach the intended `12 + 4` per chapter scratch target
+      - pressure balance is still uneven at the candidate stage, so the next real quality gate is review plus freeze rather than raw builder count alone
+  - the first real review wave is now live against those scratch primaries:
+    - English first review:
+      - job id:
+        - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
+      - packet id:
+        - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403`
+    - Chinese first review:
+      - job id:
+        - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
+      - packet id:
+        - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403`
+    - operator posture:
+      - both jobs force `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
+      - both jobs run with `--audit-max-workers 1 --review-max-workers 1`
+- The older formal benchmark-v1 freeze remains historical evidence only:
+  - historical manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
+  - historical note:
     - `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
-  - the chapter lane remains the same explicit `16`-case freeze
-  - the excerpt lane is now explicitly frozen at:
-    - `distinction_definition = 6`
-    - `tension_reversal = 6`
-    - `anchored_reaction_selectivity = 6`
-    - `callback_bridge_or_modest_cross_span_link = 4`
-    - `clarification_wildcard_or_undercovered_pressure = 2`
-  - the bounded factual-audit repair is now landed:
-    - excerpt comparison now strips harmless `Cf` formatting characters and collapses whitespace / newline differences before judging `excerpt_text_mismatch`
-    - the earlier formatting-blocked reruns now clear factual audit and import cleanly as `reviewed_active`
-  - the `2026-04-03` formal gap-fill closeout is now complete:
-    - EN local reviewed rerun accepted:
-      - `steve_jobs_private_en__43__seed_1`
-      - `evicted_private_en__29__seed_1`
-    - ZH local reviewed rerun accepted:
-      - `zouchu_weiyi_zhenliguan_private_zh__14__seed_1`
-      - `meiguoren_de_xingge_private_zh__19__seed_2`
-    - Henry source-scoped rerun accepted:
-      - `education_of_henry_adams_public_en__8__tension_reversal__seed_v1`
-    - Henry explicit anchored rerun accepted:
-      - `education_of_henry_adams_public_en__16__anchored_reaction_selectivity__seed_v1`
-    - no fallback jobs were needed
-    - review queue is now `active_packet_count = 0`
-    - active background jobs are now `0`
-  - the next dataset move is now intentionally small:
-    - treat benchmark gap-fill as complete for formal benchmark-v1
-    - do not reopen a general builder wave or benchmark-promotion review from this closeout alone
-    - spend next on the cheapest decisive mechanism-eval lane over the frozen `40 / 40` benchmark
 - Treat cheap honesty / integrity / compatibility checks as sanity guards rather than as primary eval success targets.
 - Treat runtime viability, broader local pairwise comparison, durable-trace / re-entry comparison, and most mechanism-specific judged attribution families as paused unless one of the three kept dimensions later requires them.
 
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
-- The formal benchmark gap-fill closeout is finished:
-  - `reading-companion-backend/eval/review_packets/review_queue_summary.json` is back to `active_packet_count = 0`
-  - the first directly launched Phase 9 chapter and excerpt jobs were intentionally abandoned on `2026-04-03`:
-    - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403`
-    - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403`
-    - reason:
-      - already running jobs could not pick up the new per-process target sharding after config changes
-  - the first highspeed target-split chapter attempt also failed fast:
-    - job id:
-      - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_20260403`
-    - failure:
-      - `LLMRegistryError: Profile runtime_reader_default does not define target MiniMax-M2.7-highspeed.`
-    - repair now landed:
-      - `reading-companion-backend/config/llm_targets.local.json` now raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
-      - `reading-companion-backend/config/llm_profile_bindings.local.json` now keeps `MiniMax-M2.7-personal` as the default primary tier and adds `MiniMax-M2.7-highspeed` as an allowed backup tier for:
-        - `runtime_reader_default`
-        - `dataset_review_high_trust`
-        - `eval_judge_high_trust`
-      - practical effect:
-        - default local routing still stays on personal
-        - explicit `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed` now works through the project gateway instead of failing the membership check
-  - the current Phase 9 live jobs are now:
-    - chapter decisive lane:
-      - job id:
-        - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
-      - run id:
-        - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
-      - target:
-        - forced to `MiniMax-M2.7-highspeed`
-      - current intent:
-        - use the explicit frozen `16` chapter cases rather than the runner's default `8`-case auto-core
-        - treat `system_regression` as the primary `coherent_accumulation` surface and `local_impact` as secondary support
-    - excerpt smoke lane:
-      - job id:
-        - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
-      - run id:
-        - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
-      - target:
-        - forced to `MiniMax-M2.7-personal`
-      - current intent:
-        - validate the new formal excerpt runner with `judge_mode = none`
-        - keep the next judged excerpt run blocked until the chapter decisive lane finishes and the smoke writes stable per-case plus summary outputs
-  - future Phase 9 launch discipline remains:
-    - heavy cross-mechanism comparison jobs such as formal `run_chapter_comparison` and judged `run_excerpt_comparison` must launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed`
-    - lighter support lanes such as no-judge excerpt smoke, dataset review, and packet adjudication must launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
-    - because `LLM_FORCE_TARGET_ID` is process-wide and the registry is cached in-process, changing config files or env vars after launch does not retarget an already running background job
+- The active benchmark-preparation lane is now the clustered benchmark v1 build/review/freeze path:
+  - clustered builder support is landed in code:
+    - chapter-case whitelisting
+    - clustered selection mode
+    - stronger same-chapter duplicate control
+    - ranked same-profile case ids such as `__seed_1` and `__reserve_1`
+  - the current bounded move is:
+    - wait for the two clustered first-review jobs to archive fresh packet summaries
+    - accept only `keep` cases without blocking problem types
+    - fill each chapter toward `10` frozen primaries and `2` frozen reserves
+    - pull reserve rows only for chapters that still fall short after primary review
+  - do not treat the older broad formal benchmark as the active Phase 9 pointer anymore
+- The older broad formal benchmark remains preserved as historical operator evidence:
+  - the `40 / 40` gap-fill closeout itself is still recorded in repo artifacts
+  - the later formal decisive chapter and excerpt reruns were deliberately abandoned on `2026-04-03T13:00:09Z` after the active benchmark pointer moved to clustered benchmark v1:
+    - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
+    - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
+  - operator lessons retained from that older lane:
+    - heavy judged cross-mechanism comparison jobs should force `MiniMax-M2.7-highspeed`
+    - lighter support lanes such as dataset review, packet adjudication, and no-judge smoke should force `MiniMax-M2.7-personal`
+    - because `LLM_FORCE_TARGET_ID` is process-wide and cached in-process, retargeting requires a fresh launch rather than editing config mid-run
+  - the earlier highspeed membership bug is fixed locally:
+    - `reading-companion-backend/config/llm_targets.local.json` now raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
+    - `reading-companion-backend/config/llm_profile_bindings.local.json` keeps `MiniMax-M2.7-personal` as the default primary tier and now allows explicit `MiniMax-M2.7-highspeed` forcing for:
+      - `runtime_reader_default`
+      - `dataset_review_high_trust`
+      - `eval_judge_high_trust`
+- The current Phase 9 live jobs are now the clustered benchmark first-review wave:
+  - English:
+    - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
+  - Chinese:
+    - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
 - The English chapter-core retry-2 closeout remains the last broader multi-case comparison baseline, and the completed backup-tier substantive rerun is now the latest focused two-case mechanism-evidence checkpoint:
   - run:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/`
@@ -1308,65 +1305,27 @@ Last verified: `2026-04-03T08:44:30Z`
   - `reading-companion-backend/src/attentional_v2/resume.py` now recreates the thin `runtime_shell.json` envelope if it is missing during position persistence
 
 ## Next
-- Use the completed gate review as the durable route-back-to-mainline decision:
-  - keep promotion on `hold_for_backlog_rescue`
-  - accept the callback slice for frozen-slice comparison cadence
-  - treat current benchmark size as adequate for the next decisive lane only
-  - record the chosen route as `Path A`
-- Keep `TASK-RUNTIME-VIABILITY-GATES` on the decisive lane after the clean serial runtime rerun:
-  - completed diagnostic runs:
-    - `bgjob_durable_trace_reentry_gate_20260401` failed before summary output because case failures were not yet isolated
-    - `bgjob_runtime_viability_gate_20260401` completed, but its mixed unsupported-plan, quota, and runtime failures are diagnostic evidence only
-  - completed rerun:
-    - `bgjob_runtime_viability_gate_serialfix_20260401`
-    - runner:
-      - `reading-companion-backend/eval/attentional_v2/run_runtime_viability.py`
-    - run dir:
-      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_runtime_viability_gate_serialfix_20260401/`
-    - summary:
-      - `attentional_v2`: `1/8` success, average duration `597.528s`
-      - `iterator_v1`: `2/8` success, average duration `1.902s`
-      - unsupported-plan/model entanglement is cleared from the main diagnosis
-      - dominant remaining failure mode is shared quota cooldown on `MiniMax-M2.7-highspeed`
-    - current interpretation:
-      - the runner and provider-error classification repairs worked
-      - this is still not a passing runtime gate because most cases did not complete under the current real provider budget
-      - the active blocker is provider-budget pressure and runtime viability, not benchmark semantics or the removed expired-model config
-  - durable-trace / re-entry target family is now paused for token-cost reasons:
-    - the completed durable-trace / re-entry rerun with `--case-workers 3` is low-signal provider-pressure evidence, not usable semantic comparison evidence:
-      - job:
-        - `bgjob_durable_trace_reentry_gate_parallel3_20260401`
-      - run id:
-        - `attentional_v2_durable_trace_reentry_gate_parallel3_20260401`
-      - summary:
-        - `evaluated_case_count = 0`
-        - `failed_case_count = 8`
-        - all cases ended as `partial_failure`
-    - repeated one-off direct API probes against `MiniMax-M2.7-highspeed` remained provider raw `429 rate_limit_error: usage limit exceeded (2056)` on the old target
-    - local operator config is now capped so the same API target can fan out to at most `2` concurrent calls across target/profile policy
-    - the last personal-target serial rerun was intentionally stopped after launch because this target family is no longer worth its token spend:
-      - job:
-        - `bgjob_durable_trace_reentry_gate_personal_serial_20260401`
-      - terminal status:
-        - `abandoned`
-      - reason:
-        - durable-trace / re-entry evaluation is paused by policy, not blocked by provider availability
-    - do not relaunch durable-trace / re-entry runs from the current checkout unless the token-cost decision changes
-  - keep the current chapter-scale and callbackslice evidence as the accepted comparison baseline for this lane
-  - keep comparison work outside the mechanism mainline paused under the current cost posture:
-    - do not launch new broader cross-mechanism comparison packs or other comparison widening outside the decisive mechanism lane
-    - reuse the existing broader comparison checkpoints as reference only until runtime viability improves or the cost posture changes
-  - keep runtime-viability as the remaining live gate target if further mechanism-eval spending is needed at all
-- Keep the completed backup-tier substantive rerun as the current focused mechanism-evidence checkpoint:
-  - preserve `walden_205_en__10` as a protected chapter-spanning strength
-  - preserve `up_from_slavery_public_en__10` as the bounded chapter-arc weakness that still needs to be visible in later comparison interpretation
-- Keep dataset-platform work in support mode only:
-  - do not open another general builder repair wave
-  - do not widen unattended automation
-  - reopen only if runtime-viability or later comparison work exposes a specific blocker
-- Keep benchmark expansion as a later requirement before any default-cutover decision:
-  - the current family is not yet large enough for final default-cutover confidence
-  - do not use that later expansion need to postpone the current decisive lane
+- Finish the clustered benchmark v1 first-review wave:
+  - live jobs:
+    - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
+    - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
+  - acceptance gate:
+    - only `keep` cases without `wrong_bucket`, `ambiguous_focus`, `weak_excerpt`, or `too_easy` should advance toward the freeze
+  - freeze rule:
+    - aim for `10` primaries plus `2` reserves per chapter
+    - top up from reserve rows only when a chapter still falls short after primary review
+    - if a chapter saturates short, freeze the shortfall honestly rather than widening to new books in v1
+- After the first-review summaries land:
+  - update the clustered benchmark manifest/doc pair with reviewed freeze counts
+  - refresh `docs/current-state.md`, `docs/tasks/registry.*`, and the execution tracker with accepted counts and next eval launch conditions
+  - only then relaunch the next decisive chapter/excerpt comparison on the clustered active benchmark
+- Keep runtime viability and durable-trace / re-entry paused:
+  - reuse the already collected evidence if those questions come back later
+  - do not spend current Phase 9 budget there unless one of the three kept north-star dimensions truly requires it
+- Keep dataset-platform work bounded:
+  - no new general builder wave
+  - no widening of unattended automation
+  - only targeted benchmark-prep work that directly serves the clustered freeze
 - Keep the managed intake layer as the only route for future book additions:
   - drop books into `reading-companion-backend/state/library_inbox/`
   - run `make library-source-intake`
@@ -1382,7 +1341,7 @@ Last verified: `2026-04-03T08:44:30Z`
 - `OD-CALLBACKSLICE-BOUNDED-VARIANCE = accept_bounded_variance_for_frozen_slice`
 - `OD-BENCHMARK-SIZE = adequate_for_next_decisive_lane_only + expand_before_default_cutover_only`
 - `chosen_path = Path A`
-- `next_task = TASK-RUNTIME-VIABILITY-GATES`
+- `next_task = TASK-PHASE9-CLUSTERED-BENCHMARK`
 
 ## Open Decisions
 - `Q10`
@@ -1393,7 +1352,8 @@ Last verified: `2026-04-03T08:44:30Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
-- The currently running decisive-eval jobs still route through one MiniMax personal target because they were launched before the new process-sharded launch rule landed.
+- The current clustered first-review jobs intentionally route through one MiniMax personal target because they are support-lane packet review, not heavy judged cross-mechanism comparison.
+- The clustered freeze can still saturate unevenly because the scratch candidate pressure balance is not uniform across the four selected chapters.
 - Future decisive-eval jobs must use explicit process-level target sharding:
   - heavy judged comparison jobs on `MiniMax-M2.7-highspeed`
   - lighter support or no-judge jobs on `MiniMax-M2.7-personal`
@@ -1417,10 +1377,11 @@ Last verified: `2026-04-03T08:44:30Z`
 - Benchmark confidence can look stronger than it really is if corpus growth, promotion, and reviewed-slice confidence gates drift apart.
 
 ## Active Task IDs
-- `TASK-RUNTIME-VIABILITY-GATES`
+- `TASK-PHASE9-CLUSTERED-BENCHMARK`
 
 ## Active Job IDs
-- none
+- `bgjob_clustered_benchmark_v1_first_review_en_20260403`
+- `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -1428,33 +1389,34 @@ Last verified: `2026-04-03T08:44:30Z`
 3. `docs/current-state.md`
 4. relevant child `AGENTS.md`
 5. `docs/tasks/registry.md`
-6. `docs/implementation/new-reading-mechanism/execution-tracker.md`
-7. `docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md`
-8. `docs/implementation/new-reading-mechanism/private-library-promotion-round2.md`
-9. `docs/backend-reader-evaluation.md`
-10. `docs/implementation/new-reading-mechanism/evaluation-question-map.md`
-11. `docs/backend-sequential-lifecycle.md`
-12. `docs/runtime-modes.md`
-13. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round3_caseiso_judged_substantive_backup_20260331/summary/aggregate.json`
-14. `reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_personal_serial_20260401.json`
-15. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_serialfix_20260401.json`
-16. `reading-companion-backend/state/job_registry/jobs/bgjob_runtime_viability_gate_20260401.json`
-17. `reading-companion-backend/state/job_registry/jobs/bgjob_durable_trace_reentry_gate_20260401.json`
+6. `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
+7. `docs/implementation/new-reading-mechanism/execution-tracker.md`
+8. `docs/backend-reader-evaluation.md`
+9. `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
+10. `reading-companion-backend/state/dataset_build/build_runs/clustered_benchmark_v1_smoke2_20260403/build_summary.json`
+11. `reading-companion-backend/state/job_registry/jobs/bgjob_clustered_benchmark_v1_first_review_en_20260403.json`
+12. `reading-companion-backend/state/job_registry/jobs/bgjob_clustered_benchmark_v1_first_review_zh_20260403.json`
+13. `docs/implementation/new-reading-mechanism/formal-benchmark-v1-freeze-draft.md`
+14. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-01T12:52:40Z",
+  "updated_at": "2026-04-03T13:05:01Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-RUNTIME-VIABILITY-GATES"
+    "TASK-PHASE9-CLUSTERED-BENCHMARK"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [],
+  "active_job_ids": [
+    "bgjob_clustered_benchmark_v1_first_review_en_20260403",
+    "bgjob_clustered_benchmark_v1_first_review_zh_20260403"
+  ],
   "open_decision_ids": [
     "Q10"
   ],
   "detail_refs": [
+    "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
     "docs/implementation/new-reading-mechanism/execution-tracker.md",
     "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
     "docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md",
