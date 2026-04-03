@@ -35,14 +35,16 @@ Update when: status changes, blockers appear, or phases complete.
     - `LLM_FORCE_TARGET_ID` is the authoritative per-process selector
     - because that override is process-wide, one job cannot split mechanism calls and judge calls across different targets inside the same Python process
     - already running jobs do not pick up later config or env changes; retargeting requires a fresh launch
-    - heavy judged cross-mechanism comparison jobs should force `MiniMax-M2.7-highspeed`
-    - lighter support lanes such as no-judge smoke, dataset review, and packet adjudication should force `MiniMax-M2.7-personal`
     - local operator config is now aligned with that plan:
       - `config/llm_targets.local.json` raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
       - `config/llm_profile_bindings.local.json` keeps `MiniMax-M2.7-personal` as the default primary tier and adds `MiniMax-M2.7-highspeed` as an allowed backup tier for `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust`
     - this membership fix matters:
       - the first highspeed chapter target-split retry failed immediately with `LLMRegistryError: Profile runtime_reader_default does not define target MiniMax-M2.7-highspeed.`
       - after the backup-tier fix, explicit highspeed forcing now works through the project gateway
+    - current operator policy after the later clarification is:
+      - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
+      - future review/eval launches may therefore distribute work across both targets for throughput
+      - only force one concrete target when one run intentionally needs a single uniform reviewer surface
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
@@ -98,7 +100,8 @@ Update when: status changes, blockers appear, or phases complete.
           - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
         - packet id:
           - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403`
-      - both jobs force `MiniMax-M2.7-personal` with `--audit-max-workers 1 --review-max-workers 1`
+      - these already launched jobs both force `MiniMax-M2.7-personal` with `--audit-max-workers 1 --review-max-workers 1`
+      - later reserve top-up or follow-up review jobs may distribute across both `M2.7` targets instead of pinning both lanes to personal
     - the older formal decisive chapter/excerpt jobs were deliberately abandoned after the benchmark-pointer swap:
       - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
       - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`

@@ -211,7 +211,9 @@ Closeout interpretation:
   - `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
 - do not launch a new general builder wave, promotion reopening, durable-trace work, or runtime-viability work from this closeout alone
 - do not relaunch the abandoned formal decisive chapter/excerpt jobs by default now that the active benchmark pointer has moved
-- future Phase 9 launch commands should shard targets by process:
-  - heavy judged comparison jobs should launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed`
-  - lighter support or no-judge jobs should launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
-  - because the override is process-wide, a single background job cannot split mechanism and judge calls across the two targets without a deeper runner change
+- historical note:
+  - this archived freeze draft still records the older per-process sharding phase
+  - current operator policy has since moved on:
+    - `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` are now treated as equivalent `M2.7` targets whose main difference is speed
+    - future launches may use both together when throughput helps
+    - keep forcing one concrete target only when one run intentionally needs one uniform reviewer surface

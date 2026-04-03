@@ -83,8 +83,9 @@ Last verified: `2026-04-03T13:05:01Z`
       - packet id:
         - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403`
     - operator posture:
-      - both jobs force `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
+      - these already launched jobs both force `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
       - both jobs run with `--audit-max-workers 1 --review-max-workers 1`
+      - later launches may distribute across `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` because the current operator assumption is that they are equivalent `M2.7` judgment targets with different speed only
 - The older formal benchmark-v1 freeze remains historical evidence only:
   - historical manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
@@ -113,8 +114,7 @@ Last verified: `2026-04-03T13:05:01Z`
     - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
     - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
   - operator lessons retained from that older lane:
-    - heavy judged cross-mechanism comparison jobs should force `MiniMax-M2.7-highspeed`
-    - lighter support lanes such as dataset review, packet adjudication, and no-judge smoke should force `MiniMax-M2.7-personal`
+    - explicit `LLM_FORCE_TARGET_ID` is still the process-level selector when we want deterministic routing
     - because `LLM_FORCE_TARGET_ID` is process-wide and cached in-process, retargeting requires a fresh launch rather than editing config mid-run
   - the earlier highspeed membership bug is fixed locally:
     - `reading-companion-backend/config/llm_targets.local.json` now raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
@@ -122,6 +122,10 @@ Last verified: `2026-04-03T13:05:01Z`
       - `runtime_reader_default`
       - `dataset_review_high_trust`
       - `eval_judge_high_trust`
+    - current operator policy after the later clarification is:
+      - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
+      - future review/eval launches may therefore use both together for throughput
+      - only keep a single forced target when we deliberately want one fully uniform reviewer surface
 - The current Phase 9 live jobs are now the clustered benchmark first-review wave:
   - English:
     - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
@@ -1352,11 +1356,10 @@ Last verified: `2026-04-03T13:05:01Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
-- The current clustered first-review jobs intentionally route through one MiniMax personal target because they are support-lane packet review, not heavy judged cross-mechanism comparison.
+- The current clustered first-review jobs intentionally still route through one MiniMax personal target only because they were already launched that way before the later operator clarification.
 - The clustered freeze can still saturate unevenly because the scratch candidate pressure balance is not uniform across the four selected chapters.
-- Future decisive-eval jobs must use explicit process-level target sharding:
-  - heavy judged comparison jobs on `MiniMax-M2.7-highspeed`
-  - lighter support or no-judge jobs on `MiniMax-M2.7-personal`
+- Future launches may use both `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` together when more throughput helps, because the current operator assumption is that they are equivalent `M2.7` targets with different speed only.
+- When one future run needs a deliberately uniform reviewer surface, keep forcing one concrete target for that run.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
