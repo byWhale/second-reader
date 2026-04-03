@@ -180,6 +180,52 @@
         "meiguoren_de_xingge_private_zh__19__seed_2"
       ]
     },
+    "excerpt_core_clarification_subset_frozen_draft": {
+      "by_pressure": {
+        "distinction_definition": [
+          "women_and_economics_public_en__6__distinction_definition__v2",
+          "women_and_economics_public_en__9__distinction_definition__v2",
+          "varieties_of_religious_experience_public_en__6__distinction_definition__v2",
+          "gushi_xinbian_public_zh__4__distinction_definition__v2",
+          "ouyou_zaji_public_zh__4__distinction_definition__v2",
+          "zouchu_weiyi_zhenliguan_private_zh__14__seed_1"
+        ],
+        "tension_reversal": [
+          "darkwater_public_en__9__tension_reversal__v2",
+          "darkwater_public_en__12__tension_reversal__v2",
+          "rulin_waishi_24032_zh__6__tension_reversal__v2",
+          "rulin_waishi_24032_zh__14__tension_reversal__v2",
+          "ershinian_mudu_public_zh__17__tension_reversal__v2",
+          "education_of_henry_adams_public_en__8__tension_reversal__seed_v1"
+        ],
+        "callback_bridge_or_modest_cross_span_link": [
+          "on_liberty_public_en__10__callback_bridge__v2",
+          "jinghua_yuan_25377_zh__34__callback_bridge__v2"
+        ],
+        "clarification_wildcard_or_undercovered_pressure": [
+          "evicted_private_en__29__seed_1",
+          "meiguoren_de_xingge_private_zh__19__seed_2"
+        ]
+      },
+      "all": [
+        "women_and_economics_public_en__6__distinction_definition__v2",
+        "women_and_economics_public_en__9__distinction_definition__v2",
+        "varieties_of_religious_experience_public_en__6__distinction_definition__v2",
+        "gushi_xinbian_public_zh__4__distinction_definition__v2",
+        "ouyou_zaji_public_zh__4__distinction_definition__v2",
+        "zouchu_weiyi_zhenliguan_private_zh__14__seed_1",
+        "darkwater_public_en__9__tension_reversal__v2",
+        "darkwater_public_en__12__tension_reversal__v2",
+        "rulin_waishi_24032_zh__6__tension_reversal__v2",
+        "rulin_waishi_24032_zh__14__tension_reversal__v2",
+        "ershinian_mudu_public_zh__17__tension_reversal__v2",
+        "education_of_henry_adams_public_en__8__tension_reversal__seed_v1",
+        "on_liberty_public_en__10__callback_bridge__v2",
+        "jinghua_yuan_25377_zh__34__callback_bridge__v2",
+        "evicted_private_en__29__seed_1",
+        "meiguoren_de_xingge_private_zh__19__seed_2"
+      ]
+    },
     "excerpt_overflow_or_holdout_reviewed": {
       "callback_overflow_reserve": [
         "jinghua_yuan_25377_zh__15__callback_bridge__v2"

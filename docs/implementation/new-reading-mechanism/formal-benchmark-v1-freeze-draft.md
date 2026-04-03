@@ -93,6 +93,25 @@ The excerpt lane is now frozen in draft form at `24 / 24`.
 - `evicted_private_en__29__seed_1`
 - `meiguoren_de_xingge_private_zh__19__seed_2`
 
+## Clarification Subset Frozen Draft
+The `reader_value.insight_and_clarification` lane uses an explicit `16`-case subset of `excerpt_core`.
+
+### Composition
+- `distinction_definition = 6`
+- `tension_reversal = 6`
+- `callback_bridge_or_modest_cross_span_link = 2`
+- `clarification_wildcard_or_undercovered_pressure = 2`
+- language balance stays `8 EN + 8 ZH`
+
+### Clarification callback choices
+- `on_liberty_public_en__10__callback_bridge__v2`
+- `jinghua_yuan_25377_zh__34__callback_bridge__v2`
+
+Interpretation:
+- the full `excerpt_core` still serves `reader_character.selective_legibility`
+- the clarification subset narrows to cases where we expect stronger evidence about definitions, distinctions, tensions, or clarifying bridge work
+- `walden_205_en__6__callback_bridge__v2` and `nahan_27166_zh__2__callback_bridge__v2` remain in `excerpt_core` as general bridge/selectivity pressures, but they are not part of the formal clarification subset
+
 ## Overflow, Holdouts, And Explicit Non-Selections
 ### Callback overflow reserve
 - `jinghua_yuan_25377_zh__15__callback_bridge__v2`
@@ -184,3 +203,7 @@ Closeout interpretation:
 - treat this `40 / 40` draft as the active formal benchmark until a later deliberate swap is documented
 - do not launch a new general builder wave, promotion reopening, durable-trace work, or runtime-viability work from this closeout alone
 - next evaluation spend should use this frozen benchmark for the cheapest decisive mechanism-eval lane rather than returning to open-ended dataset construction
+- future Phase 9 launch commands should shard targets by process:
+  - heavy judged comparison jobs should launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed`
+  - lighter support or no-judge jobs should launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
+  - because the override is process-wide, a single background job cannot split mechanism and judge calls across the two targets without a deeper runner change

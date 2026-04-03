@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-03T06:33:38Z`
+Last verified: `2026-04-03T08:13:56Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
@@ -85,8 +85,28 @@ Last verified: `2026-04-03T06:33:38Z`
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
 - The formal benchmark gap-fill closeout is finished:
-  - no active background jobs are currently registered
   - `reading-companion-backend/eval/review_packets/review_queue_summary.json` is back to `active_packet_count = 0`
+  - the next decisive `chapter_core` formal comparison lane is now actively running:
+    - job id:
+      - `bgjob_formal_benchmark_v1_chapter_core_decisive_20260403`
+    - run id:
+      - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_chapter_core_decisive_20260403`
+    - current intent:
+      - use the explicit frozen `16` chapter cases rather than the runner's default `8`-case auto-core
+      - treat `system_regression` as the primary `coherent_accumulation` surface and `local_impact` as secondary support
+  - the excerpt lane is now in active smoke state rather than only implementation state:
+    - job id:
+      - `bgjob_formal_benchmark_v1_excerpt_smoke_20260403`
+    - run id:
+      - `attentional_v2_vs_iterator_v1_formal_benchmark_v1_excerpt_smoke_20260403`
+    - current intent:
+      - validate the new formal excerpt runner with `judge_mode = none`
+      - keep the next judged excerpt run blocked until the chapter decisive lane finishes and the smoke writes stable per-case plus summary outputs
+  - the currently running Phase 9 jobs were both launched before the new target-sharding rule and therefore still route through `MiniMax-M2.7-personal`
+  - future Phase 9 launch discipline is now:
+    - heavy cross-mechanism comparison jobs such as formal `run_chapter_comparison` and judged `run_excerpt_comparison` must launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed`
+    - lighter support lanes such as no-judge excerpt smoke, dataset review, and packet adjudication must launch with `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
+    - because `LLM_FORCE_TARGET_ID` is process-wide and the registry is cached in-process, changing config files or env vars after launch does not retarget an already running background job
 - The English chapter-core retry-2 closeout remains the last broader multi-case comparison baseline, and the completed backup-tier substantive rerun is now the latest focused two-case mechanism-evidence checkpoint:
   - run:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/`
@@ -1350,7 +1370,10 @@ Last verified: `2026-04-03T06:33:38Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
-- The local operator config currently routes all decisive eval traffic through one MiniMax personal target, so any further runtime-viability spend should remain serialized unless the provider budget/config changes.
+- The currently running decisive-eval jobs still route through one MiniMax personal target because they were launched before the new process-sharded launch rule landed.
+- Future decisive-eval jobs must use explicit process-level target sharding:
+  - heavy judged comparison jobs on `MiniMax-M2.7-highspeed`
+  - lighter support or no-judge jobs on `MiniMax-M2.7-personal`
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.

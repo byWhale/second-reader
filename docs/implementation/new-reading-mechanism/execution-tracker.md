@@ -31,6 +31,12 @@ Update when: status changes, blockers appear, or phases complete.
   - current builder/controller work stays available as a bounded support lane, not as the active mainline
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
   - durable-trace / re-entry and runtime viability are now both paused on cost grounds rather than treated as the next automatic lane
+  - future Phase 9 eval launches now use process-level target sharding instead of one shared operator target:
+    - `LLM_FORCE_TARGET_ID` is the authoritative per-process selector
+    - because that override is process-wide, one job cannot split mechanism calls and judge calls across different targets inside the same Python process
+    - already running jobs do not pick up later config or env changes; retargeting requires a fresh launch
+    - heavy judged cross-mechanism comparison jobs should force `MiniMax-M2.7-highspeed`
+    - lighter support lanes such as no-judge smoke, dataset review, and packet adjudication should force `MiniMax-M2.7-personal`
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
@@ -85,6 +91,19 @@ Update when: status changes, blockers appear, or phases complete.
         - treat the formal benchmark-v1 dataset gap-fill as complete
         - do not reopen a general builder wave or promotion review from this closeout alone
         - spend next on the cheapest decisive mechanism-eval lane over the frozen benchmark
+      - future launch templates for that spend are now:
+        - heavy judged comparison lane:
+          ```bash
+          cd /Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend && \
+          LLM_FORCE_TARGET_ID=MiniMax-M2.7-highspeed \
+          .venv/bin/python scripts/run_registered_job.py ...
+          ```
+        - lighter support or no-judge lane:
+          ```bash
+          cd /Users/baiweijiang/Documents/Projects/reading-companion/reading-companion-backend && \
+          LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal \
+          .venv/bin/python scripts/run_registered_job.py ...
+          ```
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets
 - Current blockers:
   - the post-recovery gate review no longer blocks the next decisive lane:
