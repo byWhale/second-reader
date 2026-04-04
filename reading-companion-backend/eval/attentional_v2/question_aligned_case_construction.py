@@ -33,7 +33,9 @@ TARGET_PROFILE_ORDER = (
 )
 DEFAULT_SELECTION_MODE = "default"
 CLUSTERED_SELECTION_MODE = "clustered"
-SELECTION_MODE_VALUES = (DEFAULT_SELECTION_MODE, CLUSTERED_SELECTION_MODE)
+NOTES_GUIDED_SELECTION_MODE = "notes_guided"
+GROUPED_SELECTION_MODES = (CLUSTERED_SELECTION_MODE, NOTES_GUIDED_SELECTION_MODE)
+SELECTION_MODE_VALUES = (DEFAULT_SELECTION_MODE, *GROUPED_SELECTION_MODES)
 CLUSTERED_TARGET_PROFILE_ORDER = (
     "distinction_definition",
     "tension_reversal",
@@ -360,7 +362,7 @@ def build_question_aligned_excerpt_scope(
             MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE,
             int(cases_per_chapter) + int(reserves_per_chapter),
         )
-        if selection_mode == CLUSTERED_SELECTION_MODE
+        if selection_mode in GROUPED_SELECTION_MODES
         else MAX_WINDOW_REFINEMENT_CANDIDATES_PER_PROFILE
     )
     feedback_summary = summarize_existing_case_feedback(existing_rows_by_language)
@@ -385,6 +387,7 @@ def build_question_aligned_excerpt_scope(
                 feedback=feedback_summary.get(language, {}),
                 target_profile_ids=resolved_target_profile_ids,
                 max_window_refinement_candidates_per_profile=max_window_refinement_candidates_per_profile,
+                selection_mode=selection_mode,
             )
             opportunities_by_language[language].extend(chapter_opportunities)
             all_opportunities.extend(chapter_opportunities)
@@ -565,6 +568,7 @@ def _build_opportunity_cards_for_chapter(
     feedback: dict[str, Any],
     target_profile_ids: tuple[str, ...],
     max_window_refinement_candidates_per_profile: int,
+    selection_mode: str,
 ) -> list[dict[str, Any]]:
     sentences = list(chapter.get("sentences") or [])
     if len(sentences) < 3:
@@ -575,6 +579,7 @@ def _build_opportunity_cards_for_chapter(
     prior_text = ""
     prior_tokens: set[str] = set()
     sentence_scores_by_profile: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    selection_metadata = _selection_metadata_for_row(row=row, selection_mode=selection_mode)
 
     for index, sentence in enumerate(sentences):
         sentence_text = _normalize_sentence_text(sentence.get("text") or "")
@@ -582,6 +587,11 @@ def _build_opportunity_cards_for_chapter(
             prior_text += " " + sentence_text
             prior_tokens |= _tokenize(sentence_text, language)
             continue
+        note_signal = _selection_note_signal_for_sentence(
+            sentence=sentence,
+            sentence_index=index,
+            selection_metadata=selection_metadata,
+        )
         position_bucket = _position_bucket(index=index, total=total_sentences)
         for profile_id in target_profile_ids:
             score_payload = _score_sentence_for_profile(
@@ -594,6 +604,7 @@ def _build_opportunity_cards_for_chapter(
                 prior_text=prior_text,
                 prior_tokens=prior_tokens,
                 feedback=feedback,
+                note_signal=note_signal,
             )
             if score_payload["score"] <= 0:
                 continue
@@ -747,9 +758,249 @@ def _build_opportunity_cards_for_chapter(
                     "selection_priority": source_priority,
                     "type_tags": list(source.get("type_tags") or []),
                     "role_tags": list(source.get("role_tags") or []),
+                    "selection_group_id": selection_metadata["selection_group_id"],
+                    "selection_group_kind": selection_metadata["selection_group_kind"],
+                    "selection_group_label": selection_metadata["selection_group_label"],
+                    "selection_note_ids": _selection_note_ids_for_window(
+                        sentence_ids=[item["sentence_id"] for item in window],
+                        selection_metadata=selection_metadata,
+                    ),
+                    "selection_notes": _selection_note_texts_for_window(
+                        sentence_ids=[item["sentence_id"] for item in window],
+                        selection_metadata=selection_metadata,
+                    ),
+                    "selection_note_provenance": _selection_note_provenance_for_window(
+                        sentence_ids=[item["sentence_id"] for item in window],
+                        selection_metadata=selection_metadata,
+                    ),
                 }
             )
     return opportunities
+
+
+def _normalized_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_items = list(value)
+    else:
+        raw_items = [value]
+    normalized: list[str] = []
+    for item in raw_items:
+        text = _normalize_sentence_text(item)
+        if text:
+            normalized.append(text)
+    return list(dict.fromkeys(normalized))
+
+
+def _normalized_note_provenance_entries(value: Any) -> list[dict[str, Any]]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple)):
+        raw_entries = list(value)
+    else:
+        raw_entries = [value]
+    normalized: list[dict[str, Any]] = []
+    for entry in raw_entries:
+        if isinstance(entry, dict):
+            payload: dict[str, Any] = {}
+            for key, raw_value in entry.items():
+                if isinstance(raw_value, (str, int, float, bool)):
+                    text = _normalize_sentence_text(raw_value)
+                    if text:
+                        payload[str(key)] = text
+                    continue
+                if isinstance(raw_value, (list, tuple, set)):
+                    values = _normalized_string_list(raw_value)
+                    if values:
+                        payload[str(key)] = values
+            if payload:
+                normalized.append(payload)
+            continue
+        text = _normalize_sentence_text(entry)
+        if text:
+            normalized.append({"text": text})
+    return normalized
+
+
+def _selection_metadata_for_row(
+    *,
+    row: dict[str, Any],
+    selection_mode: str,
+) -> dict[str, Any]:
+    raw_group = row.get("selection_group")
+    group_payload = raw_group if isinstance(raw_group, dict) else {}
+    chapter_case_id = str(row.get("chapter_case_id", "")).strip()
+    explicit_group_id = (
+        row.get("selection_group_id")
+        or row.get("selection_cluster_id")
+        or row.get("cluster_id")
+        or group_payload.get("id")
+        or group_payload.get("selection_group_id")
+        or group_payload.get("cluster_id")
+    )
+    selection_group_id = _normalize_sentence_text(explicit_group_id) or chapter_case_id
+    explicit_group_kind = (
+        row.get("selection_group_kind")
+        or group_payload.get("kind")
+        or group_payload.get("selection_group_kind")
+    )
+    explicit_group_label = (
+        row.get("selection_group_label")
+        or row.get("selection_cluster_label")
+        or group_payload.get("label")
+        or group_payload.get("selection_group_label")
+    )
+    note_ids = _normalized_string_list(
+        row.get("selection_note_ids") or group_payload.get("note_ids") or group_payload.get("selection_note_ids")
+    )
+    note_provenance = _normalized_note_provenance_entries(
+        row.get("selection_note_provenance")
+        or group_payload.get("note_provenance")
+        or group_payload.get("selection_note_provenance")
+        or group_payload.get("provenance")
+    )
+    note_texts = _normalized_string_list(
+        row.get("selection_notes")
+        or row.get("selection_note_texts")
+        or group_payload.get("notes")
+        or group_payload.get("selection_notes")
+        or group_payload.get("note_texts")
+    )
+    for entry in note_provenance:
+        note_id = _normalize_sentence_text(entry.get("note_id"))
+        if note_id and note_id not in note_ids:
+            note_ids.append(note_id)
+        note_text = _normalize_sentence_text(entry.get("text"))
+        if note_text and note_text not in note_texts:
+            note_texts.append(note_text)
+    if explicit_group_kind:
+        selection_group_kind = _normalize_sentence_text(explicit_group_kind)
+    elif selection_group_id != chapter_case_id:
+        selection_group_kind = "selection_group"
+    elif selection_mode == NOTES_GUIDED_SELECTION_MODE:
+        selection_group_kind = "notes_guided_chapter"
+    else:
+        selection_group_kind = "chapter"
+    selection_group_label = _normalize_sentence_text(explicit_group_label) or selection_group_id
+    return {
+        "selection_group_id": selection_group_id,
+        "selection_group_kind": selection_group_kind,
+        "selection_group_label": selection_group_label,
+        "selection_note_ids": note_ids,
+        "selection_notes": note_texts,
+        "selection_note_provenance": note_provenance,
+    }
+
+
+def _selection_note_signal_for_sentence(
+    *,
+    sentence: dict[str, Any],
+    sentence_index: int,
+    selection_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    sentence_id = _normalize_sentence_text(sentence.get("sentence_id"))
+    sentence_text = _normalize_sentence_text(sentence.get("text") or "")
+    if not sentence_text:
+        return {"boost": 0.0, "evidence": [], "matched_note_ids": []}
+    matched_note_ids: list[str] = []
+    evidence: list[str] = []
+    boost = 0.0
+    note_texts = _normalized_string_list(selection_metadata.get("selection_notes"))
+    for note_text in note_texts:
+        normalized_note = _normalize_sentence_text(note_text)
+        if not normalized_note:
+            continue
+        if normalized_note in sentence_text or sentence_text in normalized_note:
+            boost = max(boost, 1.2)
+            evidence.append("selection_note_text_match")
+    for entry in selection_metadata.get("selection_note_provenance") or []:
+        note_id = _normalize_sentence_text(entry.get("note_id"))
+        matched_sentence_ids = _normalized_string_list(entry.get("matched_sentence_ids"))
+        if sentence_id and matched_sentence_ids and sentence_id in matched_sentence_ids:
+            boost = max(boost, 2.4)
+            if note_id and note_id not in matched_note_ids:
+                matched_note_ids.append(note_id)
+            evidence.append("selection_note_sentence_anchor")
+            continue
+        quote_text = _normalize_sentence_text(entry.get("quote") or entry.get("text"))
+        if quote_text and (quote_text in sentence_text or sentence_text in quote_text):
+            boost = max(boost, 1.8)
+            if note_id and note_id not in matched_note_ids:
+                matched_note_ids.append(note_id)
+            evidence.append("selection_note_quote_match")
+            continue
+        span = entry.get("matched_sentence_span")
+        if isinstance(span, dict):
+            start_index = int(span.get("start_index", -1) or -1)
+            end_index = int(span.get("end_index", -1) or -1)
+            if start_index >= 0 and end_index >= 0 and start_index <= sentence_index <= end_index:
+                boost = max(boost, 2.0)
+                if note_id and note_id not in matched_note_ids:
+                    matched_note_ids.append(note_id)
+                evidence.append("selection_note_span_anchor")
+    return {
+        "boost": boost,
+        "evidence": list(dict.fromkeys(evidence)),
+        "matched_note_ids": matched_note_ids,
+    }
+
+
+def _selection_note_provenance_for_window(
+    *,
+    sentence_ids: list[str],
+    selection_metadata: dict[str, Any],
+) -> list[dict[str, Any]]:
+    normalized_sentence_ids = {_normalize_sentence_text(sentence_id) for sentence_id in sentence_ids if _normalize_sentence_text(sentence_id)}
+    if not normalized_sentence_ids:
+        return deepcopy(selection_metadata.get("selection_note_provenance") or [])
+    matched: list[dict[str, Any]] = []
+    for entry in selection_metadata.get("selection_note_provenance") or []:
+        matched_sentence_ids = set(_normalized_string_list(entry.get("matched_sentence_ids")))
+        quote_text = _normalize_sentence_text(entry.get("quote") or entry.get("text"))
+        if matched_sentence_ids and matched_sentence_ids.intersection(normalized_sentence_ids):
+            matched.append(entry)
+            continue
+        if quote_text:
+            matched.append(entry)
+    if matched:
+        return deepcopy(matched)
+    return deepcopy(selection_metadata.get("selection_note_provenance") or [])
+
+
+def _selection_note_ids_for_window(
+    *,
+    sentence_ids: list[str],
+    selection_metadata: dict[str, Any],
+) -> list[str]:
+    provenance = _selection_note_provenance_for_window(
+        sentence_ids=sentence_ids,
+        selection_metadata=selection_metadata,
+    )
+    note_ids = list(selection_metadata.get("selection_note_ids") or [])
+    for entry in provenance:
+        note_id = _normalize_sentence_text(entry.get("note_id"))
+        if note_id and note_id not in note_ids:
+            note_ids.append(note_id)
+    return note_ids
+
+
+def _selection_note_texts_for_window(
+    *,
+    sentence_ids: list[str],
+    selection_metadata: dict[str, Any],
+) -> list[str]:
+    provenance = _selection_note_provenance_for_window(
+        sentence_ids=sentence_ids,
+        selection_metadata=selection_metadata,
+    )
+    note_texts = list(selection_metadata.get("selection_notes") or [])
+    for entry in provenance:
+        for raw_value in (entry.get("quote"), entry.get("text"), entry.get("note")):
+            text = _normalize_sentence_text(raw_value)
+            if text and text not in note_texts:
+                note_texts.append(text)
+    return note_texts
 
 
 def _score_sentence_for_profile(
@@ -763,6 +1014,7 @@ def _score_sentence_for_profile(
     prior_text: str,
     prior_tokens: set[str],
     feedback: dict[str, Any],
+    note_signal: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     profile = EXCERPT_TARGET_PROFILES[profile_id]
     lowered = sentence_text.lower()
@@ -774,6 +1026,11 @@ def _score_sentence_for_profile(
     if cue_hits:
         evidence.append(f"cue_hits:{cue_hits}")
         score += cue_hits * 1.3
+    if note_signal:
+        note_boost = float(note_signal.get("boost", 0.0) or 0.0)
+        if note_boost > 0:
+            score += note_boost
+            evidence.extend(str(item) for item in note_signal.get("evidence") or [])
 
     if selection_role in profile["preferred_roles"] or bool(set(role_tags).intersection(set(profile["preferred_roles"]))):
         evidence.append("preferred_role")
@@ -871,12 +1128,13 @@ def _select_cases_and_reserves(
         for item in opportunities
         if str((item.get("target_profile_ids") or [""])[0]) in resolved_target_profile_ids
     ]
-    if selection_mode == CLUSTERED_SELECTION_MODE:
+    if selection_mode in GROUPED_SELECTION_MODES:
         return _select_cases_and_reserves_clustered(
             filtered_opportunities,
             cases_per_chapter=cases_per_chapter,
             reserves_per_chapter=reserves_per_chapter,
             same_profile_anchor_distance=same_profile_anchor_distance,
+            selection_mode=selection_mode,
         )
 
     selected_ids: set[str] = set()
@@ -974,10 +1232,11 @@ def _select_cases_and_reserves_clustered(
     cases_per_chapter: int,
     reserves_per_chapter: int,
     same_profile_anchor_distance: int,
+    selection_mode: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for item in opportunities:
-        grouped[str(item["chapter_case_id"])].append(item)
+        grouped[_selection_group_id_for_opportunity(item)].append(item)
 
     cases: list[dict[str, Any]] = []
     reserves: list[dict[str, Any]] = []
@@ -1004,7 +1263,7 @@ def _select_cases_and_reserves_clustered(
             cases.append(
                 _assembled_case(
                     item,
-                    selection_mode=CLUSTERED_SELECTION_MODE,
+                    selection_mode=selection_mode,
                     case_rank=family_case_ranks[family_key],
                 )
             )
@@ -1027,7 +1286,7 @@ def _select_cases_and_reserves_clustered(
                 _assembled_reserve_case(
                     item,
                     reserve_rank=len(reserve_opportunities),
-                    selection_mode=CLUSTERED_SELECTION_MODE,
+                    selection_mode=selection_mode,
                     family_reserve_rank=family_reserve_ranks[family_key],
                 )
             )
@@ -1065,6 +1324,13 @@ def _clustered_selection_sort_key(candidate: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _selection_group_id_for_opportunity(opportunity: dict[str, Any]) -> str:
+    explicit_group_id = _normalize_sentence_text(opportunity.get("selection_group_id"))
+    if explicit_group_id:
+        return explicit_group_id
+    return str(opportunity.get("chapter_case_id", ""))
+
+
 def _replacement_family_id(opportunity: dict[str, Any]) -> str:
     profile_id = str((opportunity.get("target_profile_ids") or [""])[0])
     return f"{opportunity['source_id']}::{opportunity['chapter_id']}::{profile_id}"
@@ -1093,7 +1359,16 @@ def _clustered_anchor_id(opportunity: dict[str, Any]) -> str:
     return str(anchor_ids[0]) if anchor_ids else ""
 
 
+def _chapter_scope_signature(opportunity: dict[str, Any]) -> tuple[str, str]:
+    return (
+        str(opportunity.get("source_id") or ""),
+        str(opportunity.get("chapter_id") or ""),
+    )
+
+
 def _clustered_windows_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    if _chapter_scope_signature(left) != _chapter_scope_signature(right):
+        return False
     left_start = int(left.get("excerpt_start_index", 0) or 0)
     left_end = int(left.get("excerpt_end_index", 0) or 0)
     right_start = int(right.get("excerpt_start_index", 0) or 0)
@@ -1114,6 +1389,8 @@ def _clustered_candidate_allowed(
     for prior in existing:
         if _clustered_span_signature(prior) == candidate_span:
             return False
+        if _chapter_scope_signature(prior) != _chapter_scope_signature(candidate):
+            continue
         if candidate_anchor_id and _clustered_anchor_id(prior) == candidate_anchor_id:
             return False
         prior_profile = str((prior.get("target_profile_ids") or [""])[0])
@@ -1140,7 +1417,7 @@ def _assembled_case(
     end_sentence_id = excerpt_sentence_ids[-1] if excerpt_sentence_ids else (
         opportunity["support_sentence_ids"][-1] if opportunity["support_sentence_ids"] else opportunity["anchor_sentence_ids"][0]
     )
-    case_id_suffix = f"seed_{case_rank}" if selection_mode == CLUSTERED_SELECTION_MODE else "seed_v1"
+    case_id_suffix = f"seed_{case_rank}" if selection_mode in GROUPED_SELECTION_MODES else "seed_v1"
     return {
         "case_id": f"{opportunity['source_id']}__{opportunity['chapter_id']}__{profile_id}__{case_id_suffix}",
         "case_title": f"{opportunity['book_title']} / {opportunity['chapter_title']} / {profile_id}",
@@ -1177,6 +1454,13 @@ def _assembled_case(
         "type_tags": list(opportunity.get("type_tags") or []),
         "role_tags": list(opportunity.get("role_tags") or []),
         "candidate_position_bucket": opportunity.get("candidate_position_bucket"),
+        "selection_mode": selection_mode,
+        "selection_group_id": _selection_group_id_for_opportunity(opportunity),
+        "selection_group_kind": _normalize_sentence_text(opportunity.get("selection_group_kind")) or "chapter",
+        "selection_group_label": _normalize_sentence_text(opportunity.get("selection_group_label")),
+        "selection_note_ids": list(opportunity.get("selection_note_ids") or []),
+        "selection_notes": list(opportunity.get("selection_notes") or []),
+        "selection_note_provenance": deepcopy(opportunity.get("selection_note_provenance") or []),
         "benchmark_status": "unset",
         "review_status": "builder_curated",
         "review_history": [],
@@ -1200,7 +1484,7 @@ def _assembled_reserve_case(
     )
     case_id_suffix = (
         f"reserve_{family_reserve_rank}"
-        if selection_mode == CLUSTERED_SELECTION_MODE
+        if selection_mode in GROUPED_SELECTION_MODES
         else "reserve_v1"
     )
     return {
@@ -1237,6 +1521,13 @@ def _assembled_reserve_case(
         "type_tags": list(opportunity.get("type_tags") or []),
         "role_tags": list(opportunity.get("role_tags") or []),
         "candidate_position_bucket": opportunity.get("candidate_position_bucket"),
+        "selection_mode": selection_mode,
+        "selection_group_id": _selection_group_id_for_opportunity(opportunity),
+        "selection_group_kind": _normalize_sentence_text(opportunity.get("selection_group_kind")) or "chapter",
+        "selection_group_label": _normalize_sentence_text(opportunity.get("selection_group_label")),
+        "selection_note_ids": list(opportunity.get("selection_note_ids") or []),
+        "selection_notes": list(opportunity.get("selection_notes") or []),
+        "selection_note_provenance": deepcopy(opportunity.get("selection_note_provenance") or []),
         "notes": "Reserve candidate retained for later replacement or targeted swap-in during benchmark hardening.",
     }
 

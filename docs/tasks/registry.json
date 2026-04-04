@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-04T01:13:40Z",
+  "updated_at": "2026-04-04T03:22:42Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -694,6 +694,51 @@
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
       "last_updated": "2026-04-04T01:13:40Z",
+      "last_updated_by": "codex"
+    },
+    {
+      "id": "TASK-DATASET-HUMAN-NOTES-GUIDED-V1",
+      "title": "Land the isolated human-notes-guided dataset line from the 5 linked books",
+      "status": "active",
+      "lane": "dataset_platform",
+      "priority": "high",
+      "detail_ref": "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+      "truth_refs": [
+        "docs/source-of-truth-map.md",
+        "docs/workspace-overview.md",
+        "docs/backend-reader-evaluation.md"
+      ],
+      "decision_refs": [],
+      "job_refs": [
+        "bgjob_human_notes_guided_dataset_v1_scratch_20260404",
+        "bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404",
+        "bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404",
+        "bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404"
+      ],
+      "acceptance_ref": "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+      "next_action": "Keep the new notes-guided line isolated from the active clustered benchmark, review the scratch outputs in the run-scoped namespace, and decide whether to run a first review wave or freeze an honest shortfall before any merge / replace decision.",
+      "blocked_by": [],
+      "evidence_refs": [
+        "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+        "docs/implementation/new-reading-mechanism/execution-tracker.md",
+        "docs/implementation/new-reading-mechanism/decision-log.md",
+        "reading-companion-backend/eval/attentional_v2/library_notes.py",
+        "reading-companion-backend/eval/attentional_v2/register_library_notes.py",
+        "reading-companion-backend/eval/attentional_v2/human_notes_cluster_planning.py",
+        "reading-companion-backend/eval/attentional_v2/human_notes_guided_dataset.py",
+        "reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py",
+        "reading-companion-backend/tests/test_library_notes.py",
+        "reading-companion-backend/tests/test_human_notes_guided_dataset.py",
+        "reading-companion-backend/tests/test_private_library_supplement.py",
+        "reading-companion-backend/tests/test_question_aligned_case_construction.py",
+        "reading-companion-backend/state/dataset_build/library_notes_catalog.json",
+        "reading-companion-backend/state/dataset_build/library_notes_catalog.md",
+        "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/build_summary.json",
+        "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/cluster_proposals/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json",
+        "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/cluster_resolutions/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json",
+        "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/selection_group_maps/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json"
+      ],
+      "last_updated": "2026-04-04T03:22:42Z",
       "last_updated_by": "codex"
     }
   ]

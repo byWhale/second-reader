@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T01:13:40Z`
+Last verified: `2026-04-04T03:22:42Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review and the completed clustered benchmark freeze:
@@ -19,6 +19,7 @@ Last verified: `2026-04-04T01:13:40Z`
 - Keep the dataset-platform route available as support infrastructure rather than as the current primary workstream:
   - retain the landed question-aligned builder and bounded controller as reusable support lanes
   - do not open new general builder waves or widen unattended automation unless later decisive eval work exposes a specific blocker
+  - keep the new human-notes-guided dataset line isolated from the active benchmark until it is reviewed intentionally
 
 ## Current Strategy
 - The post-recovery gate review is now closed on `Path A`.
@@ -30,6 +31,35 @@ Last verified: `2026-04-04T01:13:40Z`
 - The current callback slice is accepted for frozen-slice comparison cadence.
 - Do not open new general builder or automation waves ahead of the remaining decisive mechanism-eval lane.
 - Benchmark expansion remains a later requirement before any default-cutover decision, not a blocker for the current decisive lane.
+- A new isolated human-notes-guided dataset line is now landed as a support lane rather than as a benchmark-pointer replacement:
+  - managed notes assets now live under:
+    - `reading-companion-backend/state/library_notes/`
+    - `reading-companion-backend/state/dataset_build/library_notes_catalog.json`
+    - `reading-companion-backend/state/dataset_build/library_notes_catalog.md`
+  - operator registration entrypoint:
+    - `reading-companion-backend/eval/attentional_v2/register_library_notes.py`
+  - current managed notes coverage:
+    - `5` note assets linked to the exact requested `5` books
+    - `The Value of Others` reuses the existing managed source instead of duplicating it
+    - the `纳瓦尔宝典` Chinese edition is tracked as its own managed zh source because the note alignment depends on that edition
+  - latest isolated scratch run:
+    - run id:
+      - `human_notes_guided_dataset_v1_20260404`
+    - summary:
+      - `reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/build_summary.json`
+    - cluster resolution:
+      - `8` selected clusters across the `5` notes-linked books
+      - the line remains chapter-scoped in final case ids even when cluster resolution uses adjacent short-chapter windows
+    - current scratch candidate outputs:
+      - English candidate cases: `16`
+      - English reserves: `4`
+      - Chinese candidate cases: `47`
+      - Chinese reserves: `10`
+    - current honest shortfall:
+      - `nawaer_baodian_private_zh__wealth` currently yields `7` primaries and no reserve rows in scratch output, so the notes-guided line is usable but not yet freeze-complete
+  - active benchmark pointer remains unchanged:
+    - do not repoint away from clustered benchmark v1 based on this notes-guided line alone
+    - decide merge / replace / lesson-borrowing only after explicit review of the isolated notes-guided outputs
 - Because current model-call cost is too high, pause new comparison work that sits outside the mechanism mainline for now:
   - keep the existing broader comparison checkpoints as reference baselines only
   - keep active spend focused on decisive mechanism-eval runs and the minimum support diagnostics they still require
@@ -150,6 +180,10 @@ Last verified: `2026-04-04T01:13:40Z`
     - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
     - `bgjob_clustered_benchmark_v1_reserve_review_en_20260404`
     - `bgjob_clustered_benchmark_v1_reserve_review_zh_20260404`
+  - the latest completed notes-guided support jobs are:
+    - `bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404`
+    - `bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404`
+    - `bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404`
 - The English chapter-core retry-2 closeout remains the last broader multi-case comparison baseline, and the completed backup-tier substantive rerun is now the latest focused two-case mechanism-evidence checkpoint:
   - run:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_vs_iterator_v1_chapter_core_en_round2_microselectivity_retry2_20260328/`
@@ -1417,16 +1451,14 @@ Last verified: `2026-04-04T01:13:40Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-03T13:05:01Z",
+  "updated_at": "2026-04-04T03:22:42Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-PHASE9-CLUSTERED-BENCHMARK"
+    "TASK-PHASE9-DECISIVE-EVAL",
+    "TASK-DATASET-HUMAN-NOTES-GUIDED-V1"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [
-    "bgjob_clustered_benchmark_v1_first_review_en_20260403",
-    "bgjob_clustered_benchmark_v1_first_review_zh_20260403"
-  ],
+  "active_job_ids": [],
   "open_decision_ids": [
     "Q10"
   ],

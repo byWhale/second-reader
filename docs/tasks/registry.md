@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T01:13:40Z`
+Last updated: `2026-04-04T03:22:42Z`
 
 ## Status Values
 - `active`
@@ -27,6 +27,18 @@ Last updated: `2026-04-04T01:13:40Z`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - Next: launch the judged `chapter_core` comparison on the frozen `4` clustered chapters, then launch the judged excerpt comparison against `excerpt_core_primary_frozen_draft`; keep the known `reserve = 7 / 8` shortfall and the current pressure imbalance explicit in result interpretation instead of reopening builder widening first
 - Jobs: none
+
+### `TASK-DATASET-HUMAN-NOTES-GUIDED-V1` — Land the isolated human-notes-guided dataset line from the 5 linked books
+- Status: `active`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+- Next: keep the new notes-guided line isolated from the active clustered benchmark, review the scratch outputs in the run-scoped namespace, and decide whether to run a first review wave or freeze an honest shortfall before any merge / replace decision
+- Jobs:
+  - `bgjob_human_notes_guided_dataset_v1_scratch_20260404` (`failed`)
+  - `bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404` (`completed`)
 
 ## Parked
 

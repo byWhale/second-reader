@@ -7,6 +7,7 @@ from pathlib import Path
 from eval.attentional_v2.question_aligned_case_construction import (
     CLUSTERED_SELECTION_MODE,
     CLUSTERED_TARGET_PROFILE_ORDER,
+    NOTES_GUIDED_SELECTION_MODE,
     TARGET_PROFILE_ORDER,
     MIN_PROFILE_ORDER_SELECTION_PRIORITY,
     _assembled_case,
@@ -68,9 +69,15 @@ def _clustered_opportunity(
     excerpt_end_index: int,
     construction_priority: float,
     judgeability_score: float = 4.5,
+    source_id: str = "clustered_source",
+    chapter_id: str = "17",
+    selection_group_id: str | None = None,
+    selection_group_kind: str = "chapter",
+    selection_group_label: str | None = None,
+    selection_note_ids: list[str] | None = None,
+    selection_notes: list[str] | None = None,
+    selection_note_provenance: list[dict[str, object]] | None = None,
 ) -> dict[str, object]:
-    source_id = "clustered_source"
-    chapter_id = "17"
     excerpt_sentence_ids = [
         f"c{chapter_id}-s{sentence_index + 1}"
         for sentence_index in range(excerpt_start_index, excerpt_end_index + 1)
@@ -107,6 +114,12 @@ def _clustered_opportunity(
         "type_tags": ["essay"],
         "role_tags": ["argumentative"],
         "candidate_position_bucket": "middle",
+        "selection_group_id": selection_group_id or f"{source_id}__{chapter_id}",
+        "selection_group_kind": selection_group_kind,
+        "selection_group_label": selection_group_label or selection_group_id or f"{source_id}__{chapter_id}",
+        "selection_note_ids": list(selection_note_ids or []),
+        "selection_notes": list(selection_notes or []),
+        "selection_note_provenance": list(selection_note_provenance or []),
     }
 
 
@@ -814,6 +827,166 @@ def test_clustered_scope_excludes_reconsolidation_profile_from_active_target_lis
         row["target_profile_id"] != "reconsolidation_later_reinterpretation"
         for row in scope["cases_by_language"]["en"] + scope["reserve_cases_by_language"]["en"]
     )
+
+
+def test_notes_guided_selection_groups_multi_chapter_cluster_without_cross_chapter_guard_collisions() -> None:
+    opportunities = [
+        _clustered_opportunity(
+            profile_id="distinction_definition",
+            opportunity_id="opp_a",
+            source_id="clustered_source",
+            chapter_id="17",
+            anchor_index=1,
+            excerpt_start_index=0,
+            excerpt_end_index=1,
+            construction_priority=8.5,
+            selection_group_id="note_cluster_alpha",
+            selection_group_kind="selection_group",
+            selection_group_label="Note cluster alpha",
+            selection_note_ids=["note-1"],
+            selection_notes=["Keep the strongest chapter-local distinction from this cluster."],
+            selection_note_provenance=[
+                {
+                    "note_id": "note-1",
+                    "source": "curation_note",
+                    "text": "Keep the strongest chapter-local distinction from this cluster.",
+                }
+            ],
+        ),
+        _clustered_opportunity(
+            profile_id="distinction_definition",
+            opportunity_id="opp_b",
+            source_id="clustered_source",
+            chapter_id="18",
+            anchor_index=1,
+            excerpt_start_index=0,
+            excerpt_end_index=1,
+            construction_priority=8.1,
+            selection_group_id="note_cluster_alpha",
+            selection_group_kind="selection_group",
+            selection_group_label="Note cluster alpha",
+            selection_note_ids=["note-1"],
+            selection_notes=["Keep the strongest chapter-local distinction from this cluster."],
+            selection_note_provenance=[
+                {
+                    "note_id": "note-1",
+                    "source": "curation_note",
+                    "text": "Keep the strongest chapter-local distinction from this cluster.",
+                }
+            ],
+        ),
+        _clustered_opportunity(
+            profile_id="callback_bridge",
+            opportunity_id="opp_c",
+            source_id="clustered_source",
+            chapter_id="18",
+            anchor_index=6,
+            excerpt_start_index=5,
+            excerpt_end_index=6,
+            construction_priority=7.6,
+            selection_group_id="note_cluster_alpha",
+            selection_group_kind="selection_group",
+            selection_group_label="Note cluster alpha",
+            selection_note_ids=["note-1"],
+            selection_notes=["Keep the strongest chapter-local distinction from this cluster."],
+            selection_note_provenance=[
+                {
+                    "note_id": "note-1",
+                    "source": "curation_note",
+                    "text": "Keep the strongest chapter-local distinction from this cluster.",
+                }
+            ],
+        ),
+    ]
+
+    cases, reserves = _select_cases_and_reserves(
+        opportunities,
+        cases_per_chapter=1,
+        reserves_per_chapter=1,
+        target_profile_ids=("distinction_definition", "callback_bridge"),
+        selection_mode=NOTES_GUIDED_SELECTION_MODE,
+        same_profile_anchor_distance=3,
+    )
+
+    assert [row["case_id"] for row in cases] == [
+        "clustered_source__17__distinction_definition__seed_1"
+    ]
+    assert [row["case_id"] for row in reserves] == [
+        "clustered_source__18__distinction_definition__reserve_1"
+    ]
+    assert cases[0]["chapter_id"] == "17"
+    assert reserves[0]["chapter_id"] == "18"
+    assert cases[0]["selection_group_id"] == "note_cluster_alpha"
+    assert reserves[0]["selection_group_id"] == "note_cluster_alpha"
+    assert reserves[0]["selection_note_ids"] == ["note-1"]
+    assert reserves[0]["selection_note_provenance"][0]["source"] == "curation_note"
+
+
+def test_notes_guided_scope_carries_note_provenance_into_opportunities_and_cases(tmp_path: Path) -> None:
+    chapter_rows_by_language = {
+        "en": [
+            {
+                **_chapter_row(
+                    source_id="book_en",
+                    language="en",
+                    output_dir="outputs/book_en",
+                    chapter_id="1",
+                    chapter_title="Chapter One",
+                    role="argumentative",
+                ),
+                "selection_group_id": "note_cluster_alpha",
+                "selection_group_kind": "selection_group",
+                "selection_group_label": "Note cluster alpha",
+                "selection_note_ids": ["note-1"],
+                "selection_notes": ["Prefer this chapter as part of the note-guided cluster."],
+                "selection_note_provenance": [
+                    {
+                        "note_id": "note-1",
+                        "source": "curation_note",
+                        "text": "Prefer this chapter as part of the note-guided cluster.",
+                    }
+                ],
+            }
+        ]
+    }
+    source_index = {
+        "book_en": {"source_id": "book_en", "type_tags": ["essay"], "role_tags": ["argumentative"]}
+    }
+    documents = {
+        str(tmp_path / "outputs" / "book_en"): {
+            "chapters": [{"id": "1", "sentences": _sentences_en()}]
+        }
+    }
+
+    def document_loader(path: Path) -> dict[str, object]:
+        return documents[str(path)]
+
+    scope = build_question_aligned_excerpt_scope(
+        chapter_rows_by_language=chapter_rows_by_language,
+        source_index=source_index,
+        root=tmp_path,
+        document_loader=document_loader,
+        scope_id="notes_guided_scope",
+        selection_mode=NOTES_GUIDED_SELECTION_MODE,
+    )
+
+    assert scope["selection_mode"] == NOTES_GUIDED_SELECTION_MODE
+    opportunity = next(
+        card for card in scope["opportunity_cards"] if card["selection_group_id"] == "note_cluster_alpha"
+    )
+    case = scope["cases_by_language"]["en"][0]
+
+    assert opportunity["selection_group_kind"] == "selection_group"
+    assert opportunity["selection_group_label"] == "Note cluster alpha"
+    assert opportunity["selection_note_ids"] == ["note-1"]
+    assert opportunity["selection_notes"] == ["Prefer this chapter as part of the note-guided cluster."]
+    assert opportunity["selection_note_provenance"][0]["source"] == "curation_note"
+    assert case["selection_group_id"] == "note_cluster_alpha"
+    assert case["selection_group_kind"] == "selection_group"
+    assert case["selection_group_label"] == "Note cluster alpha"
+    assert case["selection_note_ids"] == ["note-1"]
+    assert case["selection_notes"] == ["Prefer this chapter as part of the note-guided cluster."]
+    assert case["selection_note_provenance"][0]["note_id"] == "note-1"
 
 
 def test_window_quality_adjustment_prefers_clean_late_chinese_scene_over_early_filler() -> None:

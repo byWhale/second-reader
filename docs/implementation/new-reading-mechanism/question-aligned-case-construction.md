@@ -107,6 +107,57 @@ Current feedback source:
 - this means the first landing does not overwrite the current review-truth datasets while the new construction path is still being validated
 - feedback can also be disabled or overridden explicitly when a scratch run needs to test construction behavior in isolation
 
+## Human-Notes-Guided Dataset V1
+An isolated notes-guided dataset line is now landed on top of the same question-aligned builder instead of creating a second review stack.
+
+Current code entrypoints:
+- `reading-companion-backend/eval/attentional_v2/library_notes.py`
+- `reading-companion-backend/eval/attentional_v2/register_library_notes.py`
+- `reading-companion-backend/eval/attentional_v2/human_notes_guided_dataset.py`
+- `reading-companion-backend/eval/attentional_v2/build_private_library_supplement.py`
+
+Current managed notes assets:
+- catalog:
+  - `reading-companion-backend/state/dataset_build/library_notes_catalog.json`
+  - `reading-companion-backend/state/dataset_build/library_notes_catalog.md`
+- storage:
+  - `reading-companion-backend/state/library_notes/raw_exports/`
+  - `reading-companion-backend/state/library_notes/entries/`
+- current line shape:
+  - exactly `5` notes assets linked to the requested `5` books
+  - `The Value of Others` reuses the existing managed source instead of duplicating the EPUB
+  - `纳瓦尔宝典` stays a distinct zh source because the note alignment depends on that edition rather than on the older English Naval source
+
+Current notes-guided builder behavior:
+- human notes are treated as strong priors, not benchmark truth
+- final case ids remain chapter-scoped even when cluster resolution expands across adjacent short chapters
+- the notes-guided mode now resolves against the full chapter pool of each selected source, not only the `screen_source_book` top-6 candidate chapters
+- contiguous short-chapter windows now fall back to numeric `chapter_id` order when `chapter_number` is absent or always `0`
+- two different notes-guided clusters may intentionally keep the same `chapter_case_id` when they represent different selection groups
+  - this matters for `The Value of Others`, where both dense page bands currently resolve to the same chapter but still need separate case construction surfaces
+
+Current isolated scratch evidence:
+- run id:
+  - `human_notes_guided_dataset_v1_20260404`
+- summary:
+  - `reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/build_summary.json`
+- cluster resolution:
+  - `reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/cluster_resolutions/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json`
+- current selected cluster count:
+  - `8`
+- current scratch outputs:
+  - English candidate cases: `16`
+  - English reserves: `4`
+  - Chinese candidate cases: `47`
+  - Chinese reserves: `10`
+- current known shortfall:
+  - `nawaer_baodian_private_zh__wealth` currently tops out at `7` candidate cases with no reserve rows, so the line is construction-usable but not yet freeze-complete
+
+Current governance:
+- this dataset line is intentionally isolated from the active clustered benchmark v1
+- do not repoint the active benchmark based on this line alone
+- the next decision point is reviewed quality on the isolated notes-guided outputs, not automatic merge or promotion
+
 ## Latest Scratch Evidence
 The first real quality-fix wave is now landed in the builder and audit reconstruction paths:
 - `reading-companion-backend/eval/attentional_v2/question_aligned_case_construction.py`

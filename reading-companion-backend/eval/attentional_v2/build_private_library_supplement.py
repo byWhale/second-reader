@@ -30,6 +30,9 @@ try:
         MANIFEST_ROOT,
         STATE_LOCAL_DATASET_ROOT,
         CandidateSpec,
+        chapter_paragraph_count,
+        chapter_sentence_count,
+        chapter_title,
         chapter_row_from_candidate,
         dataset_manifest,
         load_json,
@@ -44,7 +47,14 @@ try:
     from .question_aligned_case_construction import (
         CLUSTERED_SELECTION_MODE,
         CLUSTERED_TARGET_PROFILE_ORDER,
+        NOTES_GUIDED_SELECTION_MODE,
         build_question_aligned_excerpt_scope,
+    )
+    from .human_notes_guided_dataset import (
+        HUMAN_NOTES_GUIDED_CASES_PER_CLUSTER,
+        HUMAN_NOTES_GUIDED_RESERVES_PER_CLUSTER,
+        HUMAN_NOTES_GUIDED_SOURCE_IDS,
+        build_human_notes_guided_cluster_plan,
     )
 except ImportError:  # pragma: no cover - script execution path
     from corpus_builder import (
@@ -52,6 +62,9 @@ except ImportError:  # pragma: no cover - script execution path
         MANIFEST_ROOT,
         STATE_LOCAL_DATASET_ROOT,
         CandidateSpec,
+        chapter_paragraph_count,
+        chapter_sentence_count,
+        chapter_title,
         chapter_row_from_candidate,
         dataset_manifest,
         load_json,
@@ -66,7 +79,14 @@ except ImportError:  # pragma: no cover - script execution path
     from question_aligned_case_construction import (
         CLUSTERED_SELECTION_MODE,
         CLUSTERED_TARGET_PROFILE_ORDER,
+        NOTES_GUIDED_SELECTION_MODE,
         build_question_aligned_excerpt_scope,
+    )
+    from human_notes_guided_dataset import (
+        HUMAN_NOTES_GUIDED_CASES_PER_CLUSTER,
+        HUMAN_NOTES_GUIDED_RESERVES_PER_CLUSTER,
+        HUMAN_NOTES_GUIDED_SOURCE_IDS,
+        build_human_notes_guided_cluster_plan,
     )
 
 SOURCE_MANIFEST_ID = "attentional_v2_private_library_screen_v2"
@@ -91,7 +111,12 @@ LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS = {
 SCRATCH_RUN_ROOT = ROOT / "state" / "dataset_build" / "build_runs"
 DEFAULT_BENCHMARK_MODE = "default"
 CLUSTERED_BENCHMARK_MODE = "clustered_benchmark_v1"
-BENCHMARK_MODE_VALUES = (DEFAULT_BENCHMARK_MODE, CLUSTERED_BENCHMARK_MODE)
+HUMAN_NOTES_GUIDED_BENCHMARK_MODE = "human_notes_guided_dataset_v1"
+BENCHMARK_MODE_VALUES = (
+    DEFAULT_BENCHMARK_MODE,
+    CLUSTERED_BENCHMARK_MODE,
+    HUMAN_NOTES_GUIDED_BENCHMARK_MODE,
+)
 CLUSTERED_BENCHMARK_CHAPTER_CASE_IDS = (
     "supremacy_private_en__13",
     "steve_jobs_private_en__17",
@@ -120,6 +145,28 @@ CLUSTERED_LIVE_PACKAGE_IDS = {
     },
     "compatibility_fixtures": {
         "shared": "attentional_v2_clustered_benchmark_v1_compat_shared",
+    },
+}
+HUMAN_NOTES_GUIDED_SOURCE_MANIFEST_ID = "attentional_v2_human_notes_guided_dataset_v1_source_books"
+HUMAN_NOTES_GUIDED_LOCAL_REFS_MANIFEST_ID = "attentional_v2_human_notes_guided_dataset_v1_local_refs"
+HUMAN_NOTES_GUIDED_CORPUS_MANIFEST_ID = "attentional_v2_human_notes_guided_dataset_v1_corpus"
+HUMAN_NOTES_GUIDED_SPLITS_MANIFEST_ID = "attentional_v2_human_notes_guided_dataset_v1_splits"
+HUMAN_NOTES_GUIDED_SCOPE_ID = "attentional_v2_human_notes_guided_dataset_v1_excerpt_scope"
+HUMAN_NOTES_GUIDED_LIVE_PACKAGE_IDS = {
+    "chapter_corpora": {
+        "en": "attentional_v2_human_notes_guided_dataset_v1_chapters_en",
+        "zh": "attentional_v2_human_notes_guided_dataset_v1_chapters_zh",
+    },
+    "runtime_fixtures": {
+        "en": "attentional_v2_human_notes_guided_dataset_v1_runtime_en",
+        "zh": "attentional_v2_human_notes_guided_dataset_v1_runtime_zh",
+    },
+    "excerpt_cases": {
+        "en": "attentional_v2_human_notes_guided_dataset_v1_excerpt_en",
+        "zh": "attentional_v2_human_notes_guided_dataset_v1_excerpt_zh",
+    },
+    "compatibility_fixtures": {
+        "shared": "attentional_v2_human_notes_guided_dataset_v1_compat_shared",
     },
 }
 
@@ -272,6 +319,19 @@ def live_build_ids(benchmark_mode: str = DEFAULT_BENCHMARK_MODE) -> SupplementBu
             question_aligned_scope_id=CLUSTERED_QUESTION_ALIGNED_SCOPE_ID,
             package_ids=_copy_package_ids(CLUSTERED_LIVE_PACKAGE_IDS),
         )
+    if benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE:
+        return SupplementBuildIds(
+            source_manifest_id=HUMAN_NOTES_GUIDED_SOURCE_MANIFEST_ID,
+            source_manifest_file_stem=HUMAN_NOTES_GUIDED_SOURCE_MANIFEST_ID,
+            local_refs_manifest_id=HUMAN_NOTES_GUIDED_LOCAL_REFS_MANIFEST_ID,
+            local_refs_manifest_file_stem=HUMAN_NOTES_GUIDED_LOCAL_REFS_MANIFEST_ID,
+            corpus_manifest_id=HUMAN_NOTES_GUIDED_CORPUS_MANIFEST_ID,
+            corpus_manifest_file_stem=HUMAN_NOTES_GUIDED_CORPUS_MANIFEST_ID,
+            splits_manifest_id=HUMAN_NOTES_GUIDED_SPLITS_MANIFEST_ID,
+            splits_manifest_file_stem=HUMAN_NOTES_GUIDED_SPLITS_MANIFEST_ID,
+            question_aligned_scope_id=HUMAN_NOTES_GUIDED_SCOPE_ID,
+            package_ids=_copy_package_ids(HUMAN_NOTES_GUIDED_LIVE_PACKAGE_IDS),
+        )
     return SupplementBuildIds(
         source_manifest_id=SOURCE_MANIFEST_ID,
         source_manifest_file_stem=SOURCE_MANIFEST_ID,
@@ -383,6 +443,26 @@ def _resolve_batch_id(record: dict[str, Any], override: dict[str, Any]) -> str:
     return ""
 
 
+def _candidate_human_notes_guidance(record: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    for key in (
+        "human_notes_guidance",
+        "human_notes_guided_dataset_v1",
+        "note_guided_clusters",
+    ):
+        value = record.get(key)
+        if isinstance(value, dict):
+            return dict(value)
+    for key in (
+        "human_notes_guidance",
+        "human_notes_guided_dataset_v1",
+        "note_guided_clusters",
+    ):
+        value = override.get(key)
+        if isinstance(value, dict):
+            return dict(value)
+    return {}
+
+
 def load_private_library_source_items(
     *,
     root: Path = ROOT,
@@ -423,6 +503,7 @@ def load_private_library_source_items(
         acquisition_batch_id = _resolve_batch_id(record, override)
         acquisition = record.get("acquisition") if isinstance(record.get("acquisition"), dict) else {}
         promoted_local_path = relative_local_path.replace("state/library_sources/", "", 1)
+        human_notes_guidance = _candidate_human_notes_guidance(record, override)
 
         items.append(
             {
@@ -444,6 +525,7 @@ def load_private_library_source_items(
                 "acquisition_batch_id": acquisition_batch_id,
                 "origin_filename": _clean_text(record.get("original_filename")) or source_path.name,
                 "relative_local_path": relative_local_path,
+                "human_notes_guidance": human_notes_guidance,
             }
         )
     items.sort(
@@ -543,6 +625,46 @@ def _choose_runtime_seed_rows(chapter_rows: list[dict[str, Any]]) -> list[dict[s
         chosen.append(dict(row))
         seen_sources.add(source_id)
     return chosen
+
+
+def _all_book_chapter_rows_for_notes_guided_mode(
+    record: dict[str, Any],
+) -> list[dict[str, Any]]:
+    output_dir = ROOT / _clean_text(record.get("output_dir"))
+    document = load_book_document(output_dir)
+    role_tags = list(record.get("role_tags") or [])
+    primary_role = _primary_selection_role(role_tags)
+    rows: list[dict[str, Any]] = []
+    for chapter in document.get("chapters", []):
+        if not isinstance(chapter, dict):
+            continue
+        candidate_payload = {
+            "chapter_id": str(chapter.get("id") or ""),
+            "chapter_number": int(chapter.get("chapter_number") or 0),
+            "chapter_title": chapter_title(chapter),
+            "sentence_count": chapter_sentence_count(chapter),
+            "paragraph_count": chapter_paragraph_count(chapter),
+            "href": chapter.get("href"),
+            "spine_index": chapter.get("spine_index"),
+            "position_bucket": "notes_guided_pool",
+            "score": 0.0,
+        }
+        if not _clean_text(candidate_payload["chapter_id"]):
+            continue
+        row = chapter_row_from_candidate(record, candidate_payload)
+        row["selection_status"] = "human_notes_guided_candidate_v1"
+        row["selection_role"] = primary_role
+        row["corpus_lane"] = str(record["corpus_lane"])
+        row["candidate_position_bucket"] = "notes_guided_pool"
+        row["candidate_score"] = 0.0
+        rows.append(row)
+    rows.sort(
+        key=lambda row: (
+            int(row.get("chapter_number", 0) or 0),
+            _clean_text(row.get("chapter_id")),
+        )
+    )
+    return rows
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -654,16 +776,24 @@ def resolve_build_config(
     cases_per_chapter = (
         int(options.cases_per_chapter)
         if options.cases_per_chapter > 0
-        else (CLUSTERED_CASES_PER_CHAPTER if benchmark_mode == CLUSTERED_BENCHMARK_MODE else 1)
+        else (
+            HUMAN_NOTES_GUIDED_CASES_PER_CLUSTER
+            if benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+            else (CLUSTERED_CASES_PER_CHAPTER if benchmark_mode == CLUSTERED_BENCHMARK_MODE else 1)
+        )
     )
     reserves_per_chapter = (
         int(options.reserves_per_chapter)
         if options.reserves_per_chapter > 0
-        else (CLUSTERED_RESERVES_PER_CHAPTER if benchmark_mode == CLUSTERED_BENCHMARK_MODE else 1)
+        else (
+            HUMAN_NOTES_GUIDED_RESERVES_PER_CLUSTER
+            if benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+            else (CLUSTERED_RESERVES_PER_CHAPTER if benchmark_mode == CLUSTERED_BENCHMARK_MODE else 1)
+        )
     )
     target_profile_ids = (
         tuple(CLUSTERED_TARGET_PROFILE_ORDER)
-        if benchmark_mode == CLUSTERED_BENCHMARK_MODE
+        if benchmark_mode in {CLUSTERED_BENCHMARK_MODE, HUMAN_NOTES_GUIDED_BENCHMARK_MODE}
         else tuple()
     )
 
@@ -694,18 +824,30 @@ def resolve_build_config(
         catalog_path=catalog_path,
         tracked_override_manifest_path=tracked_override_manifest_path,
         feedback_dataset_ids=(
-            dict(LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS)
-            if options.feedback_dataset_ids is None
-            else dict(options.feedback_dataset_ids)
+            {}
+            if benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE and options.feedback_dataset_ids is None
+            else (
+                dict(LEGACY_PRIVATE_LIBRARY_FEEDBACK_DATASET_IDS)
+                if options.feedback_dataset_ids is None
+                else dict(options.feedback_dataset_ids)
+            )
         ),
-        source_ids=tuple(dict.fromkeys(str(value).strip() for value in options.source_ids if str(value).strip())),
+        source_ids=(
+            tuple(HUMAN_NOTES_GUIDED_SOURCE_IDS)
+            if benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE and not options.source_ids
+            else tuple(dict.fromkeys(str(value).strip() for value in options.source_ids if str(value).strip()))
+        ),
         chapter_case_ids=chapter_case_ids,
         languages=_normalized_language_tuple(options.languages),
         limit_sources=int(options.limit_sources),
         cases_per_chapter=cases_per_chapter,
         reserves_per_chapter=reserves_per_chapter,
         target_profile_ids=target_profile_ids,
-        max_chapters_per_source=0 if chapter_case_ids else MAX_CHAPTERS_PER_SOURCE,
+        max_chapters_per_source=(
+            0
+            if chapter_case_ids or benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+            else MAX_CHAPTERS_PER_SOURCE
+        ),
         manifest_root=(
             (run_root / "manifests").resolve()
             if options.scratch and run_root is not None
@@ -868,6 +1010,72 @@ def write_question_aligned_artifacts(
     }
 
 
+def note_guided_artifact_paths(
+    *,
+    root: Path | None = None,
+    artifact_root: Path | None = None,
+    scope_id: str,
+) -> dict[str, Path]:
+    resolved_root = root or ROOT
+    resolved_artifact_root = artifact_root or (resolved_root / "state" / "dataset_build")
+    return {
+        "source_note_summaries": resolved_artifact_root / "source_note_summaries" / f"{scope_id}.json",
+        "cluster_proposals": resolved_artifact_root / "cluster_proposals" / f"{scope_id}.json",
+        "cluster_resolution": resolved_artifact_root / "cluster_resolutions" / f"{scope_id}.json",
+        "selection_groups": resolved_artifact_root / "selection_group_maps" / f"{scope_id}.json",
+    }
+
+
+def write_note_guided_artifacts(
+    cluster_plan: dict[str, Any],
+    *,
+    root: Path | None = None,
+    artifact_root: Path | None = None,
+    scope_id: str,
+) -> dict[str, str]:
+    resolved_root = root or ROOT
+    paths = note_guided_artifact_paths(
+        root=resolved_root,
+        artifact_root=artifact_root,
+        scope_id=scope_id,
+    )
+    write_json(
+        paths["source_note_summaries"],
+        {
+            "scope_id": scope_id,
+            "source_note_summaries": cluster_plan.get("source_note_summaries", []),
+        },
+    )
+    write_json(
+        paths["cluster_proposals"],
+        {
+            "scope_id": scope_id,
+            "cluster_proposals": cluster_plan.get("cluster_proposals", []),
+        },
+    )
+    write_json(
+        paths["cluster_resolution"],
+        {
+            "scope_id": scope_id,
+            "selected_chapter_case_ids": cluster_plan.get("selected_chapter_case_ids", []),
+            "selected_clusters": cluster_plan.get("selected_clusters", []),
+            "resolution_summary": cluster_plan.get("resolution_summary", {}),
+            "skipped_sources": cluster_plan.get("skipped_sources", []),
+        },
+    )
+    write_json(
+        paths["selection_groups"],
+        {
+            "scope_id": scope_id,
+            "selection_groups": cluster_plan.get("selection_groups", {}),
+        },
+    )
+    return {
+        key: str(path.relative_to(resolved_root))
+        for key, path in paths.items()
+    }
+
+
 def _summary_counts(source_records: list[dict[str, Any]]) -> dict[str, Any]:
     language_counts = Counter(str(record["language"]) for record in source_records)
     lane_counts = Counter(str(record["corpus_lane"]) for record in source_records)
@@ -883,6 +1091,40 @@ def _summary_counts(source_records: list[dict[str, Any]]) -> dict[str, Any]:
         "acquisition_batch_counts": dict(sorted(batch_counts.items())),
         "type_tag_counts": dict(sorted(category_counts.items())),
     }
+
+
+def _selected_chapter_case_ids_from_state(state: SupplementBuildState) -> list[str]:
+    return [
+        str(row["chapter_case_id"])
+        for row in sorted(
+            state.chapter_rows_by_language.get("en", []) + state.chapter_rows_by_language.get("zh", []),
+            key=lambda row: (
+                str(row.get("language_track", "")),
+                str(row.get("source_id", "")),
+                int(row.get("chapter_number", 0) or 0),
+                str(row.get("chapter_id", "")),
+            ),
+        )
+    ]
+
+
+def _state_with_selected_chapters(
+    state: SupplementBuildState,
+    *,
+    chapter_rows_by_language: dict[str, list[dict[str, Any]]],
+) -> SupplementBuildState:
+    return SupplementBuildState(
+        source_records=list(state.source_records),
+        source_refs=list(state.source_refs),
+        chapter_rows_by_language={
+            language: [dict(row) for row in rows]
+            for language, rows in chapter_rows_by_language.items()
+        },
+        runtime_rows_by_language={
+            language: _choose_runtime_seed_rows(rows)
+            for language, rows in chapter_rows_by_language.items()
+        },
+    )
 
 
 def ensure_source_catalog(config: SupplementBuildConfig) -> dict[str, Any] | None:
@@ -945,6 +1187,8 @@ def collect_source_build_state(config: SupplementBuildConfig) -> SupplementBuild
         record["screening_status"] = "screened_private_library_v2"
         record["acquisition_batch_id"] = item["acquisition_batch_id"]
         record["origin_filename"] = item["origin_filename"]
+        if isinstance(item.get("human_notes_guidance"), dict) and item["human_notes_guidance"]:
+            record["human_notes_guidance"] = dict(item["human_notes_guidance"])
         source_records.append(record)
         source_refs.append(
             {
@@ -956,16 +1200,24 @@ def collect_source_build_state(config: SupplementBuildConfig) -> SupplementBuild
             }
         )
 
-        candidate_rows = list(record.get("candidate_chapters") or [])
+        candidate_rows = (
+            _all_book_chapter_rows_for_notes_guided_mode(record)
+            if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+            else list(record.get("candidate_chapters") or [])
+        )
         primary_role = _primary_selection_role(list(record.get("role_tags") or []))
         selected_rows_for_source: list[dict[str, Any]] = []
         for candidate in candidate_rows:
-            row = chapter_row_from_candidate(record, candidate)
+            row = (
+                dict(candidate)
+                if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                else chapter_row_from_candidate(record, candidate)
+            )
             if requested_chapter_case_ids and str(row["chapter_case_id"]) not in requested_chapter_case_ids:
                 continue
-            row["selection_status"] = "private_library_candidate_v2"
-            row["selection_role"] = primary_role
-            row["corpus_lane"] = str(record["corpus_lane"])
+            row["selection_status"] = row.get("selection_status") or "private_library_candidate_v2"
+            row["selection_role"] = row.get("selection_role") or primary_role
+            row["corpus_lane"] = row.get("corpus_lane") or str(record["corpus_lane"])
             row["acquisition_batch_id"] = item["acquisition_batch_id"]
             selected_rows_for_source.append(row)
             found_chapter_case_ids.add(str(row["chapter_case_id"]))
@@ -992,6 +1244,8 @@ def collect_source_build_state(config: SupplementBuildConfig) -> SupplementBuild
 def write_manifest_bundle(
     config: SupplementBuildConfig,
     state: SupplementBuildState,
+    *,
+    note_guided_cluster_plan: dict[str, Any] | None = None,
 ) -> ManifestBundleRefs:
     source_manifest_path = config.manifest_root / "source_books" / f"{config.ids.source_manifest_file_stem}.json"
     local_refs_manifest_path = config.manifest_root / "local_refs" / f"{config.ids.local_refs_manifest_file_stem}.json"
@@ -1005,7 +1259,11 @@ def write_manifest_bundle(
             "description": (
                 "Run-scoped screening inventory for the managed private-library supplement scratch build."
                 if config.scratch
-                else "Tracked screening inventory for the combined private-library supplement built from the managed source catalog and canonical local source library."
+                else (
+                    "Tracked screening inventory for the human-notes-guided dataset v1 source line."
+                    if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                    else "Tracked screening inventory for the combined private-library supplement built from the managed source catalog and canonical local source library."
+                )
             ),
             "summary": _summary_counts(state.source_records),
             "books": state.source_records,
@@ -1034,7 +1292,11 @@ def write_manifest_bundle(
             "description": (
                 "Local source-file and local-package references for the scratch private-library supplement build."
                 if config.scratch
-                else "Local source-file and local-package references for the combined private-library attentional_v2 supplement built from managed source-catalog inputs."
+                else (
+                    "Local source-file and local-package references for the human-notes-guided dataset v1 source line."
+                    if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                    else "Local source-file and local-package references for the combined private-library attentional_v2 supplement built from managed source-catalog inputs."
+                )
             ),
             "source_refs": state.source_refs,
             "local_dataset_packages": local_package_refs,
@@ -1048,7 +1310,11 @@ def write_manifest_bundle(
             "description": (
                 "Run-scoped bilingual private-library source corpus for attentional_v2 evaluation supplementation."
                 if config.scratch
-                else "Combined bilingual private-library source corpus for attentional_v2 evaluation supplementation, sourced from the managed local source catalog."
+                else (
+                    "Human-notes-guided bilingual source corpus for attentional_v2 evaluation supplementation."
+                    if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                    else "Combined bilingual private-library source corpus for attentional_v2 evaluation supplementation, sourced from the managed local source catalog."
+                )
             ),
             "language_tracks": {
                 "en": [record["source_id"] for record in state.source_records if record["language"] == "en"],
@@ -1056,17 +1322,36 @@ def write_manifest_bundle(
             },
         },
     )
+
+    splits_payload: dict[str, Any] = {
+        "manifest_id": config.ids.splits_manifest_id,
+        "description": (
+            "Split definitions for the scratch private-library supplement build."
+            if config.scratch
+            else (
+                "Split definitions for the human-notes-guided dataset v1 line."
+                if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                else "Split definitions for the combined private-library attentional_v2 supplement built from managed source-catalog inputs."
+            )
+        ),
+        "splits": build_private_library_splits(state.source_records),
+    }
+    if note_guided_cluster_plan is not None:
+        splits_payload["benchmark_shape"] = {
+            "kind": "human_notes_guided_chapter_clusters",
+            "source_books": 5,
+            "chapter_scoped_final_cases": True,
+            "clusters_per_book_range": [1, 2],
+            "total_cluster_range": [6, 8],
+            "cross_chapter_cluster_windows_optional": True,
+        }
+        splits_payload["selected_chapter_clusters"] = note_guided_cluster_plan.get("selected_clusters", [])
+        splits_payload["selection_groups"] = note_guided_cluster_plan.get("selection_groups", {})
+        splits_payload["resolution_summary"] = note_guided_cluster_plan.get("resolution_summary", {})
+
     write_json(
         splits_manifest_path,
-        {
-            "manifest_id": config.ids.splits_manifest_id,
-            "description": (
-                "Split definitions for the scratch private-library supplement build."
-                if config.scratch
-                else "Split definitions for the combined private-library attentional_v2 supplement built from managed source-catalog inputs."
-            ),
-            "splits": build_private_library_splits(state.source_records),
-        },
+        splits_payload,
     )
 
     return ManifestBundleRefs(
@@ -1093,6 +1378,7 @@ def write_local_dataset_packages(
     *,
     question_aligned_scope: dict[str, Any],
     question_aligned_artifact_refs: dict[str, Any],
+    note_guided_artifact_refs: dict[str, str] | None,
     manifest_bundle: ManifestBundleRefs,
     compatibility_rows: list[dict[str, Any]],
 ) -> None:
@@ -1200,7 +1486,11 @@ def write_local_dataset_packages(
             description=(
                 "English question-aligned excerpt seed candidates derived from the scratch local supplement build."
                 if config.scratch
-                else "English question-aligned excerpt seed candidates derived from the combined private-library supplement and current review feedback."
+                else (
+                    "English human-notes-guided excerpt cases derived from the selected chapter clusters and current review feedback."
+                    if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                    else "English question-aligned excerpt seed candidates derived from the combined private-library supplement and current review feedback."
+                )
             ),
             primary_file="cases.jsonl",
             source_manifest_refs=manifest_bundle.source_manifest_refs,
@@ -1208,6 +1498,16 @@ def write_local_dataset_packages(
             storage_mode="local-only",
         ),
         "dataset_build_artifact_refs": [
+            *(
+                [
+                    note_guided_artifact_refs["source_note_summaries"],
+                    note_guided_artifact_refs["cluster_proposals"],
+                    note_guided_artifact_refs["cluster_resolution"],
+                    note_guided_artifact_refs["selection_groups"],
+                ]
+                if note_guided_artifact_refs
+                else []
+            ),
             question_aligned_artifact_refs["target_profiles"],
             question_aligned_artifact_refs["adequacy_report"],
             question_aligned_artifact_refs["opportunity_maps"]["en"],
@@ -1234,7 +1534,11 @@ def write_local_dataset_packages(
             description=(
                 "Chinese question-aligned excerpt seed candidates derived from the scratch local supplement build."
                 if config.scratch
-                else "Chinese question-aligned excerpt seed candidates derived from the combined private-library supplement and current review feedback."
+                else (
+                    "Chinese human-notes-guided excerpt cases derived from the selected chapter clusters and current review feedback."
+                    if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+                    else "Chinese question-aligned excerpt seed candidates derived from the combined private-library supplement and current review feedback."
+                )
             ),
             primary_file="cases.jsonl",
             source_manifest_refs=manifest_bundle.source_manifest_refs,
@@ -1242,6 +1546,16 @@ def write_local_dataset_packages(
             storage_mode="local-only",
         ),
         "dataset_build_artifact_refs": [
+            *(
+                [
+                    note_guided_artifact_refs["source_note_summaries"],
+                    note_guided_artifact_refs["cluster_proposals"],
+                    note_guided_artifact_refs["cluster_resolution"],
+                    note_guided_artifact_refs["selection_groups"],
+                ]
+                if note_guided_artifact_refs
+                else []
+            ),
             question_aligned_artifact_refs["target_profiles"],
             question_aligned_artifact_refs["adequacy_report"],
             question_aligned_artifact_refs["opportunity_maps"]["zh"],
@@ -1290,10 +1604,18 @@ def build_summary_payload(
     bootstrap_summary: dict[str, Any] | None,
     question_aligned_scope: dict[str, Any],
     question_aligned_artifact_refs: dict[str, Any],
+    note_guided_cluster_plan: dict[str, Any] | None,
+    note_guided_artifact_refs: dict[str, str] | None,
     manifest_bundle: ManifestBundleRefs,
     existing_excerpt_feedback: dict[str, list[dict[str, Any]]],
     compatibility_rows: list[dict[str, Any]],
 ) -> dict[str, Any]:
+    selected_chapter_case_ids = _selected_chapter_case_ids_from_state(state)
+    note_guided_resolution_summary = (
+        dict(note_guided_cluster_plan.get("resolution_summary", {}))
+        if note_guided_cluster_plan is not None
+        else {}
+    )
     return {
         "generated_at": utc_now(),
         "scratch": config.scratch,
@@ -1302,7 +1624,8 @@ def build_summary_payload(
         "benchmark_mode": config.benchmark_mode,
         "source_catalog_bootstrap": bootstrap_summary,
         "selected_source_ids": [str(record["source_id"]) for record in state.source_records],
-        "selected_chapter_case_ids": list(config.chapter_case_ids),
+        "selected_chapter_case_ids": selected_chapter_case_ids,
+        "requested_chapter_case_ids": list(config.chapter_case_ids),
         "selected_languages": sorted({str(record["language"]) for record in state.source_records}),
         "source_filters": {
             "source_ids": list(config.source_ids),
@@ -1324,6 +1647,7 @@ def build_summary_payload(
             "splits": _relative_to_root(manifest_bundle.splits_manifest_path, root=config.root),
         },
         "question_aligned_artifact_refs": question_aligned_artifact_refs,
+        "note_guided_artifact_refs": dict(note_guided_artifact_refs or {}),
         "books_total": len(state.source_records),
         "books_en": sum(1 for record in state.source_records if record["language"] == "en"),
         "books_zh": sum(1 for record in state.source_records if record["language"] == "zh"),
@@ -1353,6 +1677,17 @@ def build_summary_payload(
         "runtime_fixtures_en": len(make_runtime_fixtures(state.runtime_rows_by_language.get("en", []))),
         "runtime_fixtures_zh": len(make_runtime_fixtures(state.runtime_rows_by_language.get("zh", []))),
         "compatibility_fixtures_shared": len(compatibility_rows),
+        "note_guided_selected_cluster_count": int(note_guided_resolution_summary.get("selected_cluster_count", 0)),
+        "note_guided_selected_source_books": int(note_guided_resolution_summary.get("selected_source_books", 0)),
+        "note_guided_selected_cluster_counts_by_language": dict(
+            note_guided_resolution_summary.get("selected_cluster_counts_by_language", {})
+        ),
+        "note_guided_selected_cluster_counts_by_source": dict(
+            note_guided_resolution_summary.get("selected_cluster_counts_by_source", {})
+        ),
+        "note_guided_selection_group_counts": dict(
+            note_guided_resolution_summary.get("selection_group_counts", {})
+        ),
     }
 
 
@@ -1373,6 +1708,7 @@ def render_build_summary_markdown(summary: dict[str, Any]) -> str:
             f"- dataset_ids: `{json.dumps(summary['dataset_ids'], ensure_ascii=False, sort_keys=True)}`",
             f"- feedback_dataset_ids: `{json.dumps(summary['feedback_dataset_ids'], ensure_ascii=False, sort_keys=True)}`",
             f"- question_aligned_recommended_next_action: `{summary['question_aligned_recommended_next_action']}`",
+            f"- note_guided_selected_cluster_count: `{summary['note_guided_selected_cluster_count']}`",
             "",
             "## Counts",
             f"- books_total: `{summary['books_total']}`",
@@ -1412,13 +1748,26 @@ def build_private_library_supplement(
     )
     bootstrap_summary = ensure_source_catalog(config)
     state = collect_source_build_state(config)
+    working_state = state
+    note_guided_cluster_plan: dict[str, Any] | None = None
+    source_index = {str(record["source_id"]): record for record in state.source_records}
+    if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE:
+        note_guided_cluster_plan = build_human_notes_guided_cluster_plan(
+            root=config.root,
+            source_records=state.source_records,
+            chapter_rows_by_language=state.chapter_rows_by_language,
+        )
+        working_state = _state_with_selected_chapters(
+            state,
+            chapter_rows_by_language=note_guided_cluster_plan["selected_chapter_rows_by_language"],
+        )
     existing_excerpt_feedback = load_existing_private_library_excerpt_feedback(
         root=config.root,
         dataset_ids=config.feedback_dataset_ids,
     )
     question_aligned_scope = build_question_aligned_excerpt_scope(
-        chapter_rows_by_language=state.chapter_rows_by_language,
-        source_index={str(record["source_id"]): record for record in state.source_records},
+        chapter_rows_by_language=working_state.chapter_rows_by_language,
+        source_index=source_index,
         existing_rows_by_language=existing_excerpt_feedback,
         dataset_ids_by_language=config.ids.package_ids["excerpt_cases"],
         root=config.root,
@@ -1428,9 +1777,13 @@ def build_private_library_supplement(
         reserves_per_chapter=config.reserves_per_chapter,
         target_profile_ids=config.target_profile_ids or None,
         selection_mode=(
-            CLUSTERED_SELECTION_MODE
-            if config.benchmark_mode == CLUSTERED_BENCHMARK_MODE
-            else DEFAULT_BENCHMARK_MODE
+            NOTES_GUIDED_SELECTION_MODE
+            if config.benchmark_mode == HUMAN_NOTES_GUIDED_BENCHMARK_MODE
+            else (
+                CLUSTERED_SELECTION_MODE
+                if config.benchmark_mode == CLUSTERED_BENCHMARK_MODE
+                else DEFAULT_BENCHMARK_MODE
+            )
         ),
     )
     question_aligned_artifact_refs = write_question_aligned_artifacts(
@@ -1440,24 +1793,41 @@ def build_private_library_supplement(
         scope_id=config.ids.question_aligned_scope_id,
         excerpt_dataset_ids=config.ids.package_ids["excerpt_cases"],
     )
-    compatibility_rows = make_compatibility_fixtures(
-        state.runtime_rows_by_language.get("en", []) + state.runtime_rows_by_language.get("zh", [])
+    note_guided_artifact_refs = (
+        write_note_guided_artifacts(
+            note_guided_cluster_plan,
+            root=config.root,
+            artifact_root=config.dataset_build_artifact_root,
+            scope_id=config.ids.question_aligned_scope_id,
+        )
+        if note_guided_cluster_plan is not None
+        else None
     )
-    manifest_bundle = write_manifest_bundle(config, state)
+    compatibility_rows = make_compatibility_fixtures(
+        working_state.runtime_rows_by_language.get("en", []) + working_state.runtime_rows_by_language.get("zh", [])
+    )
+    manifest_bundle = write_manifest_bundle(
+        config,
+        working_state,
+        note_guided_cluster_plan=note_guided_cluster_plan,
+    )
     write_local_dataset_packages(
         config,
-        state,
+        working_state,
         question_aligned_scope=question_aligned_scope,
         question_aligned_artifact_refs=question_aligned_artifact_refs,
+        note_guided_artifact_refs=note_guided_artifact_refs,
         manifest_bundle=manifest_bundle,
         compatibility_rows=compatibility_rows,
     )
     summary = build_summary_payload(
         config,
-        state,
+        working_state,
         bootstrap_summary=bootstrap_summary,
         question_aligned_scope=question_aligned_scope,
         question_aligned_artifact_refs=question_aligned_artifact_refs,
+        note_guided_cluster_plan=note_guided_cluster_plan,
+        note_guided_artifact_refs=note_guided_artifact_refs,
         manifest_bundle=manifest_bundle,
         existing_excerpt_feedback=existing_excerpt_feedback,
         compatibility_rows=compatibility_rows,

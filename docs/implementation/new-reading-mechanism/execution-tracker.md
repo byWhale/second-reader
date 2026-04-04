@@ -29,6 +29,37 @@ Update when: status changes, blockers appear, or phases complete.
     - callbackslice bounded variance is accepted for frozen-slice comparison cadence
     - current benchmark size is treated as adequate for the next decisive lane only, not for default-cutover confidence
   - current builder/controller work stays available as a bounded support lane, not as the active mainline
+  - a new isolated human-notes-guided dataset v1 support lane is now landed on top of the question-aligned builder:
+    - managed notes assets now live under:
+      - `reading-companion-backend/state/library_notes/`
+      - `reading-companion-backend/state/dataset_build/library_notes_catalog.json`
+      - `reading-companion-backend/state/dataset_build/library_notes_catalog.md`
+    - operator entrypoint:
+      - `reading-companion-backend/eval/attentional_v2/register_library_notes.py`
+    - current exact notes-linked source set:
+      - `value_of_others_private_en`
+      - `xidaduo_private_zh`
+      - `huochu_shengming_de_yiyi_private_zh`
+      - `nawaer_baodian_private_zh`
+      - `mangge_zhi_dao_private_zh`
+    - latest scratch build:
+      - run id:
+        - `human_notes_guided_dataset_v1_20260404`
+      - summary:
+        - `reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/build_summary.json`
+      - notes-guided resolution:
+        - `8` selected clusters across the `5` books
+        - `The Value of Others` now preserves two separate selection groups even though both dense note bands currently resolve to the same chapter
+        - `纳瓦尔宝典` now resolves short heading-only anchors into adjacent multi-chapter windows when needed
+      - current scratch outputs:
+        - English candidate cases: `16`
+        - English reserves: `4`
+        - Chinese candidate cases: `47`
+        - Chinese reserves: `10`
+      - current honest shortfall:
+        - `nawaer_baodian_private_zh__wealth` currently tops out at `7` candidate cases with no reserve rows
+    - the active benchmark pointer is still the clustered benchmark v1 draft:
+      - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
   - durable-trace / re-entry and runtime viability are now both paused on cost grounds rather than treated as the next automatic lane
   - future Phase 9 eval launches now use process-level target sharding instead of one shared operator target:
