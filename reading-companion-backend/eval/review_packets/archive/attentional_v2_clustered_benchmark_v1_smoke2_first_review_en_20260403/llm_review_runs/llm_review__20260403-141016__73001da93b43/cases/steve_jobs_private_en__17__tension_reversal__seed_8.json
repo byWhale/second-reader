@@ -1,0 +1,117 @@
+{
+  "case_id": "steve_jobs_private_en__17__tension_reversal__seed_8",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt delivers a clean tension reversal: Jobs' physical hyperactivity (bouncing, waving arms) contrasted with his sharp intellectual engagement (asking questions, being the exclamation point). The quoted recall from Tesler anchors this paradox effectively, and the passage rewards careful reading rather than flattening the tension into generic summary. All review bands are strong, adversarial risk is absent, and the factual audit is clean. No grounds for revision or rejection."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt delivers a clean tension reversal: Jobs' physical hyperactivity (bouncing, waving arms) contrasted with his sharp intellectual engagement (asking questions, being the exclamation point). The quoted recall from Tesler anchors this paradox effectively, and the passage rewards careful reading rather than flattening the tension into generic summary. All review bands are strong, adversarial risk is absent, and the factual audit is clean. No grounds for revision or rejection."
+  },
+  "adjudication_input_fingerprint": "e09f013d17209b94ab82e9f8905fc011cb1395eaa0a2fdde2999305c41e0e091",
+  "source_row_fingerprint": "288c763a7662faa4db39934b89c5663d8570e4b0cbaf9431ab1da3695e439e5b",
+  "packet_source_row_fingerprint": "288c763a7662faa4db39934b89c5663d8570e4b0cbaf9431ab1da3695e439e5b",
+  "prompt_case_fingerprint": "a1faaa45e84e9ba148ea4f349b7a5bdd18d0d7093fd6106ea2e961c771e6d28e",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "8dec21d54003460a90f4a5f125889da8a4ccf661c455ec4a19076128f594af28"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "c867db227fb04732ab117f3faa6921b7",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "steve_jobs_private_en__17__tension_reversal__seed_8",
+      "case_title": "Steve Jobs / Chapter Eight: Xerox and Lisa: Graphical User Interfaces / tension_reversal",
+      "book_title": "Steve Jobs",
+      "author": "Walter Isaacson",
+      "chapter_id": "17",
+      "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "narrative_reflective",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "biography",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "biography",
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: “He was hopping around so much I don’t know how he actually saw most of the demo, but he did, because he kept asking questions,” Tesler recalled.",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "Jobs bounced around and waved his arms excitedly.\n“He was hopping around so much I don’t know how he actually saw most of the demo, but he did, because he kept asking questions,” Tesler recalled.\n“He was the exclamation point for every step I showed.”"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "8dec21d54003460a90f4a5f125889da8a4ccf661c455ec4a19076128f594af28"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

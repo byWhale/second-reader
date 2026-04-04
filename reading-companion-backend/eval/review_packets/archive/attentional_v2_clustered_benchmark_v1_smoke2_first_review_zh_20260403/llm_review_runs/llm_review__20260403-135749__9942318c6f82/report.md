@@ -1,0 +1,158 @@
+# LLM Packet Review: `attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403`
+
+- run_id: `llm_review__20260403-135749__9942318c6f82`
+- generated_at: `2026-04-03T14:13:17.577780Z`
+- case_count: `24`
+- action_counts: `{"keep": 21, "revise": 3}`
+- adjudication_input_fingerprint: `71b9279f4940c063b9d12523576f62e109a6a5b535bc2c6665f6313613d14b0d`
+- probe_only: `False`
+- quota_recovery_attempted_count: `0`
+- quota_recovery_succeeded_count: `0`
+- quota_failure_remaining_count: `0`
+
+## Case Decisions
+
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_9`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `d681be4dc55052f46ec5c10ef2baaeddfa92900f71fa3e361b75712bae67dff6`
+  - notes: The excerpt presents a textbook tension_reversal case: the inversion of expected Anglo-American cultural dominance (American yankees 'occupying' Britain, with 'blood flowing backward'). The primary review confirms strong bucket fit, focus clarity, and excerpt strength; adversarial review flags no high risk. Factual audit is clean. All readiness gates are satisfied. The case is benchmark-ready as-is.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_4`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `8c5917b59fcb63eb1b76304f966d691fda81488ac2b34366664cb70b02870e07`
+  - notes: The excerpt cleanly demonstrates a tension_reversal: it sets up a hypothetical negative scenario (北美可能成为犯罪者乐园、囚犯戍站) and then pivots to the actual constructive reality (吸引清教徒和饥民). The reversal is preserved in its full contrast rather than flattened into summary. All audits pass, all bands are strong, and adversarial review shows no high risk. The case is benchmark-ready.
+- `meiguoren_de_xingge_private_zh__19__distinction_definition__seed_1`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `5c144876360183024a21f9263c86960b9b55b446c7de9d966400a31e0801dbe4`
+  - notes: All gates pass cleanly: factual audit is clean, primary review confirms strong bucket fit/focus/excerpt, and adversarial review shows no high risk. The excerpt features a clean contrast (means vs. purpose) that anchors the distinction_definition mechanism, with the selection reason and judge focus aligned to this move. No concrete defects in the excerpt itself warrant revision or rejection.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_5`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `98adc0aae7e0131c5e988a961ccf39e230ea2c1887e93cd5c94a086390d02396`
+  - notes: The excerpt contains a clear tension_reversal: the homeland is described with negative terms ('荒瘠', '黑暗') followed immediately by a concessive pivot to positive emotional归属 ('温暖', '家'). This contrast is explicit and the reversal mechanism is intact, not flattened into summary. Factual audit is clean, excerpt integrity is strong, and adversarial review shows no high risk. The primary review's 'ambiguous_focus' concern is overly conservative given the explicit negative/positive contrast in the anchor line. Case is benchmark-ready.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_10`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `961240d25530378b6f0bc9a6675bf89509ceadebbedcc119fb854f73303f27dc`
+  - notes: All audits pass cleanly: factual audit is ok, primary review rates all bands strong, adversarial review finds no high risk. The excerpt demonstrates the tension_reversal cleanly through contrast (Europe vs. Asia, then European immigrants' paradoxical stance toward homeland), culminating in the metaphor of the child who leaves an oppressive father and refuses return. The declared target profile and declared phenomena align precisely with the excerpt's structure. No revision needed.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_6`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `4976a2653f50092b936109b3dad1aeb8eb5113d133007625dfb4ef449ca95b55`
+  - notes: The excerpt contains a textbook tension_reversal: the proud declaration of refusing to return ('就是冻死，饿死...不再进你这扇门了') is immediately countered by '但是...还得在严父面前出的呀', creating a sharp reversal that rewards a source-grounded move. Factual audit is clean, primary review confirms strong bucket fit and focus clarity, and adversarial review shows no high risk. No concrete defects in the excerpt itself; the case is benchmark-ready as-is.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_7`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `4111ce28096c224f1c96e4a1493c0cd6f332a45c19b5a20ebaa24553b7c48ebf`
+  - notes: The excerpt demonstrates a clear tension_reversal structure: Americans claim 'Americanization' while secretly recognizing their culture lacks clear standards, and their underlying motivation is seeking validation from their homeland. The anchor line captures this reversal well. All audits are clean with strong bands across bucket fit, focus clarity, and excerpt strength. No adversarial risk flags. The case is benchmark-ready as-is.
+- `meiguoren_de_xingge_private_zh__19__anchored_reaction_selectivity__seed_1`
+  - action: `revise`
+  - confidence: `medium`
+  - problem_types: `ambiguous_focus`
+  - adjudication_input_fingerprint: `06ea5879a82e0f9e3e54c6c13caea630fc15c7526baad45ce05026668888e7b6`
+  - notes: The excerpt is sound but the selection reason and judge focus do not adequately distinguish between the surface reaction (British dismissal of American accent) and the meta-commentary (critical examination of English transmission standards) that should be the anchor. The current description implies the anchor line itself is the reaction, when it is more precisely a deconstruction of an attitude the narrator encountered. The revised focus should clarify that the reading mechanism involves tracing the shift from narrative reaction to metacognitive analysis, not simply anchoring to the meta-commentary as if it were a direct reactive statement. This distinction affects how the anchor line guides selective legibility.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_8`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `72aabe61dfdafbbf03ccb385ed40f3064a5713373948bc3e2519ddb8632eea29`
+  - notes: The excerpt presents a textbook tension_reversal: the setup establishes the author's non-standard English (American missionary English deemed unqualified), which is then reversed when the British-accented English is not only tolerated but actually advantageous in American academic circles. The transition marker '可是' clearly signals the reversal, and the parallel structure '非但容忍，而且借了不少光' reinforces the reversal strength. All audit gates are clean, with strong bucket fit, clear focus, and strong excerpt integrity. No revision needed.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_3`
+  - action: `keep`
+  - confidence: `medium`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `4f28929682cafc88e9f2dde78190a17f4bcb985791a8062cf97ab13ca1cf5316`
+  - notes: The excerpt contains a genuine tension_reversal mechanism: the anchor line '即使不幸灾乐祸，但是也不会发生姑奶奶对娘家的关切' presents a concessive contrast where the expected positive ('not gloating') is immediately undercut by the negative ('no familial concern'), creating a reading tension between surface-level neutrality and deeper indifference. The focus_clarity is partial because the reversal is textually present but not explicitly labeled within the excerpt itself, relying on the '即使...但是...' structure to carry the tension. The primary review flagged ambiguous_focus but the excerpt does maintain focus on the tension throughout three sentences. With adequate bucket fit and excerpt integrity, the case is benchmark-ready despite the borderline focus clarity.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_2`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `50524cb1449357a858959fcb8b318cff6b9736413711b6cf1cf8ad208cae3848`
+  - notes: The excerpt contains a textbook tension_reversal: the opening describes US military intervention as a possibility for moral victory, the anchor line '但是这并不是说他们已经放弃了孤立和不管闲事的传统' explicitly signals a reversal or correction, and the conclusion ('逆子并未回头') reinforces the continued tension between action and tradition. The mechanism is structurally embedded and rewards proportional, text-grounded reading. All audits are clean with strong bands across bucket fit, focus clarity, and excerpt strength. No adversarial risk flagged.
+- `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_1`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `6534b0d4b12f40bd12d0492a3929c9db39a20388e4f7c83379d5397f387c30d8`
+  - notes: The excerpt presents a textbook tension_reversal: the perceived aggressive pressure on countries at the edges of the two oceans is paradoxically traced back to America's desire for isolation, and Truman is characterized as a modernized Monroe rather than a departure from isolationist tradition. This reversal is preserved rather than flattened into a generic summary of US foreign policy. The anchor line explicitly sets up the tension between external perception (aggressive pressure) and internal motivation (isolation), which the following sentence resolves without erasing the paradox. Factual audit is clean, primary review endorses, and adversarial review shows no high risk.
+- `zouchu_weiyi_zhenliguan_private_zh__14__anchored_reaction_selectivity__seed_2`
+  - action: `revise`
+  - confidence: `medium`
+  - problem_types: `ambiguous_focus`
+  - adjudication_input_fingerprint: `af783cfee52418c8604974472a5cab97a8a25dc7ccec10b9566c93c8104e34b4`
+  - notes: The primary review correctly identified that while the excerpt is strong and the anchor line is well-defined, the case suffers from ambiguous focus—specifically, the selective_legibility dimension of the target profile is not clearly foregrounded. The passage reads primarily as an authorial position statement rather than a text that demands the reader perform selective engagement. The revised judge focus tightens the evaluation to make selective legibility the explicit criterion, and the revised selection reason explains why the philosophical questions in the anchor line require active reader participation rather than passive absorption.
+- `zouchu_weiyi_zhenliguan_private_zh__14__anchored_reaction_selectivity__seed_1`
+  - action: `revise`
+  - confidence: `medium`
+  - problem_types: `ambiguous_focus`
+  - adjudication_input_fingerprint: `59bf62ea349211d53758eb7cb30731424d8fdbd24e1aa1148426c6cd41d9243e`
+  - notes: The anchor line (Liu's question about homosexuality vs. polygamy) lacks clear connection to any preceding line in the excerpt—it is presented as Liu's spontaneous thought rather than a reaction. Chen's visible thought (admitting he doesn't know) is genuine but thin. The selection reason and judge focus both acknowledge the anchoring concern but do not resolve it. The case has real value (a genuine philosophical exchange with visible thought), but the focus is too weak for reliable benchmark calibration. Recommend strengthening the anchor relationship or clarifying the reaction structure within the excerpt itself.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_8`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `8eaf781eb67f980f7b40d181699912e50e1cdad2dd7584fadc304a8d9cffb135`
+  - notes: Clean across all audits. The excerpt shows a clear tension_reversal: 刘 raises a challenge ('philosophy or ethics should relate to learning argumentation') that disrupts a general claim, and 陈 responds by pivoting to a practical proposal. The mechanism preserves the tension rather than flattening it. Anchor line is well-positioned, focus clarity is strong, and no adversarial risk flagged.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_4`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `b59a099c99b26965ebd2968380699e3c1426595e303451d8a4c8507721730c3c`
+  - notes: The excerpt presents a genuine tension_reversal: it moves from the observation that strong parties dominate discourse to the nuanced claim that weak parties' failure to argue often stems from lack of training/resources rather than lack of reason. This reversal is maintained rather than flattened. All gate conditions are satisfied: clean factual audit, strong primary review, no adversarial risk, and the text itself exhibits the target mechanism concretely through the contrastive structure '有时候是因为他蛮横，有时候不是' (sometimes because they're domineering, sometimes not). Ready for benchmark.
+- `zouchu_weiyi_zhenliguan_private_zh__14__anchored_reaction_selectivity__seed_3`
+  - action: `keep`
+  - confidence: `medium`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `4a2b86bfa624c2d2ad523264739e156199521f55efb0b7091c3da0c8546d0ebf`
+  - notes: The excerpt is strong: it contains a genuine philosophical dialogue where Liu's anchor proposition (neutral third-party judging) and Chen's response (reducing all reasoning to position makes reasoning impossible) both illustrate the target phenomena of anchored reaction and selective legibility. The visible thought is authentic to the philosophical exchange. The primary review flagged ambiguous_focus, but on direct examination the judge focus question is answerable and the excerpt itself demonstrates clear, grounded reactions to specific lines. Factual audit is clean and adversarial review shows no high risk. The case is benchmark-ready.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_5`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `80e790b4d4a634ac31603e039f39c17c6ed3e966eee9a5a6ca0c55d9b4f46c32`
+  - notes: The excerpt presents a clear tension_reversal: the author sets up the premise that pure self-interest (屁股决定脑袋) would negate debate participation, then reverses the causal direction by showing that changed thinking (想法) actually shifts positions (屁股). The anchor line explicitly captures this reversal structure. All audits are clean—factual, primary review (keep with strong bands), and adversarial (no high risk)—so benchmark_readiness=ready and review__action=keep.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_6`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `3404b4baf592d1547baea0fb1af9fdcf2a874ea9f23cfe3f2a597a6546cec539`
+  - notes: The excerpt presents a clear tension_reversal: everyday persuasion by reason exists, BUT dramatic worldview transformations from single arguments almost never occur. The passage maintains this tension without flattening it into a generic claim. The anchor line and surrounding text are well-preserved and text-grounded. Factual audit is clean, all quality bands are strong, adversarial review shows no high risk, and the case demonstrates the declared mechanism clearly. No concrete defects found in the excerpt itself.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_7`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `4cb2a64bf799290984bdff60b22e754db07a2280218538a243795faa1a1a5c9f`
+  - notes: The excerpt presents a genuine tension between dialogue's limitations and law as a fallback mechanism, with the twist that law itself connects back to rationality (法理). This tension reversal is clearly embedded in the text rather than being a surface-level observation, making it well-suited for the tension_reversal bucket. All audit gates are clean: factual audit is ok, primary review is keep with strong bands, and adversarial review shows no high risk. The case is benchmark-ready as-is.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_2`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `c0b293e786c70301af6db2c1b5708ab3e451aac9d3bdd14af39629a24dbc1d4a`
+  - notes: The excerpt presents a textbook tension_reversal: it establishes the general rule that professional problems exclude lay input, then immediately reverses with the Xi'an Incident as a counterexample, arguing general concepts permit lay discussion. The anchor line captures the reversal pivot precisely. Factual audit is clean, primary review is keep with all strong bands, adversarial review flags no risk. The excerpt is coherent, self-contained, and rewards text-grounded reasoning about the contrast between professional-expertise boundaries and general-concept accessibility.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_3`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `47a7e2413ba37a66a8822733bb43f6dd1b46f6db2862da71a3fb7c47b42ea4ba`
+  - notes: All gates pass cleanly: factual audit is clean, primary review recommends keep with all bands strong, adversarial review shows no high risk. The excerpt contains a clear tension reversal between the ideal of problem-led dialogue and the failure mode when that direction is lost—evident in the anchor line about dialogue becoming impossible without question-dominance. The philosophical tension is not flattened into generic summary but preserved in the contrast between the normative claim and the sardonic observation about cross-disciplinary '鸡同鸭讲'. No workflow-stage metadata or seed status constitutes a defect. Case is benchmark-ready.
+- `zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_1`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `4cd2fba44adccd178aba656b7f1a9c1b8e8078cb581752b3e54102bffa6c105b`
+  - notes: Clean passage demonstrating tension_reversal: 陈 acknowledges specialized training's value, then reverses to redirect its purpose from gatekeeping to collaborative problem-solving. The tension between useful expertise and exclusionary barriers is preserved, not flattened. Factual audit clean, primary review keep with strong bands across all three dimensions, adversarial review shows no high risk. Excerpt integrity strong—short but focused with a clear anchor line. Ready for benchmark.
+- `zouchu_weiyi_zhenliguan_private_zh__14__anchored_reaction_selectivity__seed_4`
+  - action: `keep`
+  - confidence: `high`
+  - problem_types: `other`
+  - adjudication_input_fingerprint: `c4968b1c7ec975ac4249d94955a969fea75e10ee8778a257e64a9e9161ad8806`
+  - notes: All three gates pass: factual audit clean, primary review keep with all bands strong, and adversarial review shows no high risk. The anchor line '这坏了...我得弄通多少理论才能开始对话呀？' is explicitly marked, clearly shows a visible reaction (complaint about theory proliferation), and is embedded in an excerpt that demands selective reading to connect the general claim '能够脱开特定的知识，能够脱开特定理论，才是思想层面的对话' back to the specific reaction. No concrete defects in the excerpt itself.

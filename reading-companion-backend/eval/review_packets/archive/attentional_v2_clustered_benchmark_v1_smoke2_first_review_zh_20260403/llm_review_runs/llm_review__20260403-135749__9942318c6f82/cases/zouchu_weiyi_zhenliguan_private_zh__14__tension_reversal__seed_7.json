@@ -1,0 +1,115 @@
+{
+  "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_7",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a genuine tension between dialogue's limitations and law as a fallback mechanism, with the twist that law itself connects back to rationality (法理). This tension reversal is clearly embedded in the text rather than being a surface-level observation, making it well-suited for the tension_reversal bucket. All audit gates are clean: factual audit is ok, primary review is keep with strong bands, and adversarial review shows no high risk. The case is benchmark-ready as-is."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a genuine tension between dialogue's limitations and law as a fallback mechanism, with the twist that law itself connects back to rationality (法理). This tension reversal is clearly embedded in the text rather than being a surface-level observation, making it well-suited for the tension_reversal bucket. All audit gates are clean: factual audit is ok, primary review is keep with strong bands, and adversarial review shows no high risk. The case is benchmark-ready as-is."
+  },
+  "adjudication_input_fingerprint": "4cb2a64bf799290984bdff60b22e754db07a2280218538a243795faa1a1a5c9f",
+  "source_row_fingerprint": "f2bb6527d9f5c482d92dcb4ffc3962f6546a1b900e316bda71d1a9f175fe11b1",
+  "packet_source_row_fingerprint": "f2bb6527d9f5c482d92dcb4ffc3962f6546a1b900e316bda71d1a9f175fe11b1",
+  "prompt_case_fingerprint": "8f8a0de0905ef2f5a905c9632a4503601b9d14f522dd15040385a8b0b022d527",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "f222898a543250d962b81b0e98675f94624460614d7adfeed6afa081f92b992c"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "92a91ec1f3ce496e9e997d1389a6c609",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_7",
+      "case_title": "走出唯一真理观 / 说理与对话 / tension_reversal",
+      "book_title": "走出唯一真理观",
+      "author": "陈嘉映",
+      "chapter_id": "14",
+      "chapter_title": "说理与对话",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "modern_nonfiction",
+        "philosophical",
+        "psychology_decision"
+      ],
+      "type_tags": [
+        "psychology_decision",
+        "philosophical",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 公的道理和婆的道理，当然不一定能融贯到一个大理之中，也不见得能通过对话达成共识，现实世界里当然不能事事都靠讲理，但它们曲曲折折跟理有关系，公与婆的纷争不一定能靠讲理消弭，那就靠法律呗，但法律背后是有道理的，所谓法理。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "至少得说说对话的亲疏远近，说说对话的极限。\n公的道理和婆的道理，当然不一定能融贯到一个大理之中，也不见得能通过对话达成共识，现实世界里当然不能事事都靠讲理，但它们曲曲折折跟理有关系，公与婆的纷争不一定能靠讲理消弭，那就靠法律呗，但法律背后是有道理的，所谓法理。\n刘：对话在我们的学术生活中极其罕见。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "f222898a543250d962b81b0e98675f94624460614d7adfeed6afa081f92b992c"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

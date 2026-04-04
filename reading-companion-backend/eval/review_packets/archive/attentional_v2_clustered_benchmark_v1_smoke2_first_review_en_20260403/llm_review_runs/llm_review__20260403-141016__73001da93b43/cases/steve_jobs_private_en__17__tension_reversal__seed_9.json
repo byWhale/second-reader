@@ -1,0 +1,117 @@
+{
+  "case_id": "steve_jobs_private_en__17__tension_reversal__seed_9",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt demonstrates a textbook tension reversal with Jobs's sudden shift from implicit resistance to enthusiastic commitment ('We've got to do it!'). The anchor line about bringing computers to the people is well-grounded in specific, evocative text (Eichler homes, sleek kitchen appliances). Factual audit is clean, primary review confirms strong fit across all bands, and adversarial review flags no high risk. The passage rewards text-grounded analysis of the reversal mechanism rather than flattening it into generic summary."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt demonstrates a textbook tension reversal with Jobs's sudden shift from implicit resistance to enthusiastic commitment ('We've got to do it!'). The anchor line about bringing computers to the people is well-grounded in specific, evocative text (Eichler homes, sleek kitchen appliances). Factual audit is clean, primary review confirms strong fit across all bands, and adversarial review flags no high risk. The passage rewards text-grounded analysis of the reversal mechanism rather than flattening it into generic summary."
+  },
+  "adjudication_input_fingerprint": "9b5aba1aeebf5c7e1dd0232194fa4f8f86e1df7890a1a0ed29800bf546b84afd",
+  "source_row_fingerprint": "f3184cca67780fa240fa29ac5dabfa131e2c36314cab9529e4c2efaa3d6ba360",
+  "packet_source_row_fingerprint": "f3184cca67780fa240fa29ac5dabfa131e2c36314cab9529e4c2efaa3d6ba360",
+  "prompt_case_fingerprint": "aba2b925081ecccbb83141c4a46d8eff99fb76f40cc3fbb348f8abc4d5d44690",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "6ecb63d0645f14a246c409bf1462d3d0e043148e1b60ec068960ceaa7c1cce46"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "411726968c7040728192a4bf9d8b6f7e",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "steve_jobs_private_en__17__tension_reversal__seed_9",
+      "case_title": "Steve Jobs / Chapter Eight: Xerox and Lisa: Graphical User Interfaces / tension_reversal",
+      "book_title": "Steve Jobs",
+      "author": "Walter Isaacson",
+      "chapter_id": "17",
+      "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "narrative_reflective",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "biography",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "biography",
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: It was the breakthrough he had been looking for: bringing computers to the people, with the cheerful but affordable design of an Eichler home and the ease of...",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "“We’ve got to do it!”\nIt was the breakthrough he had been looking for: bringing computers to the people, with the cheerful but affordable design of an Eichler home and the ease of use of a sleek kitchen appliance.\n“How long would this take to implement?”"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "6ecb63d0645f14a246c409bf1462d3d0e043148e1b60ec068960ceaa7c1cce46"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

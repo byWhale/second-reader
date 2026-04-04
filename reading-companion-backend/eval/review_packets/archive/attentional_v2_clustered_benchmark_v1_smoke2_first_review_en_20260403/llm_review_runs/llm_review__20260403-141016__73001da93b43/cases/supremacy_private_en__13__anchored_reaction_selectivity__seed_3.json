@@ -1,0 +1,114 @@
+{
+  "case_id": "supremacy_private_en__13__anchored_reaction_selectivity__seed_3",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a self-contained rhetorical question that serves as a clear reaction anchor demanding selective interpretation. The visible thought is genuine—posed as a genuine philosophical challenge rather than rhetorical flourish—and the question's significance depends on reading it in context. All gates pass: factual audit clean, primary review keep, adversarial low risk, bucket aligned with phenomena, and excerpt integrity strong."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a self-contained rhetorical question that serves as a clear reaction anchor demanding selective interpretation. The visible thought is genuine—posed as a genuine philosophical challenge rather than rhetorical flourish—and the question's significance depends on reading it in context. All gates pass: factual audit clean, primary review keep, adversarial low risk, bucket aligned with phenomena, and excerpt integrity strong."
+  },
+  "adjudication_input_fingerprint": "a972f840b50d1a822f6695b94e969a65ec3eaae9d9e7140e7c136965bca71436",
+  "source_row_fingerprint": "fb821b0948bcfef957876581e5413c8fcfa756321d83ac403eda6b30e415e59b",
+  "packet_source_row_fingerprint": "fb821b0948bcfef957876581e5413c8fcfa756321d83ac403eda6b30e415e59b",
+  "prompt_case_fingerprint": "c27edbf38196a5a7b13784f7bb9fe514015f6bb10e8eb26d0bea83f48365befd",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "9a25de10823f6ec7b288c890da271d77814d73da41d1d910997bc0ae5204e026"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "d679fda56e544d998a5d015eb532683e",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "supremacy_private_en__13__anchored_reaction_selectivity__seed_3",
+      "case_title": "Supremacy / Chapter 7. Playing Games / anchored_reaction_selectivity",
+      "book_title": "Supremacy",
+      "author": "Parmy Olson",
+      "chapter_id": "13",
+      "chapter_title": "Chapter 7. Playing Games",
+      "target_profile_id": "anchored_reaction_selectivity",
+      "selection_role": "argumentative",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a line that seems reaction-worthy but still demands selective, anchored reading. Anchor line: Could you even do meaningful work on ethical AI from inside a large corporation?",
+      "judge_focus": "Is the visible reaction anchored to the actual line and genuinely worth preserving?",
+      "excerpt_text": "All of this raised a bigger question.\nCould you even do meaningful work on ethical AI from inside a large corporation?\nThe answer came from inside Google itself."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "9a25de10823f6ec7b288c890da271d77814d73da41d1d910997bc0ae5204e026"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

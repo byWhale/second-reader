@@ -1,0 +1,115 @@
+{
+  "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_8",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a textbook tension_reversal: the setup establishes the author's non-standard English (American missionary English deemed unqualified), which is then reversed when the British-accented English is not only tolerated but actually advantageous in American academic circles. The transition marker '可是' clearly signals the reversal, and the parallel structure '非但容忍，而且借了不少光' reinforces the reversal strength. All audit gates are clean, with strong bucket fit, clear focus, and strong excerpt integrity. No revision needed."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a textbook tension_reversal: the setup establishes the author's non-standard English (American missionary English deemed unqualified), which is then reversed when the British-accented English is not only tolerated but actually advantageous in American academic circles. The transition marker '可是' clearly signals the reversal, and the parallel structure '非但容忍，而且借了不少光' reinforces the reversal strength. All audit gates are clean, with strong bucket fit, clear focus, and strong excerpt integrity. No revision needed."
+  },
+  "adjudication_input_fingerprint": "72aabe61dfdafbbf03ccb385ed40f3064a5713373948bc3e2519ddb8632eea29",
+  "source_row_fingerprint": "bcc260d9ed71b7c9e675ba6f49955253d2b22488bac672f880d66f6eb077b71b",
+  "packet_source_row_fingerprint": "bcc260d9ed71b7c9e675ba6f49955253d2b22488bac672f880d66f6eb077b71b",
+  "prompt_case_fingerprint": "8ece1bae088883e3a6fe5e71b52dab88d47da3a59b764c20dea9945861252010",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "e7b784d39d30dbb4f241bf408b78682e0287cb61f20b89860d52c84e2579f20c"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "ebef4620588240c1b5ef07d16d6ac5fb",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_8",
+      "case_title": "美国人的性格 / 5 幸福单车的脱节 / tension_reversal",
+      "book_title": "美国人的性格",
+      "author": "费孝通",
+      "chapter_id": "19",
+      "chapter_title": "5 幸福单车的脱节",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "history",
+        "modern_nonfiction",
+        "social_reportage"
+      ],
+      "type_tags": [
+        "social_reportage",
+        "history",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 可是过了几年，我到了美国，我那带了一点英国口音的话，却赢得别人的容忍，非但容忍，而且借了不少光。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "意思是我的英文说得不标准，从美国传教师那里传授的英文怎能合格呢？\n可是过了几年，我到了美国，我那带了一点英国口音的话，却赢得别人的容忍，非但容忍，而且借了不少光。\n在美国学术圈子里英国的学位是到处买账的；反过来说不正确，美国博士在英国却多少带有一点，虽非轻蔑，也略有无足轻重之意。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "e7b784d39d30dbb4f241bf408b78682e0287cb61f20b89860d52c84e2579f20c"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

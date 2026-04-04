@@ -1,0 +1,115 @@
+{
+  "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_6",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a clear tension_reversal: everyday persuasion by reason exists, BUT dramatic worldview transformations from single arguments almost never occur. The passage maintains this tension without flattening it into a generic claim. The anchor line and surrounding text are well-preserved and text-grounded. Factual audit is clean, all quality bands are strong, adversarial review shows no high risk, and the case demonstrates the declared mechanism clearly. No concrete defects found in the excerpt itself."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a clear tension_reversal: everyday persuasion by reason exists, BUT dramatic worldview transformations from single arguments almost never occur. The passage maintains this tension without flattening it into a generic claim. The anchor line and surrounding text are well-preserved and text-grounded. Factual audit is clean, all quality bands are strong, adversarial review shows no high risk, and the case demonstrates the declared mechanism clearly. No concrete defects found in the excerpt itself."
+  },
+  "adjudication_input_fingerprint": "3404b4baf592d1547baea0fb1af9fdcf2a874ea9f23cfe3f2a597a6546cec539",
+  "source_row_fingerprint": "5012a2eecaf7e5134f59296b8e1ee411b75a7dcd157df3eebeaff80c37c9366b",
+  "packet_source_row_fingerprint": "5012a2eecaf7e5134f59296b8e1ee411b75a7dcd157df3eebeaff80c37c9366b",
+  "prompt_case_fingerprint": "186520a3551d6f77194add175644601d12564f31616bd0e65b12ee8972cacb3a",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "189579cb737aa20c1d7a3b2c4e4bd9d88bffd5905759c4001e96859565cfb9af"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "d7fde8f3115b43048d66db43c62a3beb",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_6",
+      "case_title": "走出唯一真理观 / 说理与对话 / tension_reversal",
+      "book_title": "走出唯一真理观",
+      "author": "陈嘉映",
+      "chapter_id": "14",
+      "chapter_title": "说理与对话",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "modern_nonfiction",
+        "philosophical",
+        "psychology_decision"
+      ],
+      "type_tags": [
+        "psychology_decision",
+        "philosophical",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 但是我们很少有这样的经验，听了一次布道，原本信伊斯兰教的人改信了基督教；看了一本新左派的论理书，原来坚持自由主义的倒向了新左派的立场。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "刘：在日常生活中，我们每个人都有被道理说服的经验。\n但是我们很少有这样的经验，听了一次布道，原本信伊斯兰教的人改信了基督教；看了一本新左派的论理书，原来坚持自由主义的倒向了新左派的立场。\n二战时，日本知识分子倒是有一种左转右的潮流，但似乎与道理无关，时势如此。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "189579cb737aa20c1d7a3b2c4e4bd9d88bffd5905759c4001e96859565cfb9af"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

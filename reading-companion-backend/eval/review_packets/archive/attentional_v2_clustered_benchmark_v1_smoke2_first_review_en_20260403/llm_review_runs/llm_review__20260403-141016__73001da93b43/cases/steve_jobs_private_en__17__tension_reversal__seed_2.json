@@ -1,0 +1,121 @@
+{
+  "case_id": "steve_jobs_private_en__17__tension_reversal__seed_2",
+  "raw_model_payload": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "weak",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "The passage illustrates Jobs' exacting interface standards through Atkinson's testimony, presenting a character-driven moment rather than a clear tension reversal. A stronger excerpt would foreground an actual conflict or pivot—such as Jobs rejecting a working implementation or forcing a counter-intuitive design decision—rather than stating his preferences directly.",
+    "review__revised_judge_focus": "Does the passage present a clear tension or reversal (e.g., rejecting the expected, reversing an earlier position, forcing a counter-intuitive choice) rather than merely describing a character's standards or preferences?",
+    "review__notes": "The excerpt is clean and factually sound but lacks a visible tension or reversal. It states Jobs' passion for smooth scrolling and his insistence on good 'feeling,' which reads as straightforward characterization rather than a pressure point or pivot. The anchor line states a principle without contrasting it against a competing demand or earlier position. To qualify as tension_reversal, the excerpt should show Jobs in conflict—rejecting a working approach, overriding others, or reversing course—so the mechanism reward stays meaningful rather than generic."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "weak",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "The passage illustrates Jobs' exacting interface standards through Atkinson's testimony, presenting a character-driven moment rather than a clear tension reversal. A stronger excerpt would foreground an actual conflict or pivot—such as Jobs rejecting a working implementation or forcing a counter-intuitive design decision—rather than stating his preferences directly.",
+    "review__revised_judge_focus": "Does the passage present a clear tension or reversal (e.g., rejecting the expected, reversing an earlier position, forcing a counter-intuitive choice) rather than merely describing a character's standards or preferences?",
+    "review__notes": "The excerpt is clean and factually sound but lacks a visible tension or reversal. It states Jobs' passion for smooth scrolling and his insistence on good 'feeling,' which reads as straightforward characterization rather than a pressure point or pivot. The anchor line states a principle without contrasting it against a competing demand or earlier position. To qualify as tension_reversal, the excerpt should show Jobs in conflict—rejecting a working approach, overriding others, or reversing course—so the mechanism reward stays meaningful rather than generic."
+  },
+  "adjudication_input_fingerprint": "eacafa7c08c8dae05cf0277164bb133ad35d460c68cacbe6ca5ee76e0cdfb32f",
+  "source_row_fingerprint": "636d3864597ee733849928daa1efca4a0a2402569e7ce9ecbd95312f4273087b",
+  "packet_source_row_fingerprint": "636d3864597ee733849928daa1efca4a0a2402569e7ce9ecbd95312f4273087b",
+  "prompt_case_fingerprint": "23763d64e67c46eac652b91ecd3eb2b0b6cdba6f9e1ba5846861884c52b2af77",
+  "audit_row_fingerprint": "3b030232894b9d341652b62d2047525e994f9e8b21f329805adc8ee72e80b1b9",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "a9f4ad21d710a248c5b6550918029d63a92c4ff03b94dce8b9be80b360c7dd42"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "63aed62b4c2d4e66ad3beab625d041da",
+  "trace_status": "ok",
+  "attempt_count": 2,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "steve_jobs_private_en__17__tension_reversal__seed_2",
+      "case_title": "Steve Jobs / Chapter Eight: Xerox and Lisa: Graphical User Interfaces / tension_reversal",
+      "book_title": "Steve Jobs",
+      "author": "Walter Isaacson",
+      "chapter_id": "17",
+      "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "narrative_reflective",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "biography",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "biography",
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: Documents should not lurch line by line as you scroll through them, but instead should flow.",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "Jobs also had a passion for smooth scrolling.\nDocuments should not lurch line by line as you scroll through them, but instead should flow.\n“He was adamant that everything on the interface had a good feeling to the user,” Atkinson said."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "revise",
+        "problem_types": [
+          "ambiguous_focus"
+        ],
+        "bucket_fit_band": "weak",
+        "focus_clarity_band": "weak",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "a9f4ad21d710a248c5b6550918029d63a92c4ff03b94dce8b9be80b360c7dd42"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

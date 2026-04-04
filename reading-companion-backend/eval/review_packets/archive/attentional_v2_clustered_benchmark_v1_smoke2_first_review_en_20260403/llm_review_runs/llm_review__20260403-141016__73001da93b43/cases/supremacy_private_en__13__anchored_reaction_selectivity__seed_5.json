@@ -1,0 +1,118 @@
+{
+  "case_id": "supremacy_private_en__13__anchored_reaction_selectivity__seed_5",
+  "raw_model_payload": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "Selected because the passage contains a clear anchored reaction: the uncertainty in 'That wasn't clear' is explicitly anchored to the question 'Could DeepMind sue Google?' The passage demonstrates both reaction_anchor and visible_thought while demanding selective legibility to identify the precise claim being reacted to.",
+    "review__revised_judge_focus": "Does the uncertainty 'That wasn't clear' function as a genuine visible reaction anchored to 'Could DeepMind sue Google?', and is this reaction worth preserving for evaluating anchored reaction selectivity?",
+    "review__notes": "The excerpt has a valid reaction mechanism (uncertainty expressed as reaction to a specific question) but the brevity and decontextualized framing create focus ambiguity. The revised selection reason clarifies the exact anchor-reaction pairing to guide judges more precisely. Bucket is appropriate as the anchored reaction is clearly present."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "Selected because the passage contains a clear anchored reaction: the uncertainty in 'That wasn't clear' is explicitly anchored to the question 'Could DeepMind sue Google?' The passage demonstrates both reaction_anchor and visible_thought while demanding selective legibility to identify the precise claim being reacted to.",
+    "review__revised_judge_focus": "Does the uncertainty 'That wasn't clear' function as a genuine visible reaction anchored to 'Could DeepMind sue Google?', and is this reaction worth preserving for evaluating anchored reaction selectivity?",
+    "review__notes": "The excerpt has a valid reaction mechanism (uncertainty expressed as reaction to a specific question) but the brevity and decontextualized framing create focus ambiguity. The revised selection reason clarifies the exact anchor-reaction pairing to guide judges more precisely. Bucket is appropriate as the anchored reaction is clearly present."
+  },
+  "adjudication_input_fingerprint": "3251c0fe1bcf654b322b3176940b84330ba309f2768145fb3ac179d926c2acb3",
+  "source_row_fingerprint": "d52d359ad4064406c9f07554e09e3ec3edce184d5b5158445418dd139202b428",
+  "packet_source_row_fingerprint": "d52d359ad4064406c9f07554e09e3ec3edce184d5b5158445418dd139202b428",
+  "prompt_case_fingerprint": "1959434a7207fe1cf4e036e820bcddee495e9dfd6888768a29ea844e1adbf728",
+  "audit_row_fingerprint": "65f60024d3bc1da7eaef36915c2e8c2ddf737bd4418d9f4dafa1ee52ad869f1d",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "8d9dc21754cb1b05bd4c530e8a726e02321341ea2a5bc872a8d1655b75905b46"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "d2ed4a1c53bc4dcf8ca442a29359e106",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "supremacy_private_en__13__anchored_reaction_selectivity__seed_5",
+      "case_title": "Supremacy / Chapter 7. Playing Games / anchored_reaction_selectivity",
+      "book_title": "Supremacy",
+      "author": "Parmy Olson",
+      "chapter_id": "13",
+      "chapter_title": "Chapter 7. Playing Games",
+      "target_profile_id": "anchored_reaction_selectivity",
+      "selection_role": "argumentative",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a line that seems reaction-worthy but still demands selective, anchored reading. Anchor line: Could DeepMind sue Google?",
+      "judge_focus": "Is the visible reaction anchored to the actual line and genuinely worth preserving?",
+      "excerpt_text": "Suppose Google were to use DeepMind’s AI for military purposes down the line.\nCould DeepMind sue Google?\nThat wasn’t clear."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "revise",
+        "problem_types": [
+          "ambiguous_focus"
+        ],
+        "bucket_fit_band": "adequate",
+        "focus_clarity_band": "adequate",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "8d9dc21754cb1b05bd4c530e8a726e02321341ea2a5bc872a8d1655b75905b46"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

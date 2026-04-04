@@ -1,0 +1,116 @@
+{
+  "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__anchored_reaction_selectivity__seed_3",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "medium",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt is strong: it contains a genuine philosophical dialogue where Liu's anchor proposition (neutral third-party judging) and Chen's response (reducing all reasoning to position makes reasoning impossible) both illustrate the target phenomena of anchored reaction and selective legibility. The visible thought is authentic to the philosophical exchange. The primary review flagged ambiguous_focus, but on direct examination the judge focus question is answerable and the excerpt itself demonstrates clear, grounded reactions to specific lines. Factual audit is clean and adversarial review shows no high risk. The case is benchmark-ready."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt is strong: it contains a genuine philosophical dialogue where Liu's anchor proposition (neutral third-party judging) and Chen's response (reducing all reasoning to position makes reasoning impossible) both illustrate the target phenomena of anchored reaction and selective legibility. The visible thought is authentic to the philosophical exchange. The primary review flagged ambiguous_focus, but on direct examination the judge focus question is answerable and the excerpt itself demonstrates clear, grounded reactions to specific lines. Factual audit is clean and adversarial review shows no high risk. The case is benchmark-ready."
+  },
+  "adjudication_input_fingerprint": "4a2b86bfa624c2d2ad523264739e156199521f55efb0b7091c3da0c8546d0ebf",
+  "source_row_fingerprint": "920c5c0c69dd6b852c664580a8a20618c8870b98f2d456ea31ef066dc7998d54",
+  "packet_source_row_fingerprint": "920c5c0c69dd6b852c664580a8a20618c8870b98f2d456ea31ef066dc7998d54",
+  "prompt_case_fingerprint": "e7e350bd294b95d3bb751ac944e128e46a13994c5ad6ec7e96e297cb6c206c60",
+  "audit_row_fingerprint": "65f60024d3bc1da7eaef36915c2e8c2ddf737bd4418d9f4dafa1ee52ad869f1d",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "e96ae789b62f8d021fef8183d6408db5ff6287522dfa57acc8c5da58cf9110a9"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "b421576db09d4302ab1bfae273f5b1aa",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__anchored_reaction_selectivity__seed_3",
+      "case_title": "走出唯一真理观 / 说理与对话 / anchored_reaction_selectivity",
+      "book_title": "走出唯一真理观",
+      "author": "陈嘉映",
+      "chapter_id": "14",
+      "chapter_title": "说理与对话",
+      "target_profile_id": "anchored_reaction_selectivity",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "modern_nonfiction",
+        "philosophical",
+        "psychology_decision"
+      ],
+      "type_tags": [
+        "psychology_decision",
+        "philosophical",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a line that seems reaction-worthy but still demands selective, anchored reading. Anchor line: 刘：我理解所谓屁股决定脑袋，但在两个人的辩论过程当中，你可以指出说，假如真正有这么一个公理系统，逻辑这套大家已经承认的东西，比如三段论这样的东西，我是可以指出你现在这样一个说法是带了你的利益或者是感情在里面的，是不是有一种可能，比如两个人辩论，至少我可以找到一个中立的第三方来指出，就像美国的总统辩论，他总有一个第...",
+      "judge_focus": "Is the visible reaction anchored to the actual line and genuinely worth preserving?",
+      "excerpt_text": "但恰恰因此，我们要努力培养说理文化，不仅要努力要求强权讲点儿道理，也希望有理的一方学会说清楚他的道理。\n刘：我理解所谓屁股决定脑袋，但在两个人的辩论过程当中，你可以指出说，假如真正有这么一个公理系统，逻辑这套大家已经承认的东西，比如三段论这样的东西，我是可以指出你现在这样一个说法是带了你的利益或者是感情在里面的，是不是有一种可能，比如两个人辩论，至少我可以找到一个中立的第三方来指出，就像美国的总统辩论，他总有一个第三方，或者很多老百姓在不设立场，或者没有决定投民主党和共和党的时候来做判断，你是共和党明显带着这种感情，有没有这种可能呢？\n陈：屁股决定脑袋这种话也许可以提醒我们不要把观念看得太重，提醒我们观念背后还有利益诉求等等，但单说屁股决定脑袋，那等于说人根本没有脑袋，那当然，说理就完全不可能了——所有的道理都可以还原为他处在什么地位上。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "revise",
+        "problem_types": [
+          "ambiguous_focus"
+        ],
+        "bucket_fit_band": "adequate",
+        "focus_clarity_band": "adequate",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "e96ae789b62f8d021fef8183d6408db5ff6287522dfa57acc8c5da58cf9110a9"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

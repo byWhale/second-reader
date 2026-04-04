@@ -1,0 +1,115 @@
+{
+  "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_4",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt cleanly demonstrates a tension_reversal: it sets up a hypothetical negative scenario (北美可能成为犯罪者乐园、囚犯戍站) and then pivots to the actual constructive reality (吸引清教徒和饥民). The reversal is preserved in its full contrast rather than flattened into summary. All audits pass, all bands are strong, and adversarial review shows no high risk. The case is benchmark-ready."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt cleanly demonstrates a tension_reversal: it sets up a hypothetical negative scenario (北美可能成为犯罪者乐园、囚犯戍站) and then pivots to the actual constructive reality (吸引清教徒和饥民). The reversal is preserved in its full contrast rather than flattened into summary. All audits pass, all bands are strong, and adversarial review shows no high risk. The case is benchmark-ready."
+  },
+  "adjudication_input_fingerprint": "8c5917b59fcb63eb1b76304f966d691fda81488ac2b34366664cb70b02870e07",
+  "source_row_fingerprint": "1a4b5d3d2fc5f30d63aeabff2fce1679c4752d3bd63f8d7c61104b415828d70c",
+  "packet_source_row_fingerprint": "1a4b5d3d2fc5f30d63aeabff2fce1679c4752d3bd63f8d7c61104b415828d70c",
+  "prompt_case_fingerprint": "f5efc7cc72350aa796512598df413db3c28a7f70745b2340063e41d787686032",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "607414bdd3af9872e113078de8a1c41a3c1b164b7f66467061a44985739dbd8d"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "611ed9098db3464fbd082ed6c16bea58",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_4",
+      "case_title": "美国人的性格 / 5 幸福单车的脱节 / tension_reversal",
+      "book_title": "美国人的性格",
+      "author": "费孝通",
+      "chapter_id": "19",
+      "chapter_title": "5 幸福单车的脱节",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "history",
+        "modern_nonfiction",
+        "social_reportage"
+      ],
+      "type_tags": [
+        "social_reportage",
+        "history",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 但是北美却不然，它吸引了虔诚地想在地上建筑天堂的清教徒，宁愿短期卖身以求不再挨饿的饥民。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "假如在十七八世纪的欧洲这位家长对他的子弟仁慈些，北美很可能像中美一般成了个犯罪者的乐园，囚犯的戍站，土著和白人混合之场。\n但是北美却不然，它吸引了虔诚地想在地上建筑天堂的清教徒，宁愿短期卖身以求不再挨饿的饥民。\n充满着威胁、匮乏的欧洲才有这无数背井离乡、抛弃父母之邦的移民，一个向欧洲要求独立的美国。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "607414bdd3af9872e113078de8a1c41a3c1b164b7f66467061a44985739dbd8d"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

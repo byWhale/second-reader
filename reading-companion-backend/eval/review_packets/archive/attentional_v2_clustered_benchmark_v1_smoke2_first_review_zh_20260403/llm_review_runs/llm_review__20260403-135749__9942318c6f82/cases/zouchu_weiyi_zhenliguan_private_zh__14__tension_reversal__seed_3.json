@@ -1,0 +1,115 @@
+{
+  "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_3",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All gates pass cleanly: factual audit is clean, primary review recommends keep with all bands strong, adversarial review shows no high risk. The excerpt contains a clear tension reversal between the ideal of problem-led dialogue and the failure mode when that direction is lost—evident in the anchor line about dialogue becoming impossible without question-dominance. The philosophical tension is not flattened into generic summary but preserved in the contrast between the normative claim and the sardonic observation about cross-disciplinary '鸡同鸭讲'. No workflow-stage metadata or seed status constitutes a defect. Case is benchmark-ready."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All gates pass cleanly: factual audit is clean, primary review recommends keep with all bands strong, adversarial review shows no high risk. The excerpt contains a clear tension reversal between the ideal of problem-led dialogue and the failure mode when that direction is lost—evident in the anchor line about dialogue becoming impossible without question-dominance. The philosophical tension is not flattened into generic summary but preserved in the contrast between the normative claim and the sardonic observation about cross-disciplinary '鸡同鸭讲'. No workflow-stage metadata or seed status constitutes a defect. Case is benchmark-ready."
+  },
+  "adjudication_input_fingerprint": "47a7e2413ba37a66a8822733bb43f6dd1b46f6db2862da71a3fb7c47b42ea4ba",
+  "source_row_fingerprint": "23d23dca69567270b10a6e0cc3fc272ad62d36a48b940fc27ac27dc27126e30e",
+  "packet_source_row_fingerprint": "23d23dca69567270b10a6e0cc3fc272ad62d36a48b940fc27ac27dc27126e30e",
+  "prompt_case_fingerprint": "5c1decaa8765b98c2bc1fe33a68fdf059e1658d1973017e447df15c515cbabbf",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "c7a821d56efcfc47697733531cdb0466cd608db2c1c7de45dea705e2da880ed8"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "6b959e6d892d4849bf2538294838d4f1",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "zouchu_weiyi_zhenliguan_private_zh__14__tension_reversal__seed_3",
+      "case_title": "走出唯一真理观 / 说理与对话 / tension_reversal",
+      "book_title": "走出唯一真理观",
+      "author": "陈嘉映",
+      "chapter_id": "14",
+      "chapter_title": "说理与对话",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "modern_nonfiction",
+        "philosophical",
+        "psychology_decision"
+      ],
+      "type_tags": [
+        "psychology_decision",
+        "philosophical",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 对话如果失去问题主导，它不但流于形式而且就是一件不可能的事儿，不过是聚到一起来各说各话。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "不是说我硬要跟你对话，为对话而对话，而是那个问题把我们领到一起来对话。\n对话如果失去问题主导，它不但流于形式而且就是一件不可能的事儿，不过是聚到一起来各说各话。\n我参加过几次所谓跨学科对话，基本上是鸡同鸭讲。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "c7a821d56efcfc47697733531cdb0466cd608db2c1c7de45dea705e2da880ed8"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

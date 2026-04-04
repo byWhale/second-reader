@@ -1,0 +1,118 @@
+{
+  "case_id": "meiguoren_de_xingge_private_zh__19__anchored_reaction_selectivity__seed_1",
+  "raw_model_payload": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "Selected because the passage demonstrates a layered reading challenge where the narrator's direct reaction (British dismissal of American-accented English) must be distinguished from a subsequent metacognitive line that critically examines the assumption about English transmission standards. The reader must anchor evaluation to the meta-commentary line rather than the surface reaction, testing selective legibility through the shift from narrative reaction to analytical deconstruction of cultural language attitudes.",
+    "review__revised_judge_focus": "Does the visible thought reveal a metacognitive reading move that goes beyond the surface narrative reaction, and is this distinction clear enough for the anchor to guide selective interpretation rather than just reactive identification?",
+    "review__notes": "The excerpt is sound but the selection reason and judge focus do not adequately distinguish between the surface reaction (British dismissal of American accent) and the meta-commentary (critical examination of English transmission standards) that should be the anchor. The current description implies the anchor line itself is the reaction, when it is more precisely a deconstruction of an attitude the narrator encountered. The revised focus should clarify that the reading mechanism involves tracing the shift from narrative reaction to metacognitive analysis, not simply anchoring to the meta-commentary as if it were a direct reactive statement. This distinction affects how the anchor line guides selective legibility."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "Selected because the passage demonstrates a layered reading challenge where the narrator's direct reaction (British dismissal of American-accented English) must be distinguished from a subsequent metacognitive line that critically examines the assumption about English transmission standards. The reader must anchor evaluation to the meta-commentary line rather than the surface reaction, testing selective legibility through the shift from narrative reaction to analytical deconstruction of cultural language attitudes.",
+    "review__revised_judge_focus": "Does the visible thought reveal a metacognitive reading move that goes beyond the surface narrative reaction, and is this distinction clear enough for the anchor to guide selective interpretation rather than just reactive identification?",
+    "review__notes": "The excerpt is sound but the selection reason and judge focus do not adequately distinguish between the surface reaction (British dismissal of American accent) and the meta-commentary (critical examination of English transmission standards) that should be the anchor. The current description implies the anchor line itself is the reaction, when it is more precisely a deconstruction of an attitude the narrator encountered. The revised focus should clarify that the reading mechanism involves tracing the shift from narrative reaction to metacognitive analysis, not simply anchoring to the meta-commentary as if it were a direct reactive statement. This distinction affects how the anchor line guides selective legibility."
+  },
+  "adjudication_input_fingerprint": "06ea5879a82e0f9e3e54c6c13caea630fc15c7526baad45ce05026668888e7b6",
+  "source_row_fingerprint": "561400b0a027f641343065c0c4f2d4e056486855aca8cb6ab56803f156db4055",
+  "packet_source_row_fingerprint": "561400b0a027f641343065c0c4f2d4e056486855aca8cb6ab56803f156db4055",
+  "prompt_case_fingerprint": "69fb5c0cab6faac9bc889e69ccfb9391cc48cfd9bbcd9584fee25c11a6a2e27c",
+  "audit_row_fingerprint": "d20a3d983d0cacfc8bb3cd4a29b433820b249e04491c9be02ec78ff4fa812c80",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "e28b306d2aac9fdb093678eee5ac3eb04da27bbe70688dd9f730ff65f7c0d953"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "e11465b0651d4cdeb05b2c967bb232fe",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "meiguoren_de_xingge_private_zh__19__anchored_reaction_selectivity__seed_1",
+      "case_title": "美国人的性格 / 5 幸福单车的脱节 / anchored_reaction_selectivity",
+      "book_title": "美国人的性格",
+      "author": "费孝通",
+      "chapter_id": "19",
+      "chapter_title": "5 幸福单车的脱节",
+      "target_profile_id": "anchored_reaction_selectivity",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "history",
+        "modern_nonfiction",
+        "social_reportage"
+      ],
+      "type_tags": [
+        "social_reportage",
+        "history",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a line that seems reaction-worthy but still demands selective, anchored reading. Anchor line: 意思是我的英文说得不标准，从美国传教师那里传授的英文怎能合格呢？",
+      "judge_focus": "Is the visible reaction anchored to the actual line and genuinely worth preserving?",
+      "excerpt_text": "我初次到英国，朋友们，老师们，甚至房东太太，都带着一种惋惜的口吻说：“可惜你的美国音太重。”\n意思是我的英文说得不标准，从美国传教师那里传授的英文怎能合格呢？\n可是过了几年，我到了美国，我那带了一点英国口音的话，却赢得别人的容忍，非但容忍，而且借了不少光。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "revise",
+        "problem_types": [
+          "other"
+        ],
+        "bucket_fit_band": "adequate",
+        "focus_clarity_band": "adequate",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "e28b306d2aac9fdb093678eee5ac3eb04da27bbe70688dd9f730ff65f7c0d953"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

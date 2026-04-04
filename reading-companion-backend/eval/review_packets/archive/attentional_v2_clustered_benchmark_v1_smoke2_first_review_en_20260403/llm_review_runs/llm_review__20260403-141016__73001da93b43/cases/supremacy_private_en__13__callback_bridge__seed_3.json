@@ -1,0 +1,115 @@
+{
+  "case_id": "supremacy_private_en__13__callback_bridge__seed_3",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt cleanly demonstrates a backward bridge from the statement about AlphaGo's unknown victory back to the earlier mention of Google's lobbying efforts to broadcast the match—revealing an ironic contrast that advances the author's argument about technology diplomacy. Attribution to Parmy Olson's Supremacy is clear and source-grounded throughout. All audit gates pass; the callback_bridge bucket fits the excerpt's concrete backward-linking move."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt cleanly demonstrates a backward bridge from the statement about AlphaGo's unknown victory back to the earlier mention of Google's lobbying efforts to broadcast the match—revealing an ironic contrast that advances the author's argument about technology diplomacy. Attribution to Parmy Olson's Supremacy is clear and source-grounded throughout. All audit gates pass; the callback_bridge bucket fits the excerpt's concrete backward-linking move."
+  },
+  "adjudication_input_fingerprint": "bd38d7ab96f4477be1ba070dc7892007c5d90d595771d8a494a6ed6777306fd7",
+  "source_row_fingerprint": "45dab826d8c44e96c6a7aa7f2a242259bd9c0385653bccdba0f17ee08914dbab",
+  "packet_source_row_fingerprint": "45dab826d8c44e96c6a7aa7f2a242259bd9c0385653bccdba0f17ee08914dbab",
+  "prompt_case_fingerprint": "aced2ae8b2fb4485f5a6066c378bf37ae3a4f3760654590fc03838a6b90687a1",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "362bcc6afe87590b29beea7fd760b3f7fcb4e184d1d72ccd52eb1a17ca0a6692"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "e8798a5c87d744a7a514c26178a7b180",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "supremacy_private_en__13__callback_bridge__seed_3",
+      "case_title": "Supremacy / Chapter 7. Playing Games / callback_bridge",
+      "book_title": "Supremacy",
+      "author": "Parmy Olson",
+      "chapter_id": "13",
+      "chapter_title": "Chapter 7. Playing Games",
+      "target_profile_id": "callback_bridge",
+      "selection_role": "argumentative",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-CM-004",
+        "EQ-AV2-004"
+      ],
+      "phenomena": [
+        "bridge_potential",
+        "callback",
+        "cross_span_link"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a backward bridge from 'The new AlphaGo won all three games against Ke Jie, and hardly anyone in China knew.' to earlier material: 'The match took place in Wuzhen, China, in May 2017, and while Google executives had spent the past year lobbying Chinese government officials to broadcast it...'. The bridge advances the argument and must remain source-grounded with clear attribution to Parmy Olson's Supremacy, not associative.",
+      "judge_focus": "Can the reader trace the backward bridge from 'The new AlphaGo won all three games against Ke Jie, and hardly anyone in China knew.' to the earlier 'The match took place in Wuzhen, China, in May 2017, and while Google executives had spent the past year lobbying Chinese government officials to broadcast it...' passage while maintaining clear, non-associative attribution to Parmy Olson's Supremacy? Does the reader identify that the author is making a forward-moving argumentative connection rather than an associative gloss?",
+      "excerpt_text": "Pichai agreed.\nThe match took place in Wuzhen, China, in May 2017, and while Google executives had spent the past year lobbying Chinese government officials to broadcast it across China’s TV and internet services, the match ended up being blocked for most of the country.\nThe new AlphaGo won all three games against Ke Jie, and hardly anyone in China knew.\nGoogle’s leadership tried to stay positive about the situation.\nAs he was being interviewed on stage at the match event, Schmidt used the opportunity to praise TensorFlow, saying that top Chinese internet companies like Alibaba, Baidu, and Tencent should try it."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "362bcc6afe87590b29beea7fd760b3f7fcb4e184d1d72ccd52eb1a17ca0a6692"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

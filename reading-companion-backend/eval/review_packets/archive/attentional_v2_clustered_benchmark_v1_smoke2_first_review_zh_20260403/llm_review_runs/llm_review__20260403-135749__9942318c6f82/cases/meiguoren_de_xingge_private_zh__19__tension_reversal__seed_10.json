@@ -1,0 +1,115 @@
+{
+  "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_10",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All audits pass cleanly: factual audit is ok, primary review rates all bands strong, adversarial review finds no high risk. The excerpt demonstrates the tension_reversal cleanly through contrast (Europe vs. Asia, then European immigrants' paradoxical stance toward homeland), culminating in the metaphor of the child who leaves an oppressive father and refuses return. The declared target profile and declared phenomena align precisely with the excerpt's structure. No revision needed."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All audits pass cleanly: factual audit is ok, primary review rates all bands strong, adversarial review finds no high risk. The excerpt demonstrates the tension_reversal cleanly through contrast (Europe vs. Asia, then European immigrants' paradoxical stance toward homeland), culminating in the metaphor of the child who leaves an oppressive father and refuses return. The declared target profile and declared phenomena align precisely with the excerpt's structure. No revision needed."
+  },
+  "adjudication_input_fingerprint": "961240d25530378b6f0bc9a6675bf89509ceadebbedcc119fb854f73303f27dc",
+  "source_row_fingerprint": "4b783ba67ad7122e0a18af809711d16a14408ce1cad938d658cf5a6e3d6099dc",
+  "packet_source_row_fingerprint": "4b783ba67ad7122e0a18af809711d16a14408ce1cad938d658cf5a6e3d6099dc",
+  "prompt_case_fingerprint": "11a26de3dc315d0f31525f6e621a1cdc449e9aa328a0358e46842c58ad930bd5",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "a31e97df81c46b789eff3ecd5a4926eccf2c5bfbca4cfb0f85ce7f95a9bf0d4f"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "6f4bba5a32f6485a9ec99b1fcb9e682b",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_10",
+      "case_title": "美国人的性格 / 5 幸福单车的脱节 / tension_reversal",
+      "book_title": "美国人的性格",
+      "author": "费孝通",
+      "chapter_id": "19",
+      "chapter_title": "5 幸福单车的脱节",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "history",
+        "modern_nonfiction",
+        "social_reportage"
+      ],
+      "type_tags": [
+        "social_reportage",
+        "history",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 从欧洲到北美去的移民不但不怀念着祖国，年老了没有丝毫意思要到故乡去寿终正寝，更不会遗嘱子孙把棺材运过大海葬入祖茔；他们死心塌地地想在北美立脚，当地当时就可以衣锦昼行；而且他们对于压迫他们到不能不自求自由之邦的老家，心里充满着忿恨。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "亚洲在这一点上是和欧洲不同的。\n从欧洲到北美去的移民不但不怀念着祖国，年老了没有丝毫意思要到故乡去寿终正寝，更不会遗嘱子孙把棺材运过大海葬入祖茔；他们死心塌地地想在北美立脚，当地当时就可以衣锦昼行；而且他们对于压迫他们到不能不自求自由之邦的老家，心里充满着忿恨。\n所以我说他们有一点像是严父手下，受尽了委屈，发誓不再回家，出门自立的孩子。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "a31e97df81c46b789eff3ecd5a4926eccf2c5bfbca4cfb0f85ce7f95a9bf0d4f"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

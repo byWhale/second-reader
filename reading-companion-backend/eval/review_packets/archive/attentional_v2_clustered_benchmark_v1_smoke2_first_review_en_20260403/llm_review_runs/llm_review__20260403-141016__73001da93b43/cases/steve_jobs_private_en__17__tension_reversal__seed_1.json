@@ -1,0 +1,117 @@
+{
+  "case_id": "steve_jobs_private_en__17__tension_reversal__seed_1",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a clean tension_reversal: Jobs and team were expected to value networking and object-oriented programming (first two features), yet they fixated entirely on the graphical interface instead. The adversarial review found no high risk, all three bands are strong, and the factual audit is clean. The passage keeps the tension mechanism intact rather than flattening it—making it benchmark-worthy."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt presents a clean tension_reversal: Jobs and team were expected to value networking and object-oriented programming (first two features), yet they fixated entirely on the graphical interface instead. The adversarial review found no high risk, all three bands are strong, and the factual audit is clean. The passage keeps the tension mechanism intact rather than flattening it—making it benchmark-worthy."
+  },
+  "adjudication_input_fingerprint": "aa53705192dc9e6da9cb972985ea46d923bb9359ffb478d8617c2dc38a71bb05",
+  "source_row_fingerprint": "28f84d716eca82087f7a2b5326c797c0b75fa4b65142a510317424a001d0425c",
+  "packet_source_row_fingerprint": "28f84d716eca82087f7a2b5326c797c0b75fa4b65142a510317424a001d0425c",
+  "prompt_case_fingerprint": "939eb11939f78fcb30d2e0d179db3c1724d28be8ab7c751377c98d628190e44a",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "daa028564f32385276f471257591f61762aa9ad1f475544c5cd7b23032d5a865"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "75c2bf559bc3462d9f0c6a8fd9c01ce0",
+  "trace_status": "ok",
+  "attempt_count": 2,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "steve_jobs_private_en__17__tension_reversal__seed_1",
+      "case_title": "Steve Jobs / Chapter Eight: Xerox and Lisa: Graphical User Interfaces / tension_reversal",
+      "book_title": "Steve Jobs",
+      "author": "Walter Isaacson",
+      "chapter_id": "17",
+      "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "narrative_reflective",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "biography",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "biography",
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: But Jobs and his team paid little attention to these attributes because they were so amazed by the third feature, the graphical interface that was made possi...",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "One was how computers could be networked; the second was how object-oriented programming worked.\nBut Jobs and his team paid little attention to these attributes because they were so amazed by the third feature, the graphical interface that was made possible by a bitmapped screen.\n“It was like a veil being lifted from my eyes,” Jobs recalled."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "daa028564f32385276f471257591f61762aa9ad1f475544c5cd7b23032d5a865"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

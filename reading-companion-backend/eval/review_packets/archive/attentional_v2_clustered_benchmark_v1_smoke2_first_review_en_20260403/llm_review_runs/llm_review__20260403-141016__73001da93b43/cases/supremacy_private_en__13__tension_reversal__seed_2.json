@@ -1,0 +1,115 @@
+{
+  "case_id": "supremacy_private_en__13__tension_reversal__seed_2",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt contains a textbook tension_reversal: the founders experience déjà vu as Google reverses course (tension), then executives pivot to reassurance and a third-option compromise (reversal). The anchor line ('But the executives told them not to worry, because they could still find a compromise') is specific and text-grounded. Specific details (DeepMind, partial spinout, board of trustees, superintelligent AI) prevent flattening into generic summary. Factual audit clean, primary review strong across all bands, adversarial review shows no high risk—case meets all readiness criteria."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt contains a textbook tension_reversal: the founders experience déjà vu as Google reverses course (tension), then executives pivot to reassurance and a third-option compromise (reversal). The anchor line ('But the executives told them not to worry, because they could still find a compromise') is specific and text-grounded. Specific details (DeepMind, partial spinout, board of trustees, superintelligent AI) prevent flattening into generic summary. Factual audit clean, primary review strong across all bands, adversarial review shows no high risk—case meets all readiness criteria."
+  },
+  "adjudication_input_fingerprint": "2804dca589420e7180b141684cb065099081a3a2991630dffb4b555d3bf678fc",
+  "source_row_fingerprint": "7ffa486289c356dff1f66c4ef5608336e6557a0c88d4c9e9f334d826ffdf43b4",
+  "packet_source_row_fingerprint": "7ffa486289c356dff1f66c4ef5608336e6557a0c88d4c9e9f334d826ffdf43b4",
+  "prompt_case_fingerprint": "6a168e1b9ebbfd1b92cfffe16153549b07c27c11b4212abe35937e9ca94eb809",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "87630b875ca6ee026dd80a11412255404dc74e43e8cff39cd48d2534dc70d2ff"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "1888329045e34a62af45a9b5ad794029",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "supremacy_private_en__13__tension_reversal__seed_2",
+      "case_title": "Supremacy / Chapter 7. Playing Games / tension_reversal",
+      "book_title": "Supremacy",
+      "author": "Parmy Olson",
+      "chapter_id": "13",
+      "chapter_title": "Chapter 7. Playing Games",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "argumentative",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: But the executives told them not to worry, because they could still find a compromise.",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "The founders felt like they were experiencing déjà vu, as Google reversed course yet again.\nBut the executives told them not to worry, because they could still find a compromise.\nThey now suggested a third option: DeepMind could do a kind of partial spinout and have its own board of trustees guiding its creation of superintelligent AI, but Alphabet would retain some ownership of the AI company."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "87630b875ca6ee026dd80a11412255404dc74e43e8cff39cd48d2534dc70d2ff"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

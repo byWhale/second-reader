@@ -1,0 +1,115 @@
+{
+  "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_6",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt contains a textbook tension_reversal: the proud declaration of refusing to return ('就是冻死，饿死...不再进你这扇门了') is immediately countered by '但是...还得在严父面前出的呀', creating a sharp reversal that rewards a source-grounded move. Factual audit is clean, primary review confirms strong bucket fit and focus clarity, and adversarial review shows no high risk. No concrete defects in the excerpt itself; the case is benchmark-ready as-is."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "The excerpt contains a textbook tension_reversal: the proud declaration of refusing to return ('就是冻死，饿死...不再进你这扇门了') is immediately countered by '但是...还得在严父面前出的呀', creating a sharp reversal that rewards a source-grounded move. Factual audit is clean, primary review confirms strong bucket fit and focus clarity, and adversarial review shows no high risk. No concrete defects in the excerpt itself; the case is benchmark-ready as-is."
+  },
+  "adjudication_input_fingerprint": "4976a2653f50092b936109b3dad1aeb8eb5113d133007625dfb4ef449ca95b55",
+  "source_row_fingerprint": "f32095e4a9fe8ed45a1621a01f84128002c4494c09d201e0ba369e11f2c40d5a",
+  "packet_source_row_fingerprint": "f32095e4a9fe8ed45a1621a01f84128002c4494c09d201e0ba369e11f2c40d5a",
+  "prompt_case_fingerprint": "8e66eb08d56a22d6401a1989953e31493b713430cd37f22ce99109e385a7ea5d",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "ad37824c030e48fb4f95d28d2affbe3938aa3b99e564a0eea6d9b5ae5ddb0996"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "31dfd878e16c4667a696574c1c8cfc88",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "meiguoren_de_xingge_private_zh__19__tension_reversal__seed_6",
+      "case_title": "美国人的性格 / 5 幸福单车的脱节 / tension_reversal",
+      "book_title": "美国人的性格",
+      "author": "费孝通",
+      "chapter_id": "19",
+      "chapter_title": "5 幸福单车的脱节",
+      "target_profile_id": "tension_reversal",
+      "selection_role": "expository",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-003",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "tension_reversal",
+        "controller_move_quality",
+        "anchored_reaction"
+      ],
+      "role_tags": [
+        "expository",
+        "argumentative",
+        "history",
+        "modern_nonfiction",
+        "social_reportage"
+      ],
+      "type_tags": [
+        "social_reportage",
+        "history",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a pressure point or reversal that should reward a proportionate, text-grounded move. Anchor line: 这是个有志气的孩子，但是——我们应该明白——所要出的那口气，还得在严父面前出的呀。",
+      "judge_focus": "Does the mechanism stay with the reversal or tension instead of flattening it into generic summary?",
+      "excerpt_text": "好马不吃回头草，“就是冻死，饿死，被天雷打死，也不再进你这扇门了”。\n这是个有志气的孩子，但是——我们应该明白——所要出的那口气，还得在严父面前出的呀。\n丘吉尔、怀德海教授之所以能使美国听众高兴得叫好，原是给他们出这口气罢了。"
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "ad37824c030e48fb4f95d28d2affbe3938aa3b99e564a0eea6d9b5ae5ddb0996"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

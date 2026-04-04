@@ -1,0 +1,120 @@
+{
+  "case_id": "steve_jobs_private_en__17__anchored_reaction_selectivity__seed_1",
+  "raw_model_payload": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "The passage contains a reaction anchor ('We've got to do it!') set against the broader context of Jobs' vision for democratizing computers. The quoted line demands selective, anchored reading to distinguish the reaction-worthy anchor from surrounding contextual framing, making it suitable for testing selective legibility around a visible thought/reaction.",
+    "review__revised_judge_focus": "Is the reaction ('We've got to do it!') clearly anchored as the focal line, and does the excerpt maintain selective focus on this anchor rather than splitting attention across multiple quoted reactions? Does the surrounding context genuinely support legibility of the anchor, or does it dilute attention from it?",
+    "review__notes": "The excerpt has real value—it preserves a vivid reaction from Jobs at a pivotal tech moment—but the presence of two separate quoted lines ('This is it!' and 'We've got to do it!') creates ambiguous focus. The primary anchor ('We've got to do it!') is identified in the selection reason, yet the opening quote draws equal attention and could function as text noise competing with the anchor. Revision should clarify which line is the true focal anchor and ensure the excerpt structure emphasizes that anchor's legibility over the reactive moment. The Eichler/kitchen appliance context is substantive but could be tightened to reinforce rather than distract from the anchor line."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "revise",
+    "bucket_fit": "correct",
+    "focus_clarity": "partial",
+    "excerpt_integrity": "adequate",
+    "review__action": "revise",
+    "review__confidence": "medium",
+    "review__problem_types": [
+      "ambiguous_focus"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "The passage contains a reaction anchor ('We've got to do it!') set against the broader context of Jobs' vision for democratizing computers. The quoted line demands selective, anchored reading to distinguish the reaction-worthy anchor from surrounding contextual framing, making it suitable for testing selective legibility around a visible thought/reaction.",
+    "review__revised_judge_focus": "Is the reaction ('We've got to do it!') clearly anchored as the focal line, and does the excerpt maintain selective focus on this anchor rather than splitting attention across multiple quoted reactions? Does the surrounding context genuinely support legibility of the anchor, or does it dilute attention from it?",
+    "review__notes": "The excerpt has real value—it preserves a vivid reaction from Jobs at a pivotal tech moment—but the presence of two separate quoted lines ('This is it!' and 'We've got to do it!') creates ambiguous focus. The primary anchor ('We've got to do it!') is identified in the selection reason, yet the opening quote draws equal attention and could function as text noise competing with the anchor. Revision should clarify which line is the true focal anchor and ensure the excerpt structure emphasizes that anchor's legibility over the reactive moment. The Eichler/kitchen appliance context is substantive but could be tightened to reinforce rather than distract from the anchor line."
+  },
+  "adjudication_input_fingerprint": "f1fca5a76ca4ff03bb9e29660eaf9e3e6dc7543576fb8a35178219d7a928318a",
+  "source_row_fingerprint": "2809b2372592299cad00075751d2d65cc72ca869c1ac683e185afe46a710481e",
+  "packet_source_row_fingerprint": "2809b2372592299cad00075751d2d65cc72ca869c1ac683e185afe46a710481e",
+  "prompt_case_fingerprint": "d44880c1ddb956cfeb5057f077dbc9ebfba1d2624712ecfa7a6862fc898f3088",
+  "audit_row_fingerprint": "65f60024d3bc1da7eaef36915c2e8c2ddf737bd4418d9f4dafa1ee52ad869f1d",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "19ec90f95b6677d36da47c615a5994a26c72be2ee7354cea21ff5eb3ad3dc42d"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "b58e9d6e6b2c4700bd26ed560bec00bf",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "steve_jobs_private_en__17__anchored_reaction_selectivity__seed_1",
+      "case_title": "Steve Jobs / Chapter Eight: Xerox and Lisa: Graphical User Interfaces / anchored_reaction_selectivity",
+      "book_title": "Steve Jobs",
+      "author": "Walter Isaacson",
+      "chapter_id": "17",
+      "chapter_title": "Chapter Eight: Xerox and Lisa: Graphical User Interfaces",
+      "target_profile_id": "anchored_reaction_selectivity",
+      "selection_role": "narrative_reflective",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-AV2-005"
+      ],
+      "phenomena": [
+        "reaction_anchor",
+        "selective_legibility",
+        "visible_thought"
+      ],
+      "role_tags": [
+        "narrative_reflective",
+        "reference_heavy",
+        "biography",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "biography",
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a line that seems reaction-worthy but still demands selective, anchored reading. Anchor line: “We’ve got to do it!”",
+      "judge_focus": "Is the visible reaction anchored to the actual line and genuinely worth preserving?",
+      "excerpt_text": "“This is it!” he shouted, emphasizing each word.\n“We’ve got to do it!”\nIt was the breakthrough he had been looking for: bringing computers to the people, with the cheerful but affordable design of an Eichler home and the ease of use of a sleek kitchen appliance."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "revise",
+        "problem_types": [
+          "ambiguous_focus"
+        ],
+        "bucket_fit_band": "adequate",
+        "focus_clarity_band": "adequate",
+        "excerpt_strength_band": "adequate"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "19ec90f95b6677d36da47c615a5994a26c72be2ee7354cea21ff5eb3ad3dc42d"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}

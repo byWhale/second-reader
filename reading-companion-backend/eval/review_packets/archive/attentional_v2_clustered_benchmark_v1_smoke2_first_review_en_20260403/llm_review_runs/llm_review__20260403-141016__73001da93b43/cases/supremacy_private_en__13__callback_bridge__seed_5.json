@@ -1,0 +1,115 @@
+{
+  "case_id": "supremacy_private_en__13__callback_bridge__seed_5",
+  "raw_model_payload": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All three bands are strong, factual audit is clean, adversarial review shows no high risk, and the excerpt demonstrates a concrete backward-linking callback with clear source-grounded attribution. The 'déjà vu' formulation explicitly marks the backward bridge to earlier material about strategic debates, and the reader can trace the forward-moving argumentative connection between Google's course reversals. The declared bucket correctly captures the reading-mechanism focus."
+  },
+  "normalized_review": {
+    "benchmark_readiness": "ready",
+    "bucket_fit": "correct",
+    "focus_clarity": "clear",
+    "excerpt_integrity": "strong",
+    "review__action": "keep",
+    "review__confidence": "high",
+    "review__problem_types": [
+      "other"
+    ],
+    "review__revised_bucket": "",
+    "review__revised_selection_reason": "",
+    "review__revised_judge_focus": "",
+    "review__notes": "All three bands are strong, factual audit is clean, adversarial review shows no high risk, and the excerpt demonstrates a concrete backward-linking callback with clear source-grounded attribution. The 'déjà vu' formulation explicitly marks the backward bridge to earlier material about strategic debates, and the reader can trace the forward-moving argumentative connection between Google's course reversals. The declared bucket correctly captures the reading-mechanism focus."
+  },
+  "adjudication_input_fingerprint": "94953c927b80beab9c91a91eede727ac399704cda4e9834611c01c2f5dbb565e",
+  "source_row_fingerprint": "7efde0eb0e3802dd23c329a84e5efdb1c4c82e7e1ca80e7720dd5d9380484d61",
+  "packet_source_row_fingerprint": "7efde0eb0e3802dd23c329a84e5efdb1c4c82e7e1ca80e7720dd5d9380484d61",
+  "prompt_case_fingerprint": "8ef09b7c20828c9a41f8897c8fc755b99cc74afe2eaef32c2ab372744e347cde",
+  "audit_row_fingerprint": "9e7e747b0546ac6e0f6f66f97bdf694db496ba5f9558adf9dac8f7f1c6dbb286",
+  "prompt_hashes": {
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "b9e614c3e3e2e5ef3d214b3695eaf3b0d2bfc1bd10ea18791b4baba198ded037"
+  },
+  "selected_target_id": "MiniMax-M2.7-personal",
+  "selected_tier_id": "primary",
+  "provider_id": "MiniMax-M2.7-personal",
+  "contract": "anthropic",
+  "model": "MiniMax-M2.7",
+  "key_slot_id": "primary",
+  "selection_reason": "manual_override",
+  "selection_override_source": "env",
+  "trace_call_id": "2f7ee83c60ad44c388bdccf943595c7c",
+  "trace_status": "ok",
+  "attempt_count": 1,
+  "source_case_audit_run_id": "attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403__20260403-130118",
+  "input_payload": {
+    "review_policy": "llm_multi_prompt_adjudication_v2",
+    "adjudication_contract_version": "packet_adjudication_rubric_v4",
+    "case": {
+      "case_id": "supremacy_private_en__13__callback_bridge__seed_5",
+      "case_title": "Supremacy / Chapter 7. Playing Games / callback_bridge",
+      "book_title": "Supremacy",
+      "author": "Parmy Olson",
+      "chapter_id": "13",
+      "chapter_title": "Chapter 7. Playing Games",
+      "target_profile_id": "callback_bridge",
+      "selection_role": "argumentative",
+      "question_ids": [
+        "EQ-CM-002",
+        "EQ-CM-004",
+        "EQ-AV2-004"
+      ],
+      "phenomena": [
+        "bridge_potential",
+        "callback",
+        "cross_span_link"
+      ],
+      "role_tags": [
+        "argumentative",
+        "reference_heavy",
+        "business",
+        "modern_nonfiction",
+        "science_technology"
+      ],
+      "type_tags": [
+        "business",
+        "science_technology",
+        "modern_nonfiction"
+      ],
+      "selection_reason": "Selected because the passage contains a backward bridge from 'The founders felt like they were experiencing déjà vu, as Google reversed course yet again.' to earlier material: 'As he and Hassabis debated the best strategy for containing AI, they got another update from Google’s leadership about the plan to become an “Alphabet company.”'. The bridge advances the argument and must remain source-grounded with clear attribution to Parmy Olson's Supremacy, not associative.",
+      "judge_focus": "Can the reader trace the backward bridge from 'The founders felt like they were experiencing déjà vu, as Google reversed course yet again.' to the earlier 'As he and Hassabis debated the best strategy for containing AI, they got another update from Google’s leadership about the plan to become an “Alphabet company.”' passage while maintaining clear, non-associative attribution to Parmy Olson's Supremacy? Does the reader identify that the author is making a forward-moving argumentative connection rather than an associative gloss?",
+      "excerpt_text": "As he and Hassabis debated the best strategy for containing AI, they got another update from Google’s leadership about the plan to become an “Alphabet company.”\nThat idea wasn’t going to work after all, the executives told them.\nSpinning out wasn’t straightforward because as AI had become increasingly valuable to Google’s business, the larger company needed DeepMind even more.\nThe founders felt like they were experiencing déjà vu, as Google reversed course yet again.\nBut the executives told them not to worry, because they could still find a compromise.\nThey now suggested a third option: DeepMind could do a kind of partial spinout and have its own board of trustees guiding its creation of superintelligent AI, but Alphabet would retain some ownership of the AI company."
+    },
+    "audit_prompt_inputs": {
+      "factual_audit": {
+        "ok": true,
+        "issues": []
+      },
+      "primary_review": {
+        "decision": "keep",
+        "problem_types": [],
+        "bucket_fit_band": "strong",
+        "focus_clarity_band": "strong",
+        "excerpt_strength_band": "strong"
+      },
+      "adversarial_review": {
+        "has_high_risk": false,
+        "suspected_problem_types": []
+      }
+    },
+    "system_prompt_hash": "d90ebeea244aa4cca1ffb4e4ccdcbe25e7b65fb64948d5f08eea530992595b06",
+    "user_prompt_hash": "b9e614c3e3e2e5ef3d214b3695eaf3b0d2bfc1bd10ea18791b4baba198ded037"
+  },
+  "error": {
+    "status": "ok",
+    "error_type": "",
+    "error_message": ""
+  }
+}
