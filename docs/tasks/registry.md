@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T03:22:42Z`
+Last updated: `2026-04-04T03:54:58Z`
 
 ## Status Values
 - `active`
@@ -33,12 +33,14 @@ Last updated: `2026-04-04T03:22:42Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
-- Next: keep the new notes-guided line isolated from the active clustered benchmark, review the scratch outputs in the run-scoped namespace, and decide whether to run a first review wave or freeze an honest shortfall before any merge / replace decision
+- Next: monitor the running first review wave over the scratch primaries, interpret `keep/revise/drop` by cluster, and then decide honest short freeze vs reserve top-up vs a narrow builder repair before any merge / replace decision
 - Jobs:
   - `bgjob_human_notes_guided_dataset_v1_scratch_20260404` (`failed`)
   - `bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404` (`completed`)
   - `bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404` (`completed`)
   - `bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404` (`running`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404` (`running`)
 
 ## Parked
 

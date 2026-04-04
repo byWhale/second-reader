@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-04T03:22:42Z",
+  "updated_at": "2026-04-04T03:54:58Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -713,10 +713,12 @@
         "bgjob_human_notes_guided_dataset_v1_scratch_20260404",
         "bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404",
         "bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404",
-        "bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404"
+        "bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404",
+        "bgjob_human_notes_guided_dataset_v1_first_review_en_20260404",
+        "bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
-      "next_action": "Keep the new notes-guided line isolated from the active clustered benchmark, review the scratch outputs in the run-scoped namespace, and decide whether to run a first review wave or freeze an honest shortfall before any merge / replace decision.",
+      "next_action": "Monitor the running first review wave over the scratch primaries, interpret keep/revise/drop by cluster, and then decide honest short freeze vs reserve top-up vs a narrow builder repair before any merge / replace decision.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -738,7 +740,7 @@
         "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/cluster_resolutions/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json",
         "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/selection_group_maps/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json"
       ],
-      "last_updated": "2026-04-04T03:22:42Z",
+      "last_updated": "2026-04-04T03:54:58Z",
       "last_updated_by": "codex"
     }
   ]

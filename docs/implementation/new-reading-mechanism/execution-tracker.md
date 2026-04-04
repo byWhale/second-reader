@@ -56,8 +56,27 @@ Update when: status changes, blockers appear, or phases complete.
         - English reserves: `4`
         - Chinese candidate cases: `47`
         - Chinese reserves: `10`
-      - current honest shortfall:
-        - `nawaer_baodian_private_zh__wealth` currently tops out at `7` candidate cases with no reserve rows
+    - current honest shortfall:
+      - `nawaer_baodian_private_zh__wealth` currently tops out at `7` candidate cases with no reserve rows
+    - first review wave is now launched over the scratch primaries:
+      - EN packet:
+        - `human_notes_guided_dataset_v1_excerpt_en_first_review_20260404`
+        - job:
+          - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404`
+        - forced target:
+          - `MiniMax-M2.7-personal`
+      - ZH packet:
+        - `human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404`
+        - job:
+          - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404`
+        - forced target:
+          - `MiniMax-M2.7-highspeed`
+      - worker posture:
+        - both jobs use `run_dataset_review_pipeline`
+        - `selection_mode = first_review`
+        - `--audit-max-workers 1 --review-max-workers 1`
+      - next review interpretation target:
+        - decide whether the line should freeze honestly short, pull reserves, or take one narrow builder repair pass based on cluster-level keep/revise/drop results
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active

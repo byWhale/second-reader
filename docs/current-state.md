@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T03:22:42Z`
+Last verified: `2026-04-04T03:54:58Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review and the completed clustered benchmark freeze:
@@ -60,6 +60,26 @@ Last verified: `2026-04-04T03:22:42Z`
   - active benchmark pointer remains unchanged:
     - do not repoint away from clustered benchmark v1 based on this notes-guided line alone
     - decide merge / replace / lesson-borrowing only after explicit review of the isolated notes-guided outputs
+  - first review wave is now running over the scratch primaries:
+    - EN packet:
+      - `human_notes_guided_dataset_v1_excerpt_en_first_review_20260404`
+      - job:
+        - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404`
+      - target routing:
+        - `MiniMax-M2.7-personal`
+    - ZH packet:
+      - `human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404`
+      - job:
+        - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404`
+      - target routing:
+        - `MiniMax-M2.7-highspeed`
+    - current operational posture:
+      - both jobs use `run_dataset_review_pipeline`
+      - selection mode is `first_review`
+      - packet workers stay serial with `--audit-max-workers 1 --review-max-workers 1`
+    - next decision after the wave:
+      - interpret `keep/revise/drop` by cluster
+      - then decide honest short freeze vs reserve top-up vs narrow builder repair
 - Because current model-call cost is too high, pause new comparison work that sits outside the mechanism mainline for now:
   - keep the existing broader comparison checkpoints as reference baselines only
   - keep active spend focused on decisive mechanism-eval runs and the minimum support diagnostics they still require
@@ -174,7 +194,10 @@ Last verified: `2026-04-04T03:22:42Z`
       - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
       - future review/eval launches may therefore use both together for throughput
       - only keep a single forced target when we deliberately want one fully uniform reviewer surface
-- There are currently no active Phase 9 background jobs in the registry.
+- There are currently active background jobs in the registry.
+  - the active notes-guided review jobs are:
+    - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404`
+    - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404`
   - the most recent completed clustered benchmark jobs are:
     - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
     - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
@@ -1451,14 +1474,17 @@ Last verified: `2026-04-04T03:22:42Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-04T03:22:42Z",
+  "updated_at": "2026-04-04T03:54:58Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL",
     "TASK-DATASET-HUMAN-NOTES-GUIDED-V1"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [],
+  "active_job_ids": [
+    "bgjob_human_notes_guided_dataset_v1_first_review_en_20260404",
+    "bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404"
+  ],
   "open_decision_ids": [
     "Q10"
   ],
