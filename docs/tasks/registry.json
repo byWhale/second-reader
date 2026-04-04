@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-04T06:46:59Z",
+  "updated_at": "2026-04-04T07:09:00Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -702,7 +702,7 @@
       "status": "active",
       "lane": "dataset_platform",
       "priority": "high",
-      "detail_ref": "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+      "detail_ref": "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
       "truth_refs": [
         "docs/source-of-truth-map.md",
         "docs/workspace-overview.md",
@@ -720,11 +720,12 @@
         "bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404",
         "bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404"
       ],
-      "acceptance_ref": "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
-      "next_action": "Interpret the completed bilingual first-review packets by cluster, then decide honest short freeze vs reserve top-up vs a narrow builder repair before any merge/replace decision.",
+      "acceptance_ref": "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
+      "next_action": "Keep the frozen 49-row reviewed slice stable and run one narrow builder/curation repair pass on nawaer_baodian_private_zh__wealth before any broader reserve top-up or merge/replace decision.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
+        "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
         "docs/implementation/new-reading-mechanism/execution-tracker.md",
         "docs/implementation/new-reading-mechanism/decision-log.md",
         "reading-companion-backend/eval/attentional_v2/library_notes.py",
@@ -750,12 +751,16 @@
         "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_en_first_review_20260404/llm_review_summary.json",
         "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404/dataset_review_pipeline_summary.json",
         "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404/llm_review_summary.json",
+        "reading-companion-backend/eval/attentional_v2/freeze_reviewed_dataset_slice.py",
+        "reading-companion-backend/tests/test_freeze_reviewed_dataset_slice.py",
+        "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404/manifest.json",
+        "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404/manifest.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.log",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.log"
       ],
-      "last_updated": "2026-04-04T06:46:59Z",
+      "last_updated": "2026-04-04T07:09:00Z",
       "last_updated_by": "codex"
     }
   ]

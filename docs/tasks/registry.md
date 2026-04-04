@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T06:46:59Z`
+Last updated: `2026-04-04T07:09:00Z`
 
 ## Status Values
 - `active`
@@ -32,8 +32,8 @@ Last updated: `2026-04-04T06:46:59Z`
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
-- Detail: `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
-- Next: interpret the completed bilingual first-review packets by cluster, then decide honest short freeze vs reserve top-up vs a narrow builder repair before any merge / replace decision
+- Detail: `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
+- Next: keep the frozen `49`-row reviewed slice stable and run one narrow builder / curation repair pass on `nawaer_baodian_private_zh__wealth` before any broader reserve top-up or merge / replace decision
 - Jobs:
   - `bgjob_human_notes_guided_dataset_v1_scratch_20260404` (`failed`)
   - `bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404` (`completed`)

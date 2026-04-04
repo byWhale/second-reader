@@ -64,6 +64,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--family", default="excerpt_cases")
     parser.add_argument("--storage-mode", default="tracked")
     parser.add_argument("--include-status", action="append", default=["reviewed_active"])
+    parser.add_argument("--selection-group-id", action="append", default=[])
+    parser.add_argument("--case-id", action="append", default=[])
     parser.add_argument("--allow-empty", action="store_true")
     return parser.parse_args()
 
@@ -83,6 +85,14 @@ def main() -> int:
     source_rows = load_jsonl(source_dir / primary_file)
     include_status = {item.strip() for item in args.include_status if item.strip()}
     selected_rows = [row for row in source_rows if str(row.get("benchmark_status", "")).strip() in include_status]
+    selection_group_ids = {item.strip() for item in args.selection_group_id if item.strip()}
+    if selection_group_ids:
+        selected_rows = [
+            row for row in selected_rows if str(row.get("selection_group_id", "")).strip() in selection_group_ids
+        ]
+    case_ids = {item.strip() for item in args.case_id if item.strip()}
+    if case_ids:
+        selected_rows = [row for row in selected_rows if str(row.get("case_id", "")).strip() in case_ids]
     if not selected_rows and not args.allow_empty:
         raise ValueError("No rows selected for reviewed slice")
 
@@ -94,6 +104,10 @@ def main() -> int:
     target_manifest["freeze_criteria"] = {
         "include_status": sorted(include_status),
     }
+    if selection_group_ids:
+        target_manifest["freeze_criteria"]["selection_group_ids"] = sorted(selection_group_ids)
+    if case_ids:
+        target_manifest["freeze_criteria"]["case_ids"] = sorted(case_ids)
     target_manifest["review_queue_summary"] = {
         "row_count": len(selected_rows),
         "review_status_counts": {},

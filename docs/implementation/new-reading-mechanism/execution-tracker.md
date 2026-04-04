@@ -97,9 +97,21 @@ Update when: status changes, blockers appear, or phases complete.
         - both language packets use `run_dataset_review_pipeline`
         - `selection_mode = first_review`
         - `--audit-max-workers 1 --review-max-workers 1`
-      - next review interpretation target:
-        - interpret the completed bilingual packets by cluster
-        - then decide whether the line should freeze honestly short, pull reserves, or take one narrow builder repair pass
+      - first reviewed freeze is now landed for the eligible clusters:
+        - draft:
+          - `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
+        - frozen local reviewed slices:
+          - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
+          - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
+        - frozen reviewed rows:
+          - `49` total across `7 / 8` selection groups
+        - held cluster:
+          - `nawaer_baodian_private_zh__wealth`
+            - `4 reviewed_active`, `2 needs_revision`, `1 needs_replacement`, `0` reserve rows
+      - next notes-guided move:
+        - keep the frozen reviewed slice stable
+        - run one narrow builder / curation repair pass on the held `nawaer_baodian_private_zh__wealth` cluster
+        - do not reopen a broad bilingual builder/review wave first
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active

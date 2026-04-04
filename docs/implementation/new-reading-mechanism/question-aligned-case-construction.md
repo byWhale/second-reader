@@ -156,7 +156,17 @@ Current isolated scratch evidence:
 Current governance:
 - this dataset line is intentionally isolated from the active clustered benchmark v1
 - do not repoint the active benchmark based on this line alone
-- the next decision point is reviewed quality on the isolated notes-guided outputs, not automatic merge or promotion
+- the first reviewed freeze decision now exists for the freeze-eligible clusters:
+  - draft:
+    - `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
+  - frozen local reviewed slices:
+    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
+    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
+  - current frozen reviewed rows:
+    - `49` across `7 / 8` selection groups
+  - current held cluster:
+    - `nawaer_baodian_private_zh__wealth`
+- the next decision point is now narrow repair on the held cluster, not automatic merge or promotion
 
 ## Latest Scratch Evidence
 The first real quality-fix wave is now landed in the builder and audit reconstruction paths:
