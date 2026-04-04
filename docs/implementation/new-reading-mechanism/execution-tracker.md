@@ -138,7 +138,7 @@ Update when: status changes, blockers appear, or phases complete.
       - only force one concrete target when one run intentionally needs a single uniform reviewer surface
     - current live launch posture:
       - keep exactly one heavy `MiniMax-M2.7-highspeed` excerpt eval process alive at a time
-      - current retained highspeed smoke:
+      - completed retained highspeed smoke:
         - `bgjob_human_notes_excerpt_smoke_light_20260404`
           - run id:
             - `attentional_v2_human_notes_guided_excerpt_eval_v1_smoke_light_20260404`
@@ -147,6 +147,20 @@ Update when: status changes, blockers appear, or phases complete.
           - scope:
             - one shared chapter unit: `nawaer_baodian_private_zh__13`
             - three local excerpt cases spanning both kept target slices
+          - outcome:
+            - completed with emitted case payloads plus both summary files, so the judged lane was unblocked
+      - completed highspeed judged excerpt lane:
+        - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404`
+          - run id:
+            - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404`
+          - purpose:
+            - run the full human-notes-guided local excerpt judged comparison on `MiniMax-M2.7-highspeed`
+          - scope:
+            - full `human-notes-guided` excerpt eval manifest
+            - `target-slice both`
+            - `judge-mode llm`
+          - current next gate:
+            - interpret the completed aggregate/report with `selective_legibility` first
       - duplicate highspeed excerpt smoke attempts were explicitly retired after they created unnecessary same-key contention:
         - `bgjob_human_notes_guided_excerpt_eval_v1_smoke_20260404`
           - current status:
@@ -156,16 +170,43 @@ Update when: status changes, blockers appear, or phases complete.
             - `failed`
           - cause:
             - deliberately terminated because it duplicated the lighter single-chapter smoke while using the same forced target
-      - current retained personal-key long-span review lane:
+      - completed old personal-key long-span review lane:
         - `bgjob_accumulation_benchmark_v1_first_review_20260404`
           - packet id:
             - `accumulation_benchmark_v1_probe_first_review_20260404`
           - purpose:
-            - harden the bounded long-span probe set under `MiniMax-M2.7-personal` before the judged accumulation comparison starts
+            - judge source/window fit on the original bounded long-span draft before committing to a judged accumulation comparison
           - scope:
             - all `18` draft probes under `attentional_v2_accumulation_benchmark_v1_probes_draft`
+          - result:
+            - `keep = 0`
+            - `revise = 10`
+            - `drop = 8`
+          - interpretation:
+            - treat the old packet as evidence that the previous long-span window set was wrong, not as mechanism evidence
+      - current retained personal-key long-span review lane:
+        - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404`
+          - packet id:
+            - `accumulation_benchmark_v1_rejudged_first_review_20260404`
+          - purpose:
+            - review the rebuilt final long-span v1 window set under `MiniMax-M2.7-personal`
+          - scope:
+            - all `18` rebuilt draft probes under `attentional_v2_accumulation_benchmark_v1_probes_draft`
+          - active long-span v1 windows:
+            - `supremacy_private_en__13`
+            - `steve_jobs_private_en__17`
+            - `value_of_others_private_en__8_10`
+            - `xidaduo_private_zh__13_15`
+            - `huochu_shengming_de_yiyi_private_zh__8`
+            - `huochu_shengming_de_yiyi_private_zh__13_16`
+          - demoted after source-fit rejudgment:
+            - `nawaer_baodian_private_zh__wealth`
+            - `nawaer_baodian_private_zh__judgment`
+            - `zouchu_weiyi_zhenliguan_private_zh__14`
+          - reserve next-add direction:
+            - `shoe_dog_private_en`
           - current next gate:
-            - rerun `freeze_accumulation_benchmark_v1.py` after the packet summary lands so the frozen probe dataset and tracked manifest switch to `reviewed_active` rows where available
+            - wait for the rebuilt packet summary, then rerun `freeze_accumulation_benchmark_v1.py` so the frozen probe dataset and tracked manifest switch to reviewed rows from the new final window set
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
@@ -244,11 +285,9 @@ Update when: status changes, blockers appear, or phases complete.
       - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
       - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
     - immediate next mainline move is now split:
-      - finish the retained registered notes-guided local excerpt smoke first
-      - if that smoke emits both summary files, launch the judged notes-guided local excerpt lane immediately
-      - if the smoke exits without those summary files, treat the result as excerpt-runner harness failure and repair it before the judged lane
-      - keep the bounded accumulation probe first-review lane running on `MiniMax-M2.7-personal`
-      - when that packet summary lands, rerun `freeze_accumulation_benchmark_v1.py` and confirm the tracked manifest points at the frozen probe dataset
+      - interpret the completed judged notes-guided local excerpt lane on `MiniMax-M2.7-highspeed`
+      - keep the rebuilt accumulation probe first-review lane running on `MiniMax-M2.7-personal`
+      - when that rebuilt packet summary lands, rerun `freeze_accumulation_benchmark_v1.py` and confirm the tracked manifest points at the frozen reviewed probe dataset
       - then launch the judged accumulation comparison on that long-span lane
       - keep the `reserve = 7 / 8` shortfall and the pressure imbalance explicit in any clustered-benchmark interpretation rather than reopening builder widening first
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets

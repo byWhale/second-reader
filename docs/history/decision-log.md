@@ -1252,3 +1252,39 @@ Update when: a major product or engineering decision is made, reversed, or becom
 - `docs/current-state.md`
 - `docs/tasks/registry.md`
 - `docs/tasks/registry.json`
+
+## Entry 46
+**ID**: DEC-049
+**Status**: active
+
+**Decision / Inflection**: Rejudge long-span source fit before freezing accumulation v1, and prefer genuinely continuous books plus compact note-backed windows over topical collections or weakly connected essay/talk surfaces.
+
+**Period**: April 4, 2026, after the first accumulation review packet returned `0 keep / 10 revise / 8 drop`.
+
+**Problem**: The first bounded long-span draft had enough harness support to run, but it still mixed good and bad source/window choices. The review packet showed a pattern that was too strong to ignore: many failures were not “the mechanism cannot accumulate,” but “this window does not actually carry forward one live thread.” `纳瓦尔宝典` windows fragmented into topical advice blocks, and the current `走出唯一真理观` window kept topic-shifting inside one chapter. If the project had simply repaired judge wording on top of that old window set, it would have locked a weak accumulation surface into Phase 9.
+
+**Alternatives considered**: Keep the old six-window draft and only tweak probe wording, widen immediately to a fresh English long-span builder wave around new books such as `Shoe Dog`, or pause long-span work until a perfect broad benchmark existed.
+
+**Why this path won**: The project needed a bounded but honest middle path. It now keeps only window/source pairs that are already materializable from current reviewed excerpt support and aligned human notes, while demoting the clearly weak source-fit windows. That preserves momentum and runtime efficiency without pretending the old draft was sound. The first reserve for later widening is now `shoe_dog_private_en`, but it stays a reserve because adding it cleanly would require new excerpt/window support construction rather than a small repair.
+
+**What changed in the system**: `attentional_v2_accumulation_benchmark_v1` now rebuilds around six rejudged windows:
+- `supremacy_private_en__13`
+- `steve_jobs_private_en__17`
+- `value_of_others_private_en__8_10`
+- `xidaduo_private_zh__13_15`
+- `huochu_shengming_de_yiyi_private_zh__8`
+- `huochu_shengming_de_yiyi_private_zh__13_16`
+
+The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_private_zh__judgment`, and `zouchu_weiyi_zhenliguan_private_zh__14` are demoted from long-span v1. The accumulation builder also now emits cleaner single-vs-cross-chapter judge focus and non-duplicative prior-context payloads before the rebuilt first-review lane runs again.
+
+**Why it matters later**: Future contributors could easily look at the old packet and conclude only that “accumulation is hard.” This entry preserves the more useful lesson: long-span evaluation depends heavily on source/window fit, and a good accumulation surface often comes from compact multi-chapter continuity or one genuinely long chapter, not from whatever text happened to already be in a benchmark.
+
+**Primary evidence**:
+- `reading-companion-backend/eval/review_packets/archive/accumulation_benchmark_v1_probe_first_review_20260404/dataset_review_pipeline_summary.json`
+- `reading-companion-backend/eval/review_packets/archive/accumulation_benchmark_v1_probe_first_review_20260404/llm_review_report.md`
+- `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v1.py`
+- `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v1_draft.json`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`

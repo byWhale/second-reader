@@ -51,32 +51,32 @@
       "all": [
         "supremacy_private_en__13",
         "steve_jobs_private_en__17",
-        "zouchu_weiyi_zhenliguan_private_zh__14",
-        "xidaduo_private_zh__15",
-        "nawaer_baodian_private_zh__wealth",
-        "nawaer_baodian_private_zh__judgment"
+        "value_of_others_private_en__8_10",
+        "xidaduo_private_zh__13_15",
+        "huochu_shengming_de_yiyi_private_zh__8",
+        "huochu_shengming_de_yiyi_private_zh__13_16"
       ]
     },
     "accumulation_probes_frozen_draft": {
       "all": [
-        "nawaer_baodian_private_zh__judgment__probe_1",
-        "nawaer_baodian_private_zh__judgment__probe_2",
-        "nawaer_baodian_private_zh__judgment__probe_3",
-        "nawaer_baodian_private_zh__wealth__probe_1",
-        "nawaer_baodian_private_zh__wealth__probe_2",
-        "nawaer_baodian_private_zh__wealth__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_3",
         "steve_jobs_private_en__17__probe_1",
         "steve_jobs_private_en__17__probe_2",
         "steve_jobs_private_en__17__probe_3",
         "supremacy_private_en__13__probe_1",
         "supremacy_private_en__13__probe_2",
         "supremacy_private_en__13__probe_3",
-        "xidaduo_private_zh__15__probe_1",
-        "xidaduo_private_zh__15__probe_2",
-        "xidaduo_private_zh__15__probe_3",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+        "value_of_others_private_en__8_10__probe_1",
+        "value_of_others_private_en__8_10__probe_2",
+        "value_of_others_private_en__8_10__probe_3",
+        "xidaduo_private_zh__13_15__probe_1",
+        "xidaduo_private_zh__13_15__probe_2",
+        "xidaduo_private_zh__13_15__probe_3"
       ]
     },
     "accumulation_probe_core_draft": {
@@ -91,88 +91,88 @@
           "steve_jobs_private_en__17__probe_2",
           "steve_jobs_private_en__17__probe_3"
         ],
-        "zouchu_weiyi_zhenliguan_private_zh__14": [
-          "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
-          "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
-          "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+        "value_of_others_private_en__8_10": [
+          "value_of_others_private_en__8_10__probe_1",
+          "value_of_others_private_en__8_10__probe_2",
+          "value_of_others_private_en__8_10__probe_3"
         ],
-        "xidaduo_private_zh__15": [
-          "xidaduo_private_zh__15__probe_1",
-          "xidaduo_private_zh__15__probe_2",
-          "xidaduo_private_zh__15__probe_3"
+        "xidaduo_private_zh__13_15": [
+          "xidaduo_private_zh__13_15__probe_1",
+          "xidaduo_private_zh__13_15__probe_2",
+          "xidaduo_private_zh__13_15__probe_3"
         ],
-        "nawaer_baodian_private_zh__wealth": [
-          "nawaer_baodian_private_zh__wealth__probe_1",
-          "nawaer_baodian_private_zh__wealth__probe_2",
-          "nawaer_baodian_private_zh__wealth__probe_3"
+        "huochu_shengming_de_yiyi_private_zh__8": [
+          "huochu_shengming_de_yiyi_private_zh__8__probe_1",
+          "huochu_shengming_de_yiyi_private_zh__8__probe_2",
+          "huochu_shengming_de_yiyi_private_zh__8__probe_3"
         ],
-        "nawaer_baodian_private_zh__judgment": [
-          "nawaer_baodian_private_zh__judgment__probe_1",
-          "nawaer_baodian_private_zh__judgment__probe_2",
-          "nawaer_baodian_private_zh__judgment__probe_3"
+        "huochu_shengming_de_yiyi_private_zh__13_16": [
+          "huochu_shengming_de_yiyi_private_zh__13_16__probe_1",
+          "huochu_shengming_de_yiyi_private_zh__13_16__probe_2",
+          "huochu_shengming_de_yiyi_private_zh__13_16__probe_3"
         ]
       },
       "all": [
-        "nawaer_baodian_private_zh__judgment__probe_1",
-        "nawaer_baodian_private_zh__judgment__probe_2",
-        "nawaer_baodian_private_zh__judgment__probe_3",
-        "nawaer_baodian_private_zh__wealth__probe_1",
-        "nawaer_baodian_private_zh__wealth__probe_2",
-        "nawaer_baodian_private_zh__wealth__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_3",
         "steve_jobs_private_en__17__probe_1",
         "steve_jobs_private_en__17__probe_2",
         "steve_jobs_private_en__17__probe_3",
         "supremacy_private_en__13__probe_1",
         "supremacy_private_en__13__probe_2",
         "supremacy_private_en__13__probe_3",
-        "xidaduo_private_zh__15__probe_1",
-        "xidaduo_private_zh__15__probe_2",
-        "xidaduo_private_zh__15__probe_3",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+        "value_of_others_private_en__8_10__probe_1",
+        "value_of_others_private_en__8_10__probe_2",
+        "value_of_others_private_en__8_10__probe_3",
+        "xidaduo_private_zh__13_15__probe_1",
+        "xidaduo_private_zh__13_15__probe_2",
+        "xidaduo_private_zh__13_15__probe_3"
       ]
     },
     "insight_and_clarification_subset_frozen_draft": {
       "all": [
-        "nawaer_baodian_private_zh__judgment__probe_1",
-        "nawaer_baodian_private_zh__judgment__probe_2",
-        "nawaer_baodian_private_zh__judgment__probe_3",
-        "nawaer_baodian_private_zh__wealth__probe_1",
-        "nawaer_baodian_private_zh__wealth__probe_2",
-        "nawaer_baodian_private_zh__wealth__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_3",
         "steve_jobs_private_en__17__probe_1",
         "steve_jobs_private_en__17__probe_2",
         "steve_jobs_private_en__17__probe_3",
         "supremacy_private_en__13__probe_1",
         "supremacy_private_en__13__probe_2",
-        "xidaduo_private_zh__15__probe_1",
-        "xidaduo_private_zh__15__probe_2",
-        "xidaduo_private_zh__15__probe_3",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+        "value_of_others_private_en__8_10__probe_1",
+        "value_of_others_private_en__8_10__probe_2",
+        "value_of_others_private_en__8_10__probe_3",
+        "xidaduo_private_zh__13_15__probe_1",
+        "xidaduo_private_zh__13_15__probe_2",
+        "xidaduo_private_zh__13_15__probe_3"
       ]
     },
     "insight_and_clarification_subset_draft": {
       "all": [
-        "nawaer_baodian_private_zh__judgment__probe_1",
-        "nawaer_baodian_private_zh__judgment__probe_2",
-        "nawaer_baodian_private_zh__judgment__probe_3",
-        "nawaer_baodian_private_zh__wealth__probe_1",
-        "nawaer_baodian_private_zh__wealth__probe_2",
-        "nawaer_baodian_private_zh__wealth__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__13_16__probe_3",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_1",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_2",
+        "huochu_shengming_de_yiyi_private_zh__8__probe_3",
         "steve_jobs_private_en__17__probe_1",
         "steve_jobs_private_en__17__probe_2",
         "steve_jobs_private_en__17__probe_3",
         "supremacy_private_en__13__probe_1",
         "supremacy_private_en__13__probe_2",
-        "xidaduo_private_zh__15__probe_1",
-        "xidaduo_private_zh__15__probe_2",
-        "xidaduo_private_zh__15__probe_3",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
-        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+        "value_of_others_private_en__8_10__probe_1",
+        "value_of_others_private_en__8_10__probe_2",
+        "value_of_others_private_en__8_10__probe_3",
+        "xidaduo_private_zh__13_15__probe_1",
+        "xidaduo_private_zh__13_15__probe_2",
+        "xidaduo_private_zh__13_15__probe_3"
       ]
     }
   }

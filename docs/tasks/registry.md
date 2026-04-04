@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T11:40:00Z`
+Last updated: `2026-04-04T13:57:00Z`
 
 ## Status Values
 - `active`
@@ -25,18 +25,20 @@ Last updated: `2026-04-04T11:40:00Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the registered single-chapter notes-guided smoke alive as the only heavy highspeed excerpt job; if it emits aggregate/report, launch the judged human-notes-guided local excerpt comparison immediately, otherwise treat the miss as excerpt-harness failure before starting the judged lane
+- Next: interpret the completed judged human-notes-guided local excerpt comparison, starting with `selective_legibility`, then convert the strongest findings into selective mechanism moves
 - Jobs:
-  - `bgjob_human_notes_excerpt_smoke_light_20260404` (`running`)
+  - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
+  - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: let the registered bounded first-review packet finish on `MiniMax-M2.7-personal`; when its summary lands, rerun `freeze_accumulation_benchmark_v1.py` so the tracked manifest points at frozen reviewed probes, then launch the judged accumulation comparison
+- Next: let the rebuilt long-span first-review packet run on `MiniMax-M2.7-personal`; when its summary lands, freeze the reviewed probes from the rejudged final window set and only then launch the judged accumulation comparison
 - Jobs:
-  - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`running`)
+  - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`completed`)
+  - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404` (`running`)
 
 ## Parked
 

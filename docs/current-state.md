@@ -7,11 +7,11 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T11:40:00Z`
+Last verified: `2026-04-04T13:57:00Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
-  - finish one bounded registered local excerpt smoke on the completed human-notes-guided excerpt freeze, then launch the local judged evaluation immediately if the smoke emits `summary/aggregate.json` and `summary/report.md`
+  - interpret the completed formal judged local excerpt evaluation on the human-notes-guided excerpt freeze
   - build a bounded long-span accumulation benchmark in parallel instead of forcing the current chapter benchmark to answer every remaining question
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
   - keep durable-trace / re-entry and runtime viability paused on cost grounds
@@ -28,20 +28,23 @@ Last verified: `2026-04-04T11:40:00Z`
       - local `reader_value.insight_and_clarification`
     - immediate runnable surface:
       - the completed human-notes-guided excerpt reviewed freeze
-    - current live job:
+    - smoke gate status:
       - `bgjob_human_notes_excerpt_smoke_light_20260404`
+        - now `completed`
+        - result:
+          - the notes-guided excerpt manifest, chapter cache, per-case outputs, and `summary/aggregate.json` + `summary/report.md` all emitted successfully
+        - interpretation:
+          - treat the local excerpt harness as runnable and proceed to the judged lane
+    - latest judged run:
+      - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404`
         - purpose:
-          - verify that `run_excerpt_comparison.py` can emit case payloads plus `summary/aggregate.json` and `summary/report.md` on the notes-guided local manifest before the judged lane starts
-        - scope:
-          - one shared chapter unit: `nawaer_baodian_private_zh__13`
-          - three excerpt cases spanning `anchored_reaction_selectivity`, `distinction_definition`, and `tension_reversal`
-    - current smoke discipline:
-      - keep only one heavy highspeed excerpt smoke alive at a time
-      - earlier duplicate highspeed smoke attempts were deliberately stopped after they created avoidable same-key contention:
-        - `bgjob_human_notes_guided_excerpt_eval_v1_smoke_20260404`
-          - now `abandoned`
-        - `bgjob_notes_guided_excerpt_smoke_20260404`
-          - now `failed` after explicit termination because it duplicated the lighter single-chapter smoke
+          - run the formal judged local excerpt comparison on the full human-notes-guided excerpt surface under `MiniMax-M2.7-highspeed`
+        - completed shape:
+          - `target-slice both`
+          - `judge-mode llm`
+          - `case-workers 1`
+        - current next gate:
+          - interpret the completed aggregate/report with `selective_legibility` first, then `insight_and_clarification`
   - `long-span / window`
     - primary target:
       - `reader_character.coherent_accumulation`
@@ -59,25 +62,50 @@ Last verified: `2026-04-04T11:40:00Z`
       - current tracked manifest:
         - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v1_draft.json`
       - current local dataset artifacts:
-        - `6` frozen window rows
-        - `18` current frozen-draft probe rows
-    - current live job:
+        - `6` final window rows in the rebuilt v1 draft
+        - `18` rebuilt draft probes on the rejudged final window set
+      - rebuilt final v1 windows:
+        - `supremacy_private_en__13`
+        - `steve_jobs_private_en__17`
+        - `value_of_others_private_en__8_10`
+        - `xidaduo_private_zh__13_15`
+        - `huochu_shengming_de_yiyi_private_zh__8`
+        - `huochu_shengming_de_yiyi_private_zh__13_16`
+      - demoted from the active long-span v1 surface after source-fit rejudgment:
+        - `nawaer_baodian_private_zh__wealth`
+        - `nawaer_baodian_private_zh__judgment`
+        - `zouchu_weiyi_zhenliguan_private_zh__14`
+      - next-add reserve if v1 still needs one stronger English long-span source later:
+        - `shoe_dog_private_en`
+    - completed source-fit review on the old draft:
       - `bgjob_accumulation_benchmark_v1_first_review_20260404`
         - purpose:
-          - run bounded first review on all `18` draft long-span probes under `MiniMax-M2.7-personal` so the later frozen probe set can prefer `reviewed_active` rows instead of builder-curated fallback rows
+          - run bounded first review on the original long-span draft so the project could judge source/window fit before committing to a judged accumulation comparison
         - packet:
           - `accumulation_benchmark_v1_probe_first_review_20260404`
+        - result:
+          - `keep = 0`
+          - `revise = 10`
+          - `drop = 8`
+        - interpretation:
+          - treat this as a source-fit and probe-framing failure on the old window set, not as product evidence against the mechanism
+    - current live job:
+      - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404`
+        - purpose:
+          - run first review on the rebuilt final long-span v1 window set under `MiniMax-M2.7-personal`
+        - packet:
+          - `accumulation_benchmark_v1_rejudged_first_review_20260404`
         - current next gate:
-          - when the packet summary lands, rerun `freeze_accumulation_benchmark_v1.py` so the frozen probe dataset and tracked manifest switch to the reviewed rows before launching the judged accumulation comparison
+          - wait for the rebuilt packet summary, then freeze the reviewed probes and only after that launch the judged accumulation comparison
 - `coherent_accumulation` is now interpreted operationally as bounded long-span continuity and carryover rather than generic whole-book memory.
 - `insight_and_clarification` is treated as an orthogonal output-value axis that can score both local excerpt cases and long-span window cases.
 - Excerpt and long-span datasets may intentionally use different books or chapters when that improves fit and runtime efficiency.
 - Current immediate eval gate:
-  - if `bgjob_human_notes_excerpt_smoke_light_20260404` produces both expected summary files, launch the judged notes-guided local excerpt comparison next on `MiniMax-M2.7-highspeed`
-  - if the smoke exits without those summary files, treat that as an excerpt-runner harness failure rather than product evidence
+  - the local excerpt smoke has already passed its harness gate
+  - the judged notes-guided local excerpt comparison has completed on `MiniMax-M2.7-highspeed` and now needs interpretation
 - Current long-span construction gate:
-  - keep the bounded accumulation-probe first-review job as the only heavy personal-key job for now
-  - once that review summary exists, rerun the freeze helper, confirm the tracked manifest points at the frozen probe dataset, and only then launch the accumulation comparison lane
+  - keep the rejudged accumulation first-review job as the only heavy personal-key job for now
+  - once that rebuilt review summary exists, rerun the freeze helper, confirm the tracked manifest points at the frozen reviewed probe dataset, and only then launch the accumulation comparison lane
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
   - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE = keep_hold_for_backlog_rescue`
@@ -304,18 +332,19 @@ Last verified: `2026-04-04T11:40:00Z`
   - artifacts:
     - `window_cases`
     - `accumulation_probes`
-  - fixed v1 windows:
+  - fixed active v1 windows after the April 4 source-fit rejudgment:
     - `supremacy_private_en__13`
     - `steve_jobs_private_en__17`
-    - `zouchu_weiyi_zhenliguan_private_zh__14`
-    - `xidaduo_private_zh__15`
+    - `value_of_others_private_en__8_10`
+    - `xidaduo_private_zh__13_15`
+    - `huochu_shengming_de_yiyi_private_zh__8`
+    - `huochu_shengming_de_yiyi_private_zh__13_16`
+  - demoted from the active long-span v1 surface:
     - `nawaer_baodian_private_zh__wealth`
     - `nawaer_baodian_private_zh__judgment`
-  - excluded from long-span v1 for efficiency:
-    - `value_of_others_private_en__8`
-    - `huochu_shengming_de_yiyi_private_zh__8`
-    - `mangge_zhi_dao_private_zh__18`
-    - `mangge_zhi_dao_private_zh__26`
+    - `zouchu_weiyi_zhenliguan_private_zh__14`
+  - reserve / next-add direction:
+    - `shoe_dog_private_en` is the first preferred wider-book reserve if active v1 still needs a stronger extra English long-span source after the rebuilt review closes
 - The older broad formal benchmark remains preserved as historical operator evidence:
   - the `40 / 40` gap-fill closeout itself is still recorded in repo artifacts
   - the later formal decisive chapter and excerpt reruns were deliberately abandoned on `2026-04-03T13:00:09Z` after the active benchmark pointer moved to clustered benchmark v1:
@@ -334,8 +363,9 @@ Last verified: `2026-04-04T11:40:00Z`
       - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
       - future review/eval launches may therefore use both together for throughput
       - only keep a single forced target when we deliberately want one fully uniform reviewer surface
-- There are currently no active background jobs in the registry.
-  - the most recent completed clustered benchmark jobs are:
+- There is currently one active background job in the registry:
+  - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404`
+- the most recent completed clustered benchmark jobs are:
     - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
     - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
     - `bgjob_clustered_benchmark_v1_reserve_review_en_20260404`

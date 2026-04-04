@@ -90,6 +90,12 @@ WINDOW_SPECS: tuple[dict[str, Any], ...] = (
         "chapter_ids": ["13"],
         "chapter_case_ids": ["supremacy_private_en__13"],
         "origin_line": "clustered_benchmark_v1",
+        "window_label": "Chapter 7. Playing Games",
+        "selection_reason": (
+            "Keep this concise narrative AI-race chapter as a bounded within-chapter accumulation "
+            "surface because it already has dense reviewed excerpt support and can be repaired by "
+            "narrowing the thematic thread instead of widening to a new English source."
+        ),
     },
     {
         "window_case_id": "steve_jobs_private_en__17",
@@ -98,44 +104,81 @@ WINDOW_SPECS: tuple[dict[str, Any], ...] = (
         "chapter_ids": ["17"],
         "chapter_case_ids": ["steve_jobs_private_en__17"],
         "origin_line": "clustered_benchmark_v1",
+        "window_label": "Chapter Eight: Xerox and Lisa",
+        "selection_reason": (
+            "Keep this chapter as a bounded within-chapter accumulation surface because the book is "
+            "strongly sequential and this window already carries many reviewed excerpt anchors; the "
+            "first-review failure pointed at probe focus drift rather than source misfit."
+        ),
     },
     {
-        "window_case_id": "zouchu_weiyi_zhenliguan_private_zh__14",
-        "source_id": "zouchu_weiyi_zhenliguan_private_zh",
-        "language_track": "zh",
-        "chapter_ids": ["14"],
-        "chapter_case_ids": ["zouchu_weiyi_zhenliguan_private_zh__14"],
-        "origin_line": "clustered_benchmark_v1",
-    },
-    {
-        "window_case_id": "xidaduo_private_zh__15",
-        "source_id": "xidaduo_private_zh",
-        "language_track": "zh",
-        "chapter_ids": ["15"],
-        "chapter_case_ids": ["xidaduo_private_zh__15"],
-        "origin_line": "human_notes_guided_dataset_v1",
-    },
-    {
-        "window_case_id": "nawaer_baodian_private_zh__wealth",
-        "source_id": "nawaer_baodian_private_zh",
-        "language_track": "zh",
-        "chapter_ids": ["12", "13"],
-        "chapter_case_ids": ["nawaer_baodian_private_zh__12", "nawaer_baodian_private_zh__13"],
-        "origin_line": "human_notes_guided_dataset_v1",
-        "window_label": "Wealth cluster",
-    },
-    {
-        "window_case_id": "nawaer_baodian_private_zh__judgment",
-        "source_id": "nawaer_baodian_private_zh",
-        "language_track": "zh",
-        "chapter_ids": ["22", "23", "24"],
+        "window_case_id": "value_of_others_private_en__8_10",
+        "source_id": "value_of_others_private_en",
+        "language_track": "en",
+        "chapter_ids": ["8", "9", "10"],
         "chapter_case_ids": [
-            "nawaer_baodian_private_zh__22",
-            "nawaer_baodian_private_zh__23",
-            "nawaer_baodian_private_zh__24",
+            "value_of_others_private_en__8",
+            "value_of_others_private_en__9",
+            "value_of_others_private_en__10",
         ],
         "origin_line": "human_notes_guided_dataset_v1",
-        "window_label": "Judgment cluster",
+        "window_label": "Chapters 2-4 argumentative carryover arc",
+        "selection_reason": (
+            "Add this cross-chapter argument window because aligned human notes stay dense across all "
+            "three chapters and chapter 8 already has reviewed excerpt support, giving a true "
+            "carryover surface without reopening a broad builder wave."
+        ),
+    },
+    {
+        "window_case_id": "xidaduo_private_zh__13_15",
+        "source_id": "xidaduo_private_zh",
+        "language_track": "zh",
+        "chapter_ids": ["13", "14", "15"],
+        "chapter_case_ids": [
+            "xidaduo_private_zh__13",
+            "xidaduo_private_zh__14",
+            "xidaduo_private_zh__15",
+        ],
+        "origin_line": "human_notes_guided_dataset_v1",
+        "window_label": "儿子 / 唵 / 乔文达 late arc",
+        "selection_reason": (
+            "Upgrade Siddhartha from a single late chapter to a true late-book arc because the "
+            "opening, middle, and final chapters all have aligned notes and the source's spiritual "
+            "continuity makes it the strongest current long-span fit."
+        ),
+    },
+    {
+        "window_case_id": "huochu_shengming_de_yiyi_private_zh__8",
+        "source_id": "huochu_shengming_de_yiyi_private_zh",
+        "language_track": "zh",
+        "chapter_ids": ["8"],
+        "chapter_case_ids": ["huochu_shengming_de_yiyi_private_zh__8"],
+        "origin_line": "human_notes_guided_dataset_v1",
+        "window_label": "第一部分 在集中营的经历",
+        "selection_reason": (
+            "Keep the camp-experience chapter as a heavy single-window memory surface because one read "
+            "covers many reviewed excerpt anchors and note-backed reactions, making it costly but very "
+            "efficient evidence once executed."
+        ),
+    },
+    {
+        "window_case_id": "huochu_shengming_de_yiyi_private_zh__13_16",
+        "source_id": "huochu_shengming_de_yiyi_private_zh",
+        "language_track": "zh",
+        "chapter_ids": ["13", "14", "15", "16"],
+        "chapter_case_ids": [
+            "huochu_shengming_de_yiyi_private_zh__13",
+            "huochu_shengming_de_yiyi_private_zh__14",
+            "huochu_shengming_de_yiyi_private_zh__15",
+            "huochu_shengming_de_yiyi_private_zh__16",
+        ],
+        "origin_line": "human_notes_guided_dataset_v1",
+        "window_label": "心理-动力 / 存在之虚无 / 生命之意义 / 存在之本质",
+        "selection_reason": (
+            "Add this compact logotherapy-definition arc because it delivers genuine cross-chapter "
+            "carryover in under one hundred sentences, which is valuable for fast iteration on the "
+            "accumulation surface."
+        ),
     },
 )
 
@@ -361,6 +404,7 @@ def build_window_rows(root: Path | None = None) -> list[dict[str, Any]]:
             "benchmark_line": spec["origin_line"],
             "selection_role": _clean_text(clustered_row.get("selection_role")) or "long_span_window",
             "selection_status": _clean_text(clustered_row.get("selection_status")) or "bounded_long_span_window_v1",
+            "selection_reason": _clean_text(spec.get("selection_reason")),
             "contiguous_chapters": _chapter_ids_are_contiguous(list(spec["chapter_ids"])),
             "cross_chapter_window": (
                 {
@@ -516,19 +560,23 @@ def _probe_type(anchors: list[dict[str, Any]]) -> str:
 
 def _probe_selection_reason(window_row: dict[str, Any], anchors: list[dict[str, Any]]) -> str:
     anchor_labels = [f"{anchor['stage']}@chapter{anchor['chapter_id']}" for anchor in anchors]
+    span_kind = "cross-chapter" if len(window_row["chapter_ids"]) > 1 else "within-chapter"
     return (
-        f"Bounded long-span probe selected from {window_row['window_case_id']} using "
-        f"{', '.join(anchor_labels)}. It is intended to test whether earlier material is "
-        f"carried forward coherently rather than being re-reacted to in isolation."
+        f"Bounded {span_kind} accumulation probe selected from {window_row['window_case_id']} using "
+        f"{', '.join(anchor_labels)}. It is intended to test whether earlier material is carried "
+        f"forward coherently rather than the later anchor being read as if it stands alone."
     )
 
 
 def _probe_judge_focus(window_row: dict[str, Any], anchors: list[dict[str, Any]]) -> str:
-    chapter_span = f"chapters {'-'.join(window_row['chapter_ids'])}"
+    if len(window_row["chapter_ids"]) > 1:
+        chapter_span = f"chapters {'-'.join(window_row['chapter_ids'])}"
+    else:
+        chapter_span = f"chapter {window_row['chapter_ids'][0]}"
     return (
-        f"Does the reader show coherent accumulation across {chapter_span}, especially at the later "
-        f"anchor(s), by carrying forward earlier material in a text-grounded way? When the window "
-        f"invites clarification, does the later output sharpen the earlier idea rather than merely paraphrase it?"
+        f"Within {chapter_span}, does the reader show coherent accumulation at the later anchor(s) by "
+        f"explicitly carrying forward a concrete earlier idea, tension, or narrative state in a "
+        f"text-grounded way, rather than reacting as if the later passage were independent?"
     )
 
 
@@ -545,6 +593,16 @@ def _support_case_ids(anchors: list[dict[str, Any]]) -> list[str]:
 
 def _note_entry_ids(anchors: list[dict[str, Any]]) -> list[str]:
     return [_clean_text(anchor.get("source_ref_id")) for anchor in anchors if _clean_text(anchor.get("anchor_kind")) == "note_entry"]
+
+
+def _prior_context_text(anchors: list[dict[str, Any]]) -> str:
+    if len(anchors) <= 1:
+        return _clean_text(anchors[0]["excerpt_text"]) if anchors else ""
+    return "\n".join(
+        _clean_text(anchor["excerpt_text"])
+        for anchor in anchors[:-1]
+        if _clean_text(anchor.get("excerpt_text"))
+    )
 
 
 def build_probe_rows(root: Path | None = None) -> list[dict[str, Any]]:
@@ -592,7 +650,7 @@ def build_probe_rows(root: Path | None = None) -> list[dict[str, Any]]:
                     "selection_reason": _probe_selection_reason(window_row, anchors),
                     "judge_focus": _probe_judge_focus(window_row, anchors),
                     "excerpt_text": _probe_excerpt_text(anchors),
-                    "prior_context_text": _clean_text(anchors[0]["excerpt_text"]),
+                    "prior_context_text": _prior_context_text(anchors),
                     "anchor_refs": anchors,
                     "support_excerpt_case_ids": _support_case_ids(anchors),
                     "note_provenance": _note_entry_ids(anchors),
@@ -627,7 +685,7 @@ def _window_manifest() -> dict[str, Any]:
         "question_ids": ["EQ-CM-003", "EQ-CM-004", "EQ-AV2-004"],
         "source_manifest_refs": [str(path.relative_to(ROOT)) for path in SOURCE_MANIFEST_PATHS],
         "storage_mode": "local-only",
-        "window_count": 6,
+        "window_count": len(WINDOW_SPECS),
     }
 
 
@@ -659,7 +717,7 @@ def build_draft_manifest_payload() -> dict[str, Any]:
         ],
         "benchmark_shape": {
             "kind": "long_span_window",
-            "window_case_target_total": 6,
+            "window_case_target_total": len(window_rows),
             "accumulation_probe_target_total": len(probe_rows),
         },
         "builder_limitations": list(BUILDER_LIMITATIONS),
@@ -669,7 +727,11 @@ def build_draft_manifest_payload() -> dict[str, Any]:
             "accumulation_probe_datasets": [str(PROBE_DRAFT_DATASET_DIR.relative_to(ROOT))],
         },
         "quota_status": {
-            "window_cases": {"target_total": 6, "ready_now": len(window_rows), "gap": max(0, 6 - len(window_rows))},
+            "window_cases": {
+                "target_total": len(window_rows),
+                "ready_now": len(window_rows),
+                "gap": 0,
+            },
             "accumulation_probes": {
                 "target_total": 18,
                 "ready_now": len(probe_rows),

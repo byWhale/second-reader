@@ -25,15 +25,16 @@ def test_build_window_rows_matches_expected_v1_windows() -> None:
     assert ids == [
         "supremacy_private_en__13",
         "steve_jobs_private_en__17",
-        "zouchu_weiyi_zhenliguan_private_zh__14",
-        "xidaduo_private_zh__15",
-        "nawaer_baodian_private_zh__wealth",
-        "nawaer_baodian_private_zh__judgment",
+        "value_of_others_private_en__8_10",
+        "xidaduo_private_zh__13_15",
+        "huochu_shengming_de_yiyi_private_zh__8",
+        "huochu_shengming_de_yiyi_private_zh__13_16",
     ]
     assert all(bool(row["contiguous_chapters"]) for row in rows)
-    assert sum(1 for row in rows if row["window_kind"] == "cross_chapter") == 2
+    assert sum(1 for row in rows if row["window_kind"] == "cross_chapter") == 3
     assert all(bool(row["output_language"]) for row in rows)
     assert all(bool(row["benchmark_line"]) for row in rows)
+    assert all(bool(row["selection_reason"]) for row in rows)
     assert all(int(row["sentence_count"]) > 0 for row in rows)
 
 
