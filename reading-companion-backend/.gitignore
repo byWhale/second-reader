@@ -44,7 +44,9 @@ data/
 output/
 eval/runs/
 eval/review_packets/pending/
-eval/review_packets/archive/*__scratch__*/
+# Generated review-packet archives are intermediate runtime artifacts by default.
+# Force-add a specific archive only when it is intentionally preserved as durable evidence.
+eval/review_packets/archive/*/
 state/job_registry/active_jobs.json
 state/job_registry/active_jobs.md
 state/job_registry/history_jobs.jsonl

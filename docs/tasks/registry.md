@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-03T13:05:01Z`
+Last updated: `2026-04-04T00:19:20Z`
 
 ## Status Values
 - `active`
@@ -25,10 +25,10 @@ Last updated: `2026-04-03T13:05:01Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
-- Next: keep the live English and Chinese first-review jobs running on the smoke2 scratch primaries; after both archive summaries land, accept only `keep` cases without blocking problem types, top up deficit chapters from reserves only, freeze toward `10` primaries plus `2` reserves per chapter, and then relaunch decisive chapter/excerpt evaluation against the clustered active benchmark rather than the historical broad formal freeze
+- Next: use the completed English and Chinese smoke2 first-review job records plus imported dataset state as the freeze input, accept only `keep` cases without blocking problem types, top up deficit chapters from reserves only, freeze toward `10` primaries plus `2` reserves per chapter, and then relaunch decisive chapter/excerpt evaluation against the clustered active benchmark rather than the historical broad formal freeze
 - Jobs:
-  - `bgjob_clustered_benchmark_v1_first_review_en_20260403` (`running`)
-  - `bgjob_clustered_benchmark_v1_first_review_zh_20260403` (`running`)
+  - `bgjob_clustered_benchmark_v1_first_review_en_20260403` (`completed`)
+  - `bgjob_clustered_benchmark_v1_first_review_zh_20260403` (`completed`)
 
 ## Parked
 

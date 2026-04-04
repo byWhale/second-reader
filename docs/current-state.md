@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-03T13:05:01Z`
+Last verified: `2026-04-04T00:19:20Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review:
@@ -71,21 +71,17 @@ Last verified: `2026-04-03T13:05:01Z`
       - the clustered builder now really constructs only the selected four chapters
       - the wider clustered search was necessary to reach the intended `12 + 4` per chapter scratch target
       - pressure balance is still uneven at the candidate stage, so the next real quality gate is review plus freeze rather than raw builder count alone
-  - the first real review wave is now live against those scratch primaries:
-    - English first review:
-      - job id:
-        - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
-      - packet id:
-        - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_en_20260403`
-    - Chinese first review:
-      - job id:
-        - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
-      - packet id:
-        - `attentional_v2_clustered_benchmark_v1_smoke2_first_review_zh_20260403`
-    - operator posture:
-      - these already launched jobs both force `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
-      - both jobs run with `--audit-max-workers 1 --review-max-workers 1`
+  - the first real review wave has now completed locally against those scratch primaries:
+    - completed job records:
+      - `reading-companion-backend/state/job_registry/jobs/bgjob_clustered_benchmark_v1_first_review_en_20260403.json`
+      - `reading-companion-backend/state/job_registry/jobs/bgjob_clustered_benchmark_v1_first_review_zh_20260403.json`
+    - operator posture retained from the completed wave:
+      - both jobs forced `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
+      - both jobs ran with `--audit-max-workers 1 --review-max-workers 1`
       - later launches may distribute across `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` because the current operator assumption is that they are equivalent `M2.7` judgment targets with different speed only
+    - artifact governance note:
+      - raw local-only review-packet archives are generated intermediate artifacts and are no longer kept in git by default
+      - durable repo evidence for this wave should come from job records, imported dataset state, and later freeze/eval outputs rather than from bulk packet directories
 - The older formal benchmark-v1 freeze remains historical evidence only:
   - historical manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
@@ -103,7 +99,7 @@ Last verified: `2026-04-03T13:05:01Z`
     - stronger same-chapter duplicate control
     - ranked same-profile case ids such as `__seed_1` and `__reserve_1`
   - the current bounded move is:
-    - wait for the two clustered first-review jobs to archive fresh packet summaries
+    - use the completed clustered first-review job records and imported dataset state as the source of truth for the smoke2 primary wave
     - accept only `keep` cases without blocking problem types
     - fill each chapter toward `10` frozen primaries and `2` frozen reserves
     - pull reserve rows only for chapters that still fall short after primary review
@@ -126,10 +122,9 @@ Last verified: `2026-04-03T13:05:01Z`
       - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
       - future review/eval launches may therefore use both together for throughput
       - only keep a single forced target when we deliberately want one fully uniform reviewer surface
-- The current Phase 9 live jobs are now the clustered benchmark first-review wave:
-  - English:
+- There are currently no active Phase 9 background jobs in the registry.
+  - the most recent completed clustered benchmark jobs are:
     - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
-  - Chinese:
     - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
 - The English chapter-core retry-2 closeout remains the last broader multi-case comparison baseline, and the completed backup-tier substantive rerun is now the latest focused two-case mechanism-evidence checkpoint:
   - run:

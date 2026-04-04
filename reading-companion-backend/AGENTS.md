@@ -97,6 +97,9 @@ Update when: backend-local constraints, recurring pitfalls, or stable implementa
 - Generated scratch validation artifacts are runtime output, not durable source.
   - If a workflow emits bulk scratch packet archives, closed-loop validation packets, or similar local review evidence under tracked `eval/` territory for convenience, route them into `state/` or cover them with narrow ignore rules.
   - Do not let repetitive offline smoke runs create commit noise just because they wrote into a tracked subtree.
+  - Any new intermediate-artifact directory under tracked backend territory must be added to `.gitignore` in the same task before you close the work.
+  - Default stance: raw review-packet archives, per-case judge dumps, traces, scratch previews, and similar bulk outputs are local runtime artifacts, not source files.
+  - If a specific generated packet/archive is intentionally preserved in git as durable evidence, do it explicitly and document the reason.
   - If a derived summary is intentionally tracked for operator visibility, keep it stable and avoid timestamp-only rewrites when the underlying queue state did not change.
 - Treat `public/book_document.json` as the only shared parsed-book truth.
 - Keep top-level `public/` limited to cross-mechanism, product-facing artifacts.
