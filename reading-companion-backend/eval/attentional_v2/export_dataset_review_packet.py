@@ -29,6 +29,8 @@ FAMILY_CHOICES = (
     "chapter_corpora",
     "runtime_fixtures",
     "compatibility_fixtures",
+    "window_cases",
+    "accumulation_probes",
 )
 STORAGE_MODE_CHOICES = ("tracked", "local-only")
 REVIEWABLE_FIELDS = (

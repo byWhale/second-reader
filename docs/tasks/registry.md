@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T09:35:00Z`
+Last updated: `2026-04-04T11:40:00Z`
 
 ## Status Values
 - `active`
@@ -25,16 +25,18 @@ Last updated: `2026-04-04T09:35:00Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: launch the judged human-notes-guided local excerpt comparison now, then build/freeze `attentional_v2_accumulation_benchmark_v1` and launch the bounded long-span accumulation comparison; keep clustered benchmark v1 readable as evidence, but do not let it remain the sole design center for `coherent_accumulation`
-- Jobs: none
+- Next: keep the registered single-chapter notes-guided smoke alive as the only heavy highspeed excerpt job; if it emits aggregate/report, launch the judged human-notes-guided local excerpt comparison immediately, otherwise treat the miss as excerpt-harness failure before starting the judged lane
+- Jobs:
+  - `bgjob_human_notes_excerpt_smoke_light_20260404` (`running`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: freeze exactly `6` long-span windows with `2-3` accepted accumulation probes each under `attentional_v2_accumulation_benchmark_v1`, then hand them to the new accumulation comparison runner
-- Jobs: none
+- Next: let the registered bounded first-review packet finish on `MiniMax-M2.7-personal`; when its summary lands, rerun `freeze_accumulation_benchmark_v1.py` so the tracked manifest points at frozen reviewed probes, then launch the judged accumulation comparison
+- Jobs:
+  - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`running`)
 
 ## Parked
 

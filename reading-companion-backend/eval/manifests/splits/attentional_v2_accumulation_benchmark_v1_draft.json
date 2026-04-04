@@ -1,0 +1,179 @@
+{
+  "manifest_id": "attentional_v2_accumulation_benchmark_v1_draft",
+  "description": "Bounded long-span/window draft manifest for split-surface coherent accumulation evaluation.",
+  "targets": [
+    "reader_character.coherent_accumulation",
+    "reader_value.insight_and_clarification"
+  ],
+  "benchmark_shape": {
+    "kind": "long_span_window",
+    "window_case_target_total": 6,
+    "accumulation_probe_target_total": 18
+  },
+  "builder_limitations": [
+    "Probe review automation is intentionally deferred in this minimal implementation.",
+    "Draft probes are deterministic and traceable, but they are not yet passed through a dedicated long-span review packet lane.",
+    "The tracked draft manifest is immediately runnable for harness work; later freeze promotion should prefer reviewed probes when they exist."
+  ],
+  "source_refs": {
+    "source_manifests": [
+      "eval/manifests/source_books/attentional_v2_clustered_benchmark_v1_source_books.json",
+      "eval/manifests/local_refs/attentional_v2_clustered_benchmark_v1_local_refs.json",
+      "state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/manifests/source_books/attentional_v2_human_notes_guided_dataset_v1_source_books__scratch__human_notes_guided_dataset_v1_20260404.json",
+      "state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/manifests/local_refs/attentional_v2_human_notes_guided_dataset_v1_local_refs__scratch__human_notes_guided_dataset_v1_20260404.json"
+    ],
+    "window_case_datasets": [
+      "state/eval_local_datasets/window_cases/attentional_v2_accumulation_benchmark_v1_window_cases"
+    ],
+    "accumulation_probe_datasets": [
+      "state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft"
+    ]
+  },
+  "quota_status": {
+    "window_cases": {
+      "target_total": 6,
+      "ready_now": 6,
+      "gap": 0
+    },
+    "accumulation_probes": {
+      "target_total": 18,
+      "ready_now": 18,
+      "gap": 0
+    },
+    "insight_and_clarification_subset": {
+      "target_total": 17,
+      "ready_now": 17,
+      "gap": 0
+    }
+  },
+  "splits": {
+    "accumulation_window_core_draft": {
+      "all": [
+        "supremacy_private_en__13",
+        "steve_jobs_private_en__17",
+        "zouchu_weiyi_zhenliguan_private_zh__14",
+        "xidaduo_private_zh__15",
+        "nawaer_baodian_private_zh__wealth",
+        "nawaer_baodian_private_zh__judgment"
+      ]
+    },
+    "accumulation_probes_frozen_draft": {
+      "all": [
+        "nawaer_baodian_private_zh__judgment__probe_1",
+        "nawaer_baodian_private_zh__judgment__probe_2",
+        "nawaer_baodian_private_zh__judgment__probe_3",
+        "nawaer_baodian_private_zh__wealth__probe_1",
+        "nawaer_baodian_private_zh__wealth__probe_2",
+        "nawaer_baodian_private_zh__wealth__probe_3",
+        "steve_jobs_private_en__17__probe_1",
+        "steve_jobs_private_en__17__probe_2",
+        "steve_jobs_private_en__17__probe_3",
+        "supremacy_private_en__13__probe_1",
+        "supremacy_private_en__13__probe_2",
+        "supremacy_private_en__13__probe_3",
+        "xidaduo_private_zh__15__probe_1",
+        "xidaduo_private_zh__15__probe_2",
+        "xidaduo_private_zh__15__probe_3",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+      ]
+    },
+    "accumulation_probe_core_draft": {
+      "by_window": {
+        "supremacy_private_en__13": [
+          "supremacy_private_en__13__probe_1",
+          "supremacy_private_en__13__probe_2",
+          "supremacy_private_en__13__probe_3"
+        ],
+        "steve_jobs_private_en__17": [
+          "steve_jobs_private_en__17__probe_1",
+          "steve_jobs_private_en__17__probe_2",
+          "steve_jobs_private_en__17__probe_3"
+        ],
+        "zouchu_weiyi_zhenliguan_private_zh__14": [
+          "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
+          "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
+          "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+        ],
+        "xidaduo_private_zh__15": [
+          "xidaduo_private_zh__15__probe_1",
+          "xidaduo_private_zh__15__probe_2",
+          "xidaduo_private_zh__15__probe_3"
+        ],
+        "nawaer_baodian_private_zh__wealth": [
+          "nawaer_baodian_private_zh__wealth__probe_1",
+          "nawaer_baodian_private_zh__wealth__probe_2",
+          "nawaer_baodian_private_zh__wealth__probe_3"
+        ],
+        "nawaer_baodian_private_zh__judgment": [
+          "nawaer_baodian_private_zh__judgment__probe_1",
+          "nawaer_baodian_private_zh__judgment__probe_2",
+          "nawaer_baodian_private_zh__judgment__probe_3"
+        ]
+      },
+      "all": [
+        "nawaer_baodian_private_zh__judgment__probe_1",
+        "nawaer_baodian_private_zh__judgment__probe_2",
+        "nawaer_baodian_private_zh__judgment__probe_3",
+        "nawaer_baodian_private_zh__wealth__probe_1",
+        "nawaer_baodian_private_zh__wealth__probe_2",
+        "nawaer_baodian_private_zh__wealth__probe_3",
+        "steve_jobs_private_en__17__probe_1",
+        "steve_jobs_private_en__17__probe_2",
+        "steve_jobs_private_en__17__probe_3",
+        "supremacy_private_en__13__probe_1",
+        "supremacy_private_en__13__probe_2",
+        "supremacy_private_en__13__probe_3",
+        "xidaduo_private_zh__15__probe_1",
+        "xidaduo_private_zh__15__probe_2",
+        "xidaduo_private_zh__15__probe_3",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+      ]
+    },
+    "insight_and_clarification_subset_frozen_draft": {
+      "all": [
+        "nawaer_baodian_private_zh__judgment__probe_1",
+        "nawaer_baodian_private_zh__judgment__probe_2",
+        "nawaer_baodian_private_zh__judgment__probe_3",
+        "nawaer_baodian_private_zh__wealth__probe_1",
+        "nawaer_baodian_private_zh__wealth__probe_2",
+        "nawaer_baodian_private_zh__wealth__probe_3",
+        "steve_jobs_private_en__17__probe_1",
+        "steve_jobs_private_en__17__probe_2",
+        "steve_jobs_private_en__17__probe_3",
+        "supremacy_private_en__13__probe_1",
+        "supremacy_private_en__13__probe_2",
+        "xidaduo_private_zh__15__probe_1",
+        "xidaduo_private_zh__15__probe_2",
+        "xidaduo_private_zh__15__probe_3",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+      ]
+    },
+    "insight_and_clarification_subset_draft": {
+      "all": [
+        "nawaer_baodian_private_zh__judgment__probe_1",
+        "nawaer_baodian_private_zh__judgment__probe_2",
+        "nawaer_baodian_private_zh__judgment__probe_3",
+        "nawaer_baodian_private_zh__wealth__probe_1",
+        "nawaer_baodian_private_zh__wealth__probe_2",
+        "nawaer_baodian_private_zh__wealth__probe_3",
+        "steve_jobs_private_en__17__probe_1",
+        "steve_jobs_private_en__17__probe_2",
+        "steve_jobs_private_en__17__probe_3",
+        "supremacy_private_en__13__probe_1",
+        "supremacy_private_en__13__probe_2",
+        "xidaduo_private_zh__15__probe_1",
+        "xidaduo_private_zh__15__probe_2",
+        "xidaduo_private_zh__15__probe_3",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_1",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_2",
+        "zouchu_weiyi_zhenliguan_private_zh__14__probe_3"
+      ]
+    }
+  }
+}

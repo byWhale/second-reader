@@ -7,11 +7,11 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T09:35:00Z`
+Last verified: `2026-04-04T11:40:00Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
-  - start local judged evaluation now on the completed human-notes-guided excerpt freeze
+  - finish one bounded registered local excerpt smoke on the completed human-notes-guided excerpt freeze, then launch the local judged evaluation immediately if the smoke emits `summary/aggregate.json` and `summary/report.md`
   - build a bounded long-span accumulation benchmark in parallel instead of forcing the current chapter benchmark to answer every remaining question
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
   - keep durable-trace / re-entry and runtime viability paused on cost grounds
@@ -28,6 +28,20 @@ Last verified: `2026-04-04T09:35:00Z`
       - local `reader_value.insight_and_clarification`
     - immediate runnable surface:
       - the completed human-notes-guided excerpt reviewed freeze
+    - current live job:
+      - `bgjob_human_notes_excerpt_smoke_light_20260404`
+        - purpose:
+          - verify that `run_excerpt_comparison.py` can emit case payloads plus `summary/aggregate.json` and `summary/report.md` on the notes-guided local manifest before the judged lane starts
+        - scope:
+          - one shared chapter unit: `nawaer_baodian_private_zh__13`
+          - three excerpt cases spanning `anchored_reaction_selectivity`, `distinction_definition`, and `tension_reversal`
+    - current smoke discipline:
+      - keep only one heavy highspeed excerpt smoke alive at a time
+      - earlier duplicate highspeed smoke attempts were deliberately stopped after they created avoidable same-key contention:
+        - `bgjob_human_notes_guided_excerpt_eval_v1_smoke_20260404`
+          - now `abandoned`
+        - `bgjob_notes_guided_excerpt_smoke_20260404`
+          - now `failed` after explicit termination because it duplicated the lighter single-chapter smoke
   - `long-span / window`
     - primary target:
       - `reader_character.coherent_accumulation`
@@ -35,9 +49,35 @@ Last verified: `2026-04-04T09:35:00Z`
       - long-span `reader_value.insight_and_clarification`
     - next construction lane:
       - `attentional_v2_accumulation_benchmark_v1`
+    - landed bounded long-span support:
+      - deterministic window/probe builder:
+        - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v1.py`
+      - helper entrypoints:
+        - `reading-companion-backend/eval/attentional_v2/build_accumulation_benchmark_v1.py`
+        - `reading-companion-backend/eval/attentional_v2/freeze_accumulation_benchmark_v1.py`
+        - `reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py`
+      - current tracked manifest:
+        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v1_draft.json`
+      - current local dataset artifacts:
+        - `6` frozen window rows
+        - `18` current frozen-draft probe rows
+    - current live job:
+      - `bgjob_accumulation_benchmark_v1_first_review_20260404`
+        - purpose:
+          - run bounded first review on all `18` draft long-span probes under `MiniMax-M2.7-personal` so the later frozen probe set can prefer `reviewed_active` rows instead of builder-curated fallback rows
+        - packet:
+          - `accumulation_benchmark_v1_probe_first_review_20260404`
+        - current next gate:
+          - when the packet summary lands, rerun `freeze_accumulation_benchmark_v1.py` so the frozen probe dataset and tracked manifest switch to the reviewed rows before launching the judged accumulation comparison
 - `coherent_accumulation` is now interpreted operationally as bounded long-span continuity and carryover rather than generic whole-book memory.
 - `insight_and_clarification` is treated as an orthogonal output-value axis that can score both local excerpt cases and long-span window cases.
 - Excerpt and long-span datasets may intentionally use different books or chapters when that improves fit and runtime efficiency.
+- Current immediate eval gate:
+  - if `bgjob_human_notes_excerpt_smoke_light_20260404` produces both expected summary files, launch the judged notes-guided local excerpt comparison next on `MiniMax-M2.7-highspeed`
+  - if the smoke exits without those summary files, treat that as an excerpt-runner harness failure rather than product evidence
+- Current long-span construction gate:
+  - keep the bounded accumulation-probe first-review job as the only heavy personal-key job for now
+  - once that review summary exists, rerun the freeze helper, confirm the tracked manifest points at the frozen probe dataset, and only then launch the accumulation comparison lane
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
   - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE = keep_hold_for_backlog_rescue`

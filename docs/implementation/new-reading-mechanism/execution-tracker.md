@@ -136,6 +136,36 @@ Update when: status changes, blockers appear, or phases complete.
       - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
       - future review/eval launches may therefore distribute work across both targets for throughput
       - only force one concrete target when one run intentionally needs a single uniform reviewer surface
+    - current live launch posture:
+      - keep exactly one heavy `MiniMax-M2.7-highspeed` excerpt eval process alive at a time
+      - current retained highspeed smoke:
+        - `bgjob_human_notes_excerpt_smoke_light_20260404`
+          - run id:
+            - `attentional_v2_human_notes_guided_excerpt_eval_v1_smoke_light_20260404`
+          - purpose:
+            - verify that the notes-guided local excerpt runner emits `summary/aggregate.json` and `summary/report.md` before the judged lane starts
+          - scope:
+            - one shared chapter unit: `nawaer_baodian_private_zh__13`
+            - three local excerpt cases spanning both kept target slices
+      - duplicate highspeed excerpt smoke attempts were explicitly retired after they created unnecessary same-key contention:
+        - `bgjob_human_notes_guided_excerpt_eval_v1_smoke_20260404`
+          - current status:
+            - `abandoned`
+        - `bgjob_notes_guided_excerpt_smoke_20260404`
+          - current status:
+            - `failed`
+          - cause:
+            - deliberately terminated because it duplicated the lighter single-chapter smoke while using the same forced target
+      - current retained personal-key long-span review lane:
+        - `bgjob_accumulation_benchmark_v1_first_review_20260404`
+          - packet id:
+            - `accumulation_benchmark_v1_probe_first_review_20260404`
+          - purpose:
+            - harden the bounded long-span probe set under `MiniMax-M2.7-personal` before the judged accumulation comparison starts
+          - scope:
+            - all `18` draft probes under `attentional_v2_accumulation_benchmark_v1_probes_draft`
+          - current next gate:
+            - rerun `freeze_accumulation_benchmark_v1.py` after the packet summary lands so the frozen probe dataset and tracked manifest switch to `reviewed_active` rows where available
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
@@ -214,8 +244,11 @@ Update when: status changes, blockers appear, or phases complete.
       - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
       - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
     - immediate next mainline move is now split:
-      - launch the judged notes-guided local excerpt lane immediately
-      - build and freeze `attentional_v2_accumulation_benchmark_v1` as the bounded long-span window lane
+      - finish the retained registered notes-guided local excerpt smoke first
+      - if that smoke emits both summary files, launch the judged notes-guided local excerpt lane immediately
+      - if the smoke exits without those summary files, treat the result as excerpt-runner harness failure and repair it before the judged lane
+      - keep the bounded accumulation probe first-review lane running on `MiniMax-M2.7-personal`
+      - when that packet summary lands, rerun `freeze_accumulation_benchmark_v1.py` and confirm the tracked manifest points at the frozen probe dataset
       - then launch the judged accumulation comparison on that long-span lane
       - keep the `reserve = 7 / 8` shortfall and the pressure imbalance explicit in any clustered-benchmark interpretation rather than reopening builder widening first
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets

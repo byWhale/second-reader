@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-04T09:35:00Z",
+  "updated_at": "2026-04-04T11:40:00Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -679,9 +679,11 @@
         "DEC-047",
         "DEC-048"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_human_notes_excerpt_smoke_light_20260404"
+      ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Launch the judged human-notes-guided local excerpt comparison now, then build/freeze attentional_v2_accumulation_benchmark_v1 and launch the bounded long-span accumulation comparison; keep clustered benchmark v1 readable as evidence, but do not let it remain the sole design center for coherent_accumulation.",
+      "next_action": "Keep the registered single-chapter notes-guided smoke alive as the only heavy highspeed excerpt job; if it emits aggregate/report, launch the judged human-notes-guided local excerpt comparison immediately, otherwise treat the miss as excerpt-harness failure before starting the judged lane.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
@@ -690,11 +692,13 @@
         "reading-companion-backend/state/dataset_build/build_runs/clustered_benchmark_v1_freeze_20260404/clustered_benchmark_v1_freeze_summary.json",
         "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_clustered_benchmark_v1_excerpt_en/manifest.json",
         "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_clustered_benchmark_v1_excerpt_zh/manifest.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_smoke_light_20260404.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_smoke_light_20260404.log",
         "reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py",
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-04T09:35:00Z",
-      "last_updated_by": "codex"
+  "last_updated": "2026-04-04T11:40:00Z",
+  "last_updated_by": "codex"
     },
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V1",
@@ -711,19 +715,27 @@
       "decision_refs": [
         "DEC-039"
       ],
-      "job_refs": [],
-      "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Freeze exactly 6 long-span windows with 2-3 accepted accumulation probes each under attentional_v2_accumulation_benchmark_v1, then hand them to the new accumulation comparison runner.",
-      "blocked_by": [],
-      "evidence_refs": [
-        "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
-        "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
-        "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/cluster_resolutions/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json",
-        "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404/manifest.json",
-        "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404/manifest.json"
-      ],
-      "last_updated": "2026-04-04T09:35:00Z",
-      "last_updated_by": "codex"
+  "job_refs": [
+    "bgjob_accumulation_benchmark_v1_first_review_20260404"
+  ],
+  "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
+  "next_action": "Let the registered bounded first-review packet finish on MiniMax-M2.7-personal; when its summary lands, rerun freeze_accumulation_benchmark_v1.py so the tracked manifest points at frozen reviewed probes, then launch the judged accumulation comparison.",
+  "blocked_by": [],
+  "evidence_refs": [
+    "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
+    "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
+    "reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v1.py",
+    "reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py",
+    "reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v1_draft.json",
+    "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/cluster_resolutions/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json",
+    "reading-companion-backend/state/dataset_build/library_notes_catalog.json",
+    "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404/manifest.json",
+    "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404/manifest.json",
+    "reading-companion-backend/state/job_registry/jobs/bgjob_accumulation_benchmark_v1_first_review_20260404.json",
+    "reading-companion-backend/state/job_registry/logs/bgjob_accumulation_benchmark_v1_first_review_20260404.log"
+  ],
+  "last_updated": "2026-04-04T11:40:00Z",
+  "last_updated_by": "codex"
     },
     {
       "id": "TASK-DATASET-HUMAN-NOTES-GUIDED-V1",
