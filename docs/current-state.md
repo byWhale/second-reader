@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T05:59:13Z`
+Last verified: `2026-04-04T06:46:59Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review and the completed clustered benchmark freeze:
@@ -60,7 +60,7 @@ Last verified: `2026-04-04T05:59:13Z`
   - active benchmark pointer remains unchanged:
     - do not repoint away from clustered benchmark v1 based on this notes-guided line alone
     - decide merge / replace / lesson-borrowing only after explicit review of the isolated notes-guided outputs
-  - first review wave has now split into one completed EN packet and one pending ZH retry:
+  - first review wave is now completed for both language packets:
     - EN packet:
       - `human_notes_guided_dataset_v1_excerpt_en_first_review_20260404`
       - original job:
@@ -90,16 +90,27 @@ Last verified: `2026-04-04T05:59:13Z`
       - original job:
         - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404`
         - failed during audit after `3` transient `network_blocked` / `Connection error.` cases
-      - current state:
-        - no new retry launched yet
-        - the pending packet can now resume through the same `audit_packet -> final_summary` path without rebuilding the packet
+      - recovery job:
+        - `bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404`
+          - completed
+      - completed audit summary:
+        - `36 keep`, `10 revise`, `1 drop`
+        - archived audit run:
+          - `reading-companion-backend/eval/runs/attentional_v2/case_audits/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404__20260404-062057/summary/aggregate.json`
+      - completed adjudication/import summary:
+        - `39 keep`, `7 revise`, `1 drop`, `0 unclear`
+        - archived packet summary:
+          - `reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404/dataset_review_pipeline_summary.json`
+        - post-import dataset counts:
+          - `reviewed_active = 39`
+          - `needs_revision = 7`
+          - `needs_replacement = 1`
     - current operational posture:
       - both language packets use `run_dataset_review_pipeline`
       - selection mode is `first_review`
       - packet workers stay serial with `--audit-max-workers 1 --review-max-workers 1`
-    - next decision after the completed EN packet:
-      - interpret EN `keep/revise/drop` by cluster
-      - relaunch the ZH packet through the new resume path
+    - next decision after the completed bilingual wave:
+      - interpret EN and ZH `keep/revise/drop` by cluster
       - then decide honest short freeze vs reserve top-up vs narrow builder repair
 - Because current model-call cost is too high, pause new comparison work that sits outside the mechanism mainline for now:
   - keep the existing broader comparison checkpoints as reference baselines only
@@ -226,6 +237,7 @@ Last verified: `2026-04-04T05:59:13Z`
     - `bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404`
     - `bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404`
     - `bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404`
+    - `bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404`
   - the latest failed notes-guided support jobs are:
     - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404`
     - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404`

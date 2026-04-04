@@ -58,7 +58,7 @@ Update when: status changes, blockers appear, or phases complete.
         - Chinese reserves: `10`
     - current honest shortfall:
       - `nawaer_baodian_private_zh__wealth` currently tops out at `7` candidate cases with no reserve rows
-    - first review wave is now partially completed:
+    - first review wave is now completed for both language packets:
       - EN packet:
         - `human_notes_guided_dataset_v1_excerpt_en_first_review_20260404`
         - original job:
@@ -80,9 +80,16 @@ Update when: status changes, blockers appear, or phases complete.
         - original job:
           - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404`
           - failed on `3` transient `network_blocked` audit cases
-        - current status:
-          - no retry launched yet
-          - the existing pending packet can now resume directly from `audit_packet`
+        - recovery job:
+          - `bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404`
+            - completed
+        - completed packet summary:
+          - `reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404/dataset_review_pipeline_summary.json`
+          - result:
+            - `keep = 39`
+            - `revise = 7`
+            - `drop = 1`
+            - post-import `reviewed_active = 39`, `needs_revision = 7`, `needs_replacement = 1`
       - landed recovery support:
         - `run_case_design_audit.py` now auto-reuses completed case outputs from the latest failed/incomplete audit run and only re-runs the missing remainder
         - `run_dataset_review_pipeline.py` now allows `first_review` packets to resume from `audit_packet` or later without re-supplying `--case-id`
@@ -91,8 +98,7 @@ Update when: status changes, blockers appear, or phases complete.
         - `selection_mode = first_review`
         - `--audit-max-workers 1 --review-max-workers 1`
       - next review interpretation target:
-        - interpret the completed EN packet by cluster
-        - relaunch the ZH packet through the same resume path
+        - interpret the completed bilingual packets by cluster
         - then decide whether the line should freeze honestly short, pull reserves, or take one narrow builder repair pass
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally

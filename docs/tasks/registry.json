@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-04T05:59:13Z",
+  "updated_at": "2026-04-04T06:46:59Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -717,10 +717,11 @@
         "bgjob_human_notes_guided_dataset_v1_first_review_en_20260404",
         "bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404",
         "bgjob_human_notes_guided_dataset_v1_first_review_en_retry1_20260404",
-        "bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404"
+        "bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404",
+        "bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
-      "next_action": "Interpret the completed EN first-review packet by cluster, relaunch the failed ZH packet through the new audit_packet-to-final_summary resume path, and then decide honest short freeze vs reserve top-up vs a narrow builder repair before any merge/replace decision.",
+      "next_action": "Interpret the completed bilingual first-review packets by cluster, then decide honest short freeze vs reserve top-up vs a narrow builder repair before any merge/replace decision.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -747,10 +748,14 @@
         "reading-companion-backend/state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/selection_group_maps/attentional_v2_human_notes_guided_dataset_v1_excerpt_scope__scratch__human_notes_guided_dataset_v1_20260404.json",
         "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_en_first_review_20260404/dataset_review_pipeline_summary.json",
         "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_en_first_review_20260404/llm_review_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404/llm_review_summary.json",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.json",
-        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.log"
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.log"
       ],
-      "last_updated": "2026-04-04T05:59:13Z",
+      "last_updated": "2026-04-04T06:46:59Z",
       "last_updated_by": "codex"
     }
   ]
