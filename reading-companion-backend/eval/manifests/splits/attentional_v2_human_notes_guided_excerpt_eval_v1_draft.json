@@ -1,0 +1,324 @@
+{
+  "manifest_id": "attentional_v2_human_notes_guided_excerpt_eval_v1_draft",
+  "description": "Local excerpt eval surface derived from the reviewed human-notes-guided dataset freeze.",
+  "targets": [
+    "reader_character.selective_legibility",
+    "reader_value.insight_and_clarification"
+  ],
+  "benchmark_shape": {
+    "kind": "excerpt_notes_guided",
+    "surface_role": "local_excerpt_eval",
+    "excerpt_primary_target_total": 55,
+    "insight_and_clarification_target_total": 38
+  },
+  "source_origin_rule": "Do not use public/private/manual/agent-downloaded provenance as benchmark strata.",
+  "source_refs": {
+    "source_manifests": [
+      "state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/manifests/source_books/attentional_v2_human_notes_guided_dataset_v1_source_books__scratch__human_notes_guided_dataset_v1_20260404.json",
+      "state/dataset_build/build_runs/human_notes_guided_dataset_v1_20260404/manifests/local_refs/attentional_v2_human_notes_guided_dataset_v1_local_refs__scratch__human_notes_guided_dataset_v1_20260404.json"
+    ],
+    "excerpt_case_datasets": [
+      "state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404",
+      "state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404"
+    ]
+  },
+  "quota_status": {
+    "excerpt_primary": {
+      "target_total": 55,
+      "ready_now": 55,
+      "gap": 0
+    },
+    "insight_and_clarification_subset": {
+      "target_total": 38,
+      "ready_now": 38,
+      "gap": 0
+    }
+  },
+  "splits": {
+    "excerpt_core_primary_frozen_draft": {
+      "by_chapter": {
+        "huochu_shengming_de_yiyi_private_zh__8": [
+          "huochu_shengming_de_yiyi_private_zh__8__anchored_reaction_selectivity__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_2",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_2",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_3",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_4",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_5"
+        ],
+        "mangge_zhi_dao_private_zh__18": [
+          "mangge_zhi_dao_private_zh__18__anchored_reaction_selectivity__seed_1",
+          "mangge_zhi_dao_private_zh__18__distinction_definition__seed_1",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_1",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_3",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_4",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_6"
+        ],
+        "mangge_zhi_dao_private_zh__26": [
+          "mangge_zhi_dao_private_zh__26__anchored_reaction_selectivity__seed_1",
+          "mangge_zhi_dao_private_zh__26__anchored_reaction_selectivity__seed_4",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_1",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_2",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_3",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_4"
+        ],
+        "nawaer_baodian_private_zh__13": [
+          "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_1",
+          "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_2",
+          "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_3",
+          "nawaer_baodian_private_zh__13__distinction_definition__seed_1",
+          "nawaer_baodian_private_zh__13__tension_reversal__seed_2",
+          "nawaer_baodian_private_zh__13__tension_reversal__seed_3"
+        ],
+        "nawaer_baodian_private_zh__22": [
+          "nawaer_baodian_private_zh__22__callback_bridge__seed_1",
+          "nawaer_baodian_private_zh__22__distinction_definition__seed_1",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_1",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_2",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_3"
+        ],
+        "nawaer_baodian_private_zh__23": [
+          "nawaer_baodian_private_zh__23__tension_reversal__seed_1",
+          "nawaer_baodian_private_zh__23__tension_reversal__seed_2"
+        ],
+        "value_of_others_private_en__8": [
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_1",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_3",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_4",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_5",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_6",
+          "value_of_others_private_en__8__distinction_definition__seed_1",
+          "value_of_others_private_en__8__distinction_definition__seed_2",
+          "value_of_others_private_en__8__distinction_definition__seed_3",
+          "value_of_others_private_en__8__distinction_definition__seed_4",
+          "value_of_others_private_en__8__distinction_definition__seed_5",
+          "value_of_others_private_en__8__distinction_definition__seed_6",
+          "value_of_others_private_en__8__tension_reversal__seed_1",
+          "value_of_others_private_en__8__tension_reversal__seed_2",
+          "value_of_others_private_en__8__tension_reversal__seed_4"
+        ],
+        "xidaduo_private_zh__15": [
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_1",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_2",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_3",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_4",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_5",
+          "xidaduo_private_zh__15__tension_reversal__seed_1",
+          "xidaduo_private_zh__15__tension_reversal__seed_2",
+          "xidaduo_private_zh__15__tension_reversal__seed_3"
+        ]
+      },
+      "by_pressure": {
+        "anchored_reaction_selectivity": [
+          "huochu_shengming_de_yiyi_private_zh__8__anchored_reaction_selectivity__seed_1",
+          "mangge_zhi_dao_private_zh__18__anchored_reaction_selectivity__seed_1",
+          "mangge_zhi_dao_private_zh__26__anchored_reaction_selectivity__seed_1",
+          "mangge_zhi_dao_private_zh__26__anchored_reaction_selectivity__seed_4",
+          "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_1",
+          "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_2",
+          "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_3",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_1",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_3",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_4",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_5",
+          "value_of_others_private_en__8__anchored_reaction_selectivity__seed_6",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_1",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_2",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_3",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_4",
+          "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_5"
+        ],
+        "callback_bridge": [
+          "nawaer_baodian_private_zh__22__callback_bridge__seed_1"
+        ],
+        "distinction_definition": [
+          "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_2",
+          "mangge_zhi_dao_private_zh__18__distinction_definition__seed_1",
+          "nawaer_baodian_private_zh__13__distinction_definition__seed_1",
+          "nawaer_baodian_private_zh__22__distinction_definition__seed_1",
+          "value_of_others_private_en__8__distinction_definition__seed_1",
+          "value_of_others_private_en__8__distinction_definition__seed_2",
+          "value_of_others_private_en__8__distinction_definition__seed_3",
+          "value_of_others_private_en__8__distinction_definition__seed_4",
+          "value_of_others_private_en__8__distinction_definition__seed_5",
+          "value_of_others_private_en__8__distinction_definition__seed_6"
+        ],
+        "tension_reversal": [
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_2",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_3",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_4",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_5",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_1",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_3",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_4",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_6",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_1",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_2",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_3",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_4",
+          "nawaer_baodian_private_zh__13__tension_reversal__seed_2",
+          "nawaer_baodian_private_zh__13__tension_reversal__seed_3",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_1",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_2",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_3",
+          "nawaer_baodian_private_zh__23__tension_reversal__seed_1",
+          "nawaer_baodian_private_zh__23__tension_reversal__seed_2",
+          "value_of_others_private_en__8__tension_reversal__seed_1",
+          "value_of_others_private_en__8__tension_reversal__seed_2",
+          "value_of_others_private_en__8__tension_reversal__seed_4",
+          "xidaduo_private_zh__15__tension_reversal__seed_1",
+          "xidaduo_private_zh__15__tension_reversal__seed_2",
+          "xidaduo_private_zh__15__tension_reversal__seed_3"
+        ]
+      },
+      "all": [
+        "huochu_shengming_de_yiyi_private_zh__8__anchored_reaction_selectivity__seed_1",
+        "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_1",
+        "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_2",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_1",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_2",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_3",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_4",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_5",
+        "mangge_zhi_dao_private_zh__18__anchored_reaction_selectivity__seed_1",
+        "mangge_zhi_dao_private_zh__18__distinction_definition__seed_1",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_1",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_3",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_4",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_6",
+        "mangge_zhi_dao_private_zh__26__anchored_reaction_selectivity__seed_1",
+        "mangge_zhi_dao_private_zh__26__anchored_reaction_selectivity__seed_4",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_1",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_2",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_3",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_4",
+        "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_1",
+        "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_2",
+        "nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_3",
+        "nawaer_baodian_private_zh__13__distinction_definition__seed_1",
+        "nawaer_baodian_private_zh__13__tension_reversal__seed_2",
+        "nawaer_baodian_private_zh__13__tension_reversal__seed_3",
+        "nawaer_baodian_private_zh__22__callback_bridge__seed_1",
+        "nawaer_baodian_private_zh__22__distinction_definition__seed_1",
+        "nawaer_baodian_private_zh__22__tension_reversal__seed_1",
+        "nawaer_baodian_private_zh__22__tension_reversal__seed_2",
+        "nawaer_baodian_private_zh__22__tension_reversal__seed_3",
+        "nawaer_baodian_private_zh__23__tension_reversal__seed_1",
+        "nawaer_baodian_private_zh__23__tension_reversal__seed_2",
+        "value_of_others_private_en__8__anchored_reaction_selectivity__seed_1",
+        "value_of_others_private_en__8__anchored_reaction_selectivity__seed_3",
+        "value_of_others_private_en__8__anchored_reaction_selectivity__seed_4",
+        "value_of_others_private_en__8__anchored_reaction_selectivity__seed_5",
+        "value_of_others_private_en__8__anchored_reaction_selectivity__seed_6",
+        "value_of_others_private_en__8__distinction_definition__seed_1",
+        "value_of_others_private_en__8__distinction_definition__seed_2",
+        "value_of_others_private_en__8__distinction_definition__seed_3",
+        "value_of_others_private_en__8__distinction_definition__seed_4",
+        "value_of_others_private_en__8__distinction_definition__seed_5",
+        "value_of_others_private_en__8__distinction_definition__seed_6",
+        "value_of_others_private_en__8__tension_reversal__seed_1",
+        "value_of_others_private_en__8__tension_reversal__seed_2",
+        "value_of_others_private_en__8__tension_reversal__seed_4",
+        "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_1",
+        "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_2",
+        "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_3",
+        "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_4",
+        "xidaduo_private_zh__15__anchored_reaction_selectivity__seed_5",
+        "xidaduo_private_zh__15__tension_reversal__seed_1",
+        "xidaduo_private_zh__15__tension_reversal__seed_2",
+        "xidaduo_private_zh__15__tension_reversal__seed_3"
+      ]
+    },
+    "insight_and_clarification_subset_frozen_draft": {
+      "by_pressure": {
+        "callback_bridge": [
+          "nawaer_baodian_private_zh__22__callback_bridge__seed_1"
+        ],
+        "distinction_definition": [
+          "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_2",
+          "mangge_zhi_dao_private_zh__18__distinction_definition__seed_1",
+          "nawaer_baodian_private_zh__13__distinction_definition__seed_1",
+          "nawaer_baodian_private_zh__22__distinction_definition__seed_1",
+          "value_of_others_private_en__8__distinction_definition__seed_1",
+          "value_of_others_private_en__8__distinction_definition__seed_2",
+          "value_of_others_private_en__8__distinction_definition__seed_3",
+          "value_of_others_private_en__8__distinction_definition__seed_4",
+          "value_of_others_private_en__8__distinction_definition__seed_5",
+          "value_of_others_private_en__8__distinction_definition__seed_6"
+        ],
+        "tension_reversal": [
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_1",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_2",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_3",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_4",
+          "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_5",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_1",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_3",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_4",
+          "mangge_zhi_dao_private_zh__18__tension_reversal__seed_6",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_1",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_2",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_3",
+          "mangge_zhi_dao_private_zh__26__tension_reversal__seed_4",
+          "nawaer_baodian_private_zh__13__tension_reversal__seed_2",
+          "nawaer_baodian_private_zh__13__tension_reversal__seed_3",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_1",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_2",
+          "nawaer_baodian_private_zh__22__tension_reversal__seed_3",
+          "nawaer_baodian_private_zh__23__tension_reversal__seed_1",
+          "nawaer_baodian_private_zh__23__tension_reversal__seed_2",
+          "value_of_others_private_en__8__tension_reversal__seed_1",
+          "value_of_others_private_en__8__tension_reversal__seed_2",
+          "value_of_others_private_en__8__tension_reversal__seed_4",
+          "xidaduo_private_zh__15__tension_reversal__seed_1",
+          "xidaduo_private_zh__15__tension_reversal__seed_2",
+          "xidaduo_private_zh__15__tension_reversal__seed_3"
+        ]
+      },
+      "all": [
+        "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_1",
+        "huochu_shengming_de_yiyi_private_zh__8__distinction_definition__seed_2",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_1",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_2",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_3",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_4",
+        "huochu_shengming_de_yiyi_private_zh__8__tension_reversal__seed_5",
+        "mangge_zhi_dao_private_zh__18__distinction_definition__seed_1",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_1",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_3",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_4",
+        "mangge_zhi_dao_private_zh__18__tension_reversal__seed_6",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_1",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_2",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_3",
+        "mangge_zhi_dao_private_zh__26__tension_reversal__seed_4",
+        "nawaer_baodian_private_zh__13__distinction_definition__seed_1",
+        "nawaer_baodian_private_zh__13__tension_reversal__seed_2",
+        "nawaer_baodian_private_zh__13__tension_reversal__seed_3",
+        "nawaer_baodian_private_zh__22__callback_bridge__seed_1",
+        "nawaer_baodian_private_zh__22__distinction_definition__seed_1",
+        "nawaer_baodian_private_zh__22__tension_reversal__seed_1",
+        "nawaer_baodian_private_zh__22__tension_reversal__seed_2",
+        "nawaer_baodian_private_zh__22__tension_reversal__seed_3",
+        "nawaer_baodian_private_zh__23__tension_reversal__seed_1",
+        "nawaer_baodian_private_zh__23__tension_reversal__seed_2",
+        "value_of_others_private_en__8__distinction_definition__seed_1",
+        "value_of_others_private_en__8__distinction_definition__seed_2",
+        "value_of_others_private_en__8__distinction_definition__seed_3",
+        "value_of_others_private_en__8__distinction_definition__seed_4",
+        "value_of_others_private_en__8__distinction_definition__seed_5",
+        "value_of_others_private_en__8__distinction_definition__seed_6",
+        "value_of_others_private_en__8__tension_reversal__seed_1",
+        "value_of_others_private_en__8__tension_reversal__seed_2",
+        "value_of_others_private_en__8__tension_reversal__seed_4",
+        "xidaduo_private_zh__15__tension_reversal__seed_1",
+        "xidaduo_private_zh__15__tension_reversal__seed_2",
+        "xidaduo_private_zh__15__tension_reversal__seed_3"
+      ]
+    }
+  }
+}

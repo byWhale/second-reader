@@ -99,6 +99,37 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the benchmark is good enough for early diagnosis
   - but not yet large enough for high-confidence cross-mechanism or default-cutover decisions
 
+## Split-Surface Evaluation Rule
+- The evaluation system may intentionally use different text surfaces for different north-star questions.
+- `reader_character.selective_legibility` should usually prefer a local excerpt surface:
+  - dense local pressure
+  - many reusable cases per read
+  - efficient comparison cadence
+- `reader_character.coherent_accumulation` should usually prefer a bounded long-span surface:
+  - one long chapter or one contiguous multi-chapter window
+  - visible continuity, carryover, and callback pressure
+  - enough span to test whether understanding compounds rather than resets
+- `reader_value.insight_and_clarification` is an orthogonal output-value axis.
+  - it may be scored on local excerpt cases
+  - it may also be scored on long-span window cases
+- Stable evaluation practice should therefore avoid forcing excerpt and long-span datasets to share the same books or chapters when that coupling weakens fit or runtime efficiency.
+
+## Coherent-Accumulation Interpretation Rule
+- `reader_character.coherent_accumulation` is not the same thing as generic whole-book memory.
+- The current operational target is bounded long-span continuity and carryover:
+  - does the reader keep earlier material alive across a meaningful span
+  - does it connect later developments back to earlier pressure honestly
+  - does understanding accumulate instead of restarting locally
+- A valid accumulation case may therefore be:
+  - one long chapter
+  - one contiguous two-to-four chapter window
+- Accumulation benchmark design should optimize for spans where:
+  - arguments deepen
+  - narrative consequences settle
+  - callbacks matter
+  - later distinctions depend on earlier reading
+- Books or chapters whose sections are largely independent are poor default accumulation surfaces even if they remain strong local excerpt surfaces.
+
 ## Active Benchmark Pointer Rule
 - Stable docs may name one active benchmark pointer while keeping earlier benchmark packages as historical evidence.
 - An active benchmark does not need to maximize breadth if the current project constraint is iteration speed under real token and time pressure.

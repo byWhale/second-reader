@@ -934,6 +934,30 @@ Update when: a major product or engineering decision is made, reversed, or becom
 **ID**: DEC-038
 **Status**: active
 
+## Entry 36
+**ID**: DEC-039
+**Status**: active
+
+**Decision / Inflection**: Realign Phase 9 evaluation into separate local excerpt and bounded long-span surfaces instead of forcing one benchmark family to answer every remaining reader-quality question.
+
+**Period**: Early April 2026, after the clustered benchmark v1 freeze and the completed human-notes-guided excerpt reviewed freeze made the mismatch between local and accumulation surfaces explicit.
+
+**Problem**: The project had already built two strong but differently shaped dataset lines. The clustered benchmark v1 was good for fast iteration and preserved a frozen `chapter_core`, but its chapter surface was still too coupled to the same texts as the excerpt surface and too pressure-imbalanced to remain the sole design center for `coherent_accumulation`. Meanwhile the human-notes-guided line had become highly efficient and credible for local excerpt evaluation, but its chapter-facing structures were cluster-shaped rather than a ready-made decisive chapter benchmark. Treating all three kept north-star dimensions as if they required one shared text surface was starting to blur the real evaluation questions.
+
+**Alternatives considered**: Keep the clustered benchmark as the one active surface for chapter and excerpt work, promote the notes-guided line wholesale into the active benchmark pointer, or postpone local judged evaluation until a new universal benchmark family could be built.
+
+**Why this path won**: The project needed to separate “what kind of reading span is being tested?” from “what kind of output value is being judged?”. `selective_legibility` fits a local excerpt surface where many cases can be reused per read. `coherent_accumulation` fits a bounded long-span window surface where continuity, carryover, and callback pressure are actually visible. `insight_and_clarification` is not a third span family; it is an orthogonal output-value axis that can score both local and long-span cases. This split lets the project start judged local eval immediately while building a better-fitting long-span benchmark in parallel.
+
+**What changed in the system**: Stable evaluation docs now state that excerpt/local and long-span/window are separate evaluation surfaces. `coherent_accumulation` is now interpreted operationally as bounded long-span continuity and carryover rather than generic whole-book memory. The completed human-notes-guided excerpt reviewed freeze is now treated as a real runnable local eval surface. A new bounded long-span namespace, `attentional_v2_accumulation_benchmark_v1`, becomes the next dataset-construction lane, with `window_cases` and `accumulation_probes` rather than plain chapter rows. Clustered benchmark v1 remains preserved and readable, but it is no longer the sole design center for the next accumulation dataset.
+
+**Why it matters later**: Future contributors should not assume that “one benchmark” always means “one text surface for every reader-quality question.” This decision records that the project deliberately chose better-fit surfaces over forced uniformity, while still keeping the resulting evaluation strategy bounded and interview-legible.
+
+**Primary evidence**:
+- `docs/backend-reader-evaluation.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`
+
 **Decision / Inflection**: Make new runtime and evaluation processes concurrency-adaptive by default instead of relying on fixed worker counts inside individual scripts.
 
 **Period**: Late March 2026, after the project had already introduced a structured LLM registry and identified case-level serial execution as a major source of wasted eval time.

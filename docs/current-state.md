@@ -7,21 +7,37 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T07:53:08Z`
+Last verified: `2026-04-04T09:35:00Z`
 
 ## Current Objective
-- Keep Phase 9 on the mainline after the completed post-recovery gate review and the completed clustered benchmark freeze:
-  - preserve the recorded `Path A` gate outcome in repo-local state
-  - use the frozen clustered benchmark v1 as the active surface for the next minimum reader-character proof
-  - launch the next decisive chapter/excerpt comparison from that frozen surface rather than returning to builder widening
-  - keep the active cadence on the minimum reader-character proof plus cheap trust gates, with durable-trace / re-entry and runtime viability now paused for cost
-  - keep benchmark promotion closed unless genuinely new benchmark-strengthening evidence lands
-- Keep the dataset-platform route available as support infrastructure rather than as the current primary workstream:
-  - retain the landed question-aligned builder and bounded controller as reusable support lanes
-  - do not open new general builder waves or widen unattended automation unless later decisive eval work exposes a specific blocker
-  - keep the new human-notes-guided dataset line isolated from the active benchmark until it is reviewed intentionally
+- Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
+  - start local judged evaluation now on the completed human-notes-guided excerpt freeze
+  - build a bounded long-span accumulation benchmark in parallel instead of forcing the current chapter benchmark to answer every remaining question
+  - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
+  - keep durable-trace / re-entry and runtime viability paused on cost grounds
+- Keep dataset work tightly scoped to the new long-span need:
+  - do not reopen a broad builder-widening wave
+  - do not treat the notes-guided line as an automatic benchmark-pointer replacement
+  - do use the completed notes-guided excerpt freeze immediately as a real local eval surface
 
 ## Current Strategy
+- Evaluation now uses two intentionally different semantic surfaces:
+  - `local / excerpt`
+    - primary targets:
+      - `reader_character.selective_legibility`
+      - local `reader_value.insight_and_clarification`
+    - immediate runnable surface:
+      - the completed human-notes-guided excerpt reviewed freeze
+  - `long-span / window`
+    - primary target:
+      - `reader_character.coherent_accumulation`
+    - secondary target:
+      - long-span `reader_value.insight_and_clarification`
+    - next construction lane:
+      - `attentional_v2_accumulation_benchmark_v1`
+- `coherent_accumulation` is now interpreted operationally as bounded long-span continuity and carryover rather than generic whole-book memory.
+- `insight_and_clarification` is treated as an orthogonal output-value axis that can score both local excerpt cases and long-span window cases.
+- Excerpt and long-span datasets may intentionally use different books or chapters when that improves fit and runtime efficiency.
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
   - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE = keep_hold_for_backlog_rescue`
@@ -148,21 +164,21 @@ Last verified: `2026-04-04T07:53:08Z`
 - Treat book source origin as operational provenance only:
   - do not design benchmark strata around `public`, `private`, `manual download`, `agent-downloaded`, or similar source-channel labels
   - when choosing or freezing benchmark cases, stratify by target pressure, language, reading role, genre/book type, and chapter-vs-excerpt scale instead
-- The active benchmark pointer is now the clustered benchmark v1 draft:
+- The clustered benchmark v1 draft remains readable and useful evidence:
   - active manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
   - active implementation note:
     - `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
-  - active `chapter_core`:
+  - frozen `chapter_core`:
     - `supremacy_private_en__13`
     - `steve_jobs_private_en__17`
     - `zouchu_weiyi_zhenliguan_private_zh__14`
     - `meiguoren_de_xingge_private_zh__19`
-  - active target shape:
+  - frozen target shape:
     - `chapter_core = 4`
     - `excerpt_primary target = 40`
     - `reserve target = 8`
-  - clustered scratch smoke remains the construction source of truth:
+  - clustered scratch smoke remains the construction source of truth for that benchmark family:
     - run id:
       - `clustered_benchmark_v1_smoke2_20260403`
     - summary:
@@ -219,7 +235,10 @@ Last verified: `2026-04-04T07:53:08Z`
 
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
-- The clustered benchmark v1 freeze is now complete locally, and the active mainline move is decisive mechanism-eval on that frozen surface:
+- The active Phase 9 move is now split across two coordinated surfaces:
+  - local eval can run immediately on the notes-guided excerpt freeze
+  - long-span accumulation benchmark construction is the next bounded dataset lane
+- The clustered benchmark v1 freeze remains completed locally and still matters as readable mainline evidence:
   - benchmark-prep code support remains landed:
     - chapter-case whitelisting
     - clustered selection mode
@@ -227,10 +246,36 @@ Last verified: `2026-04-04T07:53:08Z`
     - ranked same-profile case ids such as `__seed_1` and `__reserve_1`
     - deterministic clustered freeze helper:
       - `reading-companion-backend/eval/attentional_v2/freeze_clustered_benchmark_v1.py`
-  - the current bounded move is:
-    - use `chapter_core 4 / 4` plus `excerpt_primary 40 / 40` as the decisive eval surface
-    - treat the `reserve 7 / 8` shortfall and the uneven pressure mix as explicit benchmark limitations, not as reasons to reopen builder widening first
-    - do not treat the older broad formal benchmark as the active Phase 9 pointer anymore
+  - the current bounded interpretation is:
+    - keep using the clustered benchmark as preserved evidence and seed material
+    - stop treating it as the sole design center for the next `coherent_accumulation` dataset
+    - keep the `reserve 7 / 8` shortfall and the uneven pressure mix explicit in later interpretation
+- The immediate local-eval surface is the completed notes-guided excerpt reviewed freeze:
+  - runnable datasets:
+    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
+    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404`
+  - expected immediate manifest:
+    - `reading-companion-backend/eval/manifests/splits/attentional_v2_human_notes_guided_excerpt_eval_v1_draft.json`
+  - immediate purpose:
+    - run judged local excerpt comparison now for `selective_legibility` plus local `insight_and_clarification`
+- The next bounded dataset lane is the long-span accumulation benchmark v1:
+  - namespace:
+    - `attentional_v2_accumulation_benchmark_v1`
+  - artifacts:
+    - `window_cases`
+    - `accumulation_probes`
+  - fixed v1 windows:
+    - `supremacy_private_en__13`
+    - `steve_jobs_private_en__17`
+    - `zouchu_weiyi_zhenliguan_private_zh__14`
+    - `xidaduo_private_zh__15`
+    - `nawaer_baodian_private_zh__wealth`
+    - `nawaer_baodian_private_zh__judgment`
+  - excluded from long-span v1 for efficiency:
+    - `value_of_others_private_en__8`
+    - `huochu_shengming_de_yiyi_private_zh__8`
+    - `mangge_zhi_dao_private_zh__18`
+    - `mangge_zhi_dao_private_zh__26`
 - The older broad formal benchmark remains preserved as historical operator evidence:
   - the `40 / 40` gap-fill closeout itself is still recorded in repo artifacts
   - the later formal decisive chapter and excerpt reruns were deliberately abandoned on `2026-04-03T13:00:09Z` after the active benchmark pointer moved to clustered benchmark v1:

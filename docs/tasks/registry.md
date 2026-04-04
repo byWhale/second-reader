@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T07:53:08Z`
+Last updated: `2026-04-04T09:35:00Z`
 
 ## Status Values
 - `active`
@@ -20,12 +20,20 @@ Last updated: `2026-04-04T07:53:08Z`
 
 ## Active
 
-### `TASK-PHASE9-DECISIVE-EVAL` — Run the next decisive chapter/excerpt comparison on the frozen clustered benchmark
+### `TASK-PHASE9-DECISIVE-EVAL` — Run the split-surface Phase 9 evaluation lanes
 - Status: `active`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: launch the judged `chapter_core` comparison on the frozen `4` clustered chapters, then launch the judged excerpt comparison against `excerpt_core_primary_frozen_draft`; keep the known `reserve = 7 / 8` shortfall and the current pressure imbalance explicit in result interpretation instead of reopening builder widening first
+- Next: launch the judged human-notes-guided local excerpt comparison now, then build/freeze `attentional_v2_accumulation_benchmark_v1` and launch the bounded long-span accumulation comparison; keep clustered benchmark v1 readable as evidence, but do not let it remain the sole design center for `coherent_accumulation`
+- Jobs: none
+
+### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
+- Status: `active`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
+- Next: freeze exactly `6` long-span windows with `2-3` accepted accumulation probes each under `attentional_v2_accumulation_benchmark_v1`, then hand them to the new accumulation comparison runner
 - Jobs: none
 
 ## Parked
@@ -50,7 +58,7 @@ Last updated: `2026-04-04T07:53:08Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-PHASE9-DECISIVE-EVAL` is active; the clustered benchmark is already frozen, so broader construction work should resume only if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
+- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-PHASE9-DECISIVE-EVAL` and `TASK-ACCUMULATION-BENCHMARK-V1` are active; broader construction should resume only if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)

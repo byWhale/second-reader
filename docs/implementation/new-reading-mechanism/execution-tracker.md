@@ -19,6 +19,9 @@ Update when: status changes, blockers appear, or phases complete.
 - Current side branch:
   - none
   - the universal shared LLM invocation and traceability layer is landed, and the post-recovery gate review has now returned the route to decisive mechanism-eval work
+  - Phase 9 is now realigned into a split-surface evaluation cadence:
+    - `local / excerpt` surface for `reader_character.selective_legibility` plus local `reader_value.insight_and_clarification`
+    - `long-span / window` surface for `reader_character.coherent_accumulation` plus long-span `reader_value.insight_and_clarification`
 - Current strategy discipline:
   - dataset-builder and controller work are now bounded enabling lanes for evaluation rather than independent finish lines
   - book source origin is now explicitly treated as operational provenance rather than as a benchmark-design axis:
@@ -28,6 +31,8 @@ Update when: status changes, blockers appear, or phases complete.
     - benchmark promotion stays `hold_for_backlog_rescue`
     - callbackslice bounded variance is accepted for frozen-slice comparison cadence
     - current benchmark size is treated as adequate for the next decisive lane only, not for default-cutover confidence
+    - `coherent_accumulation` is now interpreted operationally as bounded long-span continuity and carryover, not generic whole-book memory
+    - excerpt and long-span surfaces may intentionally use different source texts when that improves fit and runtime efficiency
   - current builder/controller work stays available as a bounded support lane, not as the active mainline
   - a new isolated human-notes-guided dataset v1 support lane is now landed on top of the question-aligned builder:
     - managed notes assets now live under:
@@ -111,7 +116,8 @@ Update when: status changes, blockers appear, or phases complete.
       - next notes-guided move:
         - keep the completed reviewed freeze stable as an isolated support lane
         - do not reopen a broad bilingual builder / review wave first
-        - decide later whether to use this line as a secondary eval surface or keep it as support evidence only
+      - this line's reviewed excerpt freeze can now be used immediately as the local eval surface
+      - the longer-span benchmark still needs its own bounded window/probe freeze instead of reusing the excerpt reviewed freeze directly
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
@@ -207,9 +213,11 @@ Update when: status changes, blockers appear, or phases complete.
     - the older formal decisive chapter/excerpt jobs were deliberately abandoned after the benchmark-pointer swap:
       - `bgjob_formal_benchmark_v1_chapter_core_decisive_targetsplit_retry1_20260403`
       - `bgjob_formal_benchmark_v1_excerpt_smoke_targetsplit_20260403`
-    - immediate next mainline move:
-      - launch the next decisive judged chapter/excerpt lane on the frozen clustered benchmark
-      - keep the `reserve = 7 / 8` shortfall and the pressure imbalance explicit in result interpretation rather than reopening builder widening first
+    - immediate next mainline move is now split:
+      - launch the judged notes-guided local excerpt lane immediately
+      - build and freeze `attentional_v2_accumulation_benchmark_v1` as the bounded long-span window lane
+      - then launch the judged accumulation comparison on that long-span lane
+      - keep the `reserve = 7 / 8` shortfall and the pressure imbalance explicit in any clustered-benchmark interpretation rather than reopening builder widening first
   - cheap honesty / integrity / compatibility checks remain useful sanity guards, but they are no longer treated as primary eval success targets
 - Current blockers:
   - the post-recovery gate review no longer blocks the next decisive lane:
