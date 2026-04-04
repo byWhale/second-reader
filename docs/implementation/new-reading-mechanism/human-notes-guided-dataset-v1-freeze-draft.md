@@ -24,14 +24,23 @@ Update when: the held cluster is repaired, the frozen slice membership changes, 
     - `human_notes_guided_dataset_v1_excerpt_zh_first_review_20260404`
     - result: `39 keep`, `7 revise`, `1 drop`
 - Current reviewed freeze state:
-  - eligible frozen clusters: `7 / 8`
-  - held clusters: `1 / 8`
-  - frozen reviewed excerpt rows: `49`
+  - eligible frozen clusters: `8 / 8`
+  - held clusters: `0 / 8`
+  - frozen reviewed excerpt rows: `55`
     - EN: `14`
-    - ZH: `35`
+    - ZH: `41`
 - Frozen local reviewed-slice packages:
   - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
-  - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
+  - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404`
+- Narrow repair closeout:
+  - `human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_20260404`
+    - result: `1 keep`, `1 revise`
+  - `human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_retry1_20260404`
+    - result: `1 keep`, `0 revise`
+  - post-repair ZH scratch counts:
+    - `reviewed_active = 41`
+    - `needs_revision = 5`
+    - `needs_replacement = 1`
 
 ## Freeze Rule
 - Freeze only rows whose `benchmark_status = reviewed_active`.
@@ -51,36 +60,39 @@ Update when: the held cluster is repaired, the frozen slice membership changes, 
 | `mangge_zhi_dao_private_zh__speeches_2019_2020` | `芒格之道` | 6 | 2 | 0 | 2 | `freeze_short` | same reasoning as the earlier speeches cluster |
 | `nawaer_baodian_private_zh__judgment` | `纳瓦尔宝典` | 7 | 1 | 0 | 2 | `freeze_short` | cluster is viable; one anchored-reaction row remains focus-ambiguous |
 | `xidaduo_private_zh__late_book` | `悉达多` | 8 | 0 | 0 | 2 | `freeze_full` | clean full cluster |
-| `nawaer_baodian_private_zh__wealth` | `纳瓦尔宝典` | 4 | 2 | 1 | 0 | `hold_repair` | only cluster below the honest-short floor; no reserve safety net |
+| `nawaer_baodian_private_zh__wealth` | `纳瓦尔宝典` | 6 | 0 | 1 | 0 | `freeze_short` | narrow anchored-reaction repair yielded two keeps; one tension row remains replacement-only but no longer blocks the cluster |
 
-## Held Cluster
-- Held selection group:
+## Resolved Repair Closeout
+- Former held selection group:
   - `nawaer_baodian_private_zh__wealth`
-- Current status:
-  - `reviewed_active = 4`
-  - `needs_revision = 2`
+- Final status:
+  - `reviewed_active = 6`
+  - `needs_revision = 0`
   - `needs_replacement = 1`
   - scratch reserve rows = `0`
-- Current failure shape:
-  - two anchored-reaction rows remain usable in principle but need tighter focus framing:
-    - `nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_2`
-    - `nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_3`
-  - one tension row is not a real reversal and should be replaced rather than patched:
-    - `nawaer_baodian_private_zh__13__tension_reversal__seed_1`
+- Repair packets:
+  - `human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_20260404`
+    - `nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_2` moved to `keep`
+    - `nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_3` remained `revise`
+  - `human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_retry1_20260404`
+    - `nawaer_baodian_private_zh__13__anchored_reaction_selectivity__seed_3` moved to `keep`
 - Practical interpretation:
-  - this is no longer a whole-dataset problem
-  - it is one local cluster-repair problem
-  - the next move should be a narrow builder / curation repair targeted at `nawaer_baodian_private_zh__wealth`, not a new broad review wave
+  - the cluster now reaches the honest-short freeze floor without reopening a broad builder wave
+  - the remaining `tension_reversal` replacement row does not block cluster freeze because it is outside the frozen reviewed-active slice
+  - this closes the only held-cluster repair question for the isolated notes-guided line
 
 ## Membership Source Of Truth
 - Frozen EN reviewed slice:
   - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404/manifest.json`
   - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404/cases.jsonl`
 - Frozen ZH reviewed slice:
+  - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404/manifest.json`
+  - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404/cases.jsonl`
+- Historical intermediate ZH freeze:
   - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404/manifest.json`
   - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404/cases.jsonl`
 
 ## Working Rule
-- Keep the frozen `49`-row reviewed slice stable while repairing the held cluster.
+- Keep the completed `55`-row reviewed freeze stable.
 - Do not reopen a general bilingual builder wave for this line.
-- Do not merge this line into the active benchmark until the held cluster question is resolved intentionally.
+- Do not merge this line into the active benchmark until an explicit later merge / replace decision is made.

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-04T07:09:00Z`
+Last updated: `2026-04-04T07:53:08Z`
 
 ## Status Values
 - `active`
@@ -27,23 +27,6 @@ Last updated: `2026-04-04T07:09:00Z`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
 - Next: launch the judged `chapter_core` comparison on the frozen `4` clustered chapters, then launch the judged excerpt comparison against `excerpt_core_primary_frozen_draft`; keep the known `reserve = 7 / 8` shortfall and the current pressure imbalance explicit in result interpretation instead of reopening builder widening first
 - Jobs: none
-
-### `TASK-DATASET-HUMAN-NOTES-GUIDED-V1` — Land the isolated human-notes-guided dataset line from the 5 linked books
-- Status: `active`
-- Lane: `dataset_platform`
-- Priority: `high`
-- Detail: `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
-- Next: keep the frozen `49`-row reviewed slice stable and run one narrow builder / curation repair pass on `nawaer_baodian_private_zh__wealth` before any broader reserve top-up or merge / replace decision
-- Jobs:
-  - `bgjob_human_notes_guided_dataset_v1_scratch_20260404` (`failed`)
-  - `bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404` (`completed`)
-  - `bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404` (`completed`)
-  - `bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404` (`completed`)
-  - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404` (`failed`)
-  - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404` (`failed`)
-  - `bgjob_human_notes_guided_dataset_v1_first_review_en_retry1_20260404` (`failed`)
-  - `bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404` (`completed`)
-  - `bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404` (`completed`)
 
 ## Parked
 
@@ -142,6 +125,23 @@ Last updated: `2026-04-04T07:09:00Z`
 - Next: start only after benchmark direction, runtime viability work, and stable-doc promotion timing are intentionally fixed
 
 ## Done
+
+### `TASK-DATASET-HUMAN-NOTES-GUIDED-V1` — Land the isolated human-notes-guided dataset line from the 5 linked books
+- Status: `done`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
+- Next: keep the completed `55`-row reviewed freeze stable, do not repoint the active benchmark automatically, and decide later whether to use this isolated line as a secondary eval surface or only as support evidence
+- Jobs:
+  - `bgjob_human_notes_guided_dataset_v1_scratch_20260404` (`failed`)
+  - `bgjob_human_notes_guided_dataset_v1_scratch_retry1_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_scratch_retry2_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_scratch_retry3_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_en_20260404` (`failed`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_zh_20260404` (`failed`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_en_retry1_20260404` (`failed`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404` (`completed`)
+  - `bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404` (`completed`)
 
 ### `TASK-PHASE9-CLUSTERED-BENCHMARK` — Freeze clustered benchmark v1 as the active Phase 9 evaluation surface
 - Status: `done`

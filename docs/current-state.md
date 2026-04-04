@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T07:09:00Z`
+Last verified: `2026-04-04T07:53:08Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline after the completed post-recovery gate review and the completed clustered benchmark freeze:
@@ -55,8 +55,8 @@ Last verified: `2026-04-04T07:09:00Z`
       - English reserves: `4`
       - Chinese candidate cases: `47`
       - Chinese reserves: `10`
-    - current honest shortfall:
-      - `nawaer_baodian_private_zh__wealth` currently yields `7` primaries and no reserve rows in scratch output, so the notes-guided line is usable but not yet freeze-complete
+    - current construction limit:
+      - `nawaer_baodian_private_zh__wealth` still tops out at `7` scratch primaries with `0` reserve rows, but the narrow repair / re-review pass has now brought that cluster to the honest-short floor of `6 reviewed_active`, so the isolated line is freeze-complete without reopening a broad builder wave
   - active benchmark pointer remains unchanged:
     - do not repoint away from clustered benchmark v1 based on this notes-guided line alone
     - decide merge / replace / lesson-borrowing only after explicit review of the isolated notes-guided outputs
@@ -105,25 +105,36 @@ Last verified: `2026-04-04T07:09:00Z`
           - `reviewed_active = 39`
           - `needs_revision = 7`
           - `needs_replacement = 1`
+      - narrow wealth-cluster repair packets:
+        - `human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_20260404`
+          - result: `1 keep`, `1 revise`
+        - `human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_retry1_20260404`
+          - result: `1 keep`, `0 revise`
+        - post-repair dataset counts:
+          - `reviewed_active = 41`
+          - `needs_revision = 5`
+          - `needs_replacement = 1`
     - current operational posture:
       - both language packets use `run_dataset_review_pipeline`
       - selection mode is `first_review`
       - packet workers stay serial with `--audit-max-workers 1 --review-max-workers 1`
-    - first reviewed freeze decision is now landed:
+    - reviewed freeze is now completed for the isolated line:
       - draft:
         - `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
       - frozen local reviewed slices:
         - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
-        - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
+        - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404`
       - frozen reviewed rows:
-        - `49` total across `7 / 8` selection groups
-      - held cluster:
+        - `55` total across `8 / 8` selection groups
+          - EN: `14`
+          - ZH: `41`
+      - resolved former held cluster:
         - `nawaer_baodian_private_zh__wealth`
-          - current shape: `4 reviewed_active`, `2 needs_revision`, `1 needs_replacement`, `0` reserve rows
+          - current shape: `6 reviewed_active`, `0 needs_revision`, `1 needs_replacement`, `0` reserve rows
     - next notes-guided move after the reviewed freeze:
-      - keep the frozen `49`-row reviewed slice stable
-      - run one narrow builder / curation repair pass on `nawaer_baodian_private_zh__wealth`
-      - defer broader reserve top-up or merge / replace decisions until that held cluster is resolved
+      - keep the completed `55`-row reviewed freeze stable as an isolated support lane
+      - do not reopen a broader reserve top-up or builder wave by default
+      - decide later whether to use this line as a secondary eval surface or only as support evidence; it no longer blocks the main clustered-benchmark eval lane
 - Because current model-call cost is too high, pause new comparison work that sits outside the mechanism mainline for now:
   - keep the existing broader comparison checkpoints as reference baselines only
   - keep active spend focused on decisive mechanism-eval runs and the minimum support diagnostics they still require
@@ -1444,14 +1455,15 @@ Last verified: `2026-04-04T07:09:00Z`
   - no new general builder wave
   - no widening of unattended automation
   - only reopen benchmark construction if the decisive eval results expose a specific blocker
-- Keep the isolated notes-guided reviewed freeze stable while repairing the one held cluster:
+- Keep the isolated notes-guided reviewed freeze stable as a completed support slice:
   - keep using:
     - `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
-  - keep the frozen local reviewed slices unchanged:
+  - current frozen local reviewed slices:
     - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
-    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
-  - next repair target:
-    - `nawaer_baodian_private_zh__wealth`
+    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404`
+  - posture:
+    - the line is now freeze-complete on an honest-short basis and does not block mainline Phase 9 eval
+    - decide separately whether to use it as a secondary judged surface or keep it as support evidence only
 - Keep runtime viability and durable-trace / re-entry paused:
   - reuse the already collected evidence if those questions come back later
   - do not spend current Phase 9 budget there unless one of the three kept north-star dimensions truly requires it
@@ -1506,7 +1518,6 @@ Last verified: `2026-04-04T07:09:00Z`
 
 ## Active Task IDs
 - `TASK-PHASE9-DECISIVE-EVAL`
-- `TASK-DATASET-HUMAN-NOTES-GUIDED-V1`
 
 ## Active Job IDs
 - none
@@ -1531,11 +1542,10 @@ Last verified: `2026-04-04T07:09:00Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-04T07:09:00Z",
+  "updated_at": "2026-04-04T07:53:08Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-PHASE9-DECISIVE-EVAL",
-    "TASK-DATASET-HUMAN-NOTES-GUIDED-V1"
+    "TASK-PHASE9-DECISIVE-EVAL"
   ],
   "blocked_task_ids": [],
   "active_job_ids": [],

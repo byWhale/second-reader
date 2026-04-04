@@ -97,21 +97,21 @@ Update when: status changes, blockers appear, or phases complete.
         - both language packets use `run_dataset_review_pipeline`
         - `selection_mode = first_review`
         - `--audit-max-workers 1 --review-max-workers 1`
-      - first reviewed freeze is now landed for the eligible clusters:
+      - reviewed freeze is now completed for the isolated line:
         - draft:
           - `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
         - frozen local reviewed slices:
           - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
-          - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
+          - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404`
         - frozen reviewed rows:
-          - `49` total across `7 / 8` selection groups
-        - held cluster:
+          - `55` total across `8 / 8` selection groups
+        - resolved former held cluster:
           - `nawaer_baodian_private_zh__wealth`
-            - `4 reviewed_active`, `2 needs_revision`, `1 needs_replacement`, `0` reserve rows
+            - `6 reviewed_active`, `0 needs_revision`, `1 needs_replacement`, `0` reserve rows
       - next notes-guided move:
-        - keep the frozen reviewed slice stable
-        - run one narrow builder / curation repair pass on the held `nawaer_baodian_private_zh__wealth` cluster
-        - do not reopen a broad bilingual builder/review wave first
+        - keep the completed reviewed freeze stable as an isolated support lane
+        - do not reopen a broad bilingual builder / review wave first
+        - decide later whether to use this line as a secondary eval surface or keep it as support evidence only
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active

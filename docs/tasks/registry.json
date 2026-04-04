@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-04T07:09:00Z",
+  "updated_at": "2026-04-04T07:53:08Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -699,7 +699,7 @@
     {
       "id": "TASK-DATASET-HUMAN-NOTES-GUIDED-V1",
       "title": "Land the isolated human-notes-guided dataset line from the 5 linked books",
-      "status": "active",
+      "status": "done",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
@@ -721,7 +721,7 @@
         "bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
-      "next_action": "Keep the frozen 49-row reviewed slice stable and run one narrow builder/curation repair pass on nawaer_baodian_private_zh__wealth before any broader reserve top-up or merge/replace decision.",
+      "next_action": "Keep the completed 55-row reviewed freeze stable, do not repoint the active benchmark automatically, and decide later whether to use this isolated line as a secondary eval surface or only as support evidence.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -758,9 +758,12 @@
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_en_retry2_20260404.log",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.json",
-        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.log"
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_dataset_v1_first_review_zh_retry1_20260404.log",
+        "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_20260404/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/eval/review_packets/archive/human_notes_guided_dataset_v1_excerpt_zh_wealth_repair_review_retry1_20260404/dataset_review_pipeline_summary.json",
+        "reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404/manifest.json"
       ],
-      "last_updated": "2026-04-04T07:09:00Z",
+      "last_updated": "2026-04-04T07:53:08Z",
       "last_updated_by": "codex"
     }
   ]

@@ -150,23 +150,22 @@ Current isolated scratch evidence:
   - English reserves: `4`
   - Chinese candidate cases: `47`
   - Chinese reserves: `10`
-- current known shortfall:
-  - `nawaer_baodian_private_zh__wealth` currently tops out at `7` candidate cases with no reserve rows, so the line is construction-usable but not yet freeze-complete
+- current construction limit:
+  - `nawaer_baodian_private_zh__wealth` still tops out at `7` candidate cases with no reserve rows, but the narrow repair / re-review pass has now brought it to `6 reviewed_active`, so the isolated line is freeze-complete on an honest-short basis
 
 Current governance:
 - this dataset line is intentionally isolated from the active clustered benchmark v1
 - do not repoint the active benchmark based on this line alone
 - the first reviewed freeze decision now exists for the freeze-eligible clusters:
+  - this freeze is now complete across all `8 / 8` selection groups
   - draft:
     - `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
   - frozen local reviewed slices:
     - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_en_reviewed_cluster_freeze_20260404`
-    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_20260404`
+    - `reading-companion-backend/state/eval_local_datasets/excerpt_cases/attentional_v2_human_notes_guided_dataset_v1_excerpt_zh_reviewed_cluster_freeze_complete_20260404`
   - current frozen reviewed rows:
-    - `49` across `7 / 8` selection groups
-  - current held cluster:
-    - `nawaer_baodian_private_zh__wealth`
-- the next decision point is now narrow repair on the held cluster, not automatic merge or promotion
+    - `55` across `8 / 8` selection groups
+- the next decision point is now whether to use the completed isolated line as a secondary eval surface, not whether to reopen repair or promotion automatically
 
 ## Latest Scratch Evidence
 The first real quality-fix wave is now landed in the builder and audit reconstruction paths:
