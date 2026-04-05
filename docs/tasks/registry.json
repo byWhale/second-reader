@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-05T09:25:35Z",
+  "updated_at": "2026-04-05T11:47:42Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -284,7 +284,7 @@
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md",
-      "next_action": "Keep the active judged rerun on the old notes-guided surface until retry3 finishes and merges, then either repair nawaer_baodian_private_zh__22 to reach floor 6 with one narrow fill pass or defer that shortfall explicitly before running the v1.1 smoke and judged lane.",
+      "next_action": "Keep the completed retry3 judged notes-guided result archived as evidence only, then either repair nawaer_baodian_private_zh__22 to reach floor 6 with one narrow fill pass or defer that shortfall explicitly before running the v1.1 smoke and judged lane.",
       "blocked_by": [
         "TASK-PHASE9-DECISIVE-EVAL"
       ],
@@ -300,7 +300,7 @@
         "reading-companion-backend/tests/test_excerpt_surface_v1_1_manifest.py",
         "reading-companion-backend/tests/test_question_aligned_case_construction.py"
       ],
-      "last_updated": "2026-04-05T09:25:35Z",
+      "last_updated": "2026-04-05T11:47:42Z",
       "last_updated_by": "codex"
     },
     {
@@ -732,7 +732,7 @@
         "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Let the active dual-pool recovery retry3 shards finish on the shared retry1 run root, run one explicit merge pass, archive that notes-guided judged result as evidence only, then decide whether excerpt surface v1.1 needs one narrow chapter-22 fill repair before its own smoke and judged promotion.",
+      "next_action": "Treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only, repair or regenerate the stale persisted retry1 summary if durable run-level artifacts are still needed, then decide whether excerpt surface v1.1 needs one narrow chapter-22 fill repair or an explicit honest-short defer before its own smoke and judged promotion.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
@@ -782,7 +782,7 @@
         "reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py",
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-05T09:25:35Z",
+      "last_updated": "2026-04-05T11:47:42Z",
       "last_updated_by": "codex"
     },
     {

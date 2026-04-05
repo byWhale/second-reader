@@ -7,13 +7,13 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-05T09:25:35Z`
+Last verified: `2026-04-05T11:42:34Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
-  - keep the judged local excerpt rerun active on the human-notes-guided excerpt freeze under the new dual-personal pooled-target posture, because the first full judged run and the first sharded rerun both ended as harness failures rather than usable mechanism evidence
-  - use the newly landed staged/sharded comparison runners as the active local excerpt rerun architecture now that fresh evidence showed the old monolithic rerun had produced very little reusable progress
-  - keep `excerpt surface v1.1` as the prepared next local excerpt surface, but do not promote it until the active judged rerun finishes, the explicit merge lands, and the remaining chapter-22 shortfall is either repaired narrowly or deferred explicitly
+  - treat the completed judged local excerpt retry3 on the human-notes-guided excerpt freeze as partial evidence only, because the first full judged run and the first sharded rerun both ended as harness failures and the merged retry3 result still remains dominated by placeholder `mechanism_unavailable` rows
+  - use the landed staged/sharded comparison runners as the default local excerpt rerun architecture, but stop treating slow full-surface runs as the default iteration loop
+  - keep `excerpt surface v1.1` as the prepared next local excerpt surface, but do not promote it until the completed retry3 result is dispositioned as evidence and the remaining chapter-22 shortfall is either repaired narrowly or deferred explicitly
   - treat the repaired long-span first review as completed support evidence, then decide whether to do one narrow repair on the `2` revise probes or freeze the long-span v1 set honestly short before any judged accumulation comparison
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
   - keep durable-trace / re-entry and runtime viability paused on cost grounds
@@ -46,7 +46,7 @@ Last verified: `2026-04-05T09:25:35Z`
       - current blocker:
         - `nawaer_baodian_private_zh__22` is still at `5`, below the honest-short floor `6`
       - promotion gate:
-        - do not repoint the excerpt surface until the active retry3 judged rerun finishes and merges
+        - do not repoint the excerpt surface until the completed retry3 judged rerun is explicitly dispositioned as evidence
         - then decide one narrow chapter-22 fill repair or an explicit honest-short defer
     - smoke gate status:
       - `bgjob_human_notes_excerpt_smoke_light_20260404`
@@ -203,19 +203,29 @@ Last verified: `2026-04-05T09:25:35Z`
         - both were intentionally stopped after live `by_target` inspection showed scope-pinned reading processes could still stay stuck on the quota-pressured old key
       - landed repair:
         - scope-pinned targets now reselect within the pooled tier once the pinned target enters quota cooldown, instead of keeping the old target for the rest of the reading process
-      - active retry3 jobs:
+      - completed retry3 jobs:
         - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
         - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
-      - live posture:
+      - completed posture:
         - same shared run id:
           - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
         - no `LLM_FORCE_TARGET_ID`
         - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 8`
         - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
-      - early retry3 live evidence:
-        - when traces are filtered to the post-`2026-04-05T07:07:00Z` window, both shards show successful calls on both pooled targets with no fresh `llm_quota` entries so far
-      - immediate next gate:
-        - let both retry3 shards finish, then run one explicit `stage = merge` pass on the shared run root
+      - terminal status:
+        - shard A exited `0` at `2026-04-05T11:36:56Z`
+        - shard B exited `0` at `2026-04-05T11:37:04Z`
+        - `reading-companion-backend/state/job_registry/active_jobs.md` now shows no active background jobs
+      - explicit merge outcome:
+        - the merge command returned a partial aggregate rather than a blanket failure surface:
+          - `selective_legibility`: `55` cases with winner counts `tie = 48`, `attentional_v2 = 6`, `iterator_v1 = 1`
+          - `insight_and_clarification`: `38` cases with winner counts `tie = 33`, `attentional_v2 = 3`, `iterator_v1 = 2`
+        - interpretation:
+          - only the `nawaer_baodian_private_zh__22` and `nawaer_baodian_private_zh__23` cases currently carry non-placeholder judged results
+          - the remaining chapters still contribute placeholder `mechanism_unavailable` outcomes, so this run is usable as partial evidence but not as full-surface mechanism proof
+      - persistence mismatch:
+        - the explicit merge command returned the updated aggregate, but the persisted `summary/aggregate.json` and `summary/report.md` under the shared run root still reflect the older all-placeholder output
+        - do not treat those persisted summary files as authoritative until that merge-write mismatch is repaired or regenerated
   - `long-span / window`
     - primary target:
       - `reader_character.coherent_accumulation`
@@ -320,19 +330,17 @@ Last verified: `2026-04-05T09:25:35Z`
   - the local excerpt smoke has already passed its harness gate
   - the first full judged notes-guided local excerpt comparison has now been interpreted as invalid due to provider quota cooldown / wait-budget exhaustion
   - the first sharded personal-key rerun also ended as invalid due to large-scale `llm_quota`
-  - the local excerpt decisive lane is now the active two-shard dual-pool recovery retry3:
+  - the local excerpt decisive lane has now completed its two-shard dual-pool retry3 plus explicit merge:
     - the runner now preserves successful bundle recovery instead of reusing failure placeholders
     - the gateway now keeps quota-cooled targets out of threshold-relaxation fallback selection and lets scope selection fall back to bounded quota-wait handling only when no healthy target remains
-    - the current next step is a single merge pass once both retry3 shard jobs finish
+    - the merged retry3 result is only partial evidence because most chapters still remain placeholder-dominated
 - Current long-span construction gate:
   - keep the rebuilt final window set
   - retain the repaired `9`-probe review result on that window set
   - freeze / repair decision now sits on `7 reviewed_active + 2 needs_revision`
   - do not launch judged accumulation comparison until that freeze decision is made explicitly
 - Background-job registry state:
-  - `reading-companion-backend/state/job_registry/active_jobs.md` currently lists two active background jobs:
-    - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
-    - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
+  - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows no active background jobs
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
   - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE = keep_hold_for_backlog_rescue`
@@ -551,8 +559,8 @@ Last verified: `2026-04-05T09:25:35Z`
 ## Now
 - Treat `attentional_v2` as experimental and `iterator_v1` as the current default mechanism.
 - The active Phase 9 move is now split across two coordinated surfaces:
-  - the current judged local eval keeps running on the notes-guided excerpt freeze
-  - the next excerpt surface is already drafted as `excerpt surface v1.1` in a fresh namespace and is waiting on merge plus one shortfall decision
+  - the completed notes-guided retry3 judged lane is now available as partial evidence only
+  - the next excerpt surface is already drafted as `excerpt surface v1.1` in a fresh namespace and is waiting on one shortfall decision plus an explicit choice about whether to pivot to smaller high-ROI judged slices
   - long-span accumulation benchmark construction is the next bounded dataset lane
 - The clustered benchmark v1 freeze remains completed locally and still matters as readable mainline evidence:
   - benchmark-prep code support remains landed:
@@ -592,7 +600,8 @@ Last verified: `2026-04-05T09:25:35Z`
   - rollout rule:
     - `excerpt surface` is the evaluation meaning
     - `state/eval_local_datasets/` remains storage terminology only
-    - do not run the v1.1 smoke or judged lane until the active notes-guided retry3 rerun is merged and archived as evidence
+    - the notes-guided retry3 rerun is now completed and merged at command level
+    - before running the v1.1 smoke or judged lane, decide whether to archive that notes-guided run as partial evidence only and whether chapter 22 should receive one narrow fill repair
 - The next bounded dataset lane is the long-span accumulation benchmark v1:
   - namespace:
     - `attentional_v2_accumulation_benchmark_v1`
@@ -627,9 +636,7 @@ Last verified: `2026-04-05T09:25:35Z`
     - target-level concurrency is `32 / 12 / 32 / 2` on both targets
     - `reading-companion-backend/config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` to one pooled `primary` tier containing both targets
     - current operator policy is to allow at most two heavy processes total, both using the pooled tier without `LLM_FORCE_TARGET_ID`, while keeping intra-process execution conservative
-- There are currently two active background jobs in the registry:
-  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
-  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
+- There are currently no active background jobs in the registry.
 - the latest completed long-span support job is:
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
     - result:
@@ -1874,7 +1881,7 @@ Last verified: `2026-04-05T09:25:35Z`
 - `Q10`
   - When should the detailed `attentional_v2` working design be promoted from temporary implementation docs into stable mechanism docs?
 - `Q-EXCERPT-SURFACE-V1.1-CH22`
-  - After the active notes-guided judged rerun merges, should `nawaer_baodian_private_zh__22` receive one narrow chapter-wide fill repair to reach the honest-short floor `6`, or should the shortfall be deferred explicitly and kept honest in the v1.1 draft?
+  - After the completed notes-guided retry3 judged rerun, should `nawaer_baodian_private_zh__22` receive one narrow chapter-wide fill repair to reach the honest-short floor `6`, or should the shortfall be deferred explicitly and kept honest in the v1.1 draft?
 
 ## Active Risks
 - The new question-aligned private-library builder now keeps the live `v2` review-truth datasets as feedback input instead of overwriting them, but the new question-aligned outputs are still seed candidates rather than reviewed benchmark truth.
@@ -1888,6 +1895,7 @@ Last verified: `2026-04-05T09:25:35Z`
 - Current heavy-job policy is: at most two concurrent heavy processes total, both intentionally routed through the pooled dual-personal tier without `LLM_FORCE_TARGET_ID`.
 - When one future run needs a deliberately uniform reviewer surface, keep forcing one concrete target for that run.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
+- The completed retry3 merge exposed a summary-persistence mismatch: the merge command returned updated partial winner counts, but the persisted shared-run `summary/aggregate.json` and `summary/report.md` still show the older all-placeholder output.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
 - The first real scratch builder/controller runs were intentionally narrow: the earliest English baseline still yielded no `keep` outcomes, but the later quality-fix runs improved that materially; the remaining narrowness is now bilingual stability rather than the mere absence of `keep` results.
@@ -1911,8 +1919,7 @@ Last verified: `2026-04-05T09:25:35Z`
 - `TASK-ACCUMULATION-BENCHMARK-V1`
 
 ## Active Job IDs
-- `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
-- `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
+- none
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -1934,17 +1941,14 @@ Last verified: `2026-04-05T09:25:35Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-05T09:25:35Z",
+  "updated_at": "2026-04-05T11:42:34Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL",
     "TASK-ACCUMULATION-BENCHMARK-V1"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [
-    "bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405",
-    "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405"
-  ],
+  "active_job_ids": [],
   "open_decision_ids": [
     "Q10",
     "Q-EXCERPT-SURFACE-V1.1-CH22"

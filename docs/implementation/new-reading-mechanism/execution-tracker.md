@@ -136,7 +136,8 @@ Update when: status changes, blockers appear, or phases complete.
         - `nawaer_baodian_private_zh__22` remains at `5`, below the honest-short floor `6`
       - rollout gate:
         - do not repoint the judged excerpt lane yet
-        - wait for the active retry3 notes-guided rerun to finish and merge
+        - keep the completed retry3 notes-guided judged rerun archived as evidence only
+        - repair or regenerate the stale persisted retry1 summary if durable run-level artifacts are still needed
         - then decide one narrow chapter-22 fill repair or an explicit honest-short defer
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
@@ -253,21 +254,33 @@ Update when: status changes, blockers appear, or phases complete.
             - `xidaduo_private_zh__chapter_15`
         - observed blocker:
           - live `by_target` inspection showed the older personal key could still monopolize a scope-pinned reading process after entering quota cooldown, creating heavy `llm_quota` thrash even though the healthy sibling target existed
-      - active dual-pool in-place recovery retry3:
+      - completed dual-pool in-place recovery retry3:
         - shared run id:
           - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
-        - live shard jobs:
+        - shard jobs:
           - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
           - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
         - landed repair:
           - scope-pinned targets now reselect within the pooled tier once the pinned target enters quota cooldown
-        - early live evidence:
-          - post-retry3 traces show successful calls on both pooled targets without fresh `llm_quota` entries in the initial window
+        - terminal status:
+          - shard A exited `0` at `2026-04-05T11:36:56Z`
+          - shard B exited `0` at `2026-04-05T11:37:04Z`
+          - `reading-companion-backend/state/job_registry/active_jobs.md` now shows no active background jobs
+        - explicit merge outcome:
+          - the merge command returned a partial aggregate rather than a blanket failure surface:
+            - `selective_legibility`: `55` cases with winner counts `tie = 48`, `attentional_v2 = 6`, `iterator_v1 = 1`
+            - `insight_and_clarification`: `38` cases with winner counts `tie = 33`, `attentional_v2 = 3`, `iterator_v1 = 2`
+          - interpretation:
+            - only the `nawaer_baodian_private_zh__22` and `nawaer_baodian_private_zh__23` cases currently carry non-placeholder judged results
+            - the remaining chapters still contribute placeholder `mechanism_unavailable` outcomes, so this run is usable as partial evidence but not as full-surface mechanism proof
+        - persistence mismatch:
+          - the explicit merge command returned the updated aggregate, but the persisted `summary/aggregate.json` and `summary/report.md` under the shared run root still reflect the older all-placeholder output
+          - do not treat those persisted summary files as authoritative until that merge-write mismatch is repaired or regenerated
         - note:
           - the first shard launch pair `bgjob_human_notes_excerpt_parallel_judged_shard_a_20260405` / `bgjob_human_notes_excerpt_parallel_judged_shard_b_20260405` failed immediately because the initial `--unit-key` values used the wrong separator form
           - the first dual-pool recovery pair `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405` / `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405` was then intentionally stopped after exposing the same-tier fallback bug
           - retry2 was then intentionally stopped after exposing the scope-pin cooldown problem
-          - retry3 is the real active recovery lane after both gateway fixes landed
+          - retry3 is the completed recovery lane after both gateway fixes landed
       - completed staged/sharded dual-heavy excerpt smoke:
         - `bgjob_human_notes_excerpt_parallel_smoke_20260405`
           - run id:
