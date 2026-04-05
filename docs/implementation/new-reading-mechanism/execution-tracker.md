@@ -122,19 +122,21 @@ Update when: status changes, blockers appear, or phases complete.
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
   - durable-trace / re-entry and runtime viability are now both paused on cost grounds rather than treated as the next automatic lane
-  - future Phase 9 eval launches now use process-level target sharding instead of one shared operator target:
-    - `LLM_FORCE_TARGET_ID` is the authoritative per-process selector
-    - because that override is process-wide, one job cannot split mechanism calls and judge calls across different targets inside the same Python process
-    - already running jobs do not pick up later config or env changes; retargeting requires a fresh launch
-    - local operator config is now aligned with the current personal-only posture:
-      - `config/llm_targets.local.json` now contains only `MiniMax-M2.7-personal`
-      - target-level concurrency is now intentionally high enough that the software ceiling no longer becomes the first bottleneck:
+  - future Phase 9 eval launches now use a pooled dual-target local posture instead of a single forced personal target:
+    - do not set `LLM_FORCE_TARGET_ID` for new heavy local excerpt recovery/eval commands unless we intentionally need deterministic one-target isolation
+    - because target selection is now handled at the pooled primary tier, equal-split routing plus quota-cooldown hard failover should happen inside the shared gateway rather than in the launcher command
+    - already running jobs do not pick up later config or env changes; retargeting still requires a fresh launch
+    - local operator config is now aligned with the current dual-personal pooled posture:
+      - `config/llm_targets.local.json` contains:
+        - `MiniMax-M2.7-personal`
+        - `MiniMax-M2.7-personal-2`
+      - target-level concurrency stays intentionally high enough that the software ceiling no longer becomes the first bottleneck:
         - `max_concurrency = 32`
         - `initial_max_concurrency = 12`
         - `probe_max_concurrency = 32`
         - `min_stable_concurrency = 2`
-      - `config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` only to `MiniMax-M2.7-personal`
-      - profile ceilings are likewise lifted above the old local bottleneck:
+      - `config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` to one pooled `primary` tier containing both targets
+      - profile ceilings remain lifted above the old local bottleneck:
         - `runtime_reader_default = 24`
         - `dataset_review_high_trust = 16`
         - `eval_judge_high_trust = 16`
@@ -177,7 +179,7 @@ Update when: status changes, blockers appear, or phases complete.
           - interpretation:
             - treat the lane as a quota/harness failure rather than as usable mechanism evidence
           - current next gate:
-            - rerun the judged local excerpt lane under a quota-safe target / wait-budget posture before drawing mechanism conclusions
+            - keep the failed judged lane on its shared retry1 run root and recover it in place under the pooled dual-personal posture before drawing mechanism conclusions
       - superseded monolithic personal-key excerpt rerun:
         - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
           - run id:
@@ -189,14 +191,22 @@ Update when: status changes, blockers appear, or phases complete.
           - supersede reason:
             - later inspection showed the in-flight run had only started `attentional_v2`, had touched only `2` units, and had not yet emitted reusable staged bundle/case/summary artifacts
             - heavy-call slowness was confirmed to be workload-driven rather than provider/profile/quota gate waiting
-      - active sharded personal-key excerpt rerun:
+      - superseded retry1 sharded excerpt rerun:
         - shared run id:
           - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
-        - live shard jobs:
+        - original shard jobs:
           - `bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405`
           - `bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405`
+        - terminal interpretation:
+          - treat retry1 as another quota/harness failure surface rather than as usable mechanism evidence
+      - retry2 dual-pool in-place recovery:
+        - shared run id:
+          - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
+        - retry2 shard jobs:
+          - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405`
+          - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405`
         - purpose:
-          - rerun the full human-notes-guided local excerpt judged comparison under the staged/sharded runner on `MiniMax-M2.7-personal`
+          - recover the failed judged local excerpt run in place under the pooled dual-personal target posture instead of restarting from a new run id
         - scope:
           - full `human-notes-guided` excerpt eval manifest
           - `target-slice both`
@@ -209,6 +219,7 @@ Update when: status changes, blockers appear, or phases complete.
           - process budgets:
             - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 8`
             - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
+          - no `LLM_FORCE_TARGET_ID`
         - shard ownership:
           - shard A:
             - `value_of_others_private_en__chapter_8`
@@ -220,8 +231,23 @@ Update when: status changes, blockers appear, or phases complete.
             - `mangge_zhi_dao_private_zh__chapter_18`
             - `nawaer_baodian_private_zh__chapter_13`
             - `xidaduo_private_zh__chapter_15`
+        - observed blocker:
+          - live `by_target` inspection showed the older personal key could still monopolize a scope-pinned reading process after entering quota cooldown, creating heavy `llm_quota` thrash even though the healthy sibling target existed
+      - active dual-pool in-place recovery retry3:
+        - shared run id:
+          - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
+        - live shard jobs:
+          - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
+          - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
+        - landed repair:
+          - scope-pinned targets now reselect within the pooled tier once the pinned target enters quota cooldown
+        - early live evidence:
+          - post-retry3 traces show successful calls on both pooled targets without fresh `llm_quota` entries in the initial window
         - note:
-          - the first shard launch pair `bgjob_human_notes_excerpt_parallel_judged_shard_a_20260405` / `bgjob_human_notes_excerpt_parallel_judged_shard_b_20260405` failed immediately because the initial `--unit-key` values used the wrong separator form; retry1 is the real active lane
+          - the first shard launch pair `bgjob_human_notes_excerpt_parallel_judged_shard_a_20260405` / `bgjob_human_notes_excerpt_parallel_judged_shard_b_20260405` failed immediately because the initial `--unit-key` values used the wrong separator form
+          - the first dual-pool recovery pair `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405` / `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405` was then intentionally stopped after exposing the same-tier fallback bug
+          - retry2 was then intentionally stopped after exposing the scope-pin cooldown problem
+          - retry3 is the real active recovery lane after both gateway fixes landed
       - completed staged/sharded dual-heavy excerpt smoke:
         - `bgjob_human_notes_excerpt_parallel_smoke_20260405`
           - run id:

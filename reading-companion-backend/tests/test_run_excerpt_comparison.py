@@ -615,6 +615,68 @@ def test_stage_judge_reuses_existing_bundles_and_writes_shard_cases(monkeypatch,
     assert not (run_root / "summary" / "aggregate.json").exists()
 
 
+def test_existing_bundle_payload_recovers_completed_unit_payload_and_materializes_sidecar(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "recover_unit_bundle"
+    unit_payload = _unit_result("source_a", 1)
+    _write_json(run_root / "shards" / "alpha" / "units" / "source_a__chapter_1.json", unit_payload)
+
+    recovered = excerpt_comparison._existing_bundle_payload(
+        run_root,
+        unit_key="source_a__chapter_1",
+        mechanism_key="attentional_v2",
+    )
+
+    assert recovered is not None
+    recovered_path, payload = recovered
+    assert recovered_path == run_root / "shards" / "alpha" / "bundles" / "attentional_v2" / "source_a__chapter_1.json"
+    assert payload["status"] == "completed"
+    assert recovered_path.exists()
+
+
+def test_existing_bundle_payload_recovers_from_export_when_sidecar_is_missing(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "recover_export_bundle"
+    output_dir = run_root / "shards" / "alpha" / "outputs" / "source_a__chapter_1" / "attentional_v2"
+    bundle_payload = _unit_result("source_a", 1)["mechanisms"]["attentional_v2"]
+    export_bundle = dict(bundle_payload["normalized_eval_bundle"])
+    _write_json(output_dir / "_mechanisms" / "attentional_v2" / "exports" / "normalized_eval_bundle.json", export_bundle)
+    _write_json(
+        run_root / "shards" / "alpha" / "units" / "source_a__chapter_1.json",
+        {
+            **_unit_result("source_a", 1),
+            "mechanisms": {
+                "attentional_v2": {
+                    "status": "completed",
+                    "mechanism_key": "attentional_v2",
+                    "mechanism_label": "Attentional V2",
+                    "output_dir": str(output_dir),
+                    "error": "",
+                },
+                "iterator_v1": {
+                    "status": "failed",
+                    "mechanism_key": "iterator_v1",
+                    "mechanism_label": "Iterator V1",
+                    "output_dir": "",
+                    "normalized_eval_bundle": {},
+                    "bundle_summary": {},
+                    "error": "missing",
+                },
+            },
+        },
+    )
+
+    recovered = excerpt_comparison._existing_bundle_payload(
+        run_root,
+        unit_key="source_a__chapter_1",
+        mechanism_key="attentional_v2",
+    )
+
+    assert recovered is not None
+    recovered_path, payload = recovered
+    assert recovered_path.exists()
+    assert payload["status"] == "completed"
+    assert payload["mechanism_key"] == "attentional_v2"
+
+
 def test_skip_existing_and_merge_stage_reuse_prior_case_outputs(monkeypatch, tmp_path: Path) -> None:
     dataset_dir = _bootstrap_dataset(
         tmp_path,
@@ -697,3 +759,125 @@ def test_skip_existing_and_merge_stage_reuse_prior_case_outputs(monkeypatch, tmp
     assert judge_summary["case_count"] == 1
     assert merge_summary["aggregate"]["case_count"] == 1
     assert (run_root / "summary" / "aggregate.json").exists()
+
+
+def test_skip_existing_ignores_unavailable_case_placeholders_for_llm_judge(monkeypatch, tmp_path: Path) -> None:
+    dataset_dir = _bootstrap_dataset(
+        tmp_path,
+        [
+            {
+                "case_id": "case_a",
+                "source_id": "source_a",
+                "book_title": "Book A",
+                "author": "Author A",
+                "output_language": "en",
+                "chapter_id": 1,
+                "chapter_title": "Chapter 1",
+                "start_sentence_id": "c1-s1",
+                "end_sentence_id": "c1-s2",
+                "excerpt_text": "Alpha hinge line.\nThen the argument turns.",
+                "question_ids": ["Q1"],
+                "phenomena": ["distinction"],
+                "selection_reason": "One",
+                "judge_focus": "One",
+                "split": "benchmark",
+            }
+        ],
+    )
+    public_manifest, local_refs_manifest = _bootstrap_source_manifests(tmp_path)
+    formal_manifest = _bootstrap_formal_manifest(tmp_path, selective=["case_a"], clarification=["case_a"])
+    run_root = tmp_path / "runs" / "skip_invalid_case_demo"
+    _write_json(run_root / "shards" / "bundle_shard" / "bundles" / "attentional_v2" / "source_a__chapter_1.json", _unit_result("source_a", 1)["mechanisms"]["attentional_v2"])
+    _write_json(run_root / "shards" / "bundle_shard" / "bundles" / "iterator_v1" / "source_a__chapter_1.json", _unit_result("source_a", 1)["mechanisms"]["iterator_v1"])
+    _write_json(
+        run_root / "shards" / "prior" / "cases" / "case_a.json",
+        {
+            "case_id": "case_a",
+            "target_results": {
+                "selective_legibility": {
+                    "judgment": {
+                        "winner": "tie",
+                        "confidence": "low",
+                        "reason": "mechanism_unavailable",
+                        "scores": {"attentional_v2": {}, "iterator_v1": {}},
+                    }
+                },
+                "insight_and_clarification": {
+                    "judgment": {
+                        "winner": "tie",
+                        "confidence": "low",
+                        "reason": "judge_unavailable",
+                        "scores": {"attentional_v2": {}, "iterator_v1": {}},
+                    }
+                },
+            },
+        },
+    )
+    monkeypatch.setattr(excerpt_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
+    monkeypatch.setattr(
+        excerpt_comparison,
+        "ensure_canonical_parse",
+        lambda _book_path, language_mode: _provisioned_book(
+            _book_document(1, ["Alpha hinge line.", "Then the argument turns."])
+        ),
+    )
+
+    evaluate_calls: list[str] = []
+
+    def fake_evaluate_case(
+        case: excerpt_comparison.ExcerptCase,
+        *,
+        case_targets: list[str],
+        unit_result: dict[str, Any],
+        document: dict[str, Any],
+        run_root: Path,
+        judge_mode: str,
+        judge_execution_mode: str,
+        shard_id: str,
+    ) -> dict[str, Any]:
+        evaluate_calls.append(case.case_id)
+        return {
+            "case_id": case.case_id,
+            "case_title": case.case_title,
+            "source_id": case.source_id,
+            "chapter_id": case.chapter_id,
+            "chapter_title": case.chapter_title,
+            "book_title": case.book_title,
+            "author": case.author,
+            "output_language": case.output_language,
+            "case_targets": case_targets,
+            "mechanisms": unit_result["mechanisms"],
+            "target_results": {
+                target_name: {
+                    "judgment": {
+                        "winner": "attentional_v2",
+                        "confidence": "medium",
+                        "reason": "fresh_rejudge",
+                        "scores": {
+                            "attentional_v2": {},
+                            "iterator_v1": {},
+                        },
+                    }
+                }
+                for target_name in case_targets
+            },
+        }
+
+    monkeypatch.setattr(excerpt_comparison, "_evaluate_case", fake_evaluate_case)
+
+    summary = excerpt_comparison.run_benchmark(
+        dataset_dirs=[dataset_dir],
+        source_manifest_paths=[public_manifest, local_refs_manifest],
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="skip_invalid_case_demo",
+        stage="judge",
+        target_slice="both",
+        judge_mode="llm",
+        skip_existing=True,
+    )
+
+    case_payload = json.loads((run_root / "shards" / "default" / "cases" / "case_a.json").read_text(encoding="utf-8"))
+    assert summary["case_count"] == 1
+    assert evaluate_calls == ["case_a"]
+    assert case_payload["target_results"]["selective_legibility"]["judgment"]["reason"] == "fresh_rejudge"

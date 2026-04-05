@@ -7,11 +7,11 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-05T03:53:50Z`
+Last verified: `2026-04-05T07:18:25Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
-  - keep the judged local excerpt rerun active on the human-notes-guided excerpt freeze under the new personal-only live target posture, because the first full judged run ended as a harness failure rather than usable mechanism evidence
+  - keep the judged local excerpt rerun active on the human-notes-guided excerpt freeze under the new dual-personal pooled-target posture, because the first full judged run and the first sharded rerun both ended as harness failures rather than usable mechanism evidence
   - use the newly landed staged/sharded comparison runners as the active local excerpt rerun architecture now that fresh evidence showed the old monolithic rerun had produced very little reusable progress
   - treat the repaired long-span first review as completed support evidence, then decide whether to do one narrow repair on the `2` revise probes or freeze the long-span v1 set honestly short before any judged accumulation comparison
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
@@ -54,7 +54,7 @@ Last verified: `2026-04-05T03:53:50Z`
           - treat this as a quota/harness failure, not as mechanism evidence for either `attentional_v2` or `iterator_v1`
           - the judged local excerpt lane still needs one valid rerun before it can support selective mechanism decisions
         - current next gate:
-          - relaunch the judged excerpt lane under a quota-safe posture on the retained personal key only
+          - keep the judged excerpt lane on the shared retry1 run root and recover it in place under the dual-personal pooled-target posture
     - superseded monolithic rerun:
       - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
         - purpose:
@@ -66,13 +66,13 @@ Last verified: `2026-04-05T03:53:50Z`
           - the heavy-call bottleneck was confirmed to be mechanism workload, not provider/profile/quota gate waiting
         - interpretation:
           - keeping the old-format rerun no longer made sense once time-first execution became the priority and the new staged runner was already landed
-    - active sharded judged rerun:
+    - completed first sharded judged rerun:
       - shared run id:
         - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
-      - active shard jobs:
+      - completed shard jobs:
         - `bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405`
         - `bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405`
-      - live shape:
+      - run shape:
         - `target-slice both`
         - `judge-mode llm`
         - `stage = all`
@@ -94,8 +94,18 @@ Last verified: `2026-04-05T03:53:50Z`
           - `mangge_zhi_dao_private_zh__chapter_18`
           - `nawaer_baodian_private_zh__chapter_13`
           - `xidaduo_private_zh__chapter_15`
-      - immediate next gate:
-        - let both shards finish, then run one explicit `stage = merge` pass on the shared run root
+      - result:
+        - `selective_legibility`: `55 / 55` judge unavailable
+        - `insight_and_clarification`: `38 / 38` judge unavailable
+        - run-level `llm_usage.json` recorded:
+          - `request_count = 6112`
+          - `success_count = 1575`
+          - `error_count = 4537`
+          - `problem_code_counts.llm_quota = 4537`
+      - interpretation:
+        - treat this run as another quota/harness failure, not as mechanism evidence
+        - some bundle work is reusable, but naive recovery would preserve failure placeholders unless the runner is hardened
+        - this failed run therefore remains the shared run root now being recovered in place by the later dual-pool retry2 jobs
       - note on failed first launch:
         - `bgjob_human_notes_excerpt_parallel_judged_shard_a_20260405` and `bgjob_human_notes_excerpt_parallel_judged_shard_b_20260405` failed immediately because the first launch used the wrong `--unit-key` separator form (`::chapter_N` instead of the runner's canonical `__chapter_N`)
     - completed ETA-gate smoke:
@@ -147,6 +157,46 @@ Last verified: `2026-04-05T03:53:50Z`
         - `quota_wait_ms = 0`
       - interpretation:
         - the new global ceiling plus process-budget split is no longer software-limited by the older `4`-concurrency local posture
+    - completed dual-pool probe:
+      - run id:
+        - `llm_capacity_probe_dualpool_20260405`
+      - result:
+        - `request_count = 4`
+        - `success_count = 2`
+        - `error_count = 2`
+        - `by_target` showed real two-target distribution:
+          - `MiniMax-M2.7-personal`: `2` requests, both `llm_quota`
+          - `MiniMax-M2.7-personal-2`: `2` requests, both successful
+      - interpretation:
+        - the pooled primary tier is dispatching across both targets
+        - the older personal key is currently quota-pressured, but the new key is healthy
+    - dual-pool recovery lane:
+      - first dual-pool attempt:
+        - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405`
+        - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405`
+      - terminal status:
+        - both were intentionally stopped after an early log showed one shard could still pin to a quota-cooled target when tier capacity fell below the process budget
+      - landed repair:
+        - same-tier threshold relaxation in the shared gateway now still avoids quota-cooled targets instead of treating them as acceptable reachable fallbacks
+      - retry2 outcome:
+        - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405`
+        - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405`
+        - both were intentionally stopped after live `by_target` inspection showed scope-pinned reading processes could still stay stuck on the quota-pressured old key
+      - landed repair:
+        - scope-pinned targets now reselect within the pooled tier once the pinned target enters quota cooldown, instead of keeping the old target for the rest of the reading process
+      - active retry3 jobs:
+        - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
+        - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
+      - live posture:
+        - same shared run id:
+          - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_parallel_retry1_20260405`
+        - no `LLM_FORCE_TARGET_ID`
+        - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 8`
+        - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
+      - early retry3 live evidence:
+        - when traces are filtered to the post-`2026-04-05T07:07:00Z` window, both shards show successful calls on both pooled targets with no fresh `llm_quota` entries so far
+      - immediate next gate:
+        - let both retry3 shards finish, then run one explicit `stage = merge` pass on the shared run root
   - `long-span / window`
     - primary target:
       - `reader_character.coherent_accumulation`
@@ -250,9 +300,11 @@ Last verified: `2026-04-05T03:53:50Z`
 - Current immediate eval gate:
   - the local excerpt smoke has already passed its harness gate
   - the first full judged notes-guided local excerpt comparison has now been interpreted as invalid due to provider quota cooldown / wait-budget exhaustion
-  - the local excerpt decisive lane is now the active two-shard personal-key rerun:
-    - the old monolithic personal rerun has been superseded and archived from the active registry
-    - the current next step is a single merge pass once both shard jobs finish
+  - the first sharded personal-key rerun also ended as invalid due to large-scale `llm_quota`
+  - the local excerpt decisive lane is now the active two-shard dual-pool recovery retry3:
+    - the runner now preserves successful bundle recovery instead of reusing failure placeholders
+    - the gateway now keeps quota-cooled targets out of threshold-relaxation fallback selection and lets scope selection fall back to bounded quota-wait handling only when no healthy target remains
+    - the current next step is a single merge pass once both retry3 shard jobs finish
 - Current long-span construction gate:
   - keep the rebuilt final window set
   - retain the repaired `9`-probe review result on that window set
@@ -260,8 +312,8 @@ Last verified: `2026-04-05T03:53:50Z`
   - do not launch judged accumulation comparison until that freeze decision is made explicitly
 - Background-job registry state:
   - `reading-companion-backend/state/job_registry/active_jobs.md` currently lists two active background jobs:
-    - `bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405`
-    - `bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405`
+    - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
+    - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
   - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE = keep_hold_for_backlog_rescue`
@@ -468,7 +520,7 @@ Last verified: `2026-04-05T03:53:50Z`
       - ZH `7 keep`, `1 unclear`
     - operator posture retained:
       - all completed reserve/primary review waves still used serial packet workers
-      - current live local posture is now `MiniMax-M2.7-personal` only
+      - current live local posture is now a pooled primary tier of `MiniMax-M2.7-personal` plus `MiniMax-M2.7-personal-2`
 - The older formal benchmark-v1 freeze remains historical evidence only:
   - historical manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
@@ -530,12 +582,15 @@ Last verified: `2026-04-05T03:53:50Z`
     - explicit `LLM_FORCE_TARGET_ID` is still the process-level selector when we want deterministic routing
     - because `LLM_FORCE_TARGET_ID` is process-wide and cached in-process, retargeting requires a fresh launch rather than editing config mid-run
   - the current local LLM posture is now:
-    - `reading-companion-backend/config/llm_targets.local.json` contains only `MiniMax-M2.7-personal`
-    - target-level concurrency is `4 / 4 / 4 / 1`
-    - `reading-companion-backend/config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` only to `MiniMax-M2.7-personal`
-    - current operator policy is to allow exactly two heavy processes on that one personal key during this phase, while keeping intra-process execution conservative
-- There is currently one active background job in the registry:
-  - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
+    - `reading-companion-backend/config/llm_targets.local.json` defines two separate local MiniMax M2.7 targets:
+      - `MiniMax-M2.7-personal`
+      - `MiniMax-M2.7-personal-2`
+    - target-level concurrency is `32 / 12 / 32 / 2` on both targets
+    - `reading-companion-backend/config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` to one pooled `primary` tier containing both targets
+    - current operator policy is to allow at most two heavy processes total, both using the pooled tier without `LLM_FORCE_TARGET_ID`, while keeping intra-process execution conservative
+- There are currently two active background jobs in the registry:
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405`
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405`
 - the latest completed long-span support job is:
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
     - result:
@@ -1785,9 +1840,9 @@ Last verified: `2026-04-05T03:53:50Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
-- The current live local posture is intentionally `MiniMax-M2.7-personal` only.
+- The current live local posture is intentionally a pooled primary tier of `MiniMax-M2.7-personal` plus `MiniMax-M2.7-personal-2`.
 - The frozen clustered benchmark no longer depends on unresolved review work, but it remains pressure-imbalanced (`distinction_definition = 1`, `tension_reversal = 28`, `callback_bridge = 6`, `anchored_reaction_selectivity = 5`) and short by one reserve.
-- Current heavy-job policy is: at most two concurrent heavy processes total, both intentionally pinned to `MiniMax-M2.7-personal`.
+- Current heavy-job policy is: at most two concurrent heavy processes total, both intentionally routed through the pooled dual-personal tier without `LLM_FORCE_TARGET_ID`.
 - When one future run needs a deliberately uniform reviewer surface, keep forcing one concrete target for that run.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.

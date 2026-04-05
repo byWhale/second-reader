@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-05T03:53:50Z`
+Last updated: `2026-04-05T07:07:00Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-05T03:53:50Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: let the active sharded personal-key judged rerun finish on the shared retry1 run root, then run one explicit merge pass and interpret `selective_legibility` first; do not revive the superseded monolithic rerun
+- Next: let the active dual-pool recovery retry3 shards finish on the shared retry1 run root, then run one explicit merge pass and interpret `selective_legibility` first; preserve the in-place recovery posture unless retry3 exposes a new non-quota blocker
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -33,8 +33,14 @@ Last updated: `2026-04-05T03:53:50Z`
   - `bgjob_human_notes_excerpt_parallel_smoke_20260405` (`abandoned`)
   - `bgjob_human_notes_excerpt_parallel_judged_shard_a_20260405` (`failed`)
   - `bgjob_human_notes_excerpt_parallel_judged_shard_b_20260405` (`failed`)
-  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405` (`running`)
-  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405` (`running`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405` (`failed`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405` (`failed`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405` (`failed`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405` (`failed`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405` (`abandoned`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405` (`abandoned`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405` (`running`)
+  - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405` (`running`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`

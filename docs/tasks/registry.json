@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-05T03:53:50Z",
+  "updated_at": "2026-04-05T07:07:00Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -689,10 +689,16 @@
         "bgjob_human_notes_excerpt_parallel_judged_shard_a_20260405",
         "bgjob_human_notes_excerpt_parallel_judged_shard_b_20260405",
         "bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405",
-        "bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405"
+        "bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405",
+        "bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405",
+        "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405",
+        "bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405",
+        "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405",
+        "bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405",
+        "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Let the active sharded personal-key judged rerun finish on the shared retry1 run root, then run one explicit merge pass and interpret selective_legibility first; do not revive the superseded monolithic rerun.",
+      "next_action": "Let the active dual-pool recovery retry3 shards finish on the shared retry1 run root, then run one explicit merge pass and interpret selective_legibility first; preserve the in-place recovery posture unless retry3 exposes a new non-quota blocker.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
@@ -717,16 +723,29 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_a_retry1_20260405.log",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_b_retry1_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405.log",
         "reading-companion-backend/eval/manifests/splits/attentional_v2_human_notes_guided_excerpt_eval_v1_draft.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_parallel_smoke_20260405/shards/smoke_dual_heavy/summary/llm_usage.json",
         "reading-companion-backend/eval/runs/attentional_v2/llm_capacity_probe_personal_20260405/summary/llm_usage.json",
+        "reading-companion-backend/eval/runs/attentional_v2/llm_capacity_probe_dualpool_20260405/summary/llm_usage.json",
         "reading-companion-backend/eval/attentional_v2/run_llm_capacity_probe.py",
         "reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py",
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-05T03:53:50Z",
+      "last_updated": "2026-04-05T07:07:00Z",
       "last_updated_by": "codex"
     },
     {

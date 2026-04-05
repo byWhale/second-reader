@@ -982,6 +982,17 @@ def _tier_stable_capacity(
     )
 
 
+def _scope_pinned_target_is_usable(profile_id: str | None, pinned_target_id: str | None) -> bool:
+    if not profile_id or not pinned_target_id:
+        return False
+    registry = get_llm_registry()
+    try:
+        provider = registry.get_provider(pinned_target_id)
+    except LLMRegistryError:
+        return False
+    return _target_is_reachable(provider) and _quota_wait_seconds(provider) <= 0
+
+
 def _target_meets_threshold(provider: LLMProviderConfig, *, required_stable_concurrency: int) -> bool:
     if _quota_wait_seconds(provider) > 0:
         return False
@@ -996,10 +1007,11 @@ def _select_target_within_tier(
     selection_reason: str,
     selection_override_source: str | None = None,
     allow_threshold_relaxation: bool = False,
+    include_quota_blocked: bool = False,
 ) -> LLMProfileConfig | None:
     registry = get_llm_registry()
     tier_target_ids = _tier_target_ids_in_order(profile, tier)
-    tier_capacity = _tier_stable_capacity(profile, tier)
+    tier_capacity = _tier_stable_capacity(profile, tier, include_quota_blocked=include_quota_blocked)
     reachable_profile: LLMProfileConfig | None = None
     for target_id in tier_target_ids:
         provider = registry.get_provider(target_id)
@@ -1012,9 +1024,16 @@ def _select_target_within_tier(
             selection_reason=selection_reason,
             selection_override_source=selection_override_source,
         )
-        if tier_capacity >= required_stable_concurrency and _target_stable_capacity(provider) > 0:
+        if (
+            tier_capacity >= required_stable_concurrency
+            and _target_stable_capacity(provider, include_quota_blocked=include_quota_blocked) > 0
+        ):
             return pinned
-        if allow_threshold_relaxation and reachable_profile is None:
+        if (
+            allow_threshold_relaxation
+            and reachable_profile is None
+            and _target_stable_capacity(provider, include_quota_blocked=include_quota_blocked) > 0
+        ):
             reachable_profile = pinned
     return reachable_profile
 
@@ -1120,6 +1139,7 @@ def _select_profile_target(
         return selected
 
     reachable_profile: LLMProfileConfig | None = None
+    quota_blocked_profile: LLMProfileConfig | None = None
     for tier in profile.target_tiers:
         effective_threshold = _effective_required_stable_concurrency(
             required_stable_concurrency,
@@ -1141,9 +1161,20 @@ def _select_profile_target(
                 selection_reason="reachable_fallback_selection",
                 allow_threshold_relaxation=True,
             )
+        if quota_blocked_profile is None:
+            quota_blocked_profile = _select_target_within_tier(
+                profile,
+                tier,
+                required_stable_concurrency=effective_threshold,
+                selection_reason="quota_cooldown_wait_selection",
+                allow_threshold_relaxation=True,
+                include_quota_blocked=True,
+            )
 
     if reachable_profile is not None:
         return reachable_profile
+    if quota_blocked_profile is not None:
+        return quota_blocked_profile
     raise LLMRegistryError(f"Profile {profile.profile_id} has no reachable targets with resolved credentials.")
 
 
@@ -1216,6 +1247,7 @@ def _select_scope_profile_target(
         return selected, None
 
     reachable_profile: LLMProfileConfig | None = None
+    quota_blocked_profile: LLMProfileConfig | None = None
     for tier in profile.target_tiers:
         effective_threshold = _effective_required_stable_concurrency(
             required_stable_concurrency,
@@ -1246,9 +1278,20 @@ def _select_scope_profile_target(
                 selection_reason="reachable_fallback_selection",
                 allow_threshold_relaxation=True,
             )
+        if quota_blocked_profile is None:
+            quota_blocked_profile = _select_target_within_tier(
+                profile,
+                tier,
+                required_stable_concurrency=effective_threshold,
+                selection_reason="quota_cooldown_wait_selection",
+                allow_threshold_relaxation=True,
+                include_quota_blocked=True,
+            )
 
     if reachable_profile is not None:
         return reachable_profile, None
+    if quota_blocked_profile is not None:
+        return quota_blocked_profile, None
     raise LLMRegistryError(f"Profile {profile.profile_id} has no reachable targets with resolved credentials.")
 
 
@@ -1286,10 +1329,15 @@ def llm_invocation_scope(
 
     current = _CURRENT_SCOPE.get()
     next_profile_id = profile_id or (current.profile_id if current else None)
+    current_pin_is_usable = _scope_pinned_target_is_usable(
+        next_profile_id,
+        current.pinned_target_id if current else None,
+    )
     inherited_selection = (
         current is not None
         and current.profile_id == next_profile_id
         and current.pinned_target_id is not None
+        and current_pin_is_usable
         and pinned_target_id is None
         and pinned_tier_id is None
     )
@@ -1388,7 +1436,11 @@ def eval_trace_context(
 def _effective_profile(scope: LLMInvocationScopeState | None, explicit_profile_id: str | None) -> LLMProfileConfig:
     profile_id = explicit_profile_id or (scope.profile_id if scope else None) or DEFAULT_RUNTIME_PROFILE_ID
     base_profile = get_llm_profile(profile_id)
-    if scope and scope.profile_id == profile_id and scope.pinned_target_id:
+    scope_pin_usable = _scope_pinned_target_is_usable(
+        profile_id,
+        scope.pinned_target_id if scope and scope.profile_id == profile_id else None,
+    )
+    if scope and scope.profile_id == profile_id and scope.pinned_target_id and scope_pin_usable:
         registry = get_llm_registry()
         provider = registry.get_provider(scope.pinned_target_id)
         if scope.pinned_tier_id:
@@ -1406,8 +1458,16 @@ def _effective_profile(scope: LLMInvocationScopeState | None, explicit_profile_i
         selected_profile = _select_profile_target(
             base_profile,
             required_stable_concurrency=scope.required_stable_concurrency if scope else None,
-            pinned_target_id=scope.pinned_target_id if scope and scope.profile_id == profile_id else None,
-            pinned_tier_id=scope.pinned_tier_id if scope and scope.profile_id == profile_id else None,
+            pinned_target_id=(
+                scope.pinned_target_id
+                if scope and scope.profile_id == profile_id and scope_pin_usable
+                else None
+            ),
+            pinned_tier_id=(
+                scope.pinned_tier_id
+                if scope and scope.profile_id == profile_id and scope_pin_usable
+                else None
+            ),
         )
     return _apply_profile_overrides(selected_profile, scope.overrides if scope else None)
 

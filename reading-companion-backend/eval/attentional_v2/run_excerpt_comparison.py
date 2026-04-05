@@ -777,8 +777,119 @@ def _latest_matching_payload(run_root: Path, pattern: str) -> tuple[Path, dict[s
     return selected, payload
 
 
+def _reusable_completed_bundle_payload(payload: dict[str, Any]) -> bool:
+    return payload.get("status") == "completed" and _bundle_payload_is_structurally_complete(payload)
+
+
+def _path_shard_id(path: Path) -> str:
+    parts = path.parts
+    if "shards" in parts:
+        index = parts.index("shards")
+        if index + 1 < len(parts):
+            return parts[index + 1]
+    return "default"
+
+
+def _load_exported_bundle_payload(*, output_dir: Path, mechanism_key: str) -> dict[str, Any] | None:
+    export_path = output_dir / "_mechanisms" / mechanism_key / "exports" / "normalized_eval_bundle.json"
+    bundle = _load_json_if_exists(export_path)
+    if bundle is None:
+        return None
+    mechanism_label = _clean_text(bundle.get("mechanism_label")) or mechanism_key
+    payload = {
+        "status": "completed",
+        "mechanism_key": mechanism_key,
+        "mechanism_label": mechanism_label,
+        "output_dir": str(output_dir),
+        "normalized_eval_bundle": bundle,
+        "bundle_summary": _summarize_bundle(bundle),
+        "error": "",
+    }
+    return payload if _reusable_completed_bundle_payload(payload) else None
+
+
+def _recover_bundle_payload(run_root: Path, *, unit_key: str, mechanism_key: str) -> tuple[Path, dict[str, Any]] | None:
+    unit_candidates = [path for path in run_root.glob(f"shards/*/units/{unit_key}.json") if path.is_file()]
+    for unit_path in sorted(unit_candidates, key=lambda item: (item.stat().st_mtime_ns, str(item)), reverse=True):
+        unit_payload = _load_json_if_exists(unit_path)
+        if unit_payload is None:
+            continue
+        mechanism_payload = dict((unit_payload.get("mechanisms") or {}).get(mechanism_key) or {})
+        shard_id = _path_shard_id(unit_path)
+        destination = _bundle_payload_path(run_root, shard_id, mechanism_key, unit_key)
+        if _reusable_completed_bundle_payload(mechanism_payload):
+            _json_dump(destination, mechanism_payload)
+            return destination, mechanism_payload
+        output_dir_text = _clean_text(mechanism_payload.get("output_dir"))
+        if output_dir_text:
+            recovered = _load_exported_bundle_payload(output_dir=Path(output_dir_text), mechanism_key=mechanism_key)
+            if recovered is not None:
+                _json_dump(destination, recovered)
+                return destination, recovered
+    output_candidates = [path for path in run_root.glob(f"shards/*/outputs/{unit_key}/{mechanism_key}") if path.is_dir()]
+    for output_dir in sorted(output_candidates, key=lambda item: (item.stat().st_mtime_ns, str(item)), reverse=True):
+        recovered = _load_exported_bundle_payload(output_dir=output_dir, mechanism_key=mechanism_key)
+        if recovered is None:
+            continue
+        shard_id = _path_shard_id(output_dir)
+        destination = _bundle_payload_path(run_root, shard_id, mechanism_key, unit_key)
+        _json_dump(destination, recovered)
+        return destination, recovered
+    return None
+
+
 def _existing_bundle_payload(run_root: Path, *, unit_key: str, mechanism_key: str) -> tuple[Path, dict[str, Any]] | None:
     candidates = [path for path in run_root.glob(f"shards/*/bundles/{mechanism_key}/{unit_key}.json") if path.is_file()]
+    loaded: list[tuple[Path, dict[str, Any]]] = []
+    for path in sorted(candidates, key=lambda item: (item.stat().st_mtime_ns, str(item))):
+        payload = _load_json_if_exists(path)
+        if payload is not None:
+            loaded.append((path, payload))
+    completed = [item for item in loaded if _reusable_completed_bundle_payload(item[1])]
+    if completed:
+        return completed[-1]
+    recovered = _recover_bundle_payload(run_root, unit_key=unit_key, mechanism_key=mechanism_key)
+    if recovered is not None:
+        return recovered
+    complete = [item for item in loaded if _bundle_payload_is_structurally_complete(item[1])]
+    if complete:
+        return complete[-1]
+    if loaded:
+        return loaded[-1]
+    return None
+
+
+def _judgment_reason(payload: dict[str, Any], *, target_name: str) -> str:
+    target_payload = dict((payload.get("target_results") or {}).get(target_name) or {})
+    judgment = dict(target_payload.get("judgment") or {})
+    return _clean_text(judgment.get("reason"))
+
+
+def _case_payload_has_reusable_targets(
+    payload: dict[str, Any],
+    *,
+    target_names: list[str],
+    judge_mode: str,
+) -> bool:
+    if not _case_payload_covers_targets(payload, target_names=target_names):
+        return False
+    disallowed_reasons = {"mechanism_unavailable", "judge_unavailable", "case_error"}
+    if judge_mode == "llm":
+        disallowed_reasons.add("judge_disabled")
+    for target_name in target_names:
+        if _judgment_reason(payload, target_name=target_name) in disallowed_reasons:
+            return False
+    return True
+
+
+def _existing_case_payload(
+    run_root: Path,
+    *,
+    case_id: str,
+    target_names: list[str] | None = None,
+    judge_mode: str = "llm",
+) -> tuple[Path, dict[str, Any]] | None:
+    candidates = [path for path in run_root.glob(f"shards/*/cases/{case_id}.json") if path.is_file()]
     if not candidates:
         return None
     loaded: list[tuple[Path, dict[str, Any]]] = []
@@ -788,17 +899,16 @@ def _existing_bundle_payload(run_root: Path, *, unit_key: str, mechanism_key: st
             loaded.append((path, payload))
     if not loaded:
         return None
-    completed = [item for item in loaded if item[1].get("status") == "completed" and _bundle_payload_is_structurally_complete(item[1])]
-    if completed:
-        return completed[-1]
-    complete = [item for item in loaded if _bundle_payload_is_structurally_complete(item[1])]
-    if complete:
-        return complete[-1]
+    if target_names:
+        reusable = [
+            item for item in loaded if _case_payload_has_reusable_targets(item[1], target_names=target_names, judge_mode=judge_mode)
+        ]
+        if reusable:
+            return reusable[-1]
+        complete = [item for item in loaded if _case_payload_covers_targets(item[1], target_names=target_names)]
+        if complete:
+            return complete[-1]
     return loaded[-1]
-
-
-def _existing_case_payload(run_root: Path, *, case_id: str) -> tuple[Path, dict[str, Any]] | None:
-    return _latest_matching_payload(run_root, f"shards/*/cases/{case_id}.json")
 
 
 def _bundle_payload_is_structurally_complete(payload: dict[str, Any]) -> bool:
@@ -1118,7 +1228,7 @@ def _run_unit_bundle(
 
     def _run_one(mechanism_key: str) -> dict[str, Any]:
         existing = _existing_bundle_payload(run_root, unit_key=unit_key, mechanism_key=mechanism_key)
-        if skip_existing and existing is not None and _bundle_payload_is_structurally_complete(existing[1]):
+        if skip_existing and existing is not None and _reusable_completed_bundle_payload(existing[1]):
             _log_unit_progress(unit, f"[mechanism-skip-existing] {mechanism_key}")
             return existing[1]
         try:
@@ -1675,8 +1785,17 @@ def _judge_cases_for_unit(
     for case in cases:
         case_targets = [target_name for target_name, ids in selection.target_case_ids.items() if case.case_id in ids]
         if skip_existing:
-            existing = _existing_case_payload(run_root, case_id=case.case_id)
-            if existing is not None and _case_payload_covers_targets(existing[1], target_names=case_targets):
+            existing = _existing_case_payload(
+                run_root,
+                case_id=case.case_id,
+                target_names=case_targets,
+                judge_mode=judge_mode,
+            )
+            if existing is not None and _case_payload_has_reusable_targets(
+                existing[1],
+                target_names=case_targets,
+                judge_mode=judge_mode,
+            ):
                 _log_case_progress(case, "[case-skip-existing]")
                 results[case.case_id] = existing[1]
                 continue
@@ -1717,6 +1836,7 @@ def _merge_case_results(
     *,
     run_root: Path,
     selection: ExcerptRunSelection,
+    judge_mode: str,
     unit_keys: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     allowed_unit_keys = set(unit_keys or [])
@@ -1725,7 +1845,13 @@ def _merge_case_results(
         unit_key = _chapter_unit_key(case.source_id, case.chapter_id)
         if allowed_unit_keys and unit_key not in allowed_unit_keys:
             continue
-        existing = _existing_case_payload(run_root, case_id=case.case_id)
+        case_targets = [target_name for target_name, ids in selection.target_case_ids.items() if case.case_id in ids]
+        existing = _existing_case_payload(
+            run_root,
+            case_id=case.case_id,
+            target_names=case_targets,
+            judge_mode=judge_mode,
+        )
         if existing is None:
             continue
         case_results.append(existing[1])
@@ -1814,7 +1940,12 @@ def run_benchmark(
     }
 
     if stage == "merge":
-        case_results = _merge_case_results(run_root=run_root, selection=selection, unit_keys=target_unit_keys if unit_keys else None)
+        case_results = _merge_case_results(
+            run_root=run_root,
+            selection=selection,
+            judge_mode=judge_mode,
+            unit_keys=target_unit_keys if unit_keys else None,
+        )
         aggregate, report_path = _write_merge_outputs(
             run_root=run_root,
             run_name=run_name,

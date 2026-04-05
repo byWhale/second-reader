@@ -19,6 +19,7 @@ class TraceEntry:
     path: Path
     shard_id: str
     profile_id: str
+    target_id: str
     mechanism_key: str
     status: str
     problem_code: str
@@ -90,6 +91,7 @@ def load_trace_entries(run_root: Path, *, shard_id: str | None = None) -> list[T
                     path=path,
                     shard_id=payload_shard_id,
                     profile_id=_clean_text(payload.get("profile_id")),
+                    target_id=_clean_text(payload.get("selected_target_id")) or _clean_text(payload.get("provider_id")),
                     mechanism_key=_clean_text(payload.get("mechanism_key")),
                     status=_clean_text(payload.get("status")).lower() or "unknown",
                     problem_code=_clean_text(payload.get("problem_code")),
@@ -155,6 +157,8 @@ def _bucketed_counts(entries: list[TraceEntry], *, key: str) -> dict[str, dict[s
     for entry in entries:
         if key == "profile":
             bucket_key = entry.profile_id or "unknown"
+        elif key == "target":
+            bucket_key = entry.target_id or "unknown"
         elif key == "mechanism":
             bucket_key = entry.mechanism_key or "unknown"
         elif key == "shard":
@@ -169,6 +173,7 @@ def _bucketed_counts(entries: list[TraceEntry], *, key: str) -> dict[str, dict[s
             "success_count": sum(1 for entry in scoped if entry.status == "ok"),
             "error_count": sum(1 for entry in scoped if entry.status != "ok"),
             "retry_count": sum(max(0, int(entry.payload.get("attempt_count", 1) or 1) - 1) for entry in scoped),
+            "problem_code_counts": dict(Counter(entry.problem_code for entry in scoped if entry.problem_code)),
         }
     return payload
 
@@ -193,6 +198,7 @@ def summarize_trace_entries(entries: list[TraceEntry]) -> dict[str, Any]:
         "quota_wait_ms": sum(int(entry.payload.get("quota_wait_ms_total", 0) or 0) for entry in entries),
         "problem_code_counts": dict(problem_code_counts),
         "by_profile": _bucketed_counts(entries, key="profile"),
+        "by_target": _bucketed_counts(entries, key="target"),
         "by_mechanism": _bucketed_counts(entries, key="mechanism"),
         "by_shard": _bucketed_counts(entries, key="shard"),
     }

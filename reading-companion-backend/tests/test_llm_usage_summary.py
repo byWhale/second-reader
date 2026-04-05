@@ -20,6 +20,7 @@ def test_write_llm_usage_summary_aggregates_run_and_shard_metrics(tmp_path: Path
         [
             {
                 "profile_id": "runtime_reader_default",
+                "selected_target_id": "MiniMax-M2.7-personal",
                 "mechanism_key": "attentional_v2",
                 "status": "ok",
                 "attempt_count": 2,
@@ -31,6 +32,7 @@ def test_write_llm_usage_summary_aggregates_run_and_shard_metrics(tmp_path: Path
             },
             {
                 "profile_id": "runtime_reader_default",
+                "selected_target_id": "MiniMax-M2.7-personal-2",
                 "mechanism_key": "attentional_v2",
                 "status": "error",
                 "problem_code": "network_blocked",
@@ -48,6 +50,7 @@ def test_write_llm_usage_summary_aggregates_run_and_shard_metrics(tmp_path: Path
         [
             {
                 "profile_id": "eval_judge_high_trust",
+                "selected_target_id": "MiniMax-M2.7-personal",
                 "mechanism_key": "",
                 "shard_id": "alpha",
                 "status": "ok",
@@ -77,4 +80,8 @@ def test_write_llm_usage_summary_aggregates_run_and_shard_metrics(tmp_path: Path
     assert shard_summary["quota_wait_ms"] == 100
     assert shard_summary["problem_code_counts"] == {"network_blocked": 1}
     assert shard_summary["by_shard"]["alpha"]["request_count"] == 3
+    assert shard_summary["by_target"]["MiniMax-M2.7-personal"]["request_count"] == 2
+    assert shard_summary["by_target"]["MiniMax-M2.7-personal"]["problem_code_counts"] == {}
+    assert shard_summary["by_target"]["MiniMax-M2.7-personal-2"]["request_count"] == 1
+    assert shard_summary["by_target"]["MiniMax-M2.7-personal-2"]["problem_code_counts"] == {"network_blocked": 1}
     assert run_summary["request_count"] == 3

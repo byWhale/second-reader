@@ -1911,6 +1911,39 @@ def test_same_tier_skips_quota_blocked_target(monkeypatch: pytest.MonkeyPatch):
     assert adapter.calls[0]["provider_id"] == "MiniMax-M2.7"
 
 
+def test_same_tier_threshold_relaxation_still_skips_quota_blocked_target(monkeypatch: pytest.MonkeyPatch):
+    from src.reading_runtime import llm_gateway as llm_gateway_module
+
+    _set_targets_and_bindings(
+        monkeypatch,
+        targets=_two_minimax_targets(
+            primary_max_concurrency=2,
+            primary_initial_max_concurrency=2,
+            primary_probe_max_concurrency=2,
+            backup_max_concurrency=2,
+            backup_initial_max_concurrency=2,
+            backup_probe_max_concurrency=2,
+        ),
+        bindings=_pooled_primary_bindings(
+            ["MiniMax-M2.7-highspeed", "MiniMax-M2.7"],
+            max_concurrency=8,
+            default_burst_concurrency=8,
+        ),
+    )
+    primary_provider = get_llm_registry().get_provider("MiniMax-M2.7-highspeed")
+    llm_gateway_module._record_quota_pressure(primary_provider)
+    adapter = _RecordingAdapter(response_content='{"ok": true, "provider": "__API_KEY__"}')
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    with llm_invocation_scope(profile_id=DEFAULT_RUNTIME_PROFILE_ID):
+        assert current_llm_scope() is not None
+        assert current_llm_scope().pinned_target_id == "MiniMax-M2.7"
+        payload = invoke_json("system", "user", {})
+
+    assert payload["ok"] is True
+    assert adapter.calls[0]["provider_id"] == "MiniMax-M2.7"
+
+
 def test_pooled_primary_tier_contributes_combined_worker_budget(monkeypatch: pytest.MonkeyPatch):
     _set_targets_and_bindings(
         monkeypatch,
@@ -2166,6 +2199,37 @@ def test_scope_pin_prevents_mid_run_cross_model_switch(monkeypatch: pytest.Monke
     ]
 
 
+def test_scope_pin_reselects_when_target_enters_quota_cooldown(monkeypatch: pytest.MonkeyPatch):
+    from src.reading_runtime import llm_gateway as llm_gateway_module
+
+    _set_targets_and_bindings(
+        monkeypatch,
+        targets=_two_minimax_targets(),
+        bindings=_pooled_primary_bindings(
+            ["MiniMax-M2.7-highspeed", "MiniMax-M2.7"],
+            max_concurrency=2,
+            default_burst_concurrency=2,
+        ),
+    )
+    adapter = _RecordingAdapter(response_content='{"ok": true, "provider": "__API_KEY__"}')
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    registry = get_llm_registry()
+    primary_provider = registry.get_provider("MiniMax-M2.7-highspeed")
+
+    with llm_invocation_scope(profile_id=DEFAULT_RUNTIME_PROFILE_ID):
+        assert current_llm_scope() is not None
+        assert current_llm_scope().pinned_target_id == "MiniMax-M2.7-highspeed"
+        invoke_json("system", "user", {})
+        llm_gateway_module._record_quota_pressure(primary_provider)
+        invoke_json("system", "user", {})
+
+    assert [call["provider_id"] for call in adapter.calls] == [
+        "MiniMax-M2.7-highspeed",
+        "MiniMax-M2.7",
+    ]
+
+
 def test_manual_override_can_force_target_or_tier(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -2289,8 +2353,8 @@ def test_eval_profile_waits_through_shared_quota_cooldown_and_emits_trace_metada
                     "api_key_env": "PRIMARY_KEY",
                     "supported_models": ["claude-opus-4-6"],
                     "retry_attempts": 1,
-                    "quota_cooldown_base_seconds": 1,
-                    "quota_cooldown_max_seconds": 1,
+                    "quota_cooldown_base_seconds": 5,
+                    "quota_cooldown_max_seconds": 5,
                     "quota_state_ttl_seconds": 30,
                 }
             ],
@@ -2570,8 +2634,8 @@ def test_quota_cooldown_state_is_shared_across_processes(tmp_path: Path, monkeyp
                 "api_key_env": "PRIMARY_KEY",
                 "supported_models": ["claude-opus-4-6"],
                 "retry_attempts": 1,
-                "quota_cooldown_base_seconds": 1,
-                "quota_cooldown_max_seconds": 1,
+                "quota_cooldown_base_seconds": 5,
+                "quota_cooldown_max_seconds": 5,
                 "quota_state_ttl_seconds": 30,
             }
         ],
@@ -2597,6 +2661,16 @@ def test_quota_cooldown_state_is_shared_across_processes(tmp_path: Path, monkeyp
     }
 
     base_env = os.environ.copy()
+    for env_name in (
+        "LLM_TARGETS_PATH",
+        "LLM_TARGETS_JSON",
+        "LLM_PROFILE_BINDINGS_PATH",
+        "LLM_PROFILE_BINDINGS_JSON",
+        "LLM_REGISTRY_PATH",
+        "LLM_FORCE_TARGET_ID",
+        "LLM_FORCE_TIER_ID",
+    ):
+        base_env[env_name] = ""
     base_env.update(
         {
             "BACKEND_RUNTIME_ROOT": str(tmp_path / "runtime-root"),
@@ -2647,4 +2721,4 @@ def test_quota_cooldown_state_is_shared_across_processes(tmp_path: Path, monkeyp
     second_payload = json.loads(second.stdout.strip().splitlines()[-1])
 
     assert second_payload["ok"] is True
-    assert second_payload["elapsed"] >= 0.5
+    assert second_payload["elapsed"] >= 1.0
