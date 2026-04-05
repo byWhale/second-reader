@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-05T01:48:52Z",
+  "updated_at": "2026-04-05T03:03:35Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -677,15 +677,17 @@
       "decision_refs": [
         "DEC-045",
         "DEC-047",
-        "DEC-048"
+        "DEC-048",
+        "DEC-050"
       ],
       "job_refs": [
         "bgjob_human_notes_excerpt_smoke_light_20260404",
         "bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404",
-        "bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405"
+        "bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405",
+        "bgjob_human_notes_excerpt_parallel_smoke_20260405"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the judged human-notes-guided local excerpt rerun running on the personal-only live target posture, then interpret selective_legibility first if the rerun completes with real judged cases instead of another harness failure.",
+      "next_action": "Keep the old personal-key judged rerun running because the completed staged/sharded dual-heavy smoke did not clear the 90 minute restart gate; use the new staged runner as the next formal rerun path and interpret selective_legibility first if the current rerun finishes with real judged cases.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
@@ -700,13 +702,18 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404.log",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_smoke_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_smoke_20260405.log",
         "reading-companion-backend/eval/manifests/splits/attentional_v2_human_notes_guided_excerpt_eval_v1_draft.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_parallel_smoke_20260405/shards/smoke_dual_heavy/summary/llm_usage.json",
+        "reading-companion-backend/eval/runs/attentional_v2/llm_capacity_probe_personal_20260405/summary/llm_usage.json",
+        "reading-companion-backend/eval/attentional_v2/run_llm_capacity_probe.py",
         "reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py",
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-05T00:21:30Z",
+      "last_updated": "2026-04-05T03:03:35Z",
       "last_updated_by": "codex"
     },
     {

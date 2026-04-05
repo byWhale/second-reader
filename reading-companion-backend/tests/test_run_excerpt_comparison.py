@@ -309,20 +309,26 @@ def test_run_benchmark_reuses_one_unit_run_for_cases_in_same_chapter(monkeypatch
     monkeypatch.setattr(excerpt_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
     run_calls: list[tuple[str, int]] = []
 
-    def fake_run_chapter_unit(
+    def fake_run_unit_bundle(
         unit: excerpt_comparison.ChapterUnit,
         *,
         source: dict[str, Any],
         run_root: Path,
+        shard_id: str,
         mechanism_execution_mode: str,
+        mechanism_filter: str,
+        skip_existing: bool,
     ) -> dict[str, Any]:
         assert source["source_id"] == "source_a"
         assert mechanism_execution_mode == "serial"
+        assert mechanism_filter == "both"
+        assert shard_id == "default"
+        assert skip_existing is False
         assert run_root.parent == tmp_path / "runs"
         run_calls.append((unit.source_id, unit.chapter_id))
         return _unit_result(unit.source_id, unit.chapter_id)
 
-    monkeypatch.setattr(excerpt_comparison, "_run_chapter_unit", fake_run_chapter_unit)
+    monkeypatch.setattr(excerpt_comparison, "_run_unit_bundle", fake_run_unit_bundle)
     monkeypatch.setattr(
         excerpt_comparison,
         "ensure_canonical_parse",
@@ -337,6 +343,7 @@ def test_run_benchmark_reuses_one_unit_run_for_cases_in_same_chapter(monkeypatch
         formal_manifest_path=formal_manifest,
         runs_root=tmp_path / "runs",
         run_id="demo_excerpt_cache",
+        stage="all",
         target_slice="both",
         judge_mode="none",
         mechanism_execution_mode="serial",
@@ -346,8 +353,8 @@ def test_run_benchmark_reuses_one_unit_run_for_cases_in_same_chapter(monkeypatch
 
     assert run_calls == [("source_a", 1)]
     run_root = Path(summary["run_root"])
-    assert (run_root / "cases" / "case_a.json").exists()
-    assert (run_root / "cases" / "case_b.json").exists()
+    assert (run_root / "shards" / "default" / "cases" / "case_a.json").exists()
+    assert (run_root / "shards" / "default" / "cases" / "case_b.json").exists()
 
 
 def test_extract_case_local_evidence_records_explicit_match_method() -> None:
@@ -432,8 +439,8 @@ def test_run_benchmark_isolates_case_failure_and_still_writes_aggregate(monkeypa
     monkeypatch.setattr(excerpt_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
     monkeypatch.setattr(
         excerpt_comparison,
-        "_run_chapter_unit",
-        lambda unit, *, source, run_root, mechanism_execution_mode: _unit_result(unit.source_id, unit.chapter_id),
+        "_run_unit_bundle",
+        lambda unit, *, source, run_root, shard_id, mechanism_execution_mode, mechanism_filter, skip_existing: _unit_result(unit.source_id, unit.chapter_id),
     )
     monkeypatch.setattr(
         excerpt_comparison,
@@ -453,6 +460,7 @@ def test_run_benchmark_isolates_case_failure_and_still_writes_aggregate(monkeypa
         run_root: Path,
         judge_mode: str,
         judge_execution_mode: str,
+        shard_id: str,
     ) -> dict[str, Any]:
         if case.case_id == "case_b":
             raise RuntimeError("case exploded")
@@ -464,6 +472,7 @@ def test_run_benchmark_isolates_case_failure_and_still_writes_aggregate(monkeypa
             run_root=run_root,
             judge_mode=judge_mode,
             judge_execution_mode=judge_execution_mode,
+            shard_id=shard_id,
         )
 
     monkeypatch.setattr(excerpt_comparison, "_evaluate_case", fake_evaluate_case)
@@ -474,18 +483,217 @@ def test_run_benchmark_isolates_case_failure_and_still_writes_aggregate(monkeypa
         formal_manifest_path=formal_manifest,
         runs_root=tmp_path / "runs",
         run_id="demo_excerpt_failure_isolation",
+        stage="all",
         target_slice="both",
         judge_mode="none",
         mechanism_execution_mode="serial",
         judge_execution_mode="serial",
         case_workers=1,
     )
+    merge_summary = excerpt_comparison.run_benchmark(
+        dataset_dirs=[dataset_dir],
+        source_manifest_paths=[public_manifest, local_refs_manifest],
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="demo_excerpt_failure_isolation",
+        stage="merge",
+        target_slice="both",
+        judge_mode="none",
+    )
 
     run_root = Path(summary["run_root"])
-    case_b_payload = json.loads((run_root / "cases" / "case_b.json").read_text(encoding="utf-8"))
+    case_b_payload = json.loads((run_root / "shards" / "default" / "cases" / "case_b.json").read_text(encoding="utf-8"))
 
-    assert summary["aggregate"]["case_count"] == 2
-    assert summary["aggregate"]["target_summaries"]["selective_legibility"]["judge_unavailable_count"] == 1
+    assert merge_summary["aggregate"]["case_count"] == 2
+    assert merge_summary["aggregate"]["target_summaries"]["selective_legibility"]["judge_unavailable_count"] == 1
     assert case_b_payload["case_error"] == "RuntimeError: case exploded"
     assert (run_root / "summary" / "aggregate.json").exists()
     assert (run_root / "summary" / "report.md").exists()
+
+
+def test_stage_bundle_only_writes_shard_unit_and_bundle_outputs(monkeypatch, tmp_path: Path) -> None:
+    dataset_dir = _bootstrap_dataset(
+        tmp_path,
+        [
+            {
+                "case_id": "case_a",
+                "source_id": "source_a",
+                "book_title": "Book A",
+                "author": "Author A",
+                "output_language": "en",
+                "chapter_id": 1,
+                "chapter_title": "Chapter 1",
+                "start_sentence_id": "c1-s1",
+                "end_sentence_id": "c1-s2",
+                "excerpt_text": "Alpha hinge line.\nThen the argument turns.",
+                "question_ids": ["Q1"],
+                "phenomena": ["distinction"],
+                "selection_reason": "One",
+                "judge_focus": "One",
+                "split": "benchmark",
+            }
+        ],
+    )
+    public_manifest, local_refs_manifest = _bootstrap_source_manifests(tmp_path)
+    formal_manifest = _bootstrap_formal_manifest(tmp_path, selective=["case_a"], clarification=["case_a"])
+    monkeypatch.setattr(excerpt_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
+    monkeypatch.setattr(
+        excerpt_comparison,
+        "_run_unit_bundle",
+        lambda unit, *, source, run_root, shard_id, mechanism_execution_mode, mechanism_filter, skip_existing: _unit_result(unit.source_id, unit.chapter_id),
+    )
+
+    summary = excerpt_comparison.run_benchmark(
+        dataset_dirs=[dataset_dir],
+        source_manifest_paths=[public_manifest, local_refs_manifest],
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="stage_bundle_demo",
+        stage="bundle",
+        target_slice="both",
+        judge_mode="none",
+        mechanism_execution_mode="parallel",
+        unit_workers=1,
+    )
+
+    run_root = Path(summary["run_root"])
+    assert (run_root / "shards" / "default" / "units" / "source_a__chapter_1.json").exists()
+    assert not (run_root / "summary" / "aggregate.json").exists()
+
+
+def test_stage_judge_reuses_existing_bundles_and_writes_shard_cases(monkeypatch, tmp_path: Path) -> None:
+    dataset_dir = _bootstrap_dataset(
+        tmp_path,
+        [
+            {
+                "case_id": "case_a",
+                "source_id": "source_a",
+                "book_title": "Book A",
+                "author": "Author A",
+                "output_language": "en",
+                "chapter_id": 1,
+                "chapter_title": "Chapter 1",
+                "start_sentence_id": "c1-s1",
+                "end_sentence_id": "c1-s2",
+                "excerpt_text": "Alpha hinge line.\nThen the argument turns.",
+                "question_ids": ["Q1"],
+                "phenomena": ["distinction"],
+                "selection_reason": "One",
+                "judge_focus": "One",
+                "split": "benchmark",
+            }
+        ],
+    )
+    public_manifest, local_refs_manifest = _bootstrap_source_manifests(tmp_path)
+    formal_manifest = _bootstrap_formal_manifest(tmp_path, selective=["case_a"], clarification=["case_a"])
+    run_root = tmp_path / "runs" / "stage_judge_demo"
+    _write_json(run_root / "shards" / "bundle_shard" / "bundles" / "attentional_v2" / "source_a__chapter_1.json", _unit_result("source_a", 1)["mechanisms"]["attentional_v2"])
+    _write_json(run_root / "shards" / "bundle_shard" / "bundles" / "iterator_v1" / "source_a__chapter_1.json", _unit_result("source_a", 1)["mechanisms"]["iterator_v1"])
+    monkeypatch.setattr(excerpt_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
+    monkeypatch.setattr(
+        excerpt_comparison,
+        "ensure_canonical_parse",
+        lambda _book_path, language_mode: _provisioned_book(
+            _book_document(1, ["Alpha hinge line.", "Then the argument turns."])
+        ),
+    )
+
+    summary = excerpt_comparison.run_benchmark(
+        dataset_dirs=[dataset_dir],
+        source_manifest_paths=[public_manifest, local_refs_manifest],
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="stage_judge_demo",
+        stage="judge",
+        target_slice="both",
+        judge_mode="none",
+        judge_workers=1,
+    )
+
+    assert summary["case_count"] == 1
+    assert (run_root / "shards" / "default" / "cases" / "case_a.json").exists()
+    assert not (run_root / "summary" / "aggregate.json").exists()
+
+
+def test_skip_existing_and_merge_stage_reuse_prior_case_outputs(monkeypatch, tmp_path: Path) -> None:
+    dataset_dir = _bootstrap_dataset(
+        tmp_path,
+        [
+            {
+                "case_id": "case_a",
+                "source_id": "source_a",
+                "book_title": "Book A",
+                "author": "Author A",
+                "output_language": "en",
+                "chapter_id": 1,
+                "chapter_title": "Chapter 1",
+                "start_sentence_id": "c1-s1",
+                "end_sentence_id": "c1-s2",
+                "excerpt_text": "Alpha hinge line.\nThen the argument turns.",
+                "question_ids": ["Q1"],
+                "phenomena": ["distinction"],
+                "selection_reason": "One",
+                "judge_focus": "One",
+                "split": "benchmark",
+            }
+        ],
+    )
+    public_manifest, local_refs_manifest = _bootstrap_source_manifests(tmp_path)
+    formal_manifest = _bootstrap_formal_manifest(tmp_path, selective=["case_a"], clarification=["case_a"])
+    run_root = tmp_path / "runs" / "skip_existing_demo"
+    _write_json(
+        run_root / "shards" / "prior" / "cases" / "case_a.json",
+        {
+            "case_id": "case_a",
+            "case_title": "case_a",
+            "source_id": "source_a",
+            "chapter_id": 1,
+            "chapter_title": "Chapter 1",
+            "book_title": "Book A",
+            "author": "Author A",
+            "output_language": "en",
+            "case_targets": ["selective_legibility", "insight_and_clarification"],
+            "mechanisms": {
+                "attentional_v2": {"status": "completed"},
+                "iterator_v1": {"status": "completed"},
+            },
+            "target_results": {
+                "selective_legibility": {"judgment": {"winner": "tie", "reason": "judge_disabled", "scores": {"attentional_v2": {}, "iterator_v1": {}}, "confidence": "low"}},
+                "insight_and_clarification": {"judgment": {"winner": "tie", "reason": "judge_disabled", "scores": {"attentional_v2": {}, "iterator_v1": {}}, "confidence": "low"}},
+            },
+        },
+    )
+    monkeypatch.setattr(excerpt_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
+    monkeypatch.setattr(
+        excerpt_comparison,
+        "ensure_canonical_parse",
+        lambda _book_path, language_mode: _provisioned_book(
+            _book_document(1, ["Alpha hinge line.", "Then the argument turns."])
+        ),
+    )
+
+    judge_summary = excerpt_comparison.run_benchmark(
+        dataset_dirs=[dataset_dir],
+        source_manifest_paths=[public_manifest, local_refs_manifest],
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="skip_existing_demo",
+        stage="judge",
+        target_slice="both",
+        judge_mode="none",
+        skip_existing=True,
+    )
+    merge_summary = excerpt_comparison.run_benchmark(
+        dataset_dirs=[dataset_dir],
+        source_manifest_paths=[public_manifest, local_refs_manifest],
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="skip_existing_demo",
+        stage="merge",
+        target_slice="both",
+        judge_mode="none",
+    )
+
+    assert judge_summary["case_count"] == 1
+    assert merge_summary["aggregate"]["case_count"] == 1
+    assert (run_root / "summary" / "aggregate.json").exists()

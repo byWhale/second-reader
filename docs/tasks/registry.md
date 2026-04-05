@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-05T01:48:52Z`
+Last updated: `2026-04-05T03:03:35Z`
 
 ## Status Values
 - `active`
@@ -25,18 +25,19 @@ Last updated: `2026-04-05T01:48:52Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the judged human-notes-guided local excerpt rerun running on the personal-only live target posture, then interpret selective_legibility first if the rerun completes with real judged cases instead of another harness failure
+- Next: keep the old personal-key judged rerun running, because the completed dual-heavy staged/sharded smoke did not clear the `90` minute restart gate; use the new staged runner as the next full rerun path and interpret `selective_legibility` first if the current rerun finishes with real judged cases
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405` (`running`)
+  - `bgjob_human_notes_excerpt_parallel_smoke_20260405` (`abandoned`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: use the completed repaired first review as the new freeze gate, then choose between one narrow repair on the two chapter-8 revise probes or an honest-short v1 freeze before any judged accumulation comparison
+- Next: keep the repaired first review as the freeze gate, decide the `2 revise` probe disposition explicitly, and use the now-landed staged/sharded accumulation runner only after that freeze decision is made
 - Jobs:
   - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404` (`completed`)

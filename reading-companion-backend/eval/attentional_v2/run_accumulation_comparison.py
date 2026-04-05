@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
@@ -18,6 +19,7 @@ from statistics import mean
 from typing import Any
 
 from eval.common.taxonomy import DETERMINISTIC_METRICS, PAIRWISE_JUDGE, RUBRIC_JUDGE, normalize_methods, validate_target_slug
+from eval.attentional_v2.llm_usage_summary import write_llm_usage_summary
 from eval.attentional_v2.runtime_progress import runtime_progress_heartbeat
 from eval.attentional_v2.run_excerpt_comparison import (
     _clean_text,
@@ -51,7 +53,9 @@ DEFAULT_USER_INTENT = (
     "Read as a thoughtful co-reader and preserve meaningful continuity, carryover, tension, and clarification across the bounded reading window."
 )
 MECHANISM_KEYS = ("attentional_v2", "iterator_v1")
+MECHANISM_FILTER_VALUES = ("attentional_v2", "iterator_v1", "both")
 TARGET_SLICE_VALUES = ("coherent_accumulation", "insight_and_clarification", "both")
+STAGE_VALUES = ("all", "bundle", "judge", "merge")
 TARGET_FIELD_BY_SLICE = {
     "coherent_accumulation": ("accumulation_probes_frozen_draft", "accumulation_probe_core_draft"),
     "insight_and_clarification": (
@@ -209,6 +213,19 @@ class Probe:
     selection_reason: str
     judge_focus: str
     note_provenance: list[str]
+
+
+@dataclass(frozen=True)
+class AccumulationRunSelection:
+    window_manifests: list[dict[str, Any]]
+    probe_manifests: list[dict[str, Any]]
+    selected_windows: list[WindowCase]
+    selected_probes: list[Probe]
+    target_probe_ids: dict[str, list[str]]
+    source_index: dict[str, dict[str, Any]]
+    source_manifest_paths: list[Path]
+    probes_by_window: dict[str, list[Probe]]
+    formal_manifest_path: Path
 
 
 def _timestamp() -> str:
@@ -402,9 +419,118 @@ def _log_probe_progress(probe: Probe, message: str) -> None:
     print(f"[probe {probe.probe_id}] {message}", flush=True)
 
 
-def _mechanism_failure_payload(mechanism_key: str, *, error: str) -> dict[str, Any]:
+def _meta_dir(run_root: Path) -> Path:
+    return run_root / "meta"
+
+
+def _shard_root(run_root: Path, shard_id: str) -> Path:
+    return run_root / "shards" / shard_id
+
+
+def _shard_windows_dir(run_root: Path, shard_id: str) -> Path:
+    return _shard_root(run_root, shard_id) / "units"
+
+
+def _shard_bundles_dir(run_root: Path, shard_id: str, mechanism_key: str) -> Path:
+    return _shard_root(run_root, shard_id) / "bundles" / mechanism_key
+
+
+def _shard_probe_cases_dir(run_root: Path, shard_id: str) -> Path:
+    return _shard_root(run_root, shard_id) / "cases"
+
+
+def _shard_summary_dir(run_root: Path, shard_id: str) -> Path:
+    return _shard_root(run_root, shard_id) / "summary"
+
+
+def _window_payload_path(run_root: Path, shard_id: str, window_case_id: str) -> Path:
+    return _shard_windows_dir(run_root, shard_id) / f"{window_case_id}.json"
+
+
+def _bundle_payload_path(run_root: Path, shard_id: str, mechanism_key: str, window_case_id: str) -> Path:
+    return _shard_bundles_dir(run_root, shard_id, mechanism_key) / f"{window_case_id}.json"
+
+
+def _probe_payload_path(run_root: Path, shard_id: str, probe_id: str) -> Path:
+    return _shard_probe_cases_dir(run_root, shard_id) / f"{probe_id}.json"
+
+
+def _selection_dataset_manifest_path(run_root: Path) -> Path:
+    return _meta_dir(run_root) / "dataset_manifest.json"
+
+
+def _selection_windows_manifest_path(run_root: Path) -> Path:
+    return _meta_dir(run_root) / "selected_windows.json"
+
+
+def _mechanism_keys_for_filter(mechanism_filter: str) -> tuple[str, ...]:
+    if mechanism_filter not in MECHANISM_FILTER_VALUES:
+        raise ValueError(f"unsupported mechanism filter: {mechanism_filter}")
+    if mechanism_filter == "both":
+        return MECHANISM_KEYS
+    return (mechanism_filter,)
+
+
+def _load_json_if_exists(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _bundle_payload_is_structurally_complete(payload: dict[str, Any]) -> bool:
+    return bool(payload.get("status")) and "normalized_eval_bundle" in payload and "bundle_summary" in payload
+
+
+def _existing_bundle_payload(run_root: Path, *, window_case_id: str, mechanism_key: str) -> tuple[Path, dict[str, Any]] | None:
+    candidates = [
+        path
+        for path in run_root.glob(f"shards/*/bundles/{mechanism_key}/{window_case_id}.json")
+        if path.is_file()
+    ]
+    if not candidates:
+        return None
+    loaded: list[tuple[Path, dict[str, Any]]] = []
+    for path in sorted(candidates, key=lambda item: (item.stat().st_mtime_ns, str(item))):
+        payload = _load_json_if_exists(path)
+        if payload is not None:
+            loaded.append((path, payload))
+    if not loaded:
+        return None
+    completed = [item for item in loaded if item[1].get("status") == "completed" and _bundle_payload_is_structurally_complete(item[1])]
+    if completed:
+        return completed[-1]
+    complete = [item for item in loaded if _bundle_payload_is_structurally_complete(item[1])]
+    if complete:
+        return complete[-1]
+    return loaded[-1]
+
+
+def _existing_probe_payload(run_root: Path, *, probe_id: str) -> tuple[Path, dict[str, Any]] | None:
+    candidates = [path for path in run_root.glob(f"shards/*/cases/{probe_id}.json") if path.is_file()]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda path: (path.stat().st_mtime_ns, str(path)))
+    path = candidates[-1]
+    payload = _load_json_if_exists(path)
+    if payload is None:
+        return None
+    return path, payload
+
+
+def _probe_payload_covers_targets(payload: dict[str, Any], *, target_names: list[str]) -> bool:
+    target_results = payload.get("target_results")
+    if not isinstance(target_results, dict):
+        return False
+    return all(target_name in target_results for target_name in target_names)
+
+
+def _mechanism_failure_payload(mechanism_key: str, *, error: str, status: str = "failed") -> dict[str, Any]:
     return {
-        "status": "failed",
+        "status": status,
         "mechanism_key": mechanism_key,
         "mechanism_label": mechanism_key,
         "output_dir": "",
@@ -466,7 +592,7 @@ def _run_mechanism_for_window(
     source: dict[str, Any],
     *,
     mechanism_key: str,
-    run_root: Path,
+    shard_root: Path,
 ) -> dict[str, Any]:
     if mechanism_key == "attentional_v2":
         mechanism = AttentionalV2Mechanism()
@@ -476,7 +602,7 @@ def _run_mechanism_for_window(
         raise ValueError(f"unsupported mechanism: {mechanism_key}")
 
     book_path = ROOT / str(source["relative_local_path"])
-    isolated_output_dir = run_root / "outputs" / window.window_case_id / mechanism_key
+    isolated_output_dir = shard_root / "outputs" / window.window_case_id / mechanism_key
     runtime_dir = isolated_output_dir / "_runtime"
     _log_window_progress(window, f"[mechanism-start] {mechanism_key}")
     shutil.rmtree(isolated_output_dir, ignore_errors=True)
@@ -503,7 +629,6 @@ def _run_mechanism_for_window(
                     )
                 )
     bundle = dict((result.normalized_eval_bundle if result else {}) or {})
-    _json_dump(run_root / "bundles" / mechanism_key / f"{window.window_case_id}.json", bundle)
     _log_window_progress(window, f"[mechanism-completed] {mechanism_key}")
     return {
         "status": "completed",
@@ -524,21 +649,24 @@ def _run_mechanism_worker(payload_path: Path, result_path: Path) -> int:
         window,
         source,
         mechanism_key=str(payload["mechanism_key"]),
-        run_root=Path(str(payload["run_root"])),
+        shard_root=Path(str(payload["shard_root"])),
     )
     _write_json_payload(result_path, result)
     return 0
 
 
-def _run_window_worker(payload_path: Path, result_path: Path) -> int:
+def _run_window_bundle_worker(payload_path: Path, result_path: Path) -> int:
     payload = json.loads(payload_path.read_text(encoding="utf-8"))
     window = WindowCase(**dict(payload["window"]))
     source = dict(payload["source"])
-    result = _run_window_unit(
+    result = _run_window_bundle(
         window,
         source=source,
         run_root=Path(str(payload["run_root"])),
+        shard_id=str(payload["shard_id"]),
         mechanism_execution_mode=str(payload["mechanism_execution_mode"]),
+        mechanism_filter=str(payload["mechanism_filter"]),
+        skip_existing=bool(payload.get("skip_existing", False)),
     )
     _write_json_payload(result_path, result)
     return 0
@@ -549,8 +677,8 @@ def _run_payload_worker(payload_path: Path, result_path: Path) -> int:
     worker_kind = str(payload.get("worker_kind", "mechanism")).strip() or "mechanism"
     if worker_kind == "mechanism":
         return _run_mechanism_worker(payload_path, result_path)
-    if worker_kind == "window":
-        return _run_window_worker(payload_path, result_path)
+    if worker_kind == "window_bundle":
+        return _run_window_bundle_worker(payload_path, result_path)
     raise ValueError(f"unsupported worker kind: {worker_kind}")
 
 
@@ -559,7 +687,7 @@ def _run_mechanism_subprocess(
     source: dict[str, Any],
     *,
     mechanism_key: str,
-    run_root: Path,
+    shard_root: Path,
 ) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="accumulation-comparison-mechanism-worker-") as temp_dir_str:
         temp_dir = Path(temp_dir_str)
@@ -572,7 +700,7 @@ def _run_mechanism_subprocess(
                 "window": asdict(window),
                 "source": source,
                 "mechanism_key": mechanism_key,
-                "run_root": str(run_root),
+                "shard_root": str(shard_root),
             },
         )
         command = [
@@ -592,7 +720,10 @@ def _run_window_subprocess(
     *,
     source: dict[str, Any],
     run_root: Path,
+    shard_id: str,
     mechanism_execution_mode: str,
+    mechanism_filter: str,
+    skip_existing: bool,
 ) -> dict[str, Any]:
     with tempfile.TemporaryDirectory(prefix="accumulation-comparison-window-worker-") as temp_dir_str:
         temp_dir = Path(temp_dir_str)
@@ -601,11 +732,14 @@ def _run_window_subprocess(
         _write_json_payload(
             payload_path,
             {
-                "worker_kind": "window",
+                "worker_kind": "window_bundle",
                 "window": asdict(window),
                 "source": source,
                 "run_root": str(run_root),
+                "shard_id": shard_id,
                 "mechanism_execution_mode": mechanism_execution_mode,
+                "mechanism_filter": mechanism_filter,
+                "skip_existing": bool(skip_existing),
             },
         )
         command = [
@@ -620,45 +754,11 @@ def _run_window_subprocess(
         return json.loads(result_path.read_text(encoding="utf-8"))
 
 
-def _run_window_unit(
+def _window_result_payload(
     window: WindowCase,
     *,
-    source: dict[str, Any],
-    run_root: Path,
-    mechanism_execution_mode: str,
+    mechanisms: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    if mechanism_execution_mode not in {"serial", "parallel"}:
-        raise ValueError(f"unsupported mechanism execution mode: {mechanism_execution_mode}")
-
-    def _run_one(mechanism_key: str) -> dict[str, Any]:
-        try:
-            return _run_mechanism_for_window(window, source, mechanism_key=mechanism_key, run_root=run_root)
-        except Exception as exc:
-            _log_window_progress(window, f"[mechanism-failed] {mechanism_key} error={exc}")
-            return _mechanism_failure_payload(mechanism_key, error=str(exc))
-
-    results: dict[str, dict[str, Any]] = {}
-    if mechanism_execution_mode == "serial":
-        for mechanism_key in MECHANISM_KEYS:
-            results[mechanism_key] = _run_one(mechanism_key)
-    else:
-        with ThreadPoolExecutor(max_workers=len(MECHANISM_KEYS), thread_name_prefix="accumulation-mechanism") as executor:
-            future_to_mechanism = {
-                executor.submit(
-                    _run_mechanism_subprocess,
-                    window,
-                    source,
-                    mechanism_key=mechanism_key,
-                    run_root=run_root,
-                ): mechanism_key
-                for mechanism_key in MECHANISM_KEYS
-            }
-            for future in as_completed(future_to_mechanism):
-                mechanism_key = future_to_mechanism[future]
-                try:
-                    results[mechanism_key] = future.result()
-                except Exception as exc:
-                    results[mechanism_key] = _mechanism_failure_payload(mechanism_key, error=str(exc))
     return {
         "window_case_id": window.window_case_id,
         "source_id": window.source_id,
@@ -666,8 +766,116 @@ def _run_window_unit(
         "book_title": window.book_title,
         "author": window.author,
         "chapter_case_ids": list(window.chapter_case_ids),
-        "mechanisms": {mechanism_key: results[mechanism_key] for mechanism_key in MECHANISM_KEYS},
+        "mechanisms": mechanisms,
     }
+
+
+def _build_window_result_from_existing_bundles(
+    *,
+    run_root: Path,
+    window: WindowCase,
+    fallback_results: dict[str, dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    fallback_results = fallback_results or {}
+    mechanisms: dict[str, dict[str, Any]] = {}
+    for mechanism_key in MECHANISM_KEYS:
+        payload = fallback_results.get(mechanism_key)
+        if payload is None:
+            existing = _existing_bundle_payload(run_root, window_case_id=window.window_case_id, mechanism_key=mechanism_key)
+            payload = existing[1] if existing is not None else None
+        mechanisms[mechanism_key] = payload or _mechanism_failure_payload(
+            mechanism_key,
+            error="bundle_missing",
+            status="missing",
+        )
+    return _window_result_payload(window, mechanisms=mechanisms)
+
+
+def _write_bundle_payload(
+    *,
+    run_root: Path,
+    shard_id: str,
+    window_case_id: str,
+    mechanism_key: str,
+    payload: dict[str, Any],
+) -> None:
+    _json_dump(_bundle_payload_path(run_root, shard_id, mechanism_key, window_case_id), payload)
+
+
+def _run_window_bundle(
+    window: WindowCase,
+    *,
+    source: dict[str, Any],
+    run_root: Path,
+    shard_id: str,
+    mechanism_execution_mode: str,
+    mechanism_filter: str,
+    skip_existing: bool,
+) -> dict[str, Any]:
+    if mechanism_execution_mode not in {"serial", "parallel"}:
+        raise ValueError(f"unsupported mechanism execution mode: {mechanism_execution_mode}")
+    mechanism_keys = _mechanism_keys_for_filter(mechanism_filter)
+    shard_root = _shard_root(run_root, shard_id)
+
+    def _run_one(mechanism_key: str) -> dict[str, Any]:
+        existing = _existing_bundle_payload(run_root, window_case_id=window.window_case_id, mechanism_key=mechanism_key)
+        if skip_existing and existing is not None and _bundle_payload_is_structurally_complete(existing[1]):
+            _log_window_progress(window, f"[mechanism-skip-existing] {mechanism_key}")
+            return existing[1]
+        try:
+            payload = _run_mechanism_for_window(window, source, mechanism_key=mechanism_key, shard_root=shard_root)
+            _write_bundle_payload(
+                run_root=run_root,
+                shard_id=shard_id,
+                window_case_id=window.window_case_id,
+                mechanism_key=mechanism_key,
+                payload=payload,
+            )
+            return payload
+        except Exception as exc:
+            _log_window_progress(window, f"[mechanism-failed] {mechanism_key} error={exc}")
+            payload = _mechanism_failure_payload(mechanism_key, error=str(exc))
+            _write_bundle_payload(
+                run_root=run_root,
+                shard_id=shard_id,
+                window_case_id=window.window_case_id,
+                mechanism_key=mechanism_key,
+                payload=payload,
+            )
+            return payload
+
+    results: dict[str, dict[str, Any]] = {}
+    if mechanism_execution_mode == "serial" or len(mechanism_keys) <= 1:
+        for mechanism_key in mechanism_keys:
+            results[mechanism_key] = _run_one(mechanism_key)
+    else:
+        with ThreadPoolExecutor(max_workers=len(mechanism_keys), thread_name_prefix="accumulation-mechanism") as executor:
+            future_to_mechanism = {
+                executor.submit(
+                    _run_mechanism_subprocess,
+                    window,
+                    source,
+                    mechanism_key=mechanism_key,
+                    shard_root=shard_root,
+                ): mechanism_key
+                for mechanism_key in mechanism_keys
+            }
+            for future in as_completed(future_to_mechanism):
+                mechanism_key = future_to_mechanism[future]
+                try:
+                    results[mechanism_key] = future.result()
+                except Exception as exc:
+                    results[mechanism_key] = _mechanism_failure_payload(mechanism_key, error=str(exc))
+                    _write_bundle_payload(
+                        run_root=run_root,
+                        shard_id=shard_id,
+                        window_case_id=window.window_case_id,
+                        mechanism_key=mechanism_key,
+                        payload=results[mechanism_key],
+                    )
+    payload = _build_window_result_from_existing_bundles(run_root=run_root, window=window, fallback_results=results)
+    _json_dump(_window_payload_path(run_root, shard_id, window.window_case_id), payload)
+    return payload
 
 
 def _find_anchor_span(document: BookDocument, anchor: dict[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -830,6 +1038,7 @@ def _judge_target(
     iterator: dict[str, Any],
     run_root: Path,
     judge_mode: str,
+    shard_id: str,
 ) -> dict[str, Any]:
     config = TARGET_CONFIGS[target_name]
     score_keys = tuple(config["score_keys"])
@@ -851,6 +1060,11 @@ def _judge_target(
                 eval_target=DEFAULT_TARGET,
                 stage="accumulation_comparison",
                 node=target_name,
+                extra={
+                    "shard_id": shard_id,
+                    "probe_id": probe.probe_id,
+                    "window_case_id": window.window_case_id,
+                },
             ),
         ):
             payload = invoke_json(
@@ -893,6 +1107,7 @@ def _judge_targets_for_probe(
     run_root: Path,
     judge_mode: str,
     judge_execution_mode: str,
+    shard_id: str,
 ) -> dict[str, dict[str, Any]]:
     if judge_execution_mode not in {"serial", "parallel"}:
         raise ValueError(f"unsupported judge execution mode: {judge_execution_mode}")
@@ -907,6 +1122,7 @@ def _judge_targets_for_probe(
                     iterator=mechanisms["iterator_v1"],
                     run_root=run_root,
                     judge_mode=judge_mode,
+                    shard_id=shard_id,
                 )
             }
             for target_name in probe_targets
@@ -924,6 +1140,7 @@ def _judge_targets_for_probe(
                 iterator=mechanisms["iterator_v1"],
                 run_root=run_root,
                 judge_mode=judge_mode,
+                shard_id=shard_id,
             ): target_name
             for target_name in probe_targets
         }
@@ -947,6 +1164,7 @@ def _evaluate_probe(
     run_root: Path,
     judge_mode: str,
     judge_execution_mode: str,
+    shard_id: str,
 ) -> dict[str, Any]:
     _log_probe_progress(probe, f"[probe-start] judge_mode={judge_mode} judge_execution_mode={judge_execution_mode}")
     mechanisms: dict[str, dict[str, Any]] = {}
@@ -987,6 +1205,7 @@ def _evaluate_probe(
         run_root=run_root,
         judge_mode=judge_mode,
         judge_execution_mode=judge_execution_mode,
+        shard_id=shard_id,
     )
     _log_probe_progress(probe, "[probe-completed]")
     return {
@@ -1186,18 +1405,12 @@ def _build_markdown_report(
     return "\n".join(lines).strip() + "\n"
 
 
-def run_benchmark(
+def _prepare_selection(
     *,
     formal_manifest_path: Path,
-    runs_root: Path,
     target_slice: str = "both",
     probe_ids: list[str] | None = None,
-    judge_mode: str = "llm",
-    mechanism_execution_mode: str = "serial",
-    judge_execution_mode: str = "serial",
-    case_workers: int | None = None,
-    run_id: str | None = None,
-) -> dict[str, Any]:
+) -> AccumulationRunSelection:
     formal_manifest = _load_formal_manifest(formal_manifest_path)
     window_dataset_dirs = _window_dataset_dirs_from_manifest(formal_manifest)
     probe_dataset_dirs = _probe_dataset_dirs_from_manifest(formal_manifest)
@@ -1222,90 +1435,136 @@ def run_benchmark(
     missing_sources = sorted({window.source_id for window in selected_windows if window.source_id not in source_index})
     if missing_sources:
         raise ValueError(f"missing source references: {', '.join(missing_sources)}")
+    probes_by_window: dict[str, list[Probe]] = defaultdict(list)
+    for probe in selected_probes:
+        probes_by_window[probe.window_case_id].append(probe)
+    return AccumulationRunSelection(
+        window_manifests=window_manifests,
+        probe_manifests=probe_manifests,
+        selected_windows=selected_windows,
+        selected_probes=selected_probes,
+        target_probe_ids=target_probe_ids,
+        source_index=source_index,
+        source_manifest_paths=source_manifest_paths,
+        probes_by_window=dict(probes_by_window),
+        formal_manifest_path=formal_manifest_path,
+    )
 
-    run_name = run_id or datetime.now(timezone.utc).strftime("attentional_v2_vs_iterator_v1_accumulation_comparison_%Y%m%d-%H%M%S")
-    run_root = runs_root / run_name
-    run_root.mkdir(parents=True, exist_ok=True)
+
+def _write_selection_metadata(
+    *,
+    run_root: Path,
+    selection: AccumulationRunSelection,
+    judge_mode: str,
+    mechanism_execution_mode: str,
+    judge_execution_mode: str,
+) -> None:
     _json_dump(
-        run_root / "dataset_manifest.json",
+        _selection_dataset_manifest_path(run_root),
         {
             "target": DEFAULT_TARGET,
             "methods": DEFAULT_METHODS,
             "comparison_target": DEFAULT_COMPARISON_TARGET,
-            "window_dataset_ids": [manifest["dataset_id"] for manifest in window_manifests],
-            "probe_dataset_ids": [manifest["dataset_id"] for manifest in probe_manifests],
-            "selected_probe_ids": selected_probe_ids,
-            "target_probe_ids": target_probe_ids,
-            "source_manifest_paths": [str(path) for path in source_manifest_paths],
-            "formal_manifest_path": str(formal_manifest_path),
+            "window_dataset_ids": [manifest["dataset_id"] for manifest in selection.window_manifests],
+            "probe_dataset_ids": [manifest["dataset_id"] for manifest in selection.probe_manifests],
+            "selected_probe_ids": [probe.probe_id for probe in selection.selected_probes],
+            "target_probe_ids": selection.target_probe_ids,
+            "source_manifest_paths": [str(path) for path in selection.source_manifest_paths],
+            "formal_manifest_path": str(selection.formal_manifest_path),
             "judge_mode": judge_mode,
             "mechanism_execution_mode": mechanism_execution_mode,
             "judge_execution_mode": judge_execution_mode,
             "generated_at": _timestamp(),
         },
     )
-
-    per_worker_parallelism = 2 if mechanism_execution_mode == "parallel" else 1
-    worker_policy = resolve_worker_policy(
-        job_kind="accumulation_window_comparison",
-        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
-        task_count=len(selected_windows),
-        per_worker_parallelism=per_worker_parallelism,
-        explicit_max_workers=case_workers if case_workers and case_workers > 0 else None,
-    )
-    window_runner = _run_window_subprocess if worker_policy.worker_count > 1 else _run_window_unit
-
-    unit_results: dict[str, dict[str, Any]] = {}
-    with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="accumulation-window") as executor:
-        future_to_window: dict[Any, WindowCase] = {}
-        for index, window in enumerate(selected_windows, start=1):
-            print(f"[submitted {index}/{len(selected_windows)}] {window.window_case_id}", flush=True)
-            future = submit_inherited_context(
-                executor,
-                window_runner,
-                window,
-                source=source_index[window.source_id],
-                run_root=run_root,
-                mechanism_execution_mode=mechanism_execution_mode,
-            )
-            future_to_window[future] = window
-        for future in as_completed(future_to_window):
-            window = future_to_window[future]
-            try:
-                payload = future.result()
-            except Exception as exc:
-                payload = {
+    _json_dump(
+        _selection_windows_manifest_path(run_root),
+        {
+            "window_count": len(selection.selected_windows),
+            "windows": [
+                {
                     "window_case_id": window.window_case_id,
                     "source_id": window.source_id,
-                    "output_language": window.output_language,
-                    "book_title": window.book_title,
-                    "author": window.author,
-                    "chapter_case_ids": list(window.chapter_case_ids),
-                    "mechanisms": {
-                        mechanism_key: _mechanism_failure_payload(mechanism_key, error=str(exc))
-                        for mechanism_key in MECHANISM_KEYS
-                    },
+                    "probe_ids": [probe.probe_id for probe in selection.probes_by_window.get(window.window_case_id, [])],
                 }
-            unit_results[payload["window_case_id"]] = payload
-            _json_dump(run_root / "windows" / f"{payload['window_case_id']}.json", payload)
-            print(f"[completed] {payload['window_case_id']}", flush=True)
+                for window in selection.selected_windows
+            ],
+        },
+    )
 
-    provisioned_cache: dict[str, ProvisionedBook] = {}
-    window_index = {window.window_case_id: window for window in selected_windows}
-    probe_results: list[dict[str, Any]] = []
-    for probe in selected_probes:
-        window = window_index[probe.window_case_id]
-        if probe.source_id not in provisioned_cache:
-            provisioned_cache[probe.source_id] = ensure_canonical_parse(
-                ROOT / str(source_index[probe.source_id]["relative_local_path"]),
-                language_mode=probe.output_language,
+
+def _filtered_windows(selection: AccumulationRunSelection, *, window_case_ids: list[str] | None) -> list[WindowCase]:
+    if not window_case_ids:
+        return list(selection.selected_windows)
+    wanted = {item for item in window_case_ids if item}
+    windows = [window for window in selection.selected_windows if window.window_case_id in wanted]
+    if not windows:
+        raise ValueError("no windows selected after --window-case-id filtering")
+    return windows
+
+
+def _document_for_source(
+    *,
+    source_id: str,
+    selection: AccumulationRunSelection,
+    output_language: str,
+    cache: dict[str, ProvisionedBook],
+    cache_lock: threading.Lock,
+) -> BookDocument:
+    with cache_lock:
+        provisioned = cache.get(source_id)
+        if provisioned is None:
+            provisioned = ensure_canonical_parse(
+                ROOT / str(selection.source_index[source_id]["relative_local_path"]),
+                language_mode=output_language,
             )
-        document = provisioned_cache[probe.source_id].book_document
-        if document is None:
-            raise ValueError(f"missing provisioned book document for source: {probe.source_id}")
-        probe_targets = [target_name for target_name, ids in target_probe_ids.items() if probe.probe_id in ids]
-        unit_result = unit_results[probe.window_case_id]
+            cache[source_id] = provisioned
+    document = provisioned.book_document
+    if document is None:
+        raise ValueError(f"missing provisioned book document for source: {source_id}")
+    return document
+
+
+def _judge_probes_for_window(
+    window: WindowCase,
+    *,
+    selection: AccumulationRunSelection,
+    run_root: Path,
+    shard_id: str,
+    judge_mode: str,
+    judge_execution_mode: str,
+    skip_existing: bool,
+    document_cache: dict[str, ProvisionedBook],
+    document_cache_lock: threading.Lock,
+) -> dict[str, dict[str, Any]]:
+    unit_result = _build_window_result_from_existing_bundles(run_root=run_root, window=window)
+    probes = selection.probes_by_window.get(window.window_case_id, [])
+    results: dict[str, dict[str, Any]] = {}
+    try:
+        document = _document_for_source(
+            source_id=window.source_id,
+            selection=selection,
+            output_language=window.output_language,
+            cache=document_cache,
+            cache_lock=document_cache_lock,
+        )
+    except Exception as exc:
+        document = {}
+        document_error = f"{type(exc).__name__}: {exc}"
+    else:
+        document_error = ""
+
+    for probe in probes:
+        probe_targets = [target_name for target_name, ids in selection.target_probe_ids.items() if probe.probe_id in ids]
+        if skip_existing:
+            existing = _existing_probe_payload(run_root, probe_id=probe.probe_id)
+            if existing is not None and _probe_payload_covers_targets(existing[1], target_names=probe_targets):
+                _log_probe_progress(probe, "[probe-skip-existing]")
+                results[probe.probe_id] = existing[1]
+                continue
         try:
+            if document_error:
+                raise ValueError(document_error)
             probe_result = _evaluate_probe(
                 probe,
                 probe_targets=probe_targets,
@@ -1315,6 +1574,7 @@ def run_benchmark(
                 run_root=run_root,
                 judge_mode=judge_mode,
                 judge_execution_mode=judge_execution_mode,
+                shard_id=shard_id,
             )
         except Exception as exc:
             probe_result = _probe_failure_result(
@@ -1324,12 +1584,44 @@ def run_benchmark(
                 unit_result=unit_result,
                 error=f"{type(exc).__name__}: {exc}",
             )
-        probe_results.append(probe_result)
-        _json_dump(run_root / "cases" / f"{probe.probe_id}.json", probe_result)
+        results[probe.probe_id] = probe_result
+        _json_dump(_probe_payload_path(run_root, shard_id, probe.probe_id), probe_result)
+    return results
 
-    if not probe_results:
-        raise ValueError("no probe results generated")
-    target_names = list(target_probe_ids.keys())
+
+def _write_shard_usage_summary(run_root: Path, *, shard_id: str) -> dict[str, Any]:
+    return write_llm_usage_summary(
+        run_root,
+        summary_path=_shard_summary_dir(run_root, shard_id) / "llm_usage.json",
+        shard_id=shard_id,
+    )
+
+
+def _merge_probe_results(
+    *,
+    run_root: Path,
+    selection: AccumulationRunSelection,
+    window_case_ids: list[str] | None = None,
+) -> list[dict[str, Any]]:
+    allowed = set(window_case_ids or [])
+    results: list[dict[str, Any]] = []
+    for probe in selection.selected_probes:
+        if allowed and probe.window_case_id not in allowed:
+            continue
+        existing = _existing_probe_payload(run_root, probe_id=probe.probe_id)
+        if existing is not None:
+            results.append(existing[1])
+    return results
+
+
+def _write_merge_outputs(
+    *,
+    run_root: Path,
+    run_name: str,
+    selection: AccumulationRunSelection,
+    probe_results: list[dict[str, Any]],
+) -> tuple[dict[str, Any], Path]:
+    target_names = list(selection.target_probe_ids.keys())
     aggregate = _aggregate(probe_results, target_names=target_names)
     _json_dump(run_root / "summary" / "aggregate.json", aggregate)
     _jsonl_dump(run_root / "summary" / "case_results.jsonl", probe_results)
@@ -1337,21 +1629,260 @@ def run_benchmark(
     report_path.write_text(
         _build_markdown_report(
             run_id=run_name,
-            selected_windows=selected_windows,
-            selected_probes=selected_probes,
-            target_probe_ids=target_probe_ids,
+            selected_windows=selection.selected_windows,
+            selected_probes=selection.selected_probes,
+            target_probe_ids=selection.target_probe_ids,
             aggregate=aggregate,
-            window_datasets=window_manifests,
-            probe_datasets=probe_manifests,
+            window_datasets=selection.window_manifests,
+            probe_datasets=selection.probe_manifests,
         ),
         encoding="utf-8",
     )
-    return {
+    write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
+    return aggregate, report_path
+
+
+def run_benchmark(
+    *,
+    formal_manifest_path: Path,
+    runs_root: Path,
+    target_slice: str = "both",
+    probe_ids: list[str] | None = None,
+    judge_mode: str = "llm",
+    mechanism_execution_mode: str = "parallel",
+    judge_execution_mode: str = "serial",
+    case_workers: int | None = None,
+    run_id: str | None = None,
+    stage: str = "all",
+    shard_id: str = "default",
+    window_case_ids: list[str] | None = None,
+    mechanism_filter: str = "both",
+    skip_existing: bool = False,
+    unit_workers: int | None = None,
+    judge_workers: int | None = None,
+) -> dict[str, Any]:
+    if stage not in STAGE_VALUES:
+        raise ValueError(f"unsupported stage: {stage}")
+    if case_workers and unit_workers is None:
+        unit_workers = case_workers
+
+    run_name = run_id or datetime.now(timezone.utc).strftime("attentional_v2_vs_iterator_v1_accumulation_comparison_%Y%m%d-%H%M%S")
+    run_root = runs_root / run_name
+    run_root.mkdir(parents=True, exist_ok=True)
+
+    selection = _prepare_selection(
+        formal_manifest_path=formal_manifest_path,
+        target_slice=target_slice,
+        probe_ids=probe_ids,
+    )
+    _write_selection_metadata(
+        run_root=run_root,
+        selection=selection,
+        judge_mode=judge_mode,
+        mechanism_execution_mode=mechanism_execution_mode,
+        judge_execution_mode=judge_execution_mode,
+    )
+    windows = _filtered_windows(selection, window_case_ids=window_case_ids)
+
+    summary: dict[str, Any] = {
         "run_id": run_name,
         "run_root": str(run_root),
-        "report_path": str(report_path),
-        "aggregate": aggregate,
+        "stage": stage,
+        "shard_id": shard_id,
+        "selected_window_count": len(windows),
     }
+
+    if stage == "merge":
+        probe_results = _merge_probe_results(
+            run_root=run_root,
+            selection=selection,
+            window_case_ids=[window.window_case_id for window in windows] if window_case_ids else None,
+        )
+        aggregate, report_path = _write_merge_outputs(
+            run_root=run_root,
+            run_name=run_name,
+            selection=selection,
+            probe_results=probe_results,
+        )
+        summary["aggregate"] = aggregate
+        summary["report_path"] = str(report_path)
+        return summary
+
+    document_cache: dict[str, ProvisionedBook] = {}
+    document_cache_lock = threading.Lock()
+
+    if stage == "judge":
+        judge_policy = resolve_worker_policy(
+            job_kind="accumulation_probe_judge",
+            profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+            task_count=len(windows),
+            per_worker_parallelism=1,
+            explicit_max_workers=judge_workers if judge_workers and judge_workers > 0 else None,
+        )
+        results_by_probe_id: dict[str, dict[str, Any]] = {}
+        with ThreadPoolExecutor(max_workers=max(1, judge_policy.worker_count), thread_name_prefix="accumulation-judge-window") as executor:
+            future_to_window = {
+                submit_inherited_context(
+                    executor,
+                    _judge_probes_for_window,
+                    window,
+                    selection=selection,
+                    run_root=run_root,
+                    shard_id=shard_id,
+                    judge_mode=judge_mode,
+                    judge_execution_mode=judge_execution_mode,
+                    skip_existing=skip_existing,
+                    document_cache=document_cache,
+                    document_cache_lock=document_cache_lock,
+                ): window
+                for window in windows
+            }
+            for future in as_completed(future_to_window):
+                window = future_to_window[future]
+                try:
+                    results_by_probe_id.update(future.result())
+                except Exception as exc:
+                    unit_result = _build_window_result_from_existing_bundles(run_root=run_root, window=window)
+                    for probe in selection.probes_by_window.get(window.window_case_id, []):
+                        probe_targets = [target_name for target_name, ids in selection.target_probe_ids.items() if probe.probe_id in ids]
+                        failure = _probe_failure_result(
+                            probe,
+                            probe_targets=probe_targets,
+                            window=window,
+                            unit_result=unit_result,
+                            error=f"{type(exc).__name__}: {exc}",
+                        )
+                        results_by_probe_id[probe.probe_id] = failure
+                        _json_dump(_probe_payload_path(run_root, shard_id, probe.probe_id), failure)
+        summary["probe_count"] = len(results_by_probe_id)
+        summary["llm_usage"] = _write_shard_usage_summary(run_root, shard_id=shard_id)
+        return summary
+
+    per_worker_parallelism = len(_mechanism_keys_for_filter(mechanism_filter)) if mechanism_execution_mode == "parallel" else 1
+    worker_policy = resolve_worker_policy(
+        job_kind="accumulation_window_bundle",
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        task_count=len(windows),
+        per_worker_parallelism=per_worker_parallelism,
+        explicit_max_workers=unit_workers if unit_workers and unit_workers > 0 else None,
+    )
+    window_runner = _run_window_subprocess if worker_policy.worker_count > 1 else _run_window_bundle
+    window_results: dict[str, dict[str, Any]] = {}
+
+    if stage == "bundle":
+        with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="accumulation-window") as executor:
+            future_to_window: dict[Any, WindowCase] = {}
+            for index, window in enumerate(windows, start=1):
+                print(f"[submitted {index}/{len(windows)}] {window.window_case_id}", flush=True)
+                future = submit_inherited_context(
+                    executor,
+                    window_runner,
+                    window,
+                    source=selection.source_index[window.source_id],
+                    run_root=run_root,
+                    shard_id=shard_id,
+                    mechanism_execution_mode=mechanism_execution_mode,
+                    mechanism_filter=mechanism_filter,
+                    skip_existing=skip_existing,
+                )
+                future_to_window[future] = window
+            for future in as_completed(future_to_window):
+                window = future_to_window[future]
+                try:
+                    payload = future.result()
+                except Exception as exc:
+                    payload = _window_result_payload(
+                        window,
+                        mechanisms={
+                            mechanism_key: _mechanism_failure_payload(mechanism_key, error=str(exc))
+                            for mechanism_key in MECHANISM_KEYS
+                        },
+                    )
+                window_results[payload["window_case_id"]] = payload
+                _json_dump(_window_payload_path(run_root, shard_id, payload["window_case_id"]), payload)
+                print(f"[completed] {payload['window_case_id']}", flush=True)
+        summary["window_count"] = len(window_results)
+        summary["llm_usage"] = _write_shard_usage_summary(run_root, shard_id=shard_id)
+        return summary
+
+    judge_policy = resolve_worker_policy(
+        job_kind="accumulation_probe_judge",
+        profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+        task_count=len(windows),
+        per_worker_parallelism=1,
+        explicit_max_workers=judge_workers if judge_workers and judge_workers > 0 else None,
+    )
+    results_by_probe_id: dict[str, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=max(1, worker_policy.worker_count), thread_name_prefix="accumulation-window") as bundle_executor, ThreadPoolExecutor(
+        max_workers=max(1, judge_policy.worker_count),
+        thread_name_prefix="accumulation-judge-window",
+    ) as judge_executor:
+        future_to_window: dict[Any, WindowCase] = {}
+        judge_futures: dict[Any, WindowCase] = {}
+        for index, window in enumerate(windows, start=1):
+            print(f"[submitted {index}/{len(windows)}] {window.window_case_id}", flush=True)
+            future = submit_inherited_context(
+                bundle_executor,
+                window_runner,
+                window,
+                source=selection.source_index[window.source_id],
+                run_root=run_root,
+                shard_id=shard_id,
+                mechanism_execution_mode=mechanism_execution_mode,
+                mechanism_filter=mechanism_filter,
+                skip_existing=skip_existing,
+            )
+            future_to_window[future] = window
+        for future in as_completed(future_to_window):
+            window = future_to_window[future]
+            try:
+                payload = future.result()
+            except Exception as exc:
+                payload = _window_result_payload(
+                    window,
+                    mechanisms={
+                        mechanism_key: _mechanism_failure_payload(mechanism_key, error=str(exc))
+                        for mechanism_key in MECHANISM_KEYS
+                    },
+                )
+            window_results[payload["window_case_id"]] = payload
+            _json_dump(_window_payload_path(run_root, shard_id, payload["window_case_id"]), payload)
+            print(f"[completed] {payload['window_case_id']}", flush=True)
+            judge_future = submit_inherited_context(
+                judge_executor,
+                _judge_probes_for_window,
+                window,
+                selection=selection,
+                run_root=run_root,
+                shard_id=shard_id,
+                judge_mode=judge_mode,
+                judge_execution_mode=judge_execution_mode,
+                skip_existing=skip_existing,
+                document_cache=document_cache,
+                document_cache_lock=document_cache_lock,
+            )
+            judge_futures[judge_future] = window
+        for future in as_completed(judge_futures):
+            window = judge_futures[future]
+            try:
+                results_by_probe_id.update(future.result())
+            except Exception as exc:
+                unit_result = window_results.get(window.window_case_id) or _build_window_result_from_existing_bundles(run_root=run_root, window=window)
+                for probe in selection.probes_by_window.get(window.window_case_id, []):
+                    probe_targets = [target_name for target_name, ids in selection.target_probe_ids.items() if probe.probe_id in ids]
+                    failure = _probe_failure_result(
+                        probe,
+                        probe_targets=probe_targets,
+                        window=window,
+                        unit_result=unit_result,
+                        error=f"{type(exc).__name__}: {exc}",
+                    )
+                    results_by_probe_id[probe.probe_id] = failure
+                    _json_dump(_probe_payload_path(run_root, shard_id, probe.probe_id), failure)
+    summary["window_count"] = len(window_results)
+    summary["probe_count"] = len(results_by_probe_id)
+    summary["llm_usage"] = _write_shard_usage_summary(run_root, shard_id=shard_id)
+    return summary
 
 
 def _parse_args() -> argparse.Namespace:
@@ -1359,11 +1890,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--formal-manifest", default=str(DEFAULT_FORMAL_MANIFEST))
     parser.add_argument("--runs-root", default=str(DEFAULT_RUNS_ROOT))
     parser.add_argument("--run-id", default="")
+    parser.add_argument("--stage", choices=STAGE_VALUES, default="all")
+    parser.add_argument("--shard-id", default="default")
     parser.add_argument("--target-slice", choices=TARGET_SLICE_VALUES, default="both")
     parser.add_argument("--judge-mode", choices=["llm", "none"], default="llm")
-    parser.add_argument("--mechanism-execution-mode", choices=["serial", "parallel"], default="serial")
+    parser.add_argument("--mechanism-execution-mode", choices=["serial", "parallel"], default="parallel")
     parser.add_argument("--judge-execution-mode", choices=["serial", "parallel"], default="serial")
+    parser.add_argument("--mechanism-filter", choices=MECHANISM_FILTER_VALUES, default="both")
+    parser.add_argument("--skip-existing", action="store_true")
+    parser.add_argument("--unit-workers", type=int, default=0)
+    parser.add_argument("--judge-workers", type=int, default=0)
     parser.add_argument("--case-workers", type=int, default=0)
+    parser.add_argument("--window-case-id", action="append", default=[])
     parser.add_argument("--probe-id", action="append", default=[])
     parser.add_argument("--probe-ids", default="")
     parser.add_argument("--worker-payload", default="", help=argparse.SUPPRESS)
@@ -1377,6 +1915,7 @@ def main() -> int:
         if not args.worker_result:
             raise ValueError("--worker-result is required when --worker-payload is set")
         return _run_payload_worker(Path(args.worker_payload).resolve(), Path(args.worker_result).resolve())
+    window_case_ids = [item.strip() for item in args.window_case_id if item.strip()]
     probe_ids = [item.strip() for item in args.probe_id if _clean_text(item)]
     if args.probe_ids:
         probe_ids.extend([item.strip() for item in str(args.probe_ids).split(",") if item.strip()])
@@ -1384,16 +1923,24 @@ def main() -> int:
         formal_manifest_path=Path(args.formal_manifest).resolve(),
         runs_root=Path(args.runs_root).resolve(),
         run_id=args.run_id or None,
+        stage=args.stage,
+        shard_id=args.shard_id,
         target_slice=args.target_slice,
         probe_ids=probe_ids or None,
         judge_mode=args.judge_mode,
         mechanism_execution_mode=args.mechanism_execution_mode,
         judge_execution_mode=args.judge_execution_mode,
         case_workers=args.case_workers or None,
+        window_case_ids=window_case_ids or None,
+        mechanism_filter=args.mechanism_filter,
+        skip_existing=bool(args.skip_existing),
+        unit_workers=args.unit_workers or None,
+        judge_workers=args.judge_workers or None,
     )
-    print(json.dumps(summary["aggregate"], ensure_ascii=False, indent=2))
+    print(json.dumps(summary.get("aggregate", summary), ensure_ascii=False, indent=2))
     print(f"run_root={summary['run_root']}")
-    print(f"report_path={summary['report_path']}")
+    if summary.get("report_path"):
+        print(f"report_path={summary['report_path']}")
     return 0
 
 

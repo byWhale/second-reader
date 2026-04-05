@@ -35,6 +35,7 @@ from .llm_registry import (
     LLMProviderConfig,
     LLMRegistryError,
     LLMTargetTierConfig,
+    apply_process_profile_concurrency_caps,
     get_llm_profile,
     get_llm_registry,
 )
@@ -1257,15 +1258,17 @@ def _apply_profile_overrides(
 ) -> LLMProfileConfig:
     if overrides is None:
         return profile
-    return replace(
-        profile,
-        temperature=overrides.temperature if overrides.temperature is not None else profile.temperature,
-        max_output_tokens=(
-            overrides.max_output_tokens if overrides.max_output_tokens is not None else profile.max_output_tokens
-        ),
-        timeout_seconds=overrides.timeout_seconds if overrides.timeout_seconds is not None else profile.timeout_seconds,
-        retry_attempts=overrides.retry_attempts if overrides.retry_attempts is not None else profile.retry_attempts,
-        max_concurrency=overrides.max_concurrency if overrides.max_concurrency is not None else profile.max_concurrency,
+    return apply_process_profile_concurrency_caps(
+        replace(
+            profile,
+            temperature=overrides.temperature if overrides.temperature is not None else profile.temperature,
+            max_output_tokens=(
+                overrides.max_output_tokens if overrides.max_output_tokens is not None else profile.max_output_tokens
+            ),
+            timeout_seconds=overrides.timeout_seconds if overrides.timeout_seconds is not None else profile.timeout_seconds,
+            retry_attempts=overrides.retry_attempts if overrides.retry_attempts is not None else profile.retry_attempts,
+            max_concurrency=overrides.max_concurrency if overrides.max_concurrency is not None else profile.max_concurrency,
+        )
     )
 
 
@@ -1566,6 +1569,8 @@ def _invoke_response(
         error_message: str = "",
         quota_wait_ms_before_attempt: int = 0,
         shared_quota_cooldown_honored: bool = False,
+        provider_gate_wait_ms: int = 0,
+        profile_gate_wait_ms: int = 0,
     ) -> dict[str, Any]:
         return {
             "attempt": len(attempts) + 1,
@@ -1582,6 +1587,8 @@ def _invoke_response(
             "error_message": error_message,
             "quota_wait_ms_before_attempt": quota_wait_ms_before_attempt,
             "shared_quota_cooldown_honored": shared_quota_cooldown_honored,
+            "provider_gate_wait_ms": provider_gate_wait_ms,
+            "profile_gate_wait_ms": profile_gate_wait_ms,
         }
 
     for round_index in range(1, max_rounds + 1):
@@ -1607,6 +1614,8 @@ def _invoke_response(
                 final_slot_id = key_slot["slot_id"]
                 quota_wait_ms_before_attempt = 0
                 shared_quota_cooldown_honored = False
+                provider_gate_wait_ms = 0
+                profile_gate_wait_ms = 0
                 shared_quota_wait_seconds = _quota_wait_seconds(provider)
                 if shared_quota_wait_seconds > 0:
                     if quota_retry_attempt_count >= profile.quota_retry_attempts:
@@ -1665,8 +1674,12 @@ def _invoke_response(
                 try:
                     round_attempted_provider_call = True
                     adapter = CONTRACT_ADAPTERS[provider.contract]
+                    provider_gate_wait_started = time.perf_counter()
                     provider_controller.acquire()
+                    provider_gate_wait_ms = int(round((time.perf_counter() - provider_gate_wait_started) * 1000))
+                    profile_gate_wait_started = time.perf_counter()
                     profile_gate.acquire()
+                    profile_gate_wait_ms = int(round((time.perf_counter() - profile_gate_wait_started) * 1000))
                     try:
                         response = adapter.invoke(
                             messages,
@@ -1693,6 +1706,8 @@ def _invoke_response(
                         started_perf=attempt_perf,
                         quota_wait_ms_before_attempt=quota_wait_ms_before_attempt,
                         shared_quota_cooldown_honored=shared_quota_cooldown_honored,
+                        provider_gate_wait_ms=provider_gate_wait_ms,
+                        profile_gate_wait_ms=profile_gate_wait_ms,
                     )
                     attempts.append(attempt)
                     duration_ms = int((time.perf_counter() - started_perf) * 1000)
@@ -1719,6 +1734,8 @@ def _invoke_response(
                         "problem_code": "",
                         "quota_wait_ms_total": quota_wait_ms_total,
                         "quota_retry_attempt_count": quota_retry_attempt_count,
+                        "provider_gate_wait_ms": provider_gate_wait_ms,
+                        "profile_gate_wait_ms": profile_gate_wait_ms,
                         "fallback": {
                             "used_failover": len(attempts) > 1,
                             "providers_tried": [item["provider_id"] for item in attempts],
@@ -1763,6 +1780,8 @@ def _invoke_response(
                             error_message=str(exc),
                             quota_wait_ms_before_attempt=quota_wait_ms_before_attempt,
                             shared_quota_cooldown_honored=shared_quota_cooldown_honored,
+                            provider_gate_wait_ms=provider_gate_wait_ms,
+                            profile_gate_wait_ms=profile_gate_wait_ms,
                         )
                     )
                     if classified in {"llm_auth", "llm_quota"}:
@@ -1802,6 +1821,8 @@ def _invoke_response(
         "problem_code": final_problem_code or "network_blocked",
         "quota_wait_ms_total": quota_wait_ms_total,
         "quota_retry_attempt_count": quota_retry_attempt_count,
+        "provider_gate_wait_ms": sum(int(item.get("provider_gate_wait_ms", 0) or 0) for item in attempts),
+        "profile_gate_wait_ms": sum(int(item.get("profile_gate_wait_ms", 0) or 0) for item in attempts),
         "error_type": last_error.__class__.__name__ if last_error is not None else "",
         "error_message": str(last_error or ""),
         "fallback": {

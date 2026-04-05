@@ -128,8 +128,20 @@ Update when: status changes, blockers appear, or phases complete.
     - already running jobs do not pick up later config or env changes; retargeting requires a fresh launch
     - local operator config is now aligned with the current personal-only posture:
       - `config/llm_targets.local.json` now contains only `MiniMax-M2.7-personal`
-      - target-level concurrency is `4 / 4 / 4 / 1`
+      - target-level concurrency is now intentionally high enough that the software ceiling no longer becomes the first bottleneck:
+        - `max_concurrency = 32`
+        - `initial_max_concurrency = 12`
+        - `probe_max_concurrency = 32`
+        - `min_stable_concurrency = 2`
       - `config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` only to `MiniMax-M2.7-personal`
+      - profile ceilings are likewise lifted above the old local bottleneck:
+        - `runtime_reader_default = 24`
+        - `dataset_review_high_trust = 16`
+        - `eval_judge_high_trust = 16`
+      - new process-level hard caps now slice those global ceilings per launched job instead of using a new global coordinator:
+        - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY`
+        - `LLM_PROCESS_DATASET_REVIEW_PROFILE_MAX_CONCURRENCY`
+        - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY`
     - current live launch posture:
       - allow exactly two heavy processes total on the same personal key during this phase
       - keep intra-process execution conservative even after the gateway/profile cap lift:
@@ -179,6 +191,56 @@ Update when: status changes, blockers appear, or phases complete.
             - `case-workers 2`
           - status:
             - `running`
+      - completed staged/sharded dual-heavy excerpt smoke:
+        - `bgjob_human_notes_excerpt_parallel_smoke_20260405`
+          - run id:
+            - `attentional_v2_excerpt_parallel_smoke_20260405`
+          - purpose:
+            - measure whether the new `bundle -> judge -> merge` runner shape is fast enough to justify restarting the older in-flight judged rerun
+          - scope:
+            - `stage = all`
+            - `shard_id = smoke_dual_heavy`
+            - `judge_mode = none`
+            - `mechanism_execution_mode = parallel`
+            - `unit_workers = 2`
+            - units:
+              - `huochu_shengming_de_yiyi_private_zh__chapter_8`
+              - `mangge_zhi_dao_private_zh__chapter_18`
+          - terminal status:
+            - `abandoned`
+          - preserved shard evidence:
+            - `request_count = 145`
+            - `average_rpm = 9.159`
+            - `max_inflight = 3`
+            - `provider_gate_wait_ms = 0`
+            - `profile_gate_wait_ms = 0`
+            - `quota_wait_ms = 0`
+          - ETA-gate result:
+            - keep the old judged rerun running
+            - do not restart under the new runner yet
+            - reasoning:
+              - redoing the old rerun's already-completed `1290` attentional calls at the smoke's observed rate would itself cost about `136.5` minutes
+              - that misses the explicit restart rule requiring the new mode to finish at least `90` minutes sooner than letting the old run continue
+          - retained meaning:
+            - the staged/sharded runner is still the right architecture for the next full rerun and for later accumulation judged work
+      - completed short capacity probe:
+        - run id:
+          - `llm_capacity_probe_personal_20260405`
+        - purpose:
+          - verify that the new global ceilings plus process-level caps remove the old software-side `4`-concurrency bottleneck without adding a hard RPM limiter
+        - result:
+          - `request_count = 24`
+          - `worker_count = 8`
+          - `success_count = 24`
+          - `average_rpm = 87.428`
+          - `average_inflight = 6.518`
+          - `max_inflight = 8`
+          - `provider_gate_wait_ms = 0`
+          - `profile_gate_wait_ms = 0`
+          - `quota_wait_ms = 0`
+        - interpretation:
+          - the software ceiling is now materially above the previous local posture
+          - the remaining bottleneck for heavy eval runs is mechanism latency / runner shape, not the old local concurrency cap
       - duplicate highspeed excerpt smoke attempts were explicitly retired after they created unnecessary same-key contention:
         - `bgjob_human_notes_guided_excerpt_eval_v1_smoke_20260404`
           - current status:

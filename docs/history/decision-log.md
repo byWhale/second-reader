@@ -1288,3 +1288,38 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `docs/tasks/registry.md`
 - `docs/tasks/registry.json`
 - `docs/implementation/new-reading-mechanism/execution-tracker.md`
+
+## Entry 47
+**ID**: DEC-050
+**Status**: active
+
+**Decision / Inflection**: Separate global local-ceiling configuration from per-process launch budgets, and make comparison work artifact-staged (`bundle -> judge -> merge`) so eval restarts become an explicit ETA-gated choice instead of a blunt kill-and-rerun habit.
+
+**Period**: April 5, 2026, after the first personal-key judged excerpt rerun was already in flight and the project needed higher utilization without losing control of one-key contention.
+
+**Problem**: The software still had two different bottlenecks mixed together. One was artificial: local target/profile ceilings were still low enough that the runtime could self-throttle far below the practical key budget. The other was structural: excerpt and accumulation comparison work still behaved like one monolithic batch, so partial progress was hard to reuse and “should we restart?” had to be argued from intuition instead of from reusable artifacts plus measured throughput.
+
+**Alternatives considered**: Keep the low local ceilings and only tune runner-local worker flags, add a hard in-gateway RPM limiter plus a cross-process coordinator immediately, or restart the in-flight judged rerun blindly as soon as the staged runner landed.
+
+**Why this path won**: The project needed a bounded but real lift. Raising the global ceiling removes the purely local software bottleneck. Per-process caps preserve deliberate budgeting without inventing a heavier coordinator too early. The staged runner shape then makes restart decisions concrete: bundle work, case judgments, and merge outputs can be measured and resumed independently. That lets the project use a recorded ETA gate instead of killing expensive in-flight work on hope alone.
+
+**What changed in the system**: Local target/profile ceilings were raised substantially, while new per-process env caps now clamp `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` budgets per launched Python process. `run_excerpt_comparison.py` and `run_accumulation_comparison.py` now both support staged/sharded execution with explicit shard ownership, `--skip-existing`, and merge-only summary emission. Lightweight `llm_usage.json` summaries are now written for shard/run observability. A short `run_llm_capacity_probe.py` path now validates software-side concurrency without involving reader-quality judgment. The first dual-heavy excerpt smoke then established a concrete gate outcome: the new runner architecture is valid, but the in-flight old judged rerun should continue because the observed throughput gain was not large enough to overcome already-sunk work plus the recorded `90` minute restart rule.
+
+**Why it matters later**: Future contributors will otherwise see very high local ceilings, per-process cap envs, staged comparison CLIs, and a deliberately preserved old-format run all at once and assume the posture is inconsistent. This entry records the intended rule: keep the software ceiling high, budget each launched process explicitly, make comparison work resumable by artifact, and restart only when measured ETA evidence actually justifies it.
+
+**Primary evidence**:
+- `reading-companion-backend/config/llm_targets.local.json`
+- `reading-companion-backend/config/llm_profile_bindings.local.json`
+- `reading-companion-backend/src/reading_runtime/llm_registry.py`
+- `reading-companion-backend/src/reading_runtime/llm_gateway.py`
+- `reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py`
+- `reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py`
+- `reading-companion-backend/eval/attentional_v2/llm_usage_summary.py`
+- `reading-companion-backend/eval/attentional_v2/run_llm_capacity_probe.py`
+- `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_parallel_smoke_20260405/shards/smoke_dual_heavy/summary/llm_usage.json`
+- `reading-companion-backend/eval/runs/attentional_v2/llm_capacity_probe_personal_20260405/summary/llm_usage.json`
+- `docs/backend-reader-evaluation.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`

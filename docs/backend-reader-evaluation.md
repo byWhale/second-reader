@@ -193,6 +193,16 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - multiple API keys are not required for basic parallelism
   - extra keys mainly help with throughput headroom, failover, or rate-limit resilience
 - When multiple heavy jobs share one provider/profile budget, set explicit per-job worker caps instead of letting each job assume it owns the full shared budget.
+- Heavy comparison runners should support a staged shardable workflow instead of one monolithic all-or-nothing pass.
+  - preferred shape:
+    - `bundle -> judge -> merge`
+  - the bundle stage should read each chapter/window once per mechanism and persist a normalized reusable bundle
+  - the judge stage should consume only completed bundles, preserve per-case or per-probe failure isolation, and allow `skip-existing` resume behavior
+  - the merge stage should be the only stage that writes the final aggregate/report outputs
+  - shard ownership should stay explicit so two processes never write the same `(unit, mechanism)` or final summary concurrently
+- Offline comparison runs should emit lightweight LLM-usage summaries in addition to product-judgment outputs.
+  - minimum useful fields include request counts, retries, approximate RPM, inflight estimates, gate-wait time, quota-wait time, and shard/profile/mechanism breakdowns
+  - this observability exists to diagnose software bottlenecks and launch posture, not to become a new benchmark target
 - New scaling work should target the shared `src/reading_runtime/` LLM registry and gateway layer rather than adding new mechanism-local provider clients.
 - Structured registry configuration is preferred over legacy environment compatibility when tuning concurrency, key pools, or failover because it makes those choices explicit and reviewable.
   - the recommended local operator surface is now the split target catalog plus profile-binding pair under `reading-companion-backend/config/llm_targets.local.json` and `reading-companion-backend/config/llm_profile_bindings.local.json`

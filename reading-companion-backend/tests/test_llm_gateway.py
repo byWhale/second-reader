@@ -176,6 +176,9 @@ def _clear_registry_and_env(monkeypatch: pytest.MonkeyPatch):
         "LLM_REGISTRY_PATH",
         "LLM_FORCE_TARGET_ID",
         "LLM_FORCE_TIER_ID",
+        "LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY",
+        "LLM_PROCESS_DATASET_REVIEW_PROFILE_MAX_CONCURRENCY",
+        "LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY",
         "LLM_PROVIDER_CONTRACT",
         "LLM_BASE_URL",
         "LLM_API_KEY",
@@ -1417,6 +1420,76 @@ def test_eval_trace_context_writes_eval_run_artifacts(tmp_path: Path, monkeypatc
     assert standard_rows[-1]["node"] == "final"
 
 
+def test_standard_trace_records_gate_wait_fields(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    _set_targets_and_bindings(
+        monkeypatch,
+        targets={
+            "targets": [
+                {
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "contract": "anthropic",
+                    "base_url": "https://api.minimaxi.com/anthropic",
+                    "model": "MiniMax-M2.7-highspeed",
+                    "credentials": [{"credential_id": "primary", "api_key": "highspeed-key"}],
+                    "max_concurrency": 2,
+                    "initial_max_concurrency": 2,
+                    "probe_max_concurrency": 2,
+                    "min_stable_concurrency": 1,
+                }
+            ]
+        },
+        bindings={
+            "profiles": [
+                {
+                    "profile_id": DEFAULT_RUNTIME_PROFILE_ID,
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "max_concurrency": 1,
+                    "default_burst_concurrency": 1,
+                },
+                {
+                    "profile_id": DEFAULT_DATASET_REVIEW_PROFILE_ID,
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "max_concurrency": 1,
+                    "default_burst_concurrency": 1,
+                },
+                {
+                    "profile_id": DEFAULT_EVAL_JUDGE_PROFILE_ID,
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "max_concurrency": 1,
+                    "default_burst_concurrency": 1,
+                },
+            ]
+        },
+    )
+    adapter = _SleepingRecordingAdapter(delay_seconds=0.15)
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    output_dir = tmp_path / "profile-gate"
+    barrier = threading.Barrier(2)
+
+    def _invoke_one() -> None:
+        barrier.wait()
+        with llm_invocation_scope(
+            profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+            trace_context=runtime_trace_context(output_dir, mechanism_key="iterator_v1"),
+        ):
+            invoke_json("system", "user", {})
+
+    thread_one = threading.Thread(target=_invoke_one)
+    thread_two = threading.Thread(target=_invoke_one)
+    thread_one.start()
+    thread_two.start()
+    thread_one.join()
+    thread_two.join()
+
+    standard_rows = _read_jsonl(runtime_artifacts.llm_standard_trace_file(output_dir))
+
+    assert len(standard_rows) == 2
+    assert all("provider_gate_wait_ms" in row for row in standard_rows)
+    assert all("profile_gate_wait_ms" in row for row in standard_rows)
+    assert max(int(row["profile_gate_wait_ms"]) for row in standard_rows) > 0
+
+
 def test_legacy_wrapper_uses_shared_gateway(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("LLM_PROVIDER_CONTRACT", "anthropic")
     monkeypatch.setenv("LLM_BASE_URL", "https://example.invalid")
@@ -1869,6 +1942,74 @@ def test_pooled_primary_tier_contributes_combined_worker_budget(monkeypatch: pyt
         )
         assert policy.llm_budget == 2
         assert policy.worker_count == 2
+
+
+def test_process_profile_caps_clamp_profile_budget_and_worker_policy(monkeypatch: pytest.MonkeyPatch):
+    _set_targets_and_bindings(
+        monkeypatch,
+        targets=_two_minimax_targets(
+            primary_max_concurrency=12,
+            primary_initial_max_concurrency=6,
+            primary_probe_max_concurrency=12,
+            backup_max_concurrency=12,
+            backup_initial_max_concurrency=6,
+            backup_probe_max_concurrency=12,
+        ),
+        bindings={
+            "profiles": [
+                {
+                    "profile_id": DEFAULT_RUNTIME_PROFILE_ID,
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "max_concurrency": 24,
+                    "default_burst_concurrency": 24,
+                },
+                {
+                    "profile_id": DEFAULT_DATASET_REVIEW_PROFILE_ID,
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "max_concurrency": 16,
+                    "default_burst_concurrency": 16,
+                },
+                {
+                    "profile_id": DEFAULT_EVAL_JUDGE_PROFILE_ID,
+                    "target_id": "MiniMax-M2.7-highspeed",
+                    "max_concurrency": 16,
+                    "default_burst_concurrency": 16,
+                },
+            ]
+        },
+    )
+    monkeypatch.setenv("LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY", "6")
+    monkeypatch.setenv("LLM_PROCESS_DATASET_REVIEW_PROFILE_MAX_CONCURRENCY", "4")
+    monkeypatch.setenv("LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY", "3")
+
+    runtime_profile = get_llm_profile(DEFAULT_RUNTIME_PROFILE_ID)
+    dataset_profile = get_llm_profile(DEFAULT_DATASET_REVIEW_PROFILE_ID)
+    eval_profile = get_llm_profile(DEFAULT_EVAL_JUDGE_PROFILE_ID)
+
+    assert runtime_profile.max_concurrency == 6
+    assert runtime_profile.default_burst_concurrency == 6
+    assert dataset_profile.max_concurrency == 4
+    assert dataset_profile.default_burst_concurrency == 4
+    assert eval_profile.max_concurrency == 3
+    assert eval_profile.default_burst_concurrency == 3
+
+    runtime_policy = resolve_worker_policy(
+        job_kind="runtime-cap-test",
+        profile_id=DEFAULT_RUNTIME_PROFILE_ID,
+        task_count=10,
+        per_worker_parallelism=1,
+    )
+    judge_policy = resolve_worker_policy(
+        job_kind="judge-cap-test",
+        profile_id=DEFAULT_EVAL_JUDGE_PROFILE_ID,
+        task_count=10,
+        per_worker_parallelism=1,
+    )
+
+    assert runtime_policy.llm_budget == 6
+    assert runtime_policy.worker_count == 6
+    assert judge_policy.llm_budget == 3
+    assert judge_policy.worker_count == 3
 
 
 def test_pooled_primary_target_bindings_compile_into_dual_target_pool(monkeypatch: pytest.MonkeyPatch):

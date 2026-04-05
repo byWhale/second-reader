@@ -7,11 +7,12 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-05T01:48:52Z`
+Last verified: `2026-04-05T03:03:35Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
   - keep the judged local excerpt rerun active on the human-notes-guided excerpt freeze under the new personal-only live target posture, because the first full judged run ended as a harness failure rather than usable mechanism evidence
+  - keep the newly landed staged/sharded comparison runners as the next formal rerun architecture, but let the current old-format judged rerun continue because the completed dual-heavy smoke did not clear the `90` minute restart gate
   - treat the repaired long-span first review as completed support evidence, then decide whether to do one narrow repair on the `2` revise probes or freeze the long-span v1 set honestly short before any judged accumulation comparison
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
   - keep durable-trace / re-entry and runtime viability paused on cost grounds
@@ -64,6 +65,52 @@ Last verified: `2026-04-05T01:48:52Z`
           - `case-workers 2`
         - current interpretation:
           - this is the decisive local rerun; do not draw mechanism conclusions until this lane finishes with real judged cases or an explicit harness failure
+    - completed ETA-gate smoke:
+      - `bgjob_human_notes_excerpt_parallel_smoke_20260405`
+        - purpose:
+          - measure the new staged/sharded excerpt runner on `2` heavy chapter units before deciding restart-vs-continue for the old rerun
+        - launch shape:
+          - `LLM_FORCE_TARGET_ID=MiniMax-M2.7-personal`
+          - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY=6`
+          - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY=4`
+          - `stage=all`
+          - `shard_id=smoke_dual_heavy`
+          - `judge_mode=none`
+          - `mechanism_execution_mode=parallel`
+          - `unit_workers=2`
+          - units:
+            - `huochu_shengming_de_yiyi_private_zh__chapter_8`
+            - `mangge_zhi_dao_private_zh__chapter_18`
+        - terminal status:
+          - `abandoned`
+        - shard usage summary:
+          - `request_count = 145`
+          - `average_rpm = 9.159`
+          - `max_inflight = 3`
+          - `provider_gate_wait_ms = 0`
+          - `profile_gate_wait_ms = 0`
+          - `quota_wait_ms = 0`
+        - gate interpretation:
+          - the staged runner is healthy and materially more usable than the old monolithic shape
+          - but the smoke did not show enough acceleration to justify killing the older rerun:
+            - redoing the old rerun's already-completed `1290` attentional calls at the smoke's observed rate would itself cost about `136.5` minutes
+            - that misses the recorded restart rule requiring the new mode to finish at least `90` minutes sooner than letting the old job continue
+          - keep the old judged rerun running; use the staged/sharded runner for the next full rerun and for the future accumulation judged lane
+    - completed short capacity probe:
+      - run id:
+        - `llm_capacity_probe_personal_20260405`
+      - result:
+        - `request_count = 24`
+        - `worker_count = 8`
+        - `success_count = 24`
+        - `average_rpm = 87.428`
+        - `average_inflight = 6.518`
+        - `max_inflight = 8`
+        - `provider_gate_wait_ms = 0`
+        - `profile_gate_wait_ms = 0`
+        - `quota_wait_ms = 0`
+      - interpretation:
+        - the new global ceiling plus process-budget split is no longer software-limited by the older `4`-concurrency local posture
   - `long-span / window`
     - primary target:
       - `reader_character.coherent_accumulation`
@@ -78,6 +125,14 @@ Last verified: `2026-04-05T01:48:52Z`
         - `reading-companion-backend/eval/attentional_v2/build_accumulation_benchmark_v1.py`
         - `reading-companion-backend/eval/attentional_v2/freeze_accumulation_benchmark_v1.py`
         - `reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py`
+      - landed harness scaling support:
+        - `reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py`
+          - now supports staged/sharded `bundle -> judge -> merge`, `--shard-id`, `--unit-key`, `--mechanism-filter`, `--skip-existing`, `--unit-workers`, and `--judge-workers`
+        - `reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py`
+          - now supports the same staged/sharded shape for `window_case_id` ownership and probe reuse
+        - `reading-companion-backend/eval/attentional_v2/run_llm_capacity_probe.py`
+          - lightweight short-call probe for gateway/software-ceiling checks
+        - both comparison runners now emit shard/run `llm_usage.json` summaries for RPM/inflight/gate-wait diagnostics
       - current tracked manifest:
         - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v1_draft.json`
       - current local dataset artifacts:
@@ -159,7 +214,9 @@ Last verified: `2026-04-05T01:48:52Z`
 - Current immediate eval gate:
   - the local excerpt smoke has already passed its harness gate
   - the first full judged notes-guided local excerpt comparison has now been interpreted as invalid due to provider quota cooldown / wait-budget exhaustion
-  - the current local excerpt move is the active personal-key judged rerun, not mechanism interpretation yet
+  - the restart-vs-continue ETA gate is now resolved:
+    - keep the active personal-key judged rerun running
+    - keep the staged/sharded runner as the next formal rerun path rather than killing the in-flight old run
 - Current long-span construction gate:
   - keep the rebuilt final window set
   - retain the repaired `9`-probe review result on that window set
@@ -174,6 +231,26 @@ Last verified: `2026-04-05T01:48:52Z`
   - `OD-CALLBACKSLICE-BOUNDED-VARIANCE = accept_bounded_variance_for_frozen_slice`
   - `OD-BENCHMARK-SIZE = adequate_for_next_decisive_lane_only + expand_before_default_cutover_only`
 - Dataset quality work, builder work, and automation work remain support systems for cross-mechanism evaluation rather than replacement goals.
+- The local runtime/eval concurrency posture is now intentionally split into:
+  - high global local ceilings in config so the software no longer self-limits far below the key's practical budget
+    - target ceiling:
+      - `max_concurrency = 32`
+      - `initial_max_concurrency = 12`
+      - `probe_max_concurrency = 32`
+      - `min_stable_concurrency = 2`
+    - profile ceilings:
+      - `runtime_reader_default = 24`
+      - `dataset_review_high_trust = 16`
+      - `eval_judge_high_trust = 16`
+  - per-process hard caps via env for launch-level budgeting
+    - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY`
+    - `LLM_PROCESS_DATASET_REVIEW_PROFILE_MAX_CONCURRENCY`
+    - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY`
+  - current launch discipline:
+    - keep at most `2` heavy personal-key processes at once
+    - express each heavy lane's budget explicitly at launch time rather than relying on the full global ceiling
+    - use the short capacity probe as the current software-ceiling check:
+      - `llm_capacity_probe_personal_20260405` reached `max_inflight = 8` and `average_rpm = 87.428` with no provider/profile/quota waiting
 - The current callback slice is accepted for frozen-slice comparison cadence.
 - Do not open new general builder or automation waves ahead of the remaining decisive mechanism-eval lane.
 - Benchmark expansion remains a later requirement before any default-cutover decision, not a blocker for the current decisive lane.

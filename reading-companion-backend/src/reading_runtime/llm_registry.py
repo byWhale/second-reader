@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
@@ -56,6 +56,11 @@ _PROFILE_OPTIONAL_FIELDS = (
     "quota_wait_budget_seconds",
 )
 _ALLOWED_PROFILE_MODEL_SOURCES = {"profile", "selected_target"}
+_PROCESS_PROFILE_CONCURRENCY_CAP_ENV_BY_PROFILE = {
+    DEFAULT_RUNTIME_PROFILE_ID: "LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY",
+    DEFAULT_DATASET_REVIEW_PROFILE_ID: "LLM_PROCESS_DATASET_REVIEW_PROFILE_MAX_CONCURRENCY",
+    DEFAULT_EVAL_JUDGE_PROFILE_ID: "LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY",
+}
 
 
 class LLMRegistryError(RuntimeError):
@@ -187,6 +192,16 @@ def _env_float(name: str, default: float) -> float:
         return float(raw)
     except ValueError:
         return float(default)
+
+
+def _optional_env_int(name: str) -> int | None:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return None
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return None
 
 
 def _clean_str(value: object) -> str:
@@ -1063,7 +1078,33 @@ def get_llm_registry() -> LLMRegistry:
 def get_llm_profile(profile_id: str = DEFAULT_RUNTIME_PROFILE_ID) -> LLMProfileConfig:
     """Return one resolved profile."""
 
-    return get_llm_registry().get_profile(profile_id)
+    return apply_process_profile_concurrency_caps(get_llm_registry().get_profile(profile_id))
+
+
+def get_llm_process_profile_max_concurrency(profile_id: str = DEFAULT_RUNTIME_PROFILE_ID) -> int | None:
+    """Return the optional per-process hard cap for one profile."""
+
+    env_name = _PROCESS_PROFILE_CONCURRENCY_CAP_ENV_BY_PROFILE.get(profile_id)
+    if not env_name:
+        return None
+    return _optional_env_int(env_name)
+
+
+def apply_process_profile_concurrency_caps(profile: LLMProfileConfig) -> LLMProfileConfig:
+    """Clamp one profile to the current process-local concurrency ceiling when configured."""
+
+    cap = get_llm_process_profile_max_concurrency(profile.profile_id)
+    if cap is None:
+        return profile
+    capped_max = max(1, min(int(profile.max_concurrency), int(cap)))
+    capped_burst = max(1, min(int(profile.default_burst_concurrency), capped_max))
+    if capped_max == profile.max_concurrency and capped_burst == profile.default_burst_concurrency:
+        return profile
+    return replace(
+        profile,
+        max_concurrency=capped_max,
+        default_burst_concurrency=capped_burst,
+    )
 
 
 def get_llm_profile_max_concurrency(profile_id: str = DEFAULT_RUNTIME_PROFILE_ID) -> int:
@@ -1097,8 +1138,10 @@ __all__ = [
     "LLMRegistry",
     "LLMRegistryError",
     "clear_llm_registry_cache",
+    "apply_process_profile_concurrency_caps",
     "get_llm_profile",
     "get_llm_profile_default_burst_concurrency",
     "get_llm_profile_max_concurrency",
+    "get_llm_process_profile_max_concurrency",
     "get_llm_registry",
 ]
