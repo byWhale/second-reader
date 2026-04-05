@@ -6,6 +6,7 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 from src.iterator_reader.language import language_name
 from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, invoke_json, llm_invocation_scope
@@ -55,6 +56,15 @@ _STATE_OPERATION_TYPES = {
 }
 _CLOSURE_DECISIONS: set[ClosureDecision] = {"continue", "close"}
 _EMISSION_DECISIONS: set[ReactionEmissionDecision] = {"emit", "withhold"}
+_SYNTHETIC_REACTION_CUE_TYPES = {
+    "marked_phrase",
+    "loaded_wording",
+    "analogy_image",
+    "distinction_cue",
+    "actor_intention",
+    "social_pressure",
+    "causal_stakes",
+}
 _CALLBACK_MARKERS = (
     "since that day",
     "from that day",
@@ -351,38 +361,30 @@ def _micro_selective_reaction_candidate(
     zoom_result: ZoomReadResult | None,
     closure_result: MeaningUnitClosureResult,
     local_textual_cues: list[dict[str, str]],
-    compact_local_anchor: bool,
     focal_text: str,
-    span_sentence_count: int,
 ) -> ReactionCandidate | None:
     """Build one bounded synthetic local reaction candidate when the phrase-level pressure is clear."""
 
-    short_span = span_sentence_count <= 2
     unresolved_pressure_note = _clean_text(closure_result.get("unresolved_pressure_note"))
     cue_types = {str(item.get("cue_type", "") or "") for item in local_textual_cues if isinstance(item, dict)}
-    pressure_cues = cue_types & {"actor_intention", "social_pressure", "causal_stakes"}
-    multi_cue_pressure = len(pressure_cues) >= 2
-    pressure_gate_open = zoom_result is None or bool((zoom_result or {}).get("consider_reaction_emission"))
-    bounded_pressure_span = short_span or (
-        span_sentence_count <= 3 and multi_cue_pressure and bool(unresolved_pressure_note)
-    )
-    if not compact_local_anchor and not (pressure_cues and pressure_gate_open and bounded_pressure_span):
+    high_signal_cues = cue_types & _SYNTHETIC_REACTION_CUE_TYPES
+    if not bool((zoom_result or {}).get("consider_reaction_emission")) or not high_signal_cues:
         return None
     anchor_quote = _clean_text((zoom_result or {}).get("anchor_quote"))
-    if not anchor_quote and pressure_cues:
+    if not anchor_quote:
         anchor_quote = _cue_anchor_quote(local_textual_cues, focal_text=focal_text)
     content = _clean_text((zoom_result or {}).get("local_interpretation")) or _clean_text(closure_result.get("meaning_unit_summary"))
     if not anchor_quote or not content:
         return None
     reaction_type: ReactionType = "highlight"
-    if cue_types & {"callback_cue", "recognition_gap", "actor_intention", "social_pressure"}:
+    if high_signal_cues & {"actor_intention", "social_pressure", "causal_stakes"}:
         reaction_type = "curious"
         content = (
             unresolved_pressure_note
             or _clean_text((zoom_result or {}).get("uncertainty_note"))
             or content
         )
-    elif cue_types & {"analogy_image", "marked_phrase", "loaded_wording", "distinction_cue", "causal_stakes"}:
+    elif high_signal_cues & {"analogy_image", "marked_phrase", "loaded_wording", "distinction_cue"}:
         reaction_type = "discern"
     return {
         "type": reaction_type,
@@ -512,6 +514,51 @@ def _normalize_reaction_candidate(value: object) -> ReactionCandidate | None:
         "search_query": _clean_text(value.get("search_query")),
         "search_results": search_results,
     }
+
+
+def _has_reframe_pressure(working_pressure: WorkingPressureState) -> bool:
+    """Return whether the current pressure snapshot is explicitly asking for a reframe."""
+
+    return bool(working_pressure.get("pressure_snapshot", {}).get("reframe_pressure_present"))
+
+
+def _controller_fast_path_result(
+    closure_result: MeaningUnitClosureResult,
+) -> ControllerDecisionResult | None:
+    """Return a deterministic controller outcome when the local move is unambiguous."""
+
+    dominant_move = str(closure_result.get("dominant_move", "advance") or "advance")
+    if dominant_move != "advance":
+        return None
+    return {
+        "chosen_move": "advance",
+        "reason": "controller_fast_path",
+        "target_anchor_id": "",
+        "target_sentence_id": "",
+    }
+
+
+def _bridge_pressure_present(
+    *,
+    boundary_context: dict[str, object] | None,
+    zoom_result: ZoomReadResult | None,
+    closure_result: MeaningUnitClosureResult,
+) -> bool:
+    """Return whether the current local moment warrants deterministic bridge retrieval."""
+
+    callback_anchor_ids = [
+        _clean_text(item)
+        for item in (boundary_context or {}).get("callback_anchor_ids", [])
+        if _clean_text(item)
+    ] if isinstance((boundary_context or {}).get("callback_anchor_ids"), list) else []
+    return any(
+        (
+            bool(callback_anchor_ids),
+            bool((zoom_result or {}).get("bridge_candidate")),
+            bool(closure_result.get("bridge_candidates")),
+            str(closure_result.get("dominant_move", "") or "") == "bridge",
+        )
+    )
 
 
 def zoom_read(
@@ -677,6 +724,12 @@ def controller_decision(
 ) -> ControllerDecisionResult:
     """Run the controller decision node with guardrails."""
 
+    fast_path = None
+    if not bridge_candidates and not _has_reframe_pressure(working_pressure):
+        fast_path = _controller_fast_path_result(closure_result)
+    if fast_path is not None:
+        return fast_path
+
     prompts = ATTENTIONAL_V2_PROMPTS
     user_prompt = _render_prompt(
         prompts.controller_decision_prompt,
@@ -793,6 +846,7 @@ def run_phase4_local_cycle(
     knowledge_activations: KnowledgeActivationsState,
     reader_policy: ReaderPolicy,
     bridge_candidates: list[BridgeCandidate],
+    lazy_bridge_loader: Callable[[], tuple[dict[str, object], list[BridgeCandidate]]] | None = None,
     output_language: str,
     output_dir: Path | None = None,
     book_title: str = "",
@@ -809,6 +863,7 @@ def run_phase4_local_cycle(
 
     local_context = current_span_sentences[:-1] if len(current_span_sentences) > 1 else []
     zoom_result: ZoomReadResult | None = None
+    candidate_set: dict[str, object] | None = None
     llm_fallbacks: list[dict[str, str]] = []
     if str(trigger_state.get("output", "no_zoom")) == "zoom_now":
         try:
@@ -855,12 +910,20 @@ def run_phase4_local_cycle(
             "reaction_candidate": None,
             "unresolved_pressure_note": "meaning_unit_closure_unavailable",
         }
+    lazy_bridge_candidates: list[BridgeCandidate] = []
+    if _bridge_pressure_present(
+        boundary_context=boundary_context,
+        zoom_result=zoom_result,
+        closure_result=closure_result,
+    ) and lazy_bridge_loader is not None:
+        candidate_set, lazy_bridge_candidates = lazy_bridge_loader()
     merged_bridge_candidates = []
     zoom_bridge_candidate = (zoom_result or {}).get("bridge_candidate") if zoom_result else None
     if zoom_bridge_candidate:
         merged_bridge_candidates.append(zoom_bridge_candidate)
     merged_bridge_candidates.extend(closure_result.get("bridge_candidates", []))
     merged_bridge_candidates.extend(bridge_candidates)
+    merged_bridge_candidates.extend(lazy_bridge_candidates)
     try:
         controller_result = controller_decision(
             working_pressure=working_pressure,
@@ -878,6 +941,11 @@ def run_phase4_local_cycle(
             "target_anchor_id": "",
             "target_sentence_id": "",
         }
+    if _clean_text(controller_result.get("chosen_move")) == "bridge" and candidate_set is None and lazy_bridge_loader is not None:
+        candidate_set, lazy_bridge_candidates = lazy_bridge_loader()
+        for candidate in lazy_bridge_candidates:
+            if candidate not in merged_bridge_candidates:
+                merged_bridge_candidates.append(candidate)
 
     reaction_result: ReactionEmissionResult | None = None
     suggested_reaction = closure_result.get("reaction_candidate")
@@ -894,14 +962,15 @@ def run_phase4_local_cycle(
         zoom_result=zoom_result,
         closure_result=closure_result,
         local_textual_cues=reaction_local_cues,
-        compact_local_anchor=compact_local_anchor,
         focal_text=_clean_text(focal_sentence.get("text")),
-        span_sentence_count=len(current_span_sentences),
     )
     should_consider_reaction = (
-        bool(effective_suggested_reaction)
-        or bool(zoom_result and zoom_result.get("consider_reaction_emission"))
-        or compact_local_anchor
+        bool(suggested_reaction)
+        or bool(
+            zoom_result
+            and zoom_result.get("consider_reaction_emission")
+            and effective_suggested_reaction
+        )
     )
     if should_consider_reaction:
         try:
@@ -940,5 +1009,6 @@ def run_phase4_local_cycle(
         "controller_result": controller_result,
         "reaction_result": reaction_result,
         "bridge_candidates": merged_bridge_candidates,
+        "candidate_set": candidate_set,
         "llm_fallbacks": llm_fallbacks,
     }

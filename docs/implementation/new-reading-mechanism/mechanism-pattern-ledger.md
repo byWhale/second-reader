@@ -288,13 +288,31 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - `meaning_unit_closure`
     - `controller_decision`
     - `reaction_emission`
-- Status: `observed`
+- repair proof:
+  - bounded throughput-repair smoke:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405/summary/aggregate.json`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405/summary/llm_usage.json`
+    - `reading-companion-backend/state/job_registry/logs/bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405.log`
+  - landed code and tests:
+    - `reading-companion-backend/src/attentional_v2/nodes.py`
+    - `reading-companion-backend/src/attentional_v2/runner.py`
+    - `reading-companion-backend/tests/test_attentional_v2_nodes.py`
+    - `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
+  - measured post-repair micro-slice totals:
+    - `nawaer_baodian_private_zh__chapter_22`: `220 -> 21`
+    - `xidaduo_private_zh__chapter_15`: `513 -> 64`
+    - combined two-unit baseline: `733 -> 85` reader calls (`-88.4%`)
+- Status: `partially_adopted`
 - Next action:
-  - make throughput repair the next bounded mechanism move before another broad excerpt judged rerun
-  - test a narrow repair that:
-    - merges or fast-paths `meaning_unit_closure` plus `controller_decision`
-    - raises the gate for `reaction_emission`
-    - introduces a coarser long-chapter / low-ROI reading mode before call counts explode
+  - keep the landed bounded schedule repair as the new baseline:
+    - no-LLM watch path for `no_zoom` and `monitor`
+    - deterministic controller fast path for straightforward `advance`
+    - lazy deterministic bridge retrieval
+    - tighter `reaction_emission` eligibility
+  - use the active judged micro-slice rerun to decide whether a second bounded repair is still needed at:
+    - chapter-end slow-cycle behavior
+    - prompt density inside the remaining `zoom_now` path
+    - any later long-chapter / low-ROI fallback mode
 
 ### 11. Full-surface judged excerpt runs can waste most of their budget on early heavy low-ROI chapters
 - Pattern kind: `anti_pattern`
@@ -316,30 +334,34 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
     - `14 / 55` finished with both mechanisms failed
   - late-start examples from the same run:
     - `nawaer_baodian_private_zh__chapter_13` and `xidaduo_private_zh__chapter_15` only began issuing `attentional_v2` calls near the very end of the run window
-- Status: `avoid`
+- Status: `adopted`
 - Next action:
-  - stop treating full-surface judged excerpt reruns as the default fast-iteration path
-  - define one explicit ROI-first judged micro-slice and use it as the default harness for:
-    - mechanism throughput repair
-    - rubric checks
-    - quick cross-mechanism attribution
+  - keep treating the explicit ROI-first micro-slice as the default judged repair harness
+  - the active judged run is:
+    - `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_judged_throughput_repair_20260405`
   - keep the fuller excerpt surface for later confirmation once the mechanism and launch posture are healthier
 
 ## Current Selective Implementation Queue
 
 ### Priority 0. Reduce `attentional_v2` call amplification before the next broad excerpt judged rerun
 - Why now:
-  - the latest judged retry3 produced useful operational evidence, but it also showed that the current local cycle can demand `~5x-13x` more reader calls than `iterator_v1` on comparable completed chapters
-  - without a bounded throughput repair, even a better excerpt surface will still feel too slow for normal iteration
+  - the first bounded throughput repair already proved it can remove most of the extra call volume on the ROI-first micro-slice without introducing smoke-level integrity regressions
+  - the immediate question is no longer "is there a plausible repair?" but "does the judged micro-slice keep enough reading quality after the schedule pruning?"
 - Boundaries:
   - keep `attentional_v2`'s chapter-scale thematic threading and bounded visible reactions as design invariants
   - do not "solve" throughput by flattening the mechanism into `iterator_v1`-style free reaction emission
 - Concrete implementation direction:
-  - first target node-count reduction inside the active local cycle:
-    - merge or fast-path `meaning_unit_closure` and `controller_decision`
-    - tighten `reaction_emission` eligibility
-    - add a cheaper long-chapter / low-ROI fallback mode
-  - validate each bounded repair on a small judged ROI-first slice before spending on a broader rerun
+  - keep the landed runtime-schedule repair as baseline:
+    - no-LLM watch path for `monitor` and `no_zoom`
+    - controller fast path for straightforward `advance`
+    - lazy bridge retrieval
+    - tighter `reaction_emission` gate
+  - use the active judged micro-slice rerun as the discriminator for any second repair
+  - only if that judged pass still leaves `attentional_v2` too slow or too degraded should the next bounded repair target:
+    - chapter-end slow-cycle behavior
+    - remaining `zoom_now` prompt density
+    - a later coarser long-chapter / low-ROI mode
 
 ### Priority 1. Extend the landed micro-selectivity repair into narrative / reference-heavy English local cases
 - Why now:

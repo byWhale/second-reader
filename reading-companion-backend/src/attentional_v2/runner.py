@@ -36,6 +36,7 @@ from .schemas import (
     ATTENTIONAL_V2_POLICY_VERSION,
     AnchorMemoryState,
     AnchoredReactionRecord,
+    BridgeCandidate,
     KnowledgeActivationsState,
     LocalBufferState,
     MoveHistoryState,
@@ -645,20 +646,47 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     ),
                 )
 
-                if _clean_text(trigger_state.get("output")) == "no_zoom":
+                trigger_output = _clean_text(trigger_state.get("output"))
+                if trigger_output != "zoom_now":
+                    bundle.update(
+                        {
+                            "local_buffer": local_buffer,
+                            "trigger_state": trigger_state,
+                            "working_pressure": working_pressure,
+                            "anchor_memory": anchor_memory,
+                            "reflective_summaries": reflective_summaries,
+                            "knowledge_activations": knowledge_activations,
+                            "move_history": move_history,
+                            "reaction_records": reaction_records,
+                            "reconsolidation_records": reconsolidation_records,
+                            "reader_policy": reader_policy,
+                            "resume_metadata": resume_metadata,
+                        }
+                    )
+                    _save_runtime_bundle(output_dir, bundle)
                     continue
 
                 current_span_sentences = _span_sentences(local_buffer)
-                candidate_set = generate_candidate_set(
-                    provisioned.book_document,
-                    current_sentence_id=sentence_id,
-                    current_text=_clean_text(sentence.get("text")),
-                    anchor_memory=anchor_memory,
-                )
-                bridge_candidates = candidate_pool_for_bridge_resolution(
-                    candidate_set,
-                    max_supporting_candidates=int(reader_policy.get("bridge", {}).get("max_supporting_candidates", 2) or 2),
-                )
+                candidate_cache: dict[str, object] | None = None
+                bridge_candidate_cache: list[BridgeCandidate] | None = None
+
+                def lazy_bridge_loader() -> tuple[dict[str, object], list[BridgeCandidate]]:
+                    nonlocal candidate_cache, bridge_candidate_cache
+                    if candidate_cache is None or bridge_candidate_cache is None:
+                        candidate_cache = generate_candidate_set(
+                            provisioned.book_document,
+                            current_sentence_id=sentence_id,
+                            current_text=_clean_text(sentence.get("text")),
+                            anchor_memory=anchor_memory,
+                        )
+                        bridge_candidate_cache = candidate_pool_for_bridge_resolution(
+                            candidate_cache,
+                            max_supporting_candidates=int(
+                                reader_policy.get("bridge", {}).get("max_supporting_candidates", 2) or 2
+                            ),
+                        )
+                    return candidate_cache, bridge_candidate_cache
+
                 phase4 = run_phase4_local_cycle(
                     focal_sentence=sentence,
                     current_span_sentences=current_span_sentences,
@@ -667,7 +695,8 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     anchor_memory=anchor_memory,
                     knowledge_activations=knowledge_activations,
                     reader_policy=reader_policy,
-                    bridge_candidates=bridge_candidates,
+                    bridge_candidates=[],
+                    lazy_bridge_loader=lazy_bridge_loader,
                     output_language=provisioned.output_language,
                     output_dir=output_dir,
                     book_title=provisioned.title,
@@ -698,6 +727,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 closure_result = dict(phase4.get("closure_result") or {})
                 controller_result = dict(phase4.get("controller_result") or {})
                 reaction_result = dict(phase4.get("reaction_result") or {})
+                candidate_set = dict(phase4.get("candidate_set") or {})
                 for fallback in phase4.get("llm_fallbacks", []) or []:
                     if not isinstance(fallback, dict):
                         continue
@@ -783,6 +813,8 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     )
 
                 if chosen_move == "bridge":
+                    if not candidate_set:
+                        candidate_set, _ = lazy_bridge_loader()
                     phase5 = run_phase5_bridge_cycle(
                         current_span_sentences=current_span_sentences,
                         candidate_set=candidate_set,

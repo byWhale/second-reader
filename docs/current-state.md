@@ -7,13 +7,16 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-05T13:12:44Z`
+Last verified: `2026-04-05T14:35:01Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
   - treat the completed judged local excerpt retry3 on the human-notes-guided excerpt freeze as partial evidence only, because the first full judged run and the first sharded rerun both ended as harness failures and the merged retry3 result still remains dominated by placeholder `mechanism_unavailable` rows
   - use the landed staged/sharded comparison runners as the default local excerpt rerun architecture, but stop treating slow full-surface runs as the default iteration loop
-  - use the new ROI-first excerpt micro-slice as the next default judged repair harness, then do bounded `attentional_v2` throughput repair on that slice before returning to the broader excerpt-surface retune and later larger dataset adjustment
+  - use the new ROI-first excerpt micro-slice as the default repair harness:
+    - the bounded `attentional_v2` throughput repair is now landed
+    - the `judge-mode none` smoke on that slice completed cleanly with material call reduction
+    - the active next step is the judged micro-slice rerun on the same two-unit slice before returning to the broader excerpt-surface retune and later larger dataset adjustment
   - keep `excerpt surface v1.1` as the prepared next local excerpt surface, but do not promote it until the completed retry3 result is dispositioned as evidence and the remaining chapter-22 shortfall is either repaired narrowly or deferred explicitly
   - treat the repaired long-span first review as completed support evidence, then decide whether to do one narrow repair on the `2` revise probes or freeze the long-span v1 set honestly short before any judged accumulation comparison
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
@@ -44,6 +47,56 @@ Last verified: `2026-04-05T13:12:44Z`
         - only after that return to `excerpt surface v1.1` promotion work and the later larger excerpt-surface adjustment
       - optional later expansion candidate:
         - `supremacy_private_en__13`
+      - completed throughput-repair smoke:
+        - job id:
+          - `bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405`
+        - run id:
+          - `attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405`
+        - run shape:
+          - `stage = all -> merge`
+          - `judge-mode = none`
+          - `mechanism-filter = both`
+          - `target-slice = both`
+          - `mechanism_execution_mode = parallel`
+          - `unit_workers = 2`
+        - result:
+          - emitted both bundle trees, all `13` case payloads, `summary/aggregate.json`, `summary/report.md`, and `summary/llm_usage.json`
+          - `selective_legibility`: `13 / 13` cases completed with `mechanism_failure_count = 0`, `judge_unavailable_count = 0`
+          - `insight_and_clarification`: `8 / 8` cases completed with `mechanism_failure_count = 0`, `judge_unavailable_count = 0`
+          - run-level usage:
+            - `request_count = 143`
+            - `success_count = 143`
+            - `error_count = 0`
+            - `retry_count = 0`
+            - `attentional_v2 = 85` requests
+            - `iterator_v1 = 58` requests
+          - per-unit `attentional_v2` reader-call reduction versus the pre-repair baseline on the same two units:
+            - `nawaer_baodian_private_zh__chapter_22`: `220 -> 21` (`-90.45%`)
+            - `xidaduo_private_zh__chapter_15`: `513 -> 64` (`-87.52%`)
+            - combined: `733 -> 85` (`-88.40%`)
+          - all four mechanism payloads completed with `fallback_count = 0`
+        - interpretation:
+          - the bounded runtime-schedule repair cleared the smoke gate
+          - the active next step is the judged micro-slice rerun, not another broad excerpt-surface rerun
+      - active judged micro-slice rerun:
+        - job id:
+          - `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405`
+        - run id:
+          - `attentional_v2_excerpt_micro_slice_v1_judged_throughput_repair_20260405`
+        - live shape:
+          - `stage = all -> merge`
+          - `judge-mode = llm`
+          - `mechanism-filter = both`
+          - `target-slice = both`
+          - `mechanism_execution_mode = parallel`
+          - `judge_execution_mode = parallel`
+          - `unit_workers = 2`
+          - `judge_workers = 2`
+          - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 8`
+          - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
+        - working rule:
+          - keep this run as the default judged repair harness
+          - do not reopen a broader excerpt-surface judged rerun until this bounded judged pass is interpreted
     - prepared next surface draft:
       - `attentional_v2_excerpt_surface_v1_1_draft`
       - fixed roster:
@@ -1958,7 +2011,7 @@ Last verified: `2026-04-05T13:12:44Z`
 - The completed retry3 merge exposed a summary-persistence mismatch: the merge command returned updated partial winner counts, but the persisted shared-run `summary/aggregate.json` and `summary/report.md` still show the older all-placeholder output.
 - The latest retry3 lane showed that `attentional_v2` can consume several times more reader calls than `iterator_v1` on the same chapter unit; if we ignore that and only treat the result as a quota incident, we will keep rerunning the wrong problem.
 - The latest notes-guided full-surface run also showed that low-ROI heavy chapters can occupy worker slots early enough to starve later higher-value units before they even begin, so default manifest order is no longer a safe judged-launch policy.
-- The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.
+- The completed throughput-repair micro-slice smoke used `--judge-mode none`, so its `tie: 13` and `tie: 8` aggregates are harness placeholders rather than judged mechanism evidence.
 - The managed source catalog now drives both intake and the current private-library supplement build on this checkout, but the first real scratch evidence says the next bottleneck is case quality rather than source-input plumbing.
 - The first real scratch builder/controller runs were intentionally narrow: the earliest English baseline still yielded no `keep` outcomes, but the later quality-fix runs improved that materially; the remaining narrowness is now bilingual stability rather than the mere absence of `keep` results.
 - The last bilingual English pair held source rows constant but still regenerated materially different audit judgments, so current bilingual widening is constrained by audit/adjudication reproducibility as well as by builder quality.
@@ -1981,7 +2034,7 @@ Last verified: `2026-04-05T13:12:44Z`
 - `TASK-ACCUMULATION-BENCHMARK-V1`
 
 ## Active Job IDs
-- none
+- `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405`
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -2005,14 +2058,16 @@ Last verified: `2026-04-05T13:12:44Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-05T13:12:44Z",
+  "updated_at": "2026-04-05T14:35:01Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL",
     "TASK-ACCUMULATION-BENCHMARK-V1"
   ],
   "blocked_task_ids": [],
-  "active_job_ids": [],
+  "active_job_ids": [
+    "bgjob_attentional_v2_excerpt_micro_slice_judged_20260405"
+  ],
   "open_decision_ids": [
     "Q10",
     "Q-EXCERPT-SURFACE-V1.1-CH22"

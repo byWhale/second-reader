@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-05T12:16:52Z",
+  "updated_at": "2026-04-05T14:35:01Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -732,10 +732,12 @@
         "bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry2_20260405",
         "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405",
         "bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405",
-        "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405"
+        "bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405",
+        "bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405",
+        "bgjob_attentional_v2_excerpt_micro_slice_judged_20260405"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only, use the landed attentional_v2_excerpt_micro_slice_v1_draft (nawaer_baodian_private_zh__22 plus xidaduo_private_zh__15, 13 primary cases and 8 insight cases) as the default judged harness, run bounded attentional_v2 throughput repair on that slice, and only then return to broader excerpt-surface work before any new full-surface rerun.",
+      "next_action": "Treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded attentional_v2 throughput repair is now landed, the ROI-first micro-slice smoke completed cleanly with 13 selective cases, 8 insight cases, and attentional_v2 reader calls reduced from 733 to 85 on the same two-unit slice, and the active next step is the judged micro-slice rerun on that same harness before any broader excerpt-surface work.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
@@ -779,6 +781,18 @@
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405.log",
         "reading-companion-backend/state/job_registry/jobs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405.log",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405.log",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405/summary/aggregate.json",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405/summary/llm_usage.json",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_attentional_v2_excerpt_micro_slice_judged_20260405.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_attentional_v2_excerpt_micro_slice_judged_20260405.log",
+        "docs/backend-reading-mechanisms/attentional_v2.md",
+        "reading-companion-backend/src/attentional_v2/nodes.py",
+        "reading-companion-backend/src/attentional_v2/runner.py",
+        "reading-companion-backend/tests/test_attentional_v2_nodes.py",
+        "reading-companion-backend/tests/test_attentional_v2_scaffold.py",
         "reading-companion-backend/eval/manifests/splits/attentional_v2_human_notes_guided_excerpt_eval_v1_draft.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404/summary/aggregate.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_human_notes_guided_excerpt_eval_v1_judged_20260404/summary/report.md",
@@ -790,7 +804,7 @@
         "reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py",
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-05T12:16:52Z",
+      "last_updated": "2026-04-05T14:35:01Z",
       "last_updated_by": "codex"
     },
     {

@@ -198,6 +198,40 @@ def test_controller_decision_refuses_bridge_without_candidates(monkeypatch):
     assert result["chosen_move"] == "advance"
 
 
+def test_controller_decision_uses_fast_path_without_invoking_llm(monkeypatch):
+    """Straightforward advance cases should skip the controller LLM entirely."""
+
+    monkeypatch.setattr(
+        nodes_module,
+        "invoke_json",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("controller LLM should not be invoked")),
+    )
+
+    result = controller_decision(
+        working_pressure=build_empty_working_pressure(),
+        closure_result={
+            "closure_decision": "close",
+            "meaning_unit_summary": "The local point settles cleanly and can move on.",
+            "dominant_move": "advance",
+            "proposed_state_operations": [],
+            "bridge_candidates": [],
+            "reaction_candidate": None,
+            "unresolved_pressure_note": "",
+        },
+        bridge_candidates=[],
+        gate_state="watch",
+        reader_policy=build_default_reader_policy(),
+        output_dir=None,
+    )
+
+    assert result == {
+        "chosen_move": "advance",
+        "reason": "controller_fast_path",
+        "target_anchor_id": "",
+        "target_sentence_id": "",
+    }
+
+
 def test_run_phase4_local_cycle_honors_node_handoff_and_reaction_gate(tmp_path, monkeypatch):
     """The Phase 4 cycle should call the nodes in order and emit an anchored reaction only when warranted."""
 
@@ -483,6 +517,166 @@ def test_run_phase4_local_cycle_keeps_zoom_bridge_hints(monkeypatch):
     assert result["controller_result"]["target_sentence_id"] == "c1-s1"
 
 
+def test_run_phase4_local_cycle_skips_lazy_bridge_loader_without_bridge_pressure(monkeypatch):
+    """Deterministic bridge retrieval should stay idle when the local moment has no bridge pressure."""
+
+    calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The line deserves local attention but does not point backward.",
+                "anchor_quote": "However, value shifts here.",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": False,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The local turn settles cleanly without bridge pull.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c1-s2", "However, value shifts here.", sentence_index=2),
+        current_span_sentences=[
+            _sentence("c1-s1", "Value looks stable at first.", sentence_index=1),
+            _sentence("c1-s2", "However, value shifts here.", sentence_index=2),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        lazy_bridge_loader=lambda: (_ for _ in ()).throw(AssertionError("lazy bridge loader should stay idle")),
+        output_language="en",
+        output_dir=None,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True, "callback_anchor_ids": []},
+    )
+
+    assert calls == ["zoom", "closure"]
+    assert result["candidate_set"] is None
+    assert result["bridge_candidates"] == []
+    assert result["controller_result"]["reason"] == "controller_fast_path"
+
+
+def test_run_phase4_local_cycle_materializes_lazy_bridge_candidates_once_when_pressure_present(monkeypatch):
+    """Bridge pressure should materialize deterministic retrieval once and reuse it inside the local cycle."""
+
+    calls: list[str] = []
+    loader_calls: list[str] = []
+
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            calls.append("zoom")
+            return {
+                "local_interpretation": "The line points back toward an earlier anchor.",
+                "anchor_quote": "However, value shifts here.",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": False,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            calls.append("closure")
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The local turn stays bridge-aware.",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            }
+        if "controller-decision node" in system_prompt:
+            calls.append("controller")
+            return {
+                "chosen_move": "bridge",
+                "reason": "the callback should be tested against the earlier anchor",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c1-s2", "However, value shifts here.", sentence_index=2),
+        current_span_sentences=[
+            _sentence("c1-s1", "Value looks stable at first.", sentence_index=1),
+            _sentence("c1-s2", "However, value shifts here.", sentence_index=2),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        lazy_bridge_loader=lambda: (
+            loader_calls.append("load") or {
+                "current_sentence_id": "c1-s2",
+                "memory_candidates": [],
+                "lookback_candidates": [
+                    {
+                        "candidate_kind": "source_callback",
+                        "sentence_id": "c1-s1",
+                        "chapter_id": 1,
+                        "chapter_title": "Chapter 1",
+                        "text": "Value looks stable at first.",
+                        "text_role": "body",
+                        "locator": {},
+                        "overlap_score": 3.5,
+                        "retrieval_channel": "source_callback",
+                        "relation_type": "callback",
+                    }
+                ],
+            },
+            [
+                {
+                    "candidate_kind": "source_callback",
+                    "target_anchor_id": "",
+                    "target_sentence_id": "c1-s1",
+                    "retrieval_channel": "source_callback",
+                    "relation_type": "callback",
+                    "score": 3.5,
+                    "why_now": "",
+                    "quote": "Value looks stable at first.",
+                }
+            ],
+        ),
+        output_language="en",
+        output_dir=None,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+        boundary_context={"gate_state": "hot", "candidate_boundary": True, "callback_anchor_ids": ["a-1"]},
+    )
+
+    assert calls == ["zoom", "closure", "controller"]
+    assert loader_calls == ["load"]
+    assert result["candidate_set"]["current_sentence_id"] == "c1-s2"
+    assert result["bridge_candidates"][0]["target_sentence_id"] == "c1-s1"
+    assert result["controller_result"]["chosen_move"] == "bridge"
+    assert result["controller_result"]["target_sentence_id"] == "c1-s1"
+
+
 def test_zoom_read_prompt_receives_local_textual_cues(monkeypatch):
     """Zoom prompt should include deterministic cue packets for local callback/distinction pressure."""
 
@@ -517,12 +711,12 @@ def test_zoom_read_prompt_receives_local_textual_cues(monkeypatch):
     assert "distinction_cue" in prompt_text
 
 
-def test_run_phase4_local_cycle_considers_compact_local_anchor_for_reaction_emission(monkeypatch):
-    """A compact phrase-level anchor should trigger a bounded reaction-emission check."""
+def test_run_phase4_local_cycle_keeps_compact_local_anchor_bounded_without_zoom_gate(monkeypatch):
+    """A compact anchor by itself should no longer open reaction emission."""
 
     calls: list[str] = []
 
-    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
         if "sentence-level zoom node" in system_prompt:
             calls.append("zoom")
             return {
@@ -545,24 +739,8 @@ def test_run_phase4_local_cycle_considers_compact_local_anchor_for_reaction_emis
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "",
             }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "the local phrase has been registered clearly enough",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
-            }
         if "reaction-emission gate" in system_prompt:
-            calls.append("emit")
-            assert "one very simple principle" in prompt
-            assert '"compact_local_anchor": true' in prompt.lower()
-            assert '"synthetic_local_candidate": true' in prompt.lower()
-            return {
-                "decision": "emit",
-                "reason": "the compact phrase deserves a visible local note",
-                "reaction": None,
-            }
+            raise AssertionError("reaction_emission should stay gated off")
         return default
 
     monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
@@ -586,10 +764,8 @@ def test_run_phase4_local_cycle_considers_compact_local_anchor_for_reaction_emis
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller", "emit"]
-    assert result["reaction_result"]["decision"] == "emit"
-    assert result["reaction_result"]["reaction"]["anchor_quote"] == "one very simple principle"
-    assert result["reaction_result"]["reaction"]["type"] == "discern"
+    assert calls == ["zoom", "closure"]
+    assert result["reaction_result"] is None
 
 
 def test_run_phase4_local_cycle_uses_pressure_cues_for_bounded_synthetic_candidate(monkeypatch):
@@ -619,14 +795,6 @@ def test_run_phase4_local_cycle_uses_pressure_cues_for_bounded_synthetic_candida
                 "bridge_candidates": [],
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "The local pressure stays open because the addressee's answer determines whether the speaker is sent back.",
-            }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "the local hinge has been registered clearly enough to move on",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
             }
         if "reaction-emission gate" in system_prompt:
             calls.append("emit")
@@ -659,7 +827,7 @@ def test_run_phase4_local_cycle_uses_pressure_cues_for_bounded_synthetic_candida
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller", "emit"]
+    assert calls == ["zoom", "closure", "emit"]
     assert result["reaction_result"]["decision"] == "emit"
     assert result["reaction_result"]["reaction"]["type"] == "curious"
     assert result["reaction_result"]["reaction"]["anchor_quote"] == '"O Christian, will you send me back?"'
@@ -692,14 +860,6 @@ def test_run_phase4_local_cycle_keeps_pressure_cues_bounded_without_zoom_gate(mo
                 "bridge_candidates": [],
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "",
-            }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "move forward after recording the local satire",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
             }
         if "reaction-emission gate" in system_prompt:
             raise AssertionError("reaction_emission should stay gated off")
@@ -734,16 +894,16 @@ def test_run_phase4_local_cycle_keeps_pressure_cues_bounded_without_zoom_gate(mo
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller"]
+    assert calls == ["zoom", "closure"]
     assert result["reaction_result"] is None
 
 
-def test_run_phase4_local_cycle_uses_pressure_cues_without_zoom_for_short_stakes_span(monkeypatch):
-    """A short no-zoom span may still synthesize one bounded reaction when the local consequence is explicit."""
+def test_run_phase4_local_cycle_keeps_pressure_cues_bounded_without_zoom_gate(monkeypatch):
+    """High-signal pressure cues should stay quiet when zoom never opens the reaction gate."""
 
     calls: list[str] = []
 
-    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
         if "meaning-unit closure node" in system_prompt:
             calls.append("closure")
             return {
@@ -755,25 +915,8 @@ def test_run_phase4_local_cycle_uses_pressure_cues_without_zoom_for_short_stakes
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "",
             }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "the consequence has been registered clearly enough",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
-            }
         if "reaction-emission gate" in system_prompt:
-            calls.append("emit")
-            assert '"trigger_output": "monitor"' in prompt
-            assert '"synthetic_local_candidate": true' in prompt.lower()
-            assert '"type": "discern"' in prompt
-            assert "went to the bad" in prompt
-            return {
-                "decision": "emit",
-                "reason": "the consequence is concrete enough to surface once",
-                "reaction": None,
-            }
+            raise AssertionError("reaction_emission should stay gated off")
         return default
 
     monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
@@ -805,11 +948,9 @@ def test_run_phase4_local_cycle_uses_pressure_cues_without_zoom_for_short_stakes
         boundary_context={"gate_state": "watch", "candidate_boundary": True},
     )
 
-    assert calls == ["closure", "controller", "emit"]
+    assert calls == ["closure"]
     assert result["zoom_result"] is None
-    assert result["reaction_result"]["decision"] == "emit"
-    assert result["reaction_result"]["reaction"]["type"] == "discern"
-    assert result["reaction_result"]["reaction"]["anchor_quote"] == "The result of this was in too many cases that the girls went to the bad."
+    assert result["reaction_result"] is None
 
 
 def test_run_phase4_local_cycle_uses_multi_cue_pressure_for_bounded_three_sentence_span(monkeypatch):
@@ -839,14 +980,6 @@ def test_run_phase4_local_cycle_uses_multi_cue_pressure_for_bounded_three_senten
                 "bridge_candidates": [],
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "The choice is still live because other people can still force the speaker's path.",
-            }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "the narrative pressure has been registered clearly enough",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
             }
         if "reaction-emission gate" in system_prompt:
             calls.append("emit")
@@ -891,7 +1024,7 @@ def test_run_phase4_local_cycle_uses_multi_cue_pressure_for_bounded_three_senten
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller", "emit"]
+    assert calls == ["zoom", "closure", "emit"]
     assert result["reaction_result"]["decision"] == "emit"
     assert result["reaction_result"]["reaction"]["type"] == "curious"
     assert result["reaction_result"]["reaction"]["anchor_quote"].startswith("He was prepared to teach")
@@ -924,14 +1057,6 @@ def test_run_phase4_local_cycle_keeps_three_sentence_pressure_span_bounded_witho
                 "bridge_candidates": [],
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "",
-            }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "the pressure has already resolved locally",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
             }
         if "reaction-emission gate" in system_prompt:
             raise AssertionError("reaction_emission should stay gated off")
@@ -968,7 +1093,7 @@ def test_run_phase4_local_cycle_keeps_three_sentence_pressure_span_bounded_witho
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller"]
+    assert calls == ["zoom", "closure"]
     assert result["reaction_result"] is None
 
 
@@ -991,14 +1116,6 @@ def test_run_phase4_local_cycle_degrades_zoom_llm_error(monkeypatch):
                 "bridge_candidates": [],
                 "reaction_candidate": None,
                 "unresolved_pressure_note": "",
-            }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "move forward with the safe local close",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
             }
         return default
 
@@ -1024,10 +1141,11 @@ def test_run_phase4_local_cycle_degrades_zoom_llm_error(monkeypatch):
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller"]
+    assert calls == ["zoom", "closure"]
     assert result["zoom_result"] is None
     assert result["closure_result"]["closure_decision"] == "close"
     assert result["controller_result"]["chosen_move"] == "advance"
+    assert result["controller_result"]["reason"] == "controller_fast_path"
     assert result["llm_fallbacks"] == [{"node": "zoom_read", "problem_code": "network_blocked"}]
 
 
@@ -1066,14 +1184,6 @@ def test_run_phase4_local_cycle_withholds_when_reaction_emission_llm_fails(monke
                 },
                 "unresolved_pressure_note": "",
             }
-        if "controller-decision node" in system_prompt:
-            calls.append("controller")
-            return {
-                "chosen_move": "advance",
-                "reason": "the local narrowing can move forward after surfacing the phrase",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
-            }
         if "reaction-emission gate" in system_prompt:
             calls.append("emit")
             raise ReaderLLMError("reaction emission unavailable", problem_code="network_blocked")
@@ -1108,7 +1218,7 @@ def test_run_phase4_local_cycle_withholds_when_reaction_emission_llm_fails(monke
         boundary_context={"gate_state": "hot", "candidate_boundary": True},
     )
 
-    assert calls == ["zoom", "closure", "controller", "emit"]
+    assert calls == ["zoom", "closure", "emit"]
     assert result["reaction_result"]["decision"] == "withhold"
     assert result["reaction_result"]["reaction"] is None
     assert result["llm_fallbacks"] == [{"node": "reaction_emission", "problem_code": "network_blocked"}]

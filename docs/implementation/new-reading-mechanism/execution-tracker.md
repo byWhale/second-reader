@@ -63,6 +63,30 @@ Update when: status changes, blockers appear, or phases complete.
     - immediate working rule:
       - do not launch another broad excerpt judged rerun first
       - first use the explicit ROI-first judged excerpt micro-slice, then use it as the validation harness for a bounded `attentional_v2` throughput repair
+      - that bounded repair is now landed in the live runtime:
+        - `no_zoom` and `monitor` are now no-LLM watch paths
+        - straightforward `advance` cases now skip the controller LLM through a deterministic fast path
+        - deterministic bridge retrieval is now lazy instead of unconditional
+        - `reaction_emission` now stays closed unless closure already surfaced a candidate or zoom explicitly opened the gate for a high-signal local case
+      - the completed smoke on the same two-unit harness now shows a material operational win without integrity regression:
+        - run id:
+          - `attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405`
+        - result:
+          - `13` selective cases and `8` insight cases all emitted cleanly
+          - `mechanism_failure_count = 0`
+          - `judge_unavailable_count = 0`
+          - `attentional_v2` reader calls dropped from `733` baseline calls on the same two units down to `85` (`-88.4%`)
+          - per-unit reduction:
+            - `nawaer_baodian_private_zh__chapter_22`: `220 -> 21`
+            - `xidaduo_private_zh__chapter_15`: `513 -> 64`
+          - run-level usage:
+            - `request_count = 143`
+            - `success_count = 143`
+            - `error_count = 0`
+            - `retry_count = 0`
+            - `attentional_v2 = 85`
+            - `iterator_v1 = 58`
+      - the active next gate is now the judged micro-slice rerun on the same fixed slice, not another broad excerpt-surface rerun
       - only after that bounded repair loop should excerpt work return to the broader surface lane:
         - `excerpt surface v1.1` promotion or honest-short defer
         - then the larger excerpt-surface / dataset adjustment
@@ -186,6 +210,30 @@ Update when: status changes, blockers appear, or phases complete.
         - `supremacy_private_en__13`
       - next use:
         - smoke and judged repair loops should target this slice before any broader excerpt-surface rerun
+      - completed throughput-repair smoke:
+        - job id:
+          - `bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405`
+        - run id:
+          - `attentional_v2_excerpt_micro_slice_v1_smoke_throughput_repair_20260405`
+        - outcome:
+          - both units completed for both mechanisms
+          - bundle sidecars, per-case outputs, aggregate, report, and usage summary all emitted
+          - `attentional_v2` request volume on the slice dropped from `733` baseline calls to `85`
+          - no errors, retries, or mechanism payload fallbacks were recorded
+      - active judged rerun:
+        - job id:
+          - `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405`
+        - run id:
+          - `attentional_v2_excerpt_micro_slice_v1_judged_throughput_repair_20260405`
+        - posture:
+          - `judge-mode = llm`
+          - `stage = all -> merge`
+          - `mechanism_execution_mode = parallel`
+          - `judge_execution_mode = parallel`
+          - `unit_workers = 2`
+          - `judge_workers = 2`
+          - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 8`
+          - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
@@ -214,8 +262,12 @@ Update when: status changes, blockers appear, or phases complete.
         - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY`
     - current live launch posture:
       - allow exactly two heavy processes total on the same personal key during this phase
-      - keep intra-process execution conservative even after the gateway/profile cap lift:
-        - judged excerpt reruns use serial mechanism execution, serial judge execution, and `--case-workers 2`
+      - broader judged excerpt reruns still stay conservative by default, but the bounded ROI-first micro-slice is now allowed to use a slightly faster local posture:
+        - active micro-slice judged rerun:
+          - `mechanism_execution_mode = parallel`
+          - `judge_execution_mode = parallel`
+          - `unit_workers = 2`
+          - `judge_workers = 2`
         - long-span repair reviews use `--audit-max-workers 2 --review-max-workers 1`
       - completed retained highspeed smoke:
         - `bgjob_human_notes_excerpt_smoke_light_20260404`

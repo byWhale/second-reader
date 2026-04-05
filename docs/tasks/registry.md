@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-05T12:16:52Z`
+Last updated: `2026-04-05T14:35:01Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-05T12:16:52Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only, use the landed `attentional_v2_excerpt_micro_slice_v1_draft` (`nawaer_baodian_private_zh__22` + `xidaduo_private_zh__15`, `13 / 8` cases) as the default judged harness, run bounded `attentional_v2` throughput repair on that slice, and only then return to broader excerpt-surface work before any new full-surface rerun
+- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair is now landed, the ROI-first micro-slice smoke completed cleanly with `13 / 8` emitted cases and `attentional_v2` reader calls reduced from `733` to `85` on the same two-unit slice, and the active next step is the judged micro-slice rerun on that same harness before any broader excerpt-surface work
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -41,6 +41,8 @@ Last updated: `2026-04-05T12:16:52Z`
   - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry2_20260405` (`abandoned`)
   - `bgjob_human_notes_excerpt_parallel_judged_shard_a_dualpool_recovery_retry3_20260405` (`completed`)
   - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405` (`completed`)
+  - `bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405` (`completed`)
+  - `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405` (`running`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`

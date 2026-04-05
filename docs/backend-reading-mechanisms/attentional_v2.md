@@ -85,6 +85,19 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - It then reads through the text in sentence order.
   - Sentence order is the intake discipline.
   - Meaning-unit consolidation is the reasoning discipline.
+- The live runtime now distinguishes three trigger outcomes during sentence intake:
+  - `no_zoom`
+    - stay on the watch path
+    - persist runtime bundle state and continue
+    - do not enter the full local interpretive loop
+    - do not materialize deterministic bridge candidates
+  - `monitor`
+    - same runtime persistence discipline as `no_zoom`
+    - still records trigger state and current reading position
+    - still skips the full local interpretive loop and deterministic bridge retrieval
+  - `zoom_now`
+    - enter the local interpretive loop
+    - this is the only trigger outcome that now opens `zoom_read`, `meaning_unit_closure`, `controller_decision`, and any later bridge or reaction work
 - The main control loop is:
   - ingest sentence
   - update local salience and open tensions
@@ -100,12 +113,20 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - trigger-signal evidence
   - callback-anchor ids
   so closure/controller decisions can stay answerable to the same trigger evidence that opened the local cycle.
-- The current local controller candidate pool merges three sources before choosing the next move:
+- The current local controller candidate pool can merge three sources before choosing the next move:
   - one optional zoom-level bridge hint
   - closure-level bridge candidates
   - deterministic bridge candidates generated from the already-read source
-- The bridge layer then adds bridge judgment after deterministic candidate generation:
-  - `candidate_generation -> bridge_resolution -> durable anchor / move updates`
+- Deterministic source bridge retrieval is now lazy rather than unconditional.
+  - The runtime materializes the deterministic candidate set only when bridge pressure is present.
+  - Bridge pressure currently means at least one of:
+    - boundary-context callback-anchor ids
+    - a zoom-level bridge hint
+    - closure-level bridge candidates
+    - a closure move that already points toward `bridge`
+  - Once materialized, the same deterministic candidate set is reused for both controller input and later `bridge_resolution`.
+- The bridge layer then adds bridge judgment after deterministic candidate generation when that pressure actually exists:
+  - `candidate_generation_if_needed -> bridge_resolution -> durable anchor / move updates`
 - The next move is one of:
   - `advance`
     - move to the next unresolved local span when understanding is good enough
@@ -133,6 +154,22 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `reconsolidation`
   - `chapter_consolidation`
 - These nodes are implemented, prompt-versioned, and now wired into the live experimental sentence-order runner.
+- The runtime schedule is intentionally sparser than the raw node list may suggest:
+  - `no_zoom` and `monitor` now form a no-LLM watch path
+    - they persist runtime state but skip the full local interpretive loop
+    - they also skip deterministic bridge retrieval
+  - only `zoom_now` opens the full local interpretive loop
+  - `controller_decision` now has a deterministic fast path for unambiguous `advance` cases
+    - when closure already says `advance`
+    - and merged bridge candidates are empty
+    - and reframe pressure is absent
+    - the runtime emits a synthetic controller result instead of calling the controller LLM
+  - `reaction_emission` remains an LLM gate, but it is now tighter
+    - it runs when closure already surfaced a normalized reaction candidate
+    - or when zoom explicitly opened reaction consideration and a bounded high-signal synthetic local candidate exists
+    - `compact_local_anchor` alone no longer opens this gate
+  - deterministic bridge retrieval is no longer paid up front for every local cycle
+    - it is loaded lazily and reused only when bridge pressure justifies it
 - Default call types are:
   - `chapter opening`
     - set initial expectations and open questions using title, chapter heading, and opening span
@@ -233,8 +270,16 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - actor intention, social pressure, or concrete causal stakes when those hinges are locally explicit
   rather than flattening these moments into generic scene summary.
 - The current local synthetic-reaction path is still bounded:
-  - short spans may synthesize one local candidate from the deterministic cue packet when zoom or the cue stack shows a real motive/pressure/stakes hinge
-  - pressure cues alone must not force visible output when the local gate stays closed
+  - zoom-open local spans may synthesize one bounded local candidate from deterministic cue packets only when the cue family is high-signal:
+    - `marked_phrase`
+    - `loaded_wording`
+    - `analogy_image`
+    - `distinction_cue`
+    - `actor_intention`
+    - `social_pressure`
+    - `causal_stakes`
+  - callback-only or recognition-gap-only cues do not by themselves synthesize a visible local reaction candidate in the current repair posture
+  - pressure cues alone must not force visible output when the zoom-level reaction gate stays closed
   - this keeps narrative/reference-heavy local cases from disappearing into retrospective summary without converting `attentional_v2` into a dense iterator-style stream
 - Retroactive resurfacing is first-class.
   - A later span can promote an earlier sentence or paragraph into renewed focus.
