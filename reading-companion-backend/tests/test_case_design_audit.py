@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import nullcontext
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -28,6 +29,156 @@ def test_primary_prompt_allows_inline_callback_antecedent_when_traceable() -> No
 
 def test_adversarial_prompt_does_not_auto_reject_inline_callback_targets() -> None:
     assert "do not treat an inline earlier bridge target as a defect by itself" in audit.ADVERSARIAL_PROMPT
+
+
+def test_load_source_index_merges_books_and_source_refs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    manifest_path = tmp_path / "source_manifest.json"
+    _write_json(
+        manifest_path,
+        {
+            "books": [
+                {
+                    "source_id": "demo_source",
+                    "title": "Demo Book",
+                    "output_dir": "state/library/demo_output",
+                }
+            ],
+            "source_refs": [
+                {
+                    "source_id": "demo_source",
+                    "relative_local_path": "state/library_sources/demo.epub",
+                    "language": "en",
+                }
+            ],
+        },
+    )
+
+    index = audit.load_source_index({"source_manifest_refs": ["source_manifest.json"]})
+
+    assert index["demo_source"]["title"] == "Demo Book"
+    assert index["demo_source"]["output_dir"] == "state/library/demo_output"
+    assert index["demo_source"]["relative_local_path"] == "state/library_sources/demo.epub"
+    assert index["demo_source"]["language"] == "en"
+
+
+def test_find_span_and_context_uses_relative_local_path_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(audit, "ROOT", tmp_path)
+    book_path = tmp_path / "state" / "library_sources" / "demo.epub"
+    book_path.parent.mkdir(parents=True, exist_ok=True)
+    book_path.write_text("stub", encoding="utf-8")
+
+    book_document = {
+        "chapters": [
+            {
+                "id": 1,
+                "title": "Demo Chapter",
+                "sentences": [
+                    {"sentence_id": "1-s1", "text": "Earlier setup."},
+                    {"sentence_id": "1-s2", "text": "Anchor line."},
+                    {"sentence_id": "1-s3", "text": "Follow-up line."},
+                    {"sentence_id": "1-s4", "text": "Later consequence."},
+                ],
+            }
+        ]
+    }
+
+    def fake_ensure_canonical_parse(path: Path, language_mode: str):
+        assert path == book_path
+        assert language_mode == "en"
+        return SimpleNamespace(
+            book_document=book_document,
+            output_dir=str(tmp_path / "state" / "canonical_parse" / "demo"),
+        )
+
+    monkeypatch.setattr(audit, "ensure_canonical_parse", fake_ensure_canonical_parse)
+
+    span_info, context = audit.find_span_and_context(
+        {
+            "case_id": "demo_case",
+            "source_id": "demo_source",
+            "chapter_id": 1,
+            "start_sentence_id": "1-s2",
+            "end_sentence_id": "1-s3",
+            "excerpt_text": "Anchor line.\nFollow-up line.",
+        },
+        {
+            "demo_source": {
+                "source_id": "demo_source",
+                "relative_local_path": "state/library_sources/demo.epub",
+                "output_language": "en",
+            }
+        },
+    )
+
+    assert span_info["output_dir"].endswith("state/canonical_parse/demo")
+    assert span_info["book_document_path"].endswith("state/canonical_parse/demo/public/book_document.json")
+    assert context["excerpt_sentences"] == ["Anchor line.", "Follow-up line."]
+    assert context["lookback_sentences"] == ["Earlier setup."]
+    assert context["lookahead_sentences"] == ["Later consequence."]
+
+
+def test_factual_audit_allows_note_anchor_text_mismatch_without_excerpt_issue(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        audit,
+        "find_span_and_context",
+        lambda case, source_index: (
+            {
+                "source_id": "demo_source",
+                "output_dir": "/tmp/demo",
+                "book_document_path": "/tmp/demo/public/book_document.json",
+                "excerpt_text_reconstructed": "EARLY (1): Source line.\nLATE (2): Destination line.",
+                "expected_excerpt_text": "EARLY (1): Source line.\nLATE (2): Destination line.",
+                "anchor_span_resolutions": [
+                    {
+                        "stage": "early",
+                        "anchor_kind": "note_entry",
+                        "source_ref_id": "notes__e0001",
+                        "chapter_id": 1,
+                        "start_sentence_id": "1-s1",
+                        "end_sentence_id": "1-s1",
+                        "excerpt_text_reconstructed": "Source line.",
+                        "expected_anchor_excerpt_text": "My highlighted paraphrase.",
+                    },
+                    {
+                        "stage": "late",
+                        "anchor_kind": "excerpt_case",
+                        "source_ref_id": "case_late",
+                        "chapter_id": 2,
+                        "start_sentence_id": "2-s2",
+                        "end_sentence_id": "2-s2",
+                        "excerpt_text_reconstructed": "Destination line.",
+                        "expected_anchor_excerpt_text": "Destination line.",
+                    },
+                ],
+            },
+            {
+                "lookback_sentences": [],
+                "excerpt_sentences": ["Source line.", "Destination line."],
+                "lookahead_sentences": [],
+            },
+        ),
+    )
+
+    result = audit.factual_audit(
+        {
+            "case_id": "demo_probe",
+            "source_id": "demo_source",
+            "excerpt_text": "EARLY (1): Source line.\nLATE (2): Destination line.",
+        },
+        {"demo_source": {"source_id": "demo_source"}},
+    )
+
+    assert result["ok"] is True
+    assert result["issues"] == []
 
 
 def test_normalize_primary_repairs_keep_score_inconsistency() -> None:
@@ -732,6 +883,78 @@ def test_find_span_and_context_prefers_builder_supplied_prior_context_ids(tmp_pa
 
     assert span_info["prior_context_sentence_ids"] == ["s1"]
     assert context["lookback_sentences"] == ["Earlier vow."]
+
+
+def test_find_span_and_context_resolves_multi_anchor_accumulation_probe(tmp_path) -> None:
+    output_dir = tmp_path / "source_output"
+    book_document_path = output_dir / "public" / "book_document.json"
+    book_document_path.parent.mkdir(parents=True, exist_ok=True)
+    book_document_path.write_text(
+        json.dumps(
+            {
+                "chapters": [
+                    {
+                        "id": 1,
+                        "sentences": [
+                            {"sentence_id": "c1-s1", "text": "Earlier setup."},
+                            {"sentence_id": "c1-s2", "text": "Early claim."},
+                        ],
+                    },
+                    {
+                        "id": 2,
+                        "sentences": [
+                            {"sentence_id": "c2-s1", "text": "Late answer."},
+                            {"sentence_id": "c2-s2", "text": "Aftermath."},
+                        ],
+                    },
+                ]
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    case = {
+        "case_id": "multi_anchor_probe",
+        "source_id": "demo_source",
+        "excerpt_text": "EARLY (1): Early claim.\nLATE (2): Late answer.",
+        "anchor_refs": [
+            {
+                "stage": "early",
+                "chapter_id": "1",
+                "start_sentence_id": "c1-s2",
+                "end_sentence_id": "c1-s2",
+                "excerpt_text": "Early claim.",
+            },
+            {
+                "stage": "late",
+                "chapter_id": "2",
+                "start_sentence_id": "c2-s1",
+                "end_sentence_id": "c2-s1",
+                "excerpt_text": "Late answer.",
+            },
+        ],
+    }
+    source_index = {
+        "demo_source": {
+            "source_id": "demo_source",
+            "output_dir": str(output_dir.relative_to(tmp_path)),
+        }
+    }
+
+    original_root = audit.ROOT
+    audit.ROOT = tmp_path
+    try:
+        span_info, context = audit.find_span_and_context(case, source_index)
+    finally:
+        audit.ROOT = original_root
+
+    assert span_info["excerpt_text_reconstructed"] == "EARLY (1): Early claim.\nLATE (2): Late answer."
+    assert len(span_info["anchor_span_resolutions"]) == 2
+    assert context["lookback_sentences"] == ["Earlier setup."]
+    assert context["excerpt_sentences"] == ["Early claim.", "Late answer."]
+    assert context["lookahead_sentences"] == ["Aftermath."]
 
 
 def test_normalize_excerpt_text_for_compare_collapses_formatting_only_differences() -> None:

@@ -7,12 +7,12 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-04T15:20:52Z`
+Last verified: `2026-04-05T00:21:30Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
-  - rerun the formal judged local excerpt evaluation on the human-notes-guided excerpt freeze under a quota-safe provider posture because the first full judged run ended as a harness failure rather than usable mechanism evidence
-  - repair the bounded long-span accumulation benchmark instead of launching judged accumulation comparison prematurely, because the rebuilt first-review pass still found `0` benchmark-ready keeps
+  - keep the judged local excerpt rerun active on the human-notes-guided excerpt freeze under the new personal-only live target posture, because the first full judged run ended as a harness failure rather than usable mechanism evidence
+  - keep the bounded long-span repair lane active and rerun first review on the repaired `9`-probe draft instead of launching judged accumulation comparison prematurely
   - preserve the recorded `Path A` gate outcome and the completed clustered benchmark freeze as still-useful evidence
   - keep durable-trace / re-entry and runtime viability paused on cost grounds
 - Keep dataset work tightly scoped to the new long-span need:
@@ -53,10 +53,17 @@ Last verified: `2026-04-04T15:20:52Z`
           - treat this as a quota/harness failure, not as mechanism evidence for either `attentional_v2` or `iterator_v1`
           - the judged local excerpt lane still needs one valid rerun before it can support selective mechanism decisions
         - current next gate:
-          - relaunch the judged excerpt lane under a quota-safe posture:
-            - keep one heavy process per key
-            - avoid a full notes-guided judged run on the current highspeed wait budget alone
-            - use a safer target / wait-budget policy before drawing mechanism conclusions
+          - relaunch the judged excerpt lane under a quota-safe posture on the retained personal key only
+    - active judged rerun:
+      - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
+        - purpose:
+          - rerun the formal judged local excerpt comparison on the full human-notes-guided excerpt surface under `MiniMax-M2.7-personal`
+        - live shape:
+          - `target-slice both`
+          - `judge-mode llm`
+          - `case-workers 2`
+        - current interpretation:
+          - this is the decisive local rerun; do not draw mechanism conclusions until this lane finishes with real judged cases or an explicit harness failure
   - `long-span / window`
     - primary target:
       - `reader_character.coherent_accumulation`
@@ -75,7 +82,7 @@ Last verified: `2026-04-04T15:20:52Z`
         - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v1_draft.json`
       - current local dataset artifacts:
         - `6` final window rows in the rebuilt v1 draft
-        - `18` rebuilt draft probes on the rejudged final window set
+        - `9` repaired draft probes on the retained final window set
       - rebuilt final v1 windows:
         - `supremacy_private_en__13`
         - `steve_jobs_private_en__17`
@@ -124,20 +131,30 @@ Last verified: `2026-04-04T15:20:52Z`
           - repair the probe contract and chapter/span metadata first
           - do not freeze the reviewed probes yet
           - do not launch judged accumulation comparison yet
+    - active repaired first review:
+      - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
+        - purpose:
+          - rerun first review on the repaired `9`-probe long-span draft under `MiniMax-M2.7-personal`
+        - live shape:
+          - `selection_mode = first_review`
+          - `--audit-max-workers 2 --review-max-workers 1`
+        - current interpretation:
+          - this lane is testing whether the repaired probe contract can finally produce nonzero benchmark-ready keeps; judged accumulation comparison remains blocked until that answer is known
 - `coherent_accumulation` is now interpreted operationally as bounded long-span continuity and carryover rather than generic whole-book memory.
 - `insight_and_clarification` is treated as an orthogonal output-value axis that can score both local excerpt cases and long-span window cases.
 - Excerpt and long-span datasets may intentionally use different books or chapters when that improves fit and runtime efficiency.
 - Current immediate eval gate:
   - the local excerpt smoke has already passed its harness gate
   - the first full judged notes-guided local excerpt comparison has now been interpreted as invalid due to provider quota cooldown / wait-budget exhaustion
-  - the next local excerpt move is a quota-safe rerun, not mechanism interpretation
+  - the current local excerpt move is the active personal-key judged rerun, not mechanism interpretation yet
 - Current long-span construction gate:
   - keep the rebuilt final window set
-  - repair the probe selection/materialization contract and span metadata on that window set
-  - only rerun long-span first review after those repairs; judged accumulation comparison stays blocked until at least some probes become benchmark-ready keeps
+  - use the repaired `9`-probe draft on that window set
+  - keep long-span first review running on the repaired draft; judged accumulation comparison stays blocked until at least some probes become benchmark-ready keeps
 - Background-job registry state:
-  - `reading-companion-backend/state/job_registry/active_jobs.md` is now empty again
-  - there are no currently registered active background jobs
+  - `reading-companion-backend/state/job_registry/active_jobs.md` currently lists two active background jobs:
+    - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
+    - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
   - `OD-PRIVATE-LIBRARY-POST-RESCUE-GATE = keep_hold_for_backlog_rescue`
@@ -324,7 +341,7 @@ Last verified: `2026-04-04T15:20:52Z`
       - ZH `7 keep`, `1 unclear`
     - operator posture retained:
       - all completed reserve/primary review waves still used serial packet workers
-      - launches may continue to distribute across `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` when one uniform reviewer surface is not required
+      - current live local posture is now `MiniMax-M2.7-personal` only
 - The older formal benchmark-v1 freeze remains historical evidence only:
   - historical manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_formal_benchmark_v1_draft.json`
@@ -385,18 +402,14 @@ Last verified: `2026-04-04T15:20:52Z`
   - operator lessons retained from that older lane:
     - explicit `LLM_FORCE_TARGET_ID` is still the process-level selector when we want deterministic routing
     - because `LLM_FORCE_TARGET_ID` is process-wide and cached in-process, retargeting requires a fresh launch rather than editing config mid-run
-  - the earlier highspeed membership bug is fixed locally:
-    - `reading-companion-backend/config/llm_targets.local.json` now raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
-    - `reading-companion-backend/config/llm_profile_bindings.local.json` keeps `MiniMax-M2.7-personal` as the default primary tier and now allows explicit `MiniMax-M2.7-highspeed` forcing for:
-      - `runtime_reader_default`
-      - `dataset_review_high_trust`
-      - `eval_judge_high_trust`
-    - current operator policy after the later clarification is:
-      - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
-      - future review/eval launches may therefore use both together for throughput
-      - only keep a single forced target when we deliberately want one fully uniform reviewer surface
-- There is currently one active background job in the registry:
-  - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404`
+  - the current local LLM posture is now:
+    - `reading-companion-backend/config/llm_targets.local.json` contains only `MiniMax-M2.7-personal`
+    - target-level concurrency is `4 / 4 / 4 / 1`
+    - `reading-companion-backend/config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` only to `MiniMax-M2.7-personal`
+    - current operator policy is to allow exactly two heavy processes on that one personal key during this phase, while keeping intra-process execution conservative
+- There are currently two active background jobs in the registry:
+  - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
+  - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
 - the most recent completed clustered benchmark jobs are:
     - `bgjob_clustered_benchmark_v1_first_review_en_20260403`
     - `bgjob_clustered_benchmark_v1_first_review_zh_20260403`
@@ -1640,9 +1653,9 @@ Last verified: `2026-04-04T15:20:52Z`
 - Pre-fix parallel comparison artifacts can misassign case-to-output mappings, so partial outputs from the earlier round-3 reruns must be sanity-checked before they are treated as evidence.
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
-- The current clustered first-review jobs intentionally still route through one MiniMax personal target only because they were already launched that way before the later operator clarification.
+- The current live local posture is intentionally `MiniMax-M2.7-personal` only.
 - The frozen clustered benchmark no longer depends on unresolved review work, but it remains pressure-imbalanced (`distinction_definition = 1`, `tension_reversal = 28`, `callback_bridge = 6`, `anchored_reaction_selectivity = 5`) and short by one reserve.
-- Future launches may use both `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` together when more throughput helps, because the current operator assumption is that they are equivalent `M2.7` targets with different speed only.
+- Current heavy-job policy is: at most two concurrent heavy processes total, both intentionally pinned to `MiniMax-M2.7-personal`.
 - When one future run needs a deliberately uniform reviewer surface, keep forcing one concrete target for that run.
 - Judged rerun parent logs can look sparse while case workers are still making progress, so future health checks should look at per-case runtime files and local LLM traces rather than only the top-level job log.
 - The completed detached two-case rerun used `--judge-mode none`, so its `tie: 2` aggregate can be mistaken for a real comparison result unless we keep the placeholder nature explicit.

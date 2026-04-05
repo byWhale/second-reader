@@ -38,6 +38,7 @@ from src.iterator_reader.llm_utils import (
 )
 from src.reading_runtime.job_concurrency import resolve_worker_policy, submit_inherited_context
 from src.reading_runtime.llm_registry import DEFAULT_DATASET_REVIEW_PROFILE_ID
+from src.reading_runtime.provisioning import ensure_canonical_parse
 
 from .case_audit_runs import (
     AGGREGATE_FILE,
@@ -208,12 +209,15 @@ def load_source_index(dataset_manifest: dict[str, Any]) -> dict[str, dict[str, A
         if not path.exists():
             continue
         payload = load_json(path)
-        books = payload.get("books", [])
-        if not isinstance(books, list):
-            continue
-        for item in books:
-            if isinstance(item, dict) and item.get("source_id"):
-                sources[str(item["source_id"])] = dict(item)
+        for key in ("books", "source_refs"):
+            entries = payload.get(key, [])
+            if not isinstance(entries, list):
+                continue
+            for item in entries:
+                if isinstance(item, dict) and item.get("source_id"):
+                    source_id = str(item["source_id"])
+                    existing = sources.get(source_id, {})
+                    sources[source_id] = {**existing, **dict(item)}
     return sources
 
 
@@ -328,13 +332,151 @@ def audit_run_input_fingerprint(case_input_fingerprints: dict[str, str]) -> str:
     )
 
 
+def _chapter_sentence_index(book_document: dict[str, Any]) -> dict[int, tuple[list[dict[str, Any]], dict[str, int]]]:
+    index: dict[int, tuple[list[dict[str, Any]], dict[str, int]]] = {}
+    for chapter in book_document.get("chapters", []):
+        if not isinstance(chapter, dict):
+            continue
+        chapter_id = int(chapter.get("id", 0) or 0)
+        if chapter_id <= 0:
+            continue
+        sentences = [item for item in chapter.get("sentences", []) if isinstance(item, dict)]
+        by_id = {str(sentence.get("sentence_id", "")): idx for idx, sentence in enumerate(sentences)}
+        index[chapter_id] = (sentences, by_id)
+    return index
+
+
+def _resolve_span_from_ids(
+    *,
+    case_id: str,
+    chapter_index: dict[int, tuple[list[dict[str, Any]], dict[str, int]]],
+    chapter_id: int,
+    start_sentence_id: str,
+    end_sentence_id: str,
+) -> tuple[list[dict[str, Any]], int, int]:
+    chapter_payload = chapter_index.get(chapter_id)
+    if chapter_payload is None:
+        raise ValueError(f"Chapter missing for {case_id}")
+    sentences, by_id = chapter_payload
+    if start_sentence_id not in by_id or end_sentence_id not in by_id:
+        raise ValueError(f"Sentence ids missing for {case_id}")
+    start = by_id[start_sentence_id]
+    end = by_id[end_sentence_id]
+    return sentences[start : end + 1], start, end
+
+
+def _find_multi_anchor_span_and_context(
+    case: dict[str, Any],
+    *,
+    output_dir: Path,
+    book_document_path: Path,
+    book_document: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    anchor_refs = [dict(item) for item in (case.get("anchor_refs") or []) if isinstance(item, dict)]
+    if not anchor_refs:
+        raise ValueError(f"Missing anchor_refs for {case.get('case_id')}")
+    chapter_index = _chapter_sentence_index(book_document)
+    excerpt_lines: list[str] = []
+    excerpt_sentences: list[str] = []
+    anchor_span_resolutions: list[dict[str, Any]] = []
+    first_span_context: tuple[list[dict[str, Any]], int] | None = None
+    last_span_context: tuple[list[dict[str, Any]], int] | None = None
+    for anchor in anchor_refs:
+        stage = str(anchor.get("stage", "")).strip().upper() or "MID"
+        chapter_id = int(anchor["chapter_id"])
+        start_sentence_id = str(anchor["start_sentence_id"])
+        end_sentence_id = str(anchor["end_sentence_id"])
+        excerpt_rows, start, end = _resolve_span_from_ids(
+            case_id=str(case.get("case_id", "")),
+            chapter_index=chapter_index,
+            chapter_id=chapter_id,
+            start_sentence_id=start_sentence_id,
+            end_sentence_id=end_sentence_id,
+        )
+        excerpt_text = render_excerpt_sentences(str(sentence.get("text", "")).strip() for sentence in excerpt_rows)
+        excerpt_lines.append(f"{stage} ({chapter_id}): {excerpt_text}")
+        excerpt_sentences.extend(str(sentence.get("text", "")).strip() for sentence in excerpt_rows)
+        anchor_span_resolutions.append(
+            {
+                "stage": stage.lower(),
+                "anchor_kind": str(anchor.get("anchor_kind", "")).strip(),
+                "source_ref_id": str(anchor.get("source_ref_id", "")).strip(),
+                "chapter_id": chapter_id,
+                "start_sentence_id": start_sentence_id,
+                "end_sentence_id": end_sentence_id,
+                "excerpt_text_reconstructed": excerpt_text,
+                "expected_anchor_excerpt_text": str(anchor.get("excerpt_text", "")).strip(),
+            }
+        )
+        sentences, _ = chapter_index[chapter_id]
+        if first_span_context is None:
+            first_span_context = (sentences, start)
+        last_span_context = (sentences, end)
+    lookback_sentences: list[str] = []
+    if first_span_context is not None:
+        sentences, start = first_span_context
+        lookback_sentences = [str(item.get("text", "")).strip() for item in sentences[max(0, start - 2) : start]]
+    lookahead_sentences: list[str] = []
+    if last_span_context is not None:
+        sentences, end = last_span_context
+        lookahead_sentences = [str(item.get("text", "")).strip() for item in sentences[end + 1 : end + 3]]
+    return (
+        {
+            "source_id": case.get("source_id"),
+            "output_dir": str(output_dir),
+            "book_document_path": str(book_document_path),
+            "excerpt_text_reconstructed": "\n".join(excerpt_lines),
+            "expected_excerpt_text": str(case.get("excerpt_text", "")).strip(),
+            "prior_context_sentence_ids": [
+                str(sentence_id).strip()
+                for sentence_id in (case.get("prior_context_sentence_ids") or [])
+                if str(sentence_id).strip()
+            ],
+            "anchor_span_resolutions": anchor_span_resolutions,
+        },
+        {
+            "lookback_sentences": lookback_sentences,
+            "excerpt_sentences": excerpt_sentences,
+            "lookahead_sentences": lookahead_sentences,
+        },
+    )
+
+
+def _book_document_for_source(source: dict[str, Any]) -> tuple[Path, Path, dict[str, Any]]:
+    output_dir_value = str(source.get("output_dir", "")).strip()
+    if output_dir_value:
+        output_dir = (ROOT / output_dir_value).resolve()
+        book_document_path = output_dir / "public" / "book_document.json"
+        if book_document_path.exists():
+            return output_dir, book_document_path, load_json(book_document_path)
+    relative_local_path = str(source.get("relative_local_path", "")).strip()
+    if relative_local_path:
+        book_path = (ROOT / relative_local_path).resolve()
+        if not book_path.exists():
+            raise FileNotFoundError(book_path)
+        language_mode = str(source.get("output_language") or source.get("language") or "auto").strip() or "auto"
+        provisioned = ensure_canonical_parse(book_path, language_mode=language_mode)
+        book_document = provisioned.book_document
+        if not isinstance(book_document, dict):
+            raise ValueError(f"Missing canonical book document for {book_path}")
+        output_dir = Path(provisioned.output_dir).resolve()
+        book_document_path = output_dir / "public" / "book_document.json"
+        return output_dir, book_document_path, book_document
+    raise KeyError("output_dir")
+
+
 def find_span_and_context(case: dict[str, Any], source_index: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any]]:
     source = source_index.get(str(case.get("source_id", "")))
     if not source:
         raise ValueError(f"Missing source metadata for {case.get('case_id')}")
-    output_dir = ROOT / str(source["output_dir"])
-    book_document_path = output_dir / "public" / "book_document.json"
-    book_document = load_json(book_document_path)
+    output_dir, book_document_path, book_document = _book_document_for_source(source)
+    if case.get("anchor_refs"):
+        return _find_multi_anchor_span_and_context(
+            case,
+            output_dir=output_dir,
+            book_document_path=book_document_path,
+            book_document=book_document,
+        )
     chapter_id = int(case["chapter_id"])
     start_sentence_id = str(case["start_sentence_id"])
     end_sentence_id = str(case["end_sentence_id"])
@@ -398,13 +540,36 @@ def factual_audit(case: dict[str, Any], source_index: dict[str, dict[str, Any]])
             "ok": False,
             "issues": [f"span_resolution_error:{exc}"],
         }
-    excerpt_text = span_info["expected_excerpt_text"]
-    reconstructed = span_info["excerpt_text_reconstructed"]
-    normalized_expected = normalize_excerpt_text_for_compare(excerpt_text)
-    normalized_reconstructed = normalize_excerpt_text_for_compare(reconstructed)
     issues: list[str] = []
-    if normalized_expected != normalized_reconstructed:
-        issues.append("excerpt_text_mismatch")
+    anchor_span_resolutions = [
+        dict(item)
+        for item in list(span_info.get("anchor_span_resolutions") or [])
+        if isinstance(item, dict)
+    ]
+    if anchor_span_resolutions:
+        has_excerpt_anchor_mismatch = False
+        for resolution in anchor_span_resolutions:
+            expected_anchor = normalize_excerpt_text_for_compare(resolution.get("expected_anchor_excerpt_text", ""))
+            reconstructed_anchor = normalize_excerpt_text_for_compare(resolution.get("excerpt_text_reconstructed", ""))
+            if expected_anchor == reconstructed_anchor:
+                continue
+            if str(resolution.get("anchor_kind", "")).strip() == "note_entry":
+                continue
+            has_excerpt_anchor_mismatch = True
+            break
+        if has_excerpt_anchor_mismatch:
+            issues.append("excerpt_text_mismatch")
+        normalized_expected = normalize_excerpt_text_for_compare(case.get("excerpt_text", ""))
+        normalized_reconstructed = normalize_excerpt_text_for_compare(span_info["excerpt_text_reconstructed"])
+    else:
+        excerpt_text = span_info["expected_excerpt_text"]
+        reconstructed = span_info["excerpt_text_reconstructed"]
+        normalized_expected = normalize_excerpt_text_for_compare(excerpt_text)
+        normalized_reconstructed = normalize_excerpt_text_for_compare(reconstructed)
+        if normalized_expected != normalized_reconstructed:
+            issues.append("excerpt_text_mismatch")
+        excerpt_text = str(excerpt_text)
+    excerpt_text = str(case.get("excerpt_text", "")).strip()
     lowered = excerpt_text.lower()
     if any(marker in lowered for marker in BOILERPLATE_MARKERS):
         issues.append("boilerplate_marker_present")

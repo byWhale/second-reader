@@ -126,19 +126,15 @@ Update when: status changes, blockers appear, or phases complete.
     - `LLM_FORCE_TARGET_ID` is the authoritative per-process selector
     - because that override is process-wide, one job cannot split mechanism calls and judge calls across different targets inside the same Python process
     - already running jobs do not pick up later config or env changes; retargeting requires a fresh launch
-    - local operator config is now aligned with that plan:
-      - `config/llm_targets.local.json` raises both MiniMax targets to target-level concurrency `2 / 2 / 2 / 1`
-      - `config/llm_profile_bindings.local.json` keeps `MiniMax-M2.7-personal` as the default primary tier and adds `MiniMax-M2.7-highspeed` as an allowed backup tier for `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust`
-    - this membership fix matters:
-      - the first highspeed chapter target-split retry failed immediately with `LLMRegistryError: Profile runtime_reader_default does not define target MiniMax-M2.7-highspeed.`
-      - after the backup-tier fix, explicit highspeed forcing now works through the project gateway
-    - current operator policy after the later clarification is:
-      - treat `MiniMax-M2.7-personal` and `MiniMax-M2.7-highspeed` as equivalent `M2.7` targets whose main difference is speed
-      - future review/eval launches may therefore distribute work across both targets for throughput
-      - only force one concrete target when one run intentionally needs a single uniform reviewer surface
+    - local operator config is now aligned with the current personal-only posture:
+      - `config/llm_targets.local.json` now contains only `MiniMax-M2.7-personal`
+      - target-level concurrency is `4 / 4 / 4 / 1`
+      - `config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` only to `MiniMax-M2.7-personal`
     - current live launch posture:
-      - keep at most one heavy process per key
-      - the first full notes-guided judged excerpt run also showed that a single heavy `MiniMax-M2.7-highspeed` process can still outrun the current quota wait budget, so one-process-per-key alone is not enough to guarantee a valid full eval
+      - allow exactly two heavy processes total on the same personal key during this phase
+      - keep intra-process execution conservative even after the gateway/profile cap lift:
+        - judged excerpt reruns use serial mechanism execution, serial judge execution, and `--case-workers 2`
+        - long-span repair reviews use `--audit-max-workers 2 --review-max-workers 1`
       - completed retained highspeed smoke:
         - `bgjob_human_notes_excerpt_smoke_light_20260404`
           - run id:
@@ -170,6 +166,19 @@ Update when: status changes, blockers appear, or phases complete.
             - treat the lane as a quota/harness failure rather than as usable mechanism evidence
           - current next gate:
             - rerun the judged local excerpt lane under a quota-safe target / wait-budget posture before drawing mechanism conclusions
+      - active personal-key excerpt rerun:
+        - `bgjob_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
+          - run id:
+            - `attentional_v2_human_notes_guided_excerpt_eval_v1_judged_personal_rerun_20260405`
+          - purpose:
+            - rerun the full human-notes-guided local excerpt judged comparison on `MiniMax-M2.7-personal`
+          - scope:
+            - full `human-notes-guided` excerpt eval manifest
+            - `target-slice both`
+            - `judge-mode llm`
+            - `case-workers 2`
+          - status:
+            - `running`
       - duplicate highspeed excerpt smoke attempts were explicitly retired after they created unnecessary same-key contention:
         - `bgjob_human_notes_guided_excerpt_eval_v1_smoke_20260404`
           - current status:
@@ -230,6 +239,28 @@ Update when: status changes, blockers appear, or phases complete.
             - repair long-span probe framing and chapter/span metadata
             - rerun first review after repair
             - do not freeze probes or launch judged accumulation comparison yet
+      - landed repair before the rerun:
+        - `accumulation_benchmark_v1.py` now rebuilds the draft around `6` windows and `9` repaired probes instead of the previous `18`-probe overreach
+        - `run_case_design_audit.py` now resolves source refs and note-backed anchor spans more faithfully during factual audit
+        - targeted backend tests now pass on the repaired probe/audit contract
+      - active repaired first-review lane:
+        - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
+          - packet id:
+            - `accumulation_benchmark_v1_repair_first_review_20260405`
+          - purpose:
+            - rerun first review on the repaired `9`-probe draft under `MiniMax-M2.7-personal`
+          - scope:
+            - `supremacy_private_en__13__probe_1`
+            - `steve_jobs_private_en__17__probe_1`
+            - `value_of_others_private_en__8_10__probe_1`
+            - `xidaduo_private_zh__13_15__probe_1`
+            - `xidaduo_private_zh__13_15__probe_2`
+            - `huochu_shengming_de_yiyi_private_zh__8__probe_1`
+            - `huochu_shengming_de_yiyi_private_zh__8__probe_2`
+            - `huochu_shengming_de_yiyi_private_zh__13_16__probe_1`
+            - `huochu_shengming_de_yiyi_private_zh__13_16__probe_2`
+          - status:
+            - `running`
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require
