@@ -31,6 +31,8 @@ SMOKE_JOB_IDS = (
     "bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406",
     "bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406",
 )
+JUDGED_RUNTIME_CAP = "4"
+JUDGED_JUDGE_CAP = "2"
 
 
 @dataclass(frozen=True)
@@ -48,29 +50,47 @@ SHARDS = (
     ShardConfig(
         shard_id="shard_a",
         judged_job_id="bgjob_excerpt_surface_v1_1_judged_shard_a_20260406",
-        purpose="Run excerpt surface v1.1 judged shard A in fixed ROI-first order.",
-        next_check_hint="Confirm judged shard A completes all four units in order and emits shard usage plus case outputs.",
-        decision_if_success="If both judged shards complete cleanly, run the explicit judged merge.",
+        purpose="Run excerpt surface v1.1 judged shard A in fixed ROI-first order with moderate per-process caps.",
+        next_check_hint="Confirm judged shard A completes both units and emits shard usage plus case outputs.",
+        decision_if_success="If all judged shards complete cleanly, run the explicit judged merge.",
         decision_if_failure="Inspect judged shard A logs, bundle payloads, and llm_usage before trusting the v1.1 judged lane.",
         unit_keys=(
             "supremacy_private_en__chapter_13",
             "meiguoren_de_xingge_private_zh__chapter_19",
-            "nawaer_baodian_private_zh__chapter_13",
-            "nawaer_baodian_private_zh__chapter_22",
         ),
     ),
     ShardConfig(
         shard_id="shard_b",
         judged_job_id="bgjob_excerpt_surface_v1_1_judged_shard_b_20260406",
-        purpose="Run excerpt surface v1.1 judged shard B in fixed ROI-first order.",
-        next_check_hint="Confirm judged shard B completes all three units in order and emits shard usage plus case outputs.",
-        decision_if_success="If both judged shards complete cleanly, run the explicit judged merge.",
+        purpose="Run excerpt surface v1.1 judged shard B in fixed ROI-first order with moderate per-process caps.",
+        next_check_hint="Confirm judged shard B completes both units and emits shard usage plus case outputs.",
+        decision_if_success="If all judged shards complete cleanly, run the explicit judged merge.",
         decision_if_failure="Inspect judged shard B logs, bundle payloads, and llm_usage before trusting the v1.1 judged lane.",
         unit_keys=(
+            "nawaer_baodian_private_zh__chapter_13",
+            "nawaer_baodian_private_zh__chapter_22",
+        ),
+    ),
+    ShardConfig(
+        shard_id="shard_c",
+        judged_job_id="bgjob_excerpt_surface_v1_1_judged_shard_c_20260406",
+        purpose="Run excerpt surface v1.1 judged shard C in fixed ROI-first order with moderate per-process caps.",
+        next_check_hint="Confirm judged shard C completes both units and emits shard usage plus case outputs.",
+        decision_if_success="If all judged shards complete cleanly, run the explicit judged merge.",
+        decision_if_failure="Inspect judged shard C logs, bundle payloads, and llm_usage before trusting the v1.1 judged lane.",
+        unit_keys=(
             "xidaduo_private_zh__chapter_15",
-            "value_of_others_private_en__chapter_8",
             "huochu_shengming_de_yiyi_private_zh__chapter_8",
         ),
+    ),
+    ShardConfig(
+        shard_id="shard_d",
+        judged_job_id="bgjob_excerpt_surface_v1_1_judged_shard_d_20260406",
+        purpose="Run excerpt surface v1.1 judged shard D in fixed ROI-first order with moderate per-process caps.",
+        next_check_hint="Confirm judged shard D completes the heavy tail unit and emits shard usage plus case outputs.",
+        decision_if_success="If all judged shards complete cleanly, run the explicit judged merge.",
+        decision_if_failure="Inspect judged shard D logs, bundle payloads, and llm_usage before trusting the v1.1 judged lane.",
+        unit_keys=("value_of_others_private_en__chapter_8",),
     ),
 )
 
@@ -186,8 +206,8 @@ def build_judged_launch_args(shard: ShardConfig) -> list[str]:
         shard.decision_if_failure,
         "--",
         "/usr/bin/env",
-        "LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY=8",
-        "LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY=4",
+        f"LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY={JUDGED_RUNTIME_CAP}",
+        f"LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY={JUDGED_JUDGE_CAP}",
         "./.venv/bin/python",
         "eval/attentional_v2/run_excerpt_comparison.py",
         "--formal-manifest",

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-06T01:45:55Z`
+Last updated: `2026-04-06T03:03:42Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-06T01:45:55Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with `attentional_v2` still winning the slice after reader calls dropped from `733` to `85`, so the next step is to resume `excerpt surface v1.1` and the broader excerpt-surface optimization while keeping one narrow mechanism follow-up on exact anchor coverage
+- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with `attentional_v2` still winning the slice after reader calls dropped from `733` to `85`, so the next step is to resume `excerpt surface v1.1` under a re-sharded `4`-way judged launch that improves pooled dual-key utilization while keeping one narrow mechanism follow-up on exact anchor coverage
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -61,11 +61,12 @@ Last updated: `2026-04-06T01:45:55Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md`
-- Next: the approved narrow chapter-22 fill repair has now been tried and stayed `revise`, so v1.1 is fixed with an explicit `5`-case exception on `nawaer_baodian_private_zh__22`; the smoke shards are running and the follow-on orchestrator is now waiting to run smoke merge, launch the judged shards with `--skip-existing`, and finish the judged merge automatically
+- Next: the approved narrow chapter-22 fill repair has now been tried and stayed `revise`, so v1.1 is fixed with an explicit `5`-case exception on `nawaer_baodian_private_zh__22`; smoke shard A is already complete, smoke shard B is still finishing the `value_of_others` tail, and the re-sharded follow-on orchestrator is now running so it can launch `4` judged shards with `--skip-existing` and moderate per-process caps instead of the original `2`-shard fanout
 - Jobs:
-  - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406` (`completed`)
   - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406` (`running`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406` (`abandoned`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406` (`running`)
 
 ## Parked
 

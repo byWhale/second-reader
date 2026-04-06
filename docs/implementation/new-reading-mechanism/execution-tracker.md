@@ -240,10 +240,25 @@ Update when: status changes, blockers appear, or phases complete.
             - `value_of_others_private_en__8`
             - `huochu_shengming_de_yiyi_private_zh__8`
         - a follow-on orchestration job is now also active:
-          - wait for both smoke shards
+          - wait for smoke shard B to finish after shard A's clean completion
           - run the explicit smoke merge
-          - launch the judged v1.1 shards with `--skip-existing`
+          - launch the judged v1.1 lane in `4` shards with `--skip-existing`
           - finish with the explicit judged merge
+        - judged v1.1 ownership is now re-sharded to raise pooled-target scope fanout while keeping each process moderate:
+          - shard A:
+            - `supremacy_private_en__13`
+            - `meiguoren_de_xingge_private_zh__19`
+          - shard B:
+            - `nawaer_baodian_private_zh__13`
+            - `nawaer_baodian_private_zh__22`
+          - shard C:
+            - `xidaduo_private_zh__15`
+            - `huochu_shengming_de_yiyi_private_zh__8`
+          - shard D:
+            - `value_of_others_private_en__8`
+          - judged per-process caps:
+            - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 4`
+            - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 2`
     - the explicit ROI-first excerpt micro-slice draft is now landed as the default fast-iteration harness:
       - draft doc:
         - `docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md`

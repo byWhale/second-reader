@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-06T01:45:55Z",
+  "updated_at": "2026-04-06T03:03:42Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -285,10 +285,11 @@
       "job_refs": [
         "bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406",
         "bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406",
-        "bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406"
+        "bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406",
+        "bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md",
-      "next_action": "The approved narrow chapter-22 fill repair has now been tried and stayed revise, so v1.1 is fixed with an explicit 5-case exception on nawaer_baodian_private_zh__22; the smoke shards are running and the follow-on orchestrator is now waiting to run smoke merge, launch the judged shards with --skip-existing, and finish the judged merge automatically.",
+      "next_action": "The approved narrow chapter-22 fill repair has now been tried and stayed revise, so v1.1 is fixed with an explicit 5-case exception on nawaer_baodian_private_zh__22; smoke shard A is already complete, smoke shard B is still finishing the value_of_others tail, and the re-sharded follow-on orchestrator is now running so it can launch 4 judged shards with --skip-existing and moderate per-process caps instead of the original 2-shard fanout.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
@@ -309,7 +310,7 @@
         "reading-companion-backend/tests/test_question_aligned_case_construction.py",
         "reading-companion-backend/tests/test_run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-06T00:50:42Z",
+      "last_updated": "2026-04-06T03:03:42Z",
       "last_updated_by": "codex"
     },
     {
@@ -744,7 +745,7 @@
         "bgjob_attentional_v2_excerpt_micro_slice_judged_20260405"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded attentional_v2 throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with attentional_v2 still winning the slice after reader calls dropped from 733 to 85, so the next step is to resume excerpt surface v1.1 and the broader excerpt-surface optimization while keeping one narrow mechanism follow-up on exact anchor coverage.",
+      "next_action": "Treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded attentional_v2 throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with attentional_v2 still winning the slice after reader calls dropped from 733 to 85, so the next step is to resume excerpt surface v1.1 under a re-sharded 4-way judged launch that improves pooled dual-key utilization while keeping one narrow mechanism follow-up on exact anchor coverage.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
@@ -814,7 +815,7 @@
         "reading-companion-backend/eval/attentional_v2/run_chapter_comparison.py",
         "reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py"
       ],
-      "last_updated": "2026-04-05T15:09:05Z",
+      "last_updated": "2026-04-06T03:03:42Z",
       "last_updated_by": "codex"
     },
     {

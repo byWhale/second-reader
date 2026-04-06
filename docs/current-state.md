@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-06T01:45:55Z`
+Last verified: `2026-04-06T03:03:42Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
@@ -160,11 +160,10 @@ Last verified: `2026-04-06T01:45:55Z`
         - keep the chapter anyway as the single explicit `5`-case exception
         - do not widen beyond the approved narrow repair
       - current active jobs:
-        - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406`
         - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-        - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406`
+        - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
       - next gate:
-        - if both smoke shards complete cleanly, the orchestrator should run the smoke merge, launch the judged v1.1 shards with `--skip-existing`, and finish the judged merge automatically
+        - once smoke shard B completes cleanly, the re-sharded orchestrator should run the smoke merge, launch the judged v1.1 lane in `4` shards with `--skip-existing`, and finish the judged merge automatically
     - smoke gate status:
       - `bgjob_human_notes_excerpt_smoke_light_20260404`
         - now `completed`
@@ -474,9 +473,8 @@ Last verified: `2026-04-06T01:45:55Z`
     - confirm the run completes all `5` windows, emits all `7` probe results, and writes `summary/aggregate.json` plus `summary/report.md`
 - Background-job registry state:
   - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows:
-    - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406`
     - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406`
+    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
     - `bgjob_accumulation_benchmark_v1_judged_20260406`
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
@@ -767,9 +765,8 @@ Last verified: `2026-04-06T01:45:55Z`
     - default judged fast-iteration harness while bounded `attentional_v2` throughput repair is underway
 - The prepared next excerpt surface is `excerpt surface v1.1`:
   - current active jobs:
-    - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406`
     - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406`
+    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
   - tracked manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_surface_v1_1_draft.json`
   - local dataset packages:
@@ -807,7 +804,22 @@ Last verified: `2026-04-06T01:45:55Z`
         - `xidaduo_private_zh__15`
         - `value_of_others_private_en__8`
         - `huochu_shengming_de_yiyi_private_zh__8`
-    - judged v1.1 should start only after both smoke shards merge cleanly and can reuse smoke bundles with `--skip-existing`
+    - judged v1.1 should start only after smoke merges cleanly and can reuse smoke bundles with `--skip-existing`
+    - judged v1.1 is now explicitly re-sharded to create more pooled-target scope fanout:
+      - shard A:
+        - `supremacy_private_en__13`
+        - `meiguoren_de_xingge_private_zh__19`
+      - shard B:
+        - `nawaer_baodian_private_zh__13`
+        - `nawaer_baodian_private_zh__22`
+      - shard C:
+        - `xidaduo_private_zh__15`
+        - `huochu_shengming_de_yiyi_private_zh__8`
+      - shard D:
+        - `value_of_others_private_en__8`
+      - judged per-process caps:
+        - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 4`
+        - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 2`
 - The next bounded dataset lane is the long-span accumulation benchmark v1:
   - namespace:
     - `attentional_v2_accumulation_benchmark_v1`
@@ -850,11 +862,13 @@ Last verified: `2026-04-06T01:45:55Z`
       - `MiniMax-M2.7-personal-2`
     - target-level concurrency is `32 / 12 / 32 / 2` on both targets
     - `reading-companion-backend/config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` to one pooled `primary` tier containing both targets
-    - current operator policy is to allow at most two heavy processes total, both using the pooled tier without `LLM_FORCE_TARGET_ID`, while keeping intra-process execution conservative
+    - current operator policy is:
+      - keep pooled routing without `LLM_FORCE_TARGET_ID`
+      - allow one active long-span judged lane plus a re-sharded excerpt judged lane when the excerpt side can reuse completed smoke bundles
+      - raise scope-level parallelism through more shards, but keep each judged shard on moderate process caps instead of maxing every process independently
 - There are currently active background jobs in the registry:
-  - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406`
   - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406`
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
   - `bgjob_accumulation_benchmark_v1_judged_20260406`
 - the latest completed long-span support job is:
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
@@ -2139,9 +2153,8 @@ Last verified: `2026-04-06T01:45:55Z`
 - `TASK-EXCERPT-SURFACE-V1.1`
 
 ## Active Job IDs
-- `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406`
 - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-- `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406`
+- `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
 - `bgjob_accumulation_benchmark_v1_judged_20260406`
 
 ## Recommended Reading Path
@@ -2166,7 +2179,7 @@ Last verified: `2026-04-06T01:45:55Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-06T01:45:55Z",
+  "updated_at": "2026-04-06T03:03:42Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL",
@@ -2175,9 +2188,8 @@ Last verified: `2026-04-06T01:45:55Z`
   ],
   "blocked_task_ids": [],
   "active_job_ids": [
-    "bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406",
     "bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406",
-    "bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406",
+    "bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406",
     "bgjob_accumulation_benchmark_v1_judged_20260406"
   ],
   "open_decision_ids": [
