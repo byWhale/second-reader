@@ -138,6 +138,7 @@ _PROFILE_GATES: dict[tuple[str, str, int], "_DynamicProfileGate"] = {}
 _PROVIDER_CONTROLLERS: dict[str, "_AdaptiveProviderController"] = {}
 _TIER_DISPATCHERS: dict[tuple[str, str], "_TierDispatchController"] = {}
 _QUOTA_STATE_VERSION = 1
+_TIER_DISPATCH_STATE_VERSION = 1
 
 
 @dataclass(frozen=True)
@@ -166,6 +167,11 @@ def _utc_now() -> str:
 
 def _clean_text(value: object) -> str:
     return str(value or "").strip()
+
+
+def _state_key_fragment(value: object) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", _clean_text(value))
+    return cleaned.strip("._-") or "default"
 
 
 def _prompt_hash(text: str) -> str:
@@ -487,12 +493,24 @@ def _quota_state_dir() -> Path:
     return get_backend_runtime_root() / "state" / "llm_gateway" / "providers"
 
 
+def _tier_dispatch_state_dir() -> Path:
+    return get_backend_runtime_root() / "state" / "llm_gateway" / "tier_dispatch"
+
+
 def _quota_state_path(provider: LLMProviderConfig) -> Path:
     return _quota_state_dir() / f"{provider.provider_id}.json"
 
 
+def _tier_dispatch_state_path(profile_id: str, tier_id: str) -> Path:
+    return _tier_dispatch_state_dir() / f"{_state_key_fragment(profile_id)}__{_state_key_fragment(tier_id)}.json"
+
+
 def _quota_lock_path(provider: LLMProviderConfig) -> Path:
     return _quota_state_dir() / f"{provider.provider_id}.lock"
+
+
+def _tier_dispatch_lock_path(profile_id: str, tier_id: str) -> Path:
+    return _tier_dispatch_state_dir() / f"{_state_key_fragment(profile_id)}__{_state_key_fragment(tier_id)}.lock"
 
 
 @contextlib.contextmanager
@@ -509,9 +527,63 @@ def _quota_state_lock(provider: LLMProviderConfig) -> Any:
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 
+@contextlib.contextmanager
+def _tier_dispatch_state_lock(profile_id: str, tier_id: str) -> Any:
+    lock_path = _tier_dispatch_lock_path(profile_id, tier_id)
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a+", encoding="utf-8") as handle:
+        if fcntl is not None:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
 def _clear_quota_state_locked(provider: LLMProviderConfig) -> None:
     with contextlib.suppress(FileNotFoundError):
         _quota_state_path(provider).unlink()
+
+
+def _read_tier_dispatch_next_index_locked(profile_id: str, tier_id: str) -> int | None:
+    path = _tier_dispatch_state_path(profile_id, tier_id)
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        with contextlib.suppress(OSError):
+            path.unlink()
+        return None
+    if not isinstance(payload, dict):
+        with contextlib.suppress(OSError):
+            path.unlink()
+        return None
+    try:
+        next_index = int(payload.get("next_index", 0) or 0)
+    except (TypeError, ValueError):
+        with contextlib.suppress(OSError):
+            path.unlink()
+        return None
+    return max(0, next_index)
+
+
+def _write_tier_dispatch_next_index_locked(profile_id: str, tier_id: str, next_index: int) -> None:
+    path = _tier_dispatch_state_path(profile_id, tier_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    payload = {
+        "version": _TIER_DISPATCH_STATE_VERSION,
+        "profile_id": profile_id,
+        "tier_id": tier_id,
+        "next_index": max(0, int(next_index)),
+        "updated_at_epoch": now,
+        "updated_at": datetime.fromtimestamp(now, timezone.utc).isoformat().replace("+00:00", "Z"),
+    }
+    temp_path = path.with_suffix(".tmp")
+    temp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    temp_path.replace(path)
 
 
 def _read_quota_state_locked(provider: LLMProviderConfig) -> _QuotaCooldownState | None:
@@ -801,7 +873,9 @@ class _DynamicProfileGate:
 class _TierDispatchController:
     """Coordinate reservations across same-tier targets for one profile."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, profile_id: str, tier_id: str) -> None:
+        self.profile_id = profile_id
+        self.tier_id = tier_id
         self._condition = threading.Condition()
         self._reservations: dict[str, int] = {}
         self._next_index = 0
@@ -811,6 +885,10 @@ class _TierDispatchController:
             return target_ids
         with self._condition:
             start = self._next_index % len(target_ids)
+        with _tier_dispatch_state_lock(self.profile_id, self.tier_id):
+            shared_start = _read_tier_dispatch_next_index_locked(self.profile_id, self.tier_id)
+        if shared_start is not None:
+            start = shared_start % len(target_ids)
         return target_ids[start:] + target_ids[:start]
 
     def reserve_target(
@@ -824,15 +902,27 @@ class _TierDispatchController:
             return None
         with self._condition:
             while True:
-                start = self._next_index % len(target_ids)
-                for offset in range(len(target_ids)):
-                    target_id = target_ids[(start + offset) % len(target_ids)]
-                    stable_limit = max(0, int(stable_limit_for(target_id)))
-                    reserved_count = self._reservations.get(target_id, 0)
-                    if stable_limit > reserved_count:
-                        self._reservations[target_id] = reserved_count + 1
-                        self._next_index = (start + offset + 1) % len(target_ids)
-                        return target_id
+                with _tier_dispatch_state_lock(self.profile_id, self.tier_id):
+                    shared_start = _read_tier_dispatch_next_index_locked(self.profile_id, self.tier_id)
+                    start = (
+                        shared_start % len(target_ids)
+                        if shared_start is not None
+                        else self._next_index % len(target_ids)
+                    )
+                    for offset in range(len(target_ids)):
+                        target_id = target_ids[(start + offset) % len(target_ids)]
+                        stable_limit = max(0, int(stable_limit_for(target_id)))
+                        reserved_count = self._reservations.get(target_id, 0)
+                        if stable_limit > reserved_count:
+                            self._reservations[target_id] = reserved_count + 1
+                            next_index = (start + offset + 1) % len(target_ids)
+                            self._next_index = next_index
+                            _write_tier_dispatch_next_index_locked(
+                                self.profile_id,
+                                self.tier_id,
+                                next_index,
+                            )
+                            return target_id
                 if not should_wait():
                     return None
                 self._condition.wait(timeout=0.25)
@@ -947,7 +1037,7 @@ def _tier_dispatch_controller_for(profile_id: str, tier_id: str) -> _TierDispatc
     with _SEMAPHORES_LOCK:
         controller = _TIER_DISPATCHERS.get(key)
         if controller is None:
-            controller = _TierDispatchController()
+            controller = _TierDispatchController(profile_id=profile_id, tier_id=tier_id)
             _TIER_DISPATCHERS[key] = controller
         return controller
 
@@ -1562,6 +1652,13 @@ def clear_llm_gateway_runtime_state() -> None:
                 path.unlink()
         with contextlib.suppress(OSError):
             quota_dir.rmdir()
+    tier_dispatch_dir = _tier_dispatch_state_dir()
+    if tier_dispatch_dir.exists():
+        for path in tier_dispatch_dir.glob("*"):
+            with contextlib.suppress(OSError):
+                path.unlink()
+        with contextlib.suppress(OSError):
+            tier_dispatch_dir.rmdir()
 
 
 def _write_standard_trace(

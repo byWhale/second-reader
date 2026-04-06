@@ -2064,6 +2064,41 @@ def test_pooled_primary_target_bindings_compile_into_dual_target_pool(monkeypatc
         assert profile.default_burst_concurrency == 2
 
 
+def test_pooled_primary_target_rotation_persists_across_runtime_restarts(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    from src.reading_runtime import llm_gateway as llm_gateway_module
+
+    monkeypatch.setenv("BACKEND_RUNTIME_ROOT", str(tmp_path))
+    _set_targets_and_bindings(
+        monkeypatch,
+        targets=_two_minimax_targets(),
+        bindings=_pooled_primary_bindings(["MiniMax-M2.7-highspeed", "MiniMax-M2.7"]),
+    )
+    adapter = _RecordingAdapter(response_content='{"ok": true}')
+    monkeypatch.setitem(CONTRACT_ADAPTERS, "anthropic", adapter)
+
+    selected_targets: list[str] = []
+    for _ in range(3):
+        with llm_invocation_scope(profile_id=DEFAULT_RUNTIME_PROFILE_ID):
+            scope = current_llm_scope()
+            assert scope is not None
+            selected_targets.append(scope.pinned_target_id or "")
+            invoke_json("system", "user", {})
+        with llm_gateway_module._SEMAPHORES_LOCK:
+            llm_gateway_module._PROFILE_GATES.clear()
+            llm_gateway_module._PROVIDER_CONTROLLERS.clear()
+            llm_gateway_module._TIER_DISPATCHERS.clear()
+
+    assert selected_targets == [
+        "MiniMax-M2.7-highspeed",
+        "MiniMax-M2.7",
+        "MiniMax-M2.7-highspeed",
+    ]
+    assert [call["provider_id"] for call in adapter.calls] == selected_targets
+
+
 def test_scope_pins_one_target_and_nested_scopes_inherit_it(monkeypatch: pytest.MonkeyPatch):
     _set_targets_and_bindings(
         monkeypatch,

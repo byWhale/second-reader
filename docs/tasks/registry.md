@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-06T03:03:42Z`
+Last updated: `2026-04-06T06:52:30Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-06T03:03:42Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with `attentional_v2` still winning the slice after reader calls dropped from `733` to `85`, so the next step is to resume `excerpt surface v1.1` under a re-sharded `4`-way judged launch that improves pooled dual-key utilization while keeping one narrow mechanism follow-up on exact anchor coverage
+- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with `attentional_v2` still winning the slice after reader calls dropped from `733` to `85`, so the active next move is the live `excerpt surface v1.1` unit-ready promotion posture: smoke shard B and smoke merge are already complete, judged `shard_b` and `shard_c` are already complete, judged `shard_a` and `shard_d` are still running, the long-span judged lane is still running in parallel, and a future-only gateway fix is now landed so new pooled-target launches share a cross-process tier cursor instead of each process starting from target index `0`
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -43,6 +43,12 @@ Last updated: `2026-04-06T03:03:42Z`
   - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405` (`completed`)
   - `bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405` (`completed`)
   - `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_b_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_c_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`running`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`
@@ -61,12 +67,19 @@ Last updated: `2026-04-06T03:03:42Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md`
-- Next: the approved narrow chapter-22 fill repair has now been tried and stayed `revise`, so v1.1 is fixed with an explicit `5`-case exception on `nawaer_baodian_private_zh__22`; smoke shard A is already complete, smoke shard B is still finishing the `value_of_others` tail, and the re-sharded follow-on orchestrator is now running so it can launch `4` judged shards with `--skip-existing` and moderate per-process caps instead of the original `2`-shard fanout
+- Next: the approved narrow chapter-22 fill repair has now been tried and stayed `revise`, so v1.1 is fixed with an explicit `5`-case exception on `nawaer_baodian_private_zh__22`; smoke shard A and smoke shard B are already complete, the smoke merge has already emitted, judged `shard_b` and judged `shard_c` are already complete, judged `shard_a` and judged `shard_d` are now the remaining active judged lanes, and `supremacy_private_en__13` is still being repaired in place on the smoke side after a transient `iterator_v1` `network_blocked` `500 / 520` failure while the judged shard backfills any still-missing reusable work under `--skip-existing`
 - Jobs:
   - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406` (`completed`)
   - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406` (`abandoned`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406` (`abandoned`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_20260406` (`failed`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_b_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_c_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`running`)
 
 ## Parked
 

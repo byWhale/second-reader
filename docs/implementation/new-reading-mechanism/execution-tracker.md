@@ -240,10 +240,10 @@ Update when: status changes, blockers appear, or phases complete.
             - `value_of_others_private_en__8`
             - `huochu_shengming_de_yiyi_private_zh__8`
         - a follow-on orchestration job is now also active:
-          - wait for smoke shard B to finish after shard A's clean completion
-          - run the explicit smoke merge
-          - launch the judged v1.1 lane in `4` shards with `--skip-existing`
-          - finish with the explicit judged merge
+          - smoke merge still waits for both smoke jobs to complete cleanly
+          - judged promotion now happens by chapter-unit readiness instead of waiting for full-surface smoke completion
+          - one judged shard starts as soon as all of its owned chapter units already have reusable successful bundles from smoke
+          - final judged merge still waits for all judged shards to complete cleanly
         - judged v1.1 ownership is now re-sharded to raise pooled-target scope fanout while keeping each process moderate:
           - shard A:
             - `supremacy_private_en__13`
@@ -259,6 +259,14 @@ Update when: status changes, blockers appear, or phases complete.
           - judged per-process caps:
             - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 4`
             - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 2`
+        - current live posture on `2026-04-06`:
+          - `smoke shard B` is completed and the smoke merge is already written
+          - the old wait-for-full-smoke orchestrator was replaced
+          - the first unit-ready orchestrator attempt did launch judged `shard_b` and `shard_c`, but then failed on a detached-job registry-materialization race
+          - the active retry now hardens that path by waiting briefly for newly launched judged job records to appear before refreshing judged status
+          - judged `shard_b` and `shard_c` are now completed
+          - judged `shard_a` and judged `shard_d` are the remaining active excerpt judged lanes
+          - `supremacy_private_en__13` still has a dedicated smoke-side recovery job for the missing reusable `iterator_v1` bundle, but judged `shard_a` is also backfilling any remaining missing work under `--skip-existing`
     - the explicit ROI-first excerpt micro-slice draft is now landed as the default fast-iteration harness:
       - draft doc:
         - `docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md`
@@ -311,6 +319,11 @@ Update when: status changes, blockers appear, or phases complete.
     - do not set `LLM_FORCE_TARGET_ID` for new heavy local excerpt recovery/eval commands unless we intentionally need deterministic one-target isolation
     - because target selection is now handled at the pooled primary tier, equal-split routing plus quota-cooldown hard failover should happen inside the shared gateway rather than in the launcher command
     - already running jobs do not pick up later config or env changes; retargeting still requires a fresh launch
+    - a future-only pooled-tier dispatch repair is now landed in the gateway:
+      - the remaining heavy skew after the dual-target config was not caused by bad local bindings; it came from each Python process starting its in-memory pooled-tier cursor at index `0`, then scope pinning keeping a long reading scope on that first chosen target
+      - `src/reading_runtime/llm_gateway.py` now persists a shared pooled-tier `next_index` cursor under `BACKEND_RUNTIME_ROOT/state/llm_gateway/tier_dispatch/`, so future sibling processes rotate across `MiniMax-M2.7-personal` and `MiniMax-M2.7-personal-2` instead of all beginning from the same target
+      - the targeted regression coverage is now in `tests/test_llm_gateway.py`
+      - current in-flight excerpt/accumulation jobs were launched before that repair and can therefore remain visibly skewed until a fresh launch
     - local operator config is now aligned with the current dual-personal pooled posture:
       - `config/llm_targets.local.json` contains:
         - `MiniMax-M2.7-personal`

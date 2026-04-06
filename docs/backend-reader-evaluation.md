@@ -204,6 +204,17 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the judge stage should consume only completed bundles, preserve per-case or per-probe failure isolation, and allow `skip-existing` resume behavior
   - the merge stage should be the only stage that writes the final aggregate/report outputs
   - shard ownership should stay explicit so two processes never write the same `(unit, mechanism)` or final summary concurrently
+- On the excerpt surface, smoke health and judged promotion should now be separated.
+  - smoke still proves runner health and reusable bundle production
+  - smoke merge still waits for all smoke jobs to finish successfully
+  - but smoke is no longer a whole-surface gate before any judged work can start
+- The minimum safe judged ownership unit on the excerpt surface remains the chapter unit, not the case.
+  - one chapter's cases should stay owned by one judged shard so bundle reuse, parse reuse, and case-output paths stay collision-free
+- One excerpt chapter unit is ready for judged promotion only when every requested mechanism already has a reusable successful bundle for that unit.
+  - failed placeholders, missing bundle sidecars, or structurally incomplete bundles do not count as ready
+  - if a completed bundle can be recovered from an existing unit payload or normalized export, materialize that canonical bundle sidecar first and then treat the unit as ready
+- Once every chapter unit owned by one judged shard is ready, that judged shard may launch immediately even if other smoke shards are still running.
+  - judged merge still waits for all judged shards to finish successfully
 - Offline comparison runs should emit lightweight LLM-usage summaries in addition to product-judgment outputs.
   - minimum useful fields include request counts, retries, approximate RPM, inflight estimates, gate-wait time, quota-wait time, and shard/profile/mechanism breakdowns
   - this observability exists to diagnose software bottlenecks and launch posture, not to become a new benchmark target

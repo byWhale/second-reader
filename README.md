@@ -72,6 +72,8 @@ Recommended local LLM setup:
     - each scope chooses one concrete target up front and stays pinned to it for the full runtime, dataset-review, or evaluation scope
     - when one tier lists multiple `target_ids`, that tier acts as a same-priority dispatch pool rather than a strict first-success fallback chain
     - within one pooled tier, new sibling scopes may fan out across different targets, but each scope still pins one concrete target for its full lifetime
+    - sibling Python processes now share a pooled-tier dispatch cursor under `BACKEND_RUNTIME_ROOT/state/llm_gateway/tier_dispatch/`, so future launches do not all restart from the first target in the tier
+    - already-running scopes are not rebalanced mid-flight; if you want a live job to pick up new pooled-routing behavior, relaunch that job
   - this is the file where you choose which target tier policy each profile uses and any profile-level overrides such as `temperature`, `max_output_tokens`, `retry_attempts`, `max_concurrency`, `quota_retry_attempts`, and `quota_wait_budget_seconds`
 
 Recommended tiered binding shape:

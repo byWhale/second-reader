@@ -659,6 +659,35 @@ def test_existing_bundle_payload_recovers_completed_unit_payload_and_materialize
     assert recovered_path.exists()
 
 
+def test_excerpt_unit_is_ready_for_judging_requires_both_completed_bundles(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "ready_bundles"
+    unit_payload = _unit_result("source_a", 1)
+    _write_json(
+        run_root / "shards" / "alpha" / "bundles" / "attentional_v2" / "source_a__chapter_1.json",
+        unit_payload["mechanisms"]["attentional_v2"],
+    )
+    _write_json(
+        run_root / "shards" / "alpha" / "bundles" / "iterator_v1" / "source_a__chapter_1.json",
+        unit_payload["mechanisms"]["iterator_v1"],
+    )
+
+    assert excerpt_comparison.excerpt_unit_is_ready_for_judging(run_root, unit_key="source_a__chapter_1")
+
+
+def test_excerpt_unit_is_ready_for_judging_rejects_failed_placeholder(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "ready_failed_placeholder"
+    unit_payload = _unit_result("source_a", 1)
+    failed_iterator = {
+        **unit_payload["mechanisms"]["iterator_v1"],
+        "status": "failed",
+        "error": "provider_timeout",
+    }
+    _write_json(run_root / "shards" / "alpha" / "bundles" / "attentional_v2" / "source_a__chapter_1.json", unit_payload["mechanisms"]["attentional_v2"])
+    _write_json(run_root / "shards" / "alpha" / "bundles" / "iterator_v1" / "source_a__chapter_1.json", failed_iterator)
+
+    assert not excerpt_comparison.excerpt_unit_is_ready_for_judging(run_root, unit_key="source_a__chapter_1")
+
+
 def test_existing_bundle_payload_recovers_from_export_when_sidecar_is_missing(tmp_path: Path) -> None:
     run_root = tmp_path / "runs" / "recover_export_bundle"
     output_dir = run_root / "shards" / "alpha" / "outputs" / "source_a__chapter_1" / "attentional_v2"
@@ -701,6 +730,16 @@ def test_existing_bundle_payload_recovers_from_export_when_sidecar_is_missing(tm
     assert recovered_path.exists()
     assert payload["status"] == "completed"
     assert payload["mechanism_key"] == "attentional_v2"
+
+
+def test_excerpt_unit_is_ready_for_judging_recovers_missing_sidecars(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "ready_recover_sidecars"
+    unit_payload = _unit_result("source_a", 1)
+    _write_json(run_root / "shards" / "alpha" / "units" / "source_a__chapter_1.json", unit_payload)
+
+    assert excerpt_comparison.excerpt_unit_is_ready_for_judging(run_root, unit_key="source_a__chapter_1")
+    assert (run_root / "shards" / "alpha" / "bundles" / "attentional_v2" / "source_a__chapter_1.json").exists()
+    assert (run_root / "shards" / "alpha" / "bundles" / "iterator_v1" / "source_a__chapter_1.json").exists()
 
 
 def test_skip_existing_and_merge_stage_reuse_prior_case_outputs(monkeypatch, tmp_path: Path) -> None:

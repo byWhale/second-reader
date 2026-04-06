@@ -1389,3 +1389,34 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `docs/tasks/registry.md`
 - `docs/tasks/registry.json`
 - `docs/implementation/new-reading-mechanism/execution-tracker.md`
+
+## Entry 50
+**ID**: DEC-053
+**Status**: active
+
+**Decision / Inflection**: On `excerpt surface v1.1`, stop treating full-surface smoke completion as the gate before any judged work can start; instead promote judged shards by chapter-unit readiness while keeping smoke merge and judged final merge as their own later synchronization points.
+
+**Period**: April 6, 2026, after the ROI-first micro-slice throughput repair had already cleared its bounded gate and the project returned to the broader excerpt surface, but the remaining heavy smoke tail (`value_of_others`) was still delaying time-to-first-judged-result unnecessarily.
+
+**Problem**: The staged/sharded runner could already reuse successful bundles across shard boundaries, but the excerpt orchestrator still behaved as if smoke were one whole-surface lock. That meant one heavy tail chapter in `smoke shard B` could delay every judged shard, even when several other chapter units already had reusable two-mechanism bundles on disk. This created avoidable latency without adding any real evaluation safety, because the safe ownership unit was already the chapter, not the whole surface.
+
+**Alternatives considered**: Keep waiting for all smoke shards before any judged launch, split judged ownership down to case level for even earlier start, or kill the heavy smoke shard and restart it under a different order.
+
+**Why this path won**: Chapter-unit readiness preserves the existing safe ownership boundary and reuses the staged runner as designed. It gives earlier judged evidence without introducing case-level write collisions or reopening dataset content decisions. Keeping smoke merge and judged merge as later explicit barriers preserves report integrity while allowing the judged lane to start paying off sooner. The later hardening to wait briefly for detached judged job records was a bounded operational fix that supported the same design rather than changing it.
+
+**What changed in the system**: `run_excerpt_comparison.py` now exposes a reusable internal readiness helper that treats a chapter unit as judged-ready only when every requested mechanism already has a reusable successful bundle, including recovery/materialization from existing unit payloads or normalized exports when possible. `scripts/orchestrate_excerpt_surface_v1_1_eval.py` now polls smoke-job status and chapter readiness separately, launches only the judged shards whose owned chapter units are ready, keeps `value_of_others` isolated as its own heavy-tail shard, delays smoke merge until both smoke jobs succeed, and delays judged final merge until all judged shards succeed. The first live unit-ready orchestrator attempt successfully launched judged `shard_b` and `shard_c` while `smoke shard B` was still running, then exposed a detached-job registry-materialization race; the active retry now waits briefly for newly launched judged job records before refreshing judged status.
+
+**Why it matters later**: Future contributors could otherwise see judged `shard_b` and `shard_c` running before smoke finished, plus a failed first unit-ready orchestrator attempt, and misread the situation as ad hoc operator improvisation. This entry preserves the intended rule: chapter-unit readiness is now the stable excerpt promotion boundary, whole-surface smoke is not, and launch-race hardening is an implementation detail in service of that rule.
+
+**Primary evidence**:
+- `reading-companion-backend/eval/attentional_v2/run_excerpt_comparison.py`
+- `reading-companion-backend/scripts/orchestrate_excerpt_surface_v1_1_eval.py`
+- `reading-companion-backend/tests/test_run_excerpt_comparison.py`
+- `reading-companion-backend/tests/test_excerpt_surface_v1_1_orchestrator.py`
+- `reading-companion-backend/state/job_registry/logs/bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_20260406.log`
+- `reading-companion-backend/state/job_registry/logs/bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406.log`
+- `docs/backend-reader-evaluation.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/execution-tracker.md`

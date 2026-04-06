@@ -859,6 +859,19 @@ def _existing_bundle_payload(run_root: Path, *, unit_key: str, mechanism_key: st
     return None
 
 
+def excerpt_unit_is_ready_for_judging(
+    run_root: Path,
+    *,
+    unit_key: str,
+    mechanism_filter: str = "both",
+) -> bool:
+    for mechanism_key in _mechanism_keys_for_filter(mechanism_filter):
+        existing = _existing_bundle_payload(run_root, unit_key=unit_key, mechanism_key=mechanism_key)
+        if existing is None or not _reusable_completed_bundle_payload(existing[1]):
+            return False
+    return True
+
+
 def _judgment_reason(payload: dict[str, Any], *, target_name: str) -> str:
     target_payload = dict((payload.get("target_results") or {}).get(target_name) or {})
     judgment = dict(target_payload.get("judgment") or {})

@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-06T03:03:42Z`
+Last verified: `2026-04-06T06:52:30Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
@@ -160,10 +160,18 @@ Last verified: `2026-04-06T03:03:42Z`
         - keep the chapter anyway as the single explicit `5`-case exception
         - do not widen beyond the approved narrow repair
       - current active jobs:
-        - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-        - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
+        - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
+        - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
+        - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
+        - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
       - next gate:
-        - once smoke shard B completes cleanly, the re-sharded orchestrator should run the smoke merge, launch the judged v1.1 lane in `4` shards with `--skip-existing`, and finish the judged merge automatically
+        - smoke shard B completed successfully and the smoke merge already emitted `summary/aggregate.json` plus `summary/report.md`
+        - judged `shard_b` and judged `shard_c` already completed successfully
+        - the hardened unit-ready orchestrator has already launched judged `shard_a` and judged `shard_d`
+        - `supremacy_private_en__13` originally failed in smoke only on the `iterator_v1` side with a transient `network_blocked` `500 / 520` provider error on segment `13.11`; the recovery smoke job is still materializing that missing reusable bundle in place
+        - judged `shard_a` is now running anyway and is backfilling the remaining missing `supremacy` work under `--skip-existing`, while already reusing the finished `meiguoren` work
+        - judged `shard_d` is still on the heavy-tail `value_of_others_private_en__8` read, so it has not emitted case judgments yet
+        - judged merge now waits primarily for `shard_a` and `shard_d` to finish cleanly
     - smoke gate status:
       - `bgjob_human_notes_excerpt_smoke_light_20260404`
         - now `completed`
@@ -473,8 +481,10 @@ Last verified: `2026-04-06T03:03:42Z`
     - confirm the run completes all `5` windows, emits all `7` probe results, and writes `summary/aggregate.json` plus `summary/report.md`
 - Background-job registry state:
   - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows:
-    - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
+    - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
+    - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
+    - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
+    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
     - `bgjob_accumulation_benchmark_v1_judged_20260406`
 - The post-recovery gate review is now closed on `Path A`.
 - Recorded gate outcomes:
@@ -765,8 +775,10 @@ Last verified: `2026-04-06T03:03:42Z`
     - default judged fast-iteration harness while bounded `attentional_v2` throughput repair is underway
 - The prepared next excerpt surface is `excerpt surface v1.1`:
   - current active jobs:
-    - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
+    - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
+    - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
+    - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
+    - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
   - tracked manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_surface_v1_1_draft.json`
   - local dataset packages:
@@ -804,7 +816,9 @@ Last verified: `2026-04-06T03:03:42Z`
         - `xidaduo_private_zh__15`
         - `value_of_others_private_en__8`
         - `huochu_shengming_de_yiyi_private_zh__8`
-    - judged v1.1 should start only after smoke merges cleanly and can reuse smoke bundles with `--skip-existing`
+    - judged v1.1 now promotes by chapter-unit readiness instead of waiting for full-surface smoke completion
+    - one chapter unit is ready only when both mechanisms already have reusable successful bundles
+    - smoke merge still waits for both smoke jobs to finish cleanly, and judged merge still waits for all judged shards to finish
     - judged v1.1 is now explicitly re-sharded to create more pooled-target scope fanout:
       - shard A:
         - `supremacy_private_en__13`
@@ -847,7 +861,7 @@ Last verified: `2026-04-06T03:03:42Z`
     - `shoe_dog_private_en` is the first preferred wider-book reserve if active v1 still needs a stronger extra English long-span source after the rebuilt review closes
   - current next gate:
     - do not reopen a broad repair wave
-    - keep judged accumulation comparison queued until the excerpt v1.1 smoke / judged chain settles
+    - keep the already-running judged accumulation comparison on the honest-short five-window draft and verify that it emits the merged `aggregate/report` outputs cleanly
 - The older broad formal benchmark remains preserved as historical operator evidence:
   - the `40 / 40` gap-fill closeout itself is still recorded in repo artifacts
   - the later formal decisive chapter and excerpt reruns were deliberately abandoned on `2026-04-03T13:00:09Z` after the active benchmark pointer moved to clustered benchmark v1:
@@ -862,13 +876,17 @@ Last verified: `2026-04-06T03:03:42Z`
       - `MiniMax-M2.7-personal-2`
     - target-level concurrency is `32 / 12 / 32 / 2` on both targets
     - `reading-companion-backend/config/llm_profile_bindings.local.json` binds `runtime_reader_default`, `dataset_review_high_trust`, and `eval_judge_high_trust` to one pooled `primary` tier containing both targets
+    - the gateway now persists a shared pooled-tier `next_index` cursor under `BACKEND_RUNTIME_ROOT/state/llm_gateway/tier_dispatch/`, so future sibling Python processes do not all restart from target index `0`
+    - because each long reading scope still pins one concrete target for its lifetime, already-running jobs launched before that repair can remain visibly skewed until they are relaunched
     - current operator policy is:
       - keep pooled routing without `LLM_FORCE_TARGET_ID`
       - allow one active long-span judged lane plus a re-sharded excerpt judged lane when the excerpt side can reuse completed smoke bundles
       - raise scope-level parallelism through more shards, but keep each judged shard on moderate process caps instead of maxing every process independently
 - There are currently active background jobs in the registry:
-  - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
+  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
+  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
+  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
   - `bgjob_accumulation_benchmark_v1_judged_20260406`
 - the latest completed long-span support job is:
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405`
@@ -2120,6 +2138,7 @@ Last verified: `2026-04-06T03:03:42Z`
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
 - The current live local posture is intentionally a pooled primary tier of `MiniMax-M2.7-personal` plus `MiniMax-M2.7-personal-2`.
+- The shared cross-process pooled-tier dispatch fix is now landed for future launches, but today's still-running excerpt/accumulation jobs were launched before that code was loaded, so their uneven `by_target` usage is expected until those processes end or are relaunched.
 - `excerpt surface v1.1` is not yet promotion-ready because `nawaer_baodian_private_zh__22` remains at `5` selected cases, below the floor `6`.
 - The new v1.1 reuse pass showed that `value_of_others_private_en__8` only supports `8` real unique-span cases after duplicate-control pruning, so older apparent `14`-row density numbers should no longer be used for ROI estimates.
 - The frozen clustered benchmark no longer depends on unresolved review work, but it remains pressure-imbalanced (`distinction_definition = 1`, `tension_reversal = 28`, `callback_bridge = 6`, `anchored_reaction_selectivity = 5`) and short by one reserve.
@@ -2153,8 +2172,10 @@ Last verified: `2026-04-06T03:03:42Z`
 - `TASK-EXCERPT-SURFACE-V1.1`
 
 ## Active Job IDs
-- `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406`
-- `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406`
+- `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
+- `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
+- `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
+- `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
 - `bgjob_accumulation_benchmark_v1_judged_20260406`
 
 ## Recommended Reading Path
@@ -2179,7 +2200,7 @@ Last verified: `2026-04-06T03:03:42Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-06T03:03:42Z",
+  "updated_at": "2026-04-06T06:52:30Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL",
@@ -2188,8 +2209,10 @@ Last verified: `2026-04-06T03:03:42Z`
   ],
   "blocked_task_ids": [],
   "active_job_ids": [
-    "bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406",
-    "bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406",
+    "bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406",
+    "bgjob_excerpt_surface_v1_1_judged_shard_a_20260406",
+    "bgjob_excerpt_surface_v1_1_judged_shard_d_20260406",
+    "bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406",
     "bgjob_accumulation_benchmark_v1_judged_20260406"
   ],
   "open_decision_ids": [
