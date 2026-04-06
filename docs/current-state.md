@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-06T06:52:30Z`
+Last verified: `2026-04-06T11:41:52Z`
 
 ## Current Objective
 - Keep Phase 9 on the mainline under the new split-surface evaluation strategy:
@@ -17,8 +17,14 @@ Last verified: `2026-04-06T06:52:30Z`
     - the bounded `attentional_v2` throughput repair is now landed
     - the `judge-mode none` smoke on that slice completed cleanly with material call reduction
     - the judged micro-slice rerun on the same two-unit slice is now also completed and serves as the first clean bounded proof that the repair lowered call volume without an obvious judged-quality collapse
-  - keep `excerpt surface v1.1` as the now-finalized next excerpt surface, with a documented `5`-case exception on `nawaer_baodian_private_zh__22` after the approved narrow-fill repair stayed `revise`
-  - use `excerpt surface v1.1` as the active next excerpt lane after the completed micro-slice gate while keeping one narrow mechanism follow-up on exact target-anchor coverage in `xidaduo`-style local cases
+  - keep `excerpt surface v1.1` as the completed formal excerpt evidence lane:
+    - the surface is fixed with a documented `5`-case exception on `nawaer_baodian_private_zh__22` after the approved narrow-fill repair stayed `revise`
+    - the formal judged run `attentional_v2_excerpt_surface_v1_1_judged_20260406` is now complete and is the first clean excerpt-level formal judged eval
+    - top-line result:
+      - `selective_legibility`: `attentional_v2 = 27`, `iterator_v1 = 21`, `tie = 11`, average `1.98` vs `1.427`
+      - `insight_and_clarification`: `attentional_v2 = 19`, `iterator_v1 = 16`, `tie = 8`, average `2.2` vs `1.688`
+    - machine outputs plus the new human interpretation report are now archived as the durable excerpt evidence bundle
+    - keep one narrow later mechanism follow-up on exact target-anchor coverage in `xidaduo`-style local cases, but do not treat excerpt as the active running lane anymore
   - treat the repaired long-span first review as completed support evidence and keep the now-landed honest-short long-span freeze as the active accumulation benchmark draft:
     - `huochu_shengming_de_yiyi_private_zh__8` and its `2` revise probes are now removed from the active mainline
     - the remaining long-span v1 draft is intentionally shorter but cleaner
@@ -37,7 +43,10 @@ Last verified: `2026-04-06T06:52:30Z`
       - `reader_character.selective_legibility`
       - local `reader_value.insight_and_clarification`
     - current judged surface:
-      - the completed human-notes-guided excerpt reviewed freeze
+      - the completed `excerpt surface v1.1` formal run:
+        - `attentional_v2_excerpt_surface_v1_1_judged_20260406`
+    - predecessor/base surface:
+      - the completed human-notes-guided excerpt reviewed freeze remains the upstream source line that fed the retuned v1.1 surface
     - default ROI-first micro-slice draft:
       - `attentional_v2_excerpt_micro_slice_v1_draft`
       - fixed roster:
@@ -159,19 +168,27 @@ Last verified: `2026-04-06T06:52:30Z`
         - `nawaer_baodian_private_zh__22` remains at `5`
         - keep the chapter anyway as the single explicit `5`-case exception
         - do not widen beyond the approved narrow repair
-      - current active jobs:
-        - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
-        - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
-        - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
-        - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
-      - next gate:
-        - smoke shard B completed successfully and the smoke merge already emitted `summary/aggregate.json` plus `summary/report.md`
-        - judged `shard_b` and judged `shard_c` already completed successfully
-        - the hardened unit-ready orchestrator has already launched judged `shard_a` and judged `shard_d`
-        - `supremacy_private_en__13` originally failed in smoke only on the `iterator_v1` side with a transient `network_blocked` `500 / 520` provider error on segment `13.11`; the recovery smoke job is still materializing that missing reusable bundle in place
-        - judged `shard_a` is now running anyway and is backfilling the remaining missing `supremacy` work under `--skip-existing`, while already reusing the finished `meiguoren` work
-        - judged `shard_d` is still on the heavy-tail `value_of_others_private_en__8` read, so it has not emitted case judgments yet
-        - judged merge now waits primarily for `shard_a` and `shard_d` to finish cleanly
+      - completed formal judged run:
+        - run id:
+          - `attentional_v2_excerpt_surface_v1_1_judged_20260406`
+        - completed excerpt jobs:
+          - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
+          - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
+          - `bgjob_excerpt_surface_v1_1_judged_shard_b_20260406`
+          - `bgjob_excerpt_surface_v1_1_judged_shard_c_20260406`
+          - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
+          - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
+        - outputs:
+          - `summary/aggregate.json`, `summary/report.md`, and `summary/llm_usage.json` all emitted under the shared run root
+        - top-line result:
+          - `selective_legibility`: `59` cases, `attentional_v2 = 27`, `iterator_v1 = 21`, `tie = 11`, average `1.98` vs `1.427`
+          - `insight_and_clarification`: `43` cases, `attentional_v2 = 19`, `iterator_v1 = 16`, `tie = 8`, average `2.2` vs `1.688`
+        - interpretation evidence:
+          - `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
+        - carry-forward interpretation:
+          - `attentional_v2` won the first complete excerpt-level formal judged eval without `judge_unavailable` or `mechanism_failure`
+          - the main remaining excerpt mechanism issue is now narrow local-anchor carrythrough, not broad throughput collapse
+          - the main remaining excerpt dataset issue is later ROI retune, not rerunning the just-completed v1.1 lane
     - smoke gate status:
       - `bgjob_human_notes_excerpt_smoke_light_20260404`
         - now `completed`
@@ -2138,8 +2155,8 @@ Last verified: `2026-04-06T06:52:30Z`
 - Malformed-JSON handling in the reading path can still terminate a bounded rerun after substantial partial output has already been written.
 - Launching `run_registered_job.py` from a transient agent shell without the detached launcher can leave long-running jobs looking `abandoned` even when the wrapped command itself never raised a Python traceback.
 - The current live local posture is intentionally a pooled primary tier of `MiniMax-M2.7-personal` plus `MiniMax-M2.7-personal-2`.
-- The shared cross-process pooled-tier dispatch fix is now landed for future launches, but today's still-running excerpt/accumulation jobs were launched before that code was loaded, so their uneven `by_target` usage is expected until those processes end or are relaunched.
-- `excerpt surface v1.1` is not yet promotion-ready because `nawaer_baodian_private_zh__22` remains at `5` selected cases, below the floor `6`.
+- The shared cross-process pooled-tier dispatch fix is now landed for future launches, but the still-running judged accumulation job was launched before that code was loaded, so uneven `by_target` usage can remain visible there until it ends or is relaunched.
+- `excerpt surface v1.1` now has one explicit documented `5`-case exception on `nawaer_baodian_private_zh__22`; treat that as a known surface constraint for later ROI retune, not as a blocker on interpreting the completed formal run.
 - The new v1.1 reuse pass showed that `value_of_others_private_en__8` only supports `8` real unique-span cases after duplicate-control pruning, so older apparent `14`-row density numbers should no longer be used for ROI estimates.
 - The frozen clustered benchmark no longer depends on unresolved review work, but it remains pressure-imbalanced (`distinction_definition = 1`, `tension_reversal = 28`, `callback_bridge = 6`, `anchored_reaction_selectivity = 5`) and short by one reserve.
 - Current heavy-job policy is: at most two concurrent heavy processes total, both intentionally routed through the pooled dual-personal tier without `LLM_FORCE_TARGET_ID`.
@@ -2169,13 +2186,8 @@ Last verified: `2026-04-06T06:52:30Z`
 ## Active Task IDs
 - `TASK-PHASE9-DECISIVE-EVAL`
 - `TASK-ACCUMULATION-BENCHMARK-V1`
-- `TASK-EXCERPT-SURFACE-V1.1`
 
 ## Active Job IDs
-- `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406`
-- `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406`
-- `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406`
-- `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406`
 - `bgjob_accumulation_benchmark_v1_judged_20260406`
 
 ## Recommended Reading Path
@@ -2189,30 +2201,27 @@ Last verified: `2026-04-06T06:52:30Z`
 8. `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_micro_slice_v1_draft.json`
 9. `docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md`
 10. `docs/backend-reader-evaluation.md`
-11. `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_surface_v1_1_draft.json`
-12. `reading-companion-backend/state/dataset_build/build_runs/excerpt_surface_v1_1_20260406/excerpt_surface_v1_1_summary.md`
-13. `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
-14. `reading-companion-backend/eval/manifests/splits/attentional_v2_human_notes_guided_excerpt_eval_v1_draft.json`
-15. `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
-16. `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
-17. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+11. `reading-companion-backend/docs/evaluation/excerpt/README.md`
+12. `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
+13. `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_surface_v1_1_draft.json`
+14. `reading-companion-backend/state/dataset_build/build_runs/excerpt_surface_v1_1_20260406/excerpt_surface_v1_1_summary.md`
+15. `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
+16. `reading-companion-backend/eval/manifests/splits/attentional_v2_human_notes_guided_excerpt_eval_v1_draft.json`
+17. `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
+18. `reading-companion-backend/eval/manifests/splits/attentional_v2_clustered_benchmark_v1_draft.json`
+19. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-06T06:52:30Z",
+  "updated_at": "2026-04-06T11:41:52Z",
   "last_updated_by": "codex",
   "active_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL",
-    "TASK-ACCUMULATION-BENCHMARK-V1",
-    "TASK-EXCERPT-SURFACE-V1.1"
+    "TASK-ACCUMULATION-BENCHMARK-V1"
   ],
   "blocked_task_ids": [],
   "active_job_ids": [
-    "bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406",
-    "bgjob_excerpt_surface_v1_1_judged_shard_a_20260406",
-    "bgjob_excerpt_surface_v1_1_judged_shard_d_20260406",
-    "bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406",
     "bgjob_accumulation_benchmark_v1_judged_20260406"
   ],
   "open_decision_ids": [
@@ -2222,6 +2231,8 @@ Last verified: `2026-04-06T06:52:30Z`
     "docs/implementation/new-reading-mechanism/execution-tracker.md",
     "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
     "docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md",
+    "reading-companion-backend/docs/evaluation/excerpt/README.md",
+    "reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md",
     "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
     "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
     "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",

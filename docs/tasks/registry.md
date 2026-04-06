@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-06T06:52:30Z`
+Last updated: `2026-04-06T11:41:52Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-06T06:52:30Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair is now landed and the judged ROI-first micro-slice also completed cleanly, with `attentional_v2` still winning the slice after reader calls dropped from `733` to `85`, so the active next move is the live `excerpt surface v1.1` unit-ready promotion posture: smoke shard B and smoke merge are already complete, judged `shard_b` and `shard_c` are already complete, judged `shard_a` and `shard_d` are still running, the long-span judged lane is still running in parallel, and a future-only gateway fix is now landed so new pooled-target launches share a cross-process tier cursor instead of each process starting from target index `0`
+- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair and judged ROI-first micro-slice remain the mechanism-repair proof, and the formal `excerpt surface v1.1` lane is now also complete with machine aggregate/report plus a human interpretation report. The only still-running mainline lane is the judged long-span accumulation comparison; once it finishes, compare it against the now-complete excerpt evidence bundle and decide whether the next move is a narrow `attentional_v2` local-anchor repair or the larger excerpt-surface ROI retune.
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -43,43 +43,24 @@ Last updated: `2026-04-06T06:52:30Z`
   - `bgjob_human_notes_excerpt_parallel_judged_shard_b_dualpool_recovery_retry3_20260405` (`completed`)
   - `bgjob_attentional_v2_excerpt_micro_slice_smoke_20260405` (`completed`)
   - `bgjob_attentional_v2_excerpt_micro_slice_judged_20260405` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406` (`completed`)
   - `bgjob_excerpt_surface_v1_1_judged_shard_b_20260406` (`completed`)
   - `bgjob_excerpt_surface_v1_1_judged_shard_c_20260406` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`running`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`running`)
-  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`running`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`completed`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `active`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the honest-short freeze as the active long-span draft and use it now: `huochu_shengming_de_yiyi_private_zh__8` and its `2` revise probes are removed from the mainline, leaving `5` active windows and `7` frozen probes; the judged accumulation lane is now running in parallel under pooled local targets with conservative process caps, and the next check is to confirm that it emits the merged `aggregate/report` outputs cleanly
+- Next: keep the honest-short freeze as the active long-span draft and use it now: `huochu_shengming_de_yiyi_private_zh__8` and its `2` revise probes are removed from the mainline, leaving `5` active windows and `7` frozen probes. The judged accumulation lane is now the only active background eval job; the next check is to confirm that it emits the merged `aggregate/report` outputs cleanly and then compare it against the already completed excerpt evidence bundle.
 - Jobs:
   - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405` (`completed`)
   - `bgjob_accumulation_benchmark_v1_judged_20260406` (`running`)
-
-### `TASK-EXCERPT-SURFACE-V1.1` — Retune the next excerpt surface incrementally from the notes-guided freeze
-- Status: `active`
-- Lane: `dataset_platform`
-- Priority: `high`
-- Detail: `docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md`
-- Next: the approved narrow chapter-22 fill repair has now been tried and stayed `revise`, so v1.1 is fixed with an explicit `5`-case exception on `nawaer_baodian_private_zh__22`; smoke shard A and smoke shard B are already complete, the smoke merge has already emitted, judged `shard_b` and judged `shard_c` are already complete, judged `shard_a` and judged `shard_d` are now the remaining active judged lanes, and `supremacy_private_en__13` is still being repaired in place on the smoke side after a transient `iterator_v1` `network_blocked` `500 / 520` failure while the judged shard backfills any still-missing reusable work under `--skip-existing`
-- Jobs:
-  - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406` (`abandoned`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406` (`abandoned`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_20260406` (`failed`)
-  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`running`)
-  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406` (`running`)
-  - `bgjob_excerpt_surface_v1_1_judged_shard_b_20260406` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_judged_shard_c_20260406` (`completed`)
-  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`running`)
-  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`running`)
 
 ## Parked
 
@@ -178,6 +159,25 @@ Last updated: `2026-04-06T06:52:30Z`
 - Next: start only after benchmark direction, runtime viability work, and stable-doc promotion timing are intentionally fixed
 
 ## Done
+
+### `TASK-EXCERPT-SURFACE-V1.1` — Retune the next excerpt surface incrementally from the notes-guided freeze
+- Status: `done`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md`
+- Next: keep `excerpt surface v1.1` frozen with its explicit `5`-case exception on `nawaer_baodian_private_zh__22`; treat the completed formal judged run plus the new interpretation report as the durable excerpt evidence bundle, and start the next excerpt work from narrow `attentional_v2` local-anchor repair plus later ROI retune rather than rerunning this lane.
+- Jobs:
+  - `bgjob_excerpt_surface_v1_1_smoke_shard_a_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_smoke_shard_b_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_20260406` (`abandoned`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_reshard4_20260406` (`abandoned`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_20260406` (`failed`)
+  - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_a_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_b_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_c_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`completed`)
+  - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`completed`)
 
 ### `TASK-DATASET-HUMAN-NOTES-GUIDED-V1` — Land the isolated human-notes-guided dataset line from the 5 linked books
 - Status: `done`

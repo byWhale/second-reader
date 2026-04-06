@@ -698,6 +698,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 ## Artifact Layout
 - Stable methodology belongs in `docs/`.
 - Reviewed, checked-in evaluation reports belong in `reading-companion-backend/docs/evaluation/`.
+- Recurring human interpretation reports for formal judged runs should live under a surface-specific subdirectory such as `reading-companion-backend/docs/evaluation/excerpt/` or a future `reading-companion-backend/docs/evaluation/long_span/`.
+  - each such subdirectory should keep a `README.md` index
+  - each formal per-run interpretation file should follow `<run_id>_interpretation.md`
 - Executable evaluation code belongs in `reading-companion-backend/eval/`.
 - Tracked benchmark datasets belong in `reading-companion-backend/eval/datasets/`.
 - Tracked corpus manifests and local-source reference files belong in `reading-companion-backend/eval/manifests/`.
@@ -776,4 +779,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - rubric used
   - summary conclusion
   - known caveats
+- Formal judged runs that are used as project evidence should also land a human interpretation report in `reading-companion-backend/docs/evaluation/<surface>/`.
+  - the machine run summary under `reading-companion-backend/eval/runs/.../summary/` remains the canonical raw output
+  - the human interpretation report is where we preserve fair-reading caveats, causal explanation, representative cases, and next-step guidance
 - This stable methodology document should not be used as a running benchmark log.

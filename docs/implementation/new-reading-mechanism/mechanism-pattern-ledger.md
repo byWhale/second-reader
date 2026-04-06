@@ -389,6 +389,72 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
   - inspect these exact `xidaduo` misses before the next broad judged rerun
   - prefer a narrow anchor-carrythrough repair inside the existing `zoom_now` / closure flow rather than reopening generic reaction density
 
+### 13. Attentional V2 excerpt-surface strength survives the throughput repair when the pressure is chapter-local and tension-heavy
+- Pattern kind: `strength`
+- Source mechanism: `attentional_v2`
+- Potential destination: preserve as the protected excerpt-reading baseline
+- Why it matters:
+  - The full formal excerpt run shows that the bounded throughput repair did not erase V2's main comparative advantage.
+  - V2 still wins when the case rewards staying with one live chapter-local pressure line instead of only hitting one narrow local phrase.
+- Contributing causes:
+  - the repaired schedule still leaves enough local interpretive depth to track chapter pressure and rhetorical reversal
+  - V2 remains especially effective when the case asks for legible notice plus downstream clarification rather than one brittle pinpoint callback
+- Evidence:
+  - formal excerpt run:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406/summary/aggregate.json`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406/summary/report.md`
+    - `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
+  - strongest chapter/profile evidence:
+    - `huochu_shengming_de_yiyi_private_zh__8`
+    - `nawaer_baodian_private_zh__22`
+    - `anchored_reaction_selectivity`
+    - `tension_reversal`
+- Status: `observed`
+- Next action:
+  - preserve this chapter-local pressure tracking as a design invariant
+  - do not trade it away for a brittle exact-anchor hack that only improves a narrow bucket
+
+### 14. Attentional V2 still loses when the benchmark demands exact late-local anchor carrythrough rather than nearby same-chapter pressure
+- Pattern kind: `failure_mode`
+- Source mechanism: `attentional_v2`
+- Potential destination: narrow local-anchor refinement inside `zoom_now` / closure
+- Why it matters:
+  - The formal excerpt run confirms that V2's remaining local weakness is not generic under-reading but anchor drift.
+  - It can read the right neighborhood, or even the right chapter argument, and still lose because the case is testing one exact local reversal.
+- Contributing causes:
+  - once V2 locks onto a nearby dominant thread, later compressed anchor lines can inherit only partial carrythrough
+  - the repaired schedule's selectivity makes this more visible on philosophical and embodied-paradox passages
+- Evidence:
+  - formal excerpt interpretation cases:
+    - `xidaduo_private_zh__15__tension_reversal__seed_1`
+    - `meiguoren_de_xingge_private_zh__19__tension_reversal__seed_5`
+    - `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
+- Status: `observed`
+- Next action:
+  - keep the next mechanism repair narrow:
+    - improve exact anchor carrythrough on late-local reversals
+    - do not reopen broad reaction-density or throughput work first
+
+### 15. Iterator V1 still retains a narrow local-anchor and small backward-bridge advantage worth selective reuse
+- Pattern kind: `adoption_candidate`
+- Source mechanism: `iterator_v1`
+- Potential destination: `attentional_v2`
+- Why it matters:
+  - The formal excerpt run shows that V1 can still beat V2 when the case rewards exact local placement or a small backward callback.
+  - This is a useful reminder that V2 has not yet subsumed V1's finest-grained local precision.
+- Contributing causes:
+  - V1 is more willing to stay on one tight local hinge instead of widening toward chapter-level thematic explanation
+  - this helps on embodied paradox lines and short callback bridges, even though it can drift into over-association elsewhere
+- Evidence:
+  - formal excerpt interpretation cases:
+    - `xidaduo_private_zh__15__tension_reversal__seed_1`
+    - `nawaer_baodian_private_zh__22__callback_bridge__seed_1`
+    - `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
+- Status: `candidate_for_adoption`
+- Next action:
+  - look for a selective way to preserve V1-style exact local placement and tiny backward-bridge honesty inside V2
+  - do not import V1's external-theory drift or loose associative expansion
+
 ## Current Selective Implementation Queue
 
 ### Priority 0. Reduce `attentional_v2` call amplification before the next broad excerpt judged rerun

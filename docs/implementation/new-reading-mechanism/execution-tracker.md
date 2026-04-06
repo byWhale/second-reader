@@ -229,44 +229,29 @@ Update when: status changes, blockers appear, or phases complete.
         - keep the completed retry3 notes-guided judged rerun archived as evidence only
         - keep `nawaer_baodian_private_zh__22` as the single explicit `5`-case exception
         - do not widen the fill wave or replace the chapter
-        - the v1.1 smoke lane is now active in explicit ROI-first shard order:
-          - shard A:
-            - `supremacy_private_en__13`
-            - `meiguoren_de_xingge_private_zh__19`
-            - `nawaer_baodian_private_zh__13`
-            - `nawaer_baodian_private_zh__22`
-          - shard B:
-            - `xidaduo_private_zh__15`
-            - `value_of_others_private_en__8`
-            - `huochu_shengming_de_yiyi_private_zh__8`
-        - a follow-on orchestration job is now also active:
-          - smoke merge still waits for both smoke jobs to complete cleanly
-          - judged promotion now happens by chapter-unit readiness instead of waiting for full-surface smoke completion
-          - one judged shard starts as soon as all of its owned chapter units already have reusable successful bundles from smoke
-          - final judged merge still waits for all judged shards to complete cleanly
-        - judged v1.1 ownership is now re-sharded to raise pooled-target scope fanout while keeping each process moderate:
-          - shard A:
-            - `supremacy_private_en__13`
-            - `meiguoren_de_xingge_private_zh__19`
-          - shard B:
-            - `nawaer_baodian_private_zh__13`
-            - `nawaer_baodian_private_zh__22`
-          - shard C:
-            - `xidaduo_private_zh__15`
-            - `huochu_shengming_de_yiyi_private_zh__8`
-          - shard D:
-            - `value_of_others_private_en__8`
-          - judged per-process caps:
-            - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 4`
-            - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 2`
-        - current live posture on `2026-04-06`:
-          - `smoke shard B` is completed and the smoke merge is already written
-          - the old wait-for-full-smoke orchestrator was replaced
-          - the first unit-ready orchestrator attempt did launch judged `shard_b` and `shard_c`, but then failed on a detached-job registry-materialization race
-          - the active retry now hardens that path by waiting briefly for newly launched judged job records to appear before refreshing judged status
-          - judged `shard_b` and `shard_c` are now completed
-          - judged `shard_a` and judged `shard_d` are the remaining active excerpt judged lanes
-          - `supremacy_private_en__13` still has a dedicated smoke-side recovery job for the missing reusable `iterator_v1` bundle, but judged `shard_a` is also backfilling any remaining missing work under `--skip-existing`
+        - the explicit ROI-first shard plan and unit-ready promotion path were both exercised successfully:
+          - smoke shard A completed
+          - smoke shard B completed
+          - the dedicated `supremacy_private_en__13` smoke-side recovery job completed
+          - the hardened unit-ready orchestrator retry completed
+          - judged shards A through D all completed
+        - formal judged run:
+          - run id:
+            - `attentional_v2_excerpt_surface_v1_1_judged_20260406`
+          - outputs:
+            - `summary/aggregate.json`
+            - `summary/report.md`
+            - `summary/llm_usage.json`
+          - human interpretation archive:
+            - `reading-companion-backend/docs/evaluation/excerpt/README.md`
+            - `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
+          - top-line result:
+            - `selective_legibility`: `59` cases, `attentional_v2 = 27`, `iterator_v1 = 21`, `tie = 11`, average `1.98` vs `1.427`
+            - `insight_and_clarification`: `43` cases, `attentional_v2 = 19`, `iterator_v1 = 16`, `tie = 8`, average `2.2` vs `1.688`
+        - carry-forward interpretation:
+          - `attentional_v2` won the first complete excerpt-level formal judged eval after the bounded throughput repair
+          - the main remaining excerpt mechanism weakness is narrow local-anchor carrythrough, especially `xidaduo`-style late-local cases
+          - the main remaining excerpt dataset issue is later ROI retune, not rerunning the completed v1.1 lane
     - the explicit ROI-first excerpt micro-slice draft is now landed as the default fast-iteration harness:
       - draft doc:
         - `docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md`
