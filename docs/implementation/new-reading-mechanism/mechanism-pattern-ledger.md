@@ -455,73 +455,84 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
   - look for a selective way to preserve V1-style exact local placement and tiny backward-bridge honesty inside V2
   - do not import V1's external-theory drift or loose associative expansion
 
+### 16. Late low-pressure open meaning units can stay alive and turn a repaired local cycle back into overread
+- Pattern kind: `failure_mode`
+- Source mechanism: `attentional_v2`
+- Potential destination: next narrow stale-unit closure guard inside `zoom_now` / local-cycle control
+- Why it matters:
+  - The second narrow-repair smoke shows that V2 can reintroduce operational drag even after the throughput repair if a late open meaning unit never closes.
+  - This is not just "slow reading"; it is a concrete mechanism failure where the local cycle keeps living on a cooled span that no longer carries strong live pressure.
+- Contributing causes:
+  - cadence / question-mark escalation can keep reopening attention even after `working_pressure` has cooled out
+  - the current local-hinge narrowing is not yet enough when no anchored closure actually lands
+  - once the open span keeps growing, later local cycles become less honest and more expensive at the same time
+- Evidence:
+  - round-2 smoke blocker:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/xidaduo_private_zh__chapter_15/attentional_v2/_mechanisms/attentional_v2/runtime/local_buffer.json`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/xidaduo_private_zh__chapter_15/attentional_v2/_mechanisms/attentional_v2/runtime/trigger_state.json`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/xidaduo_private_zh__chapter_15/attentional_v2/_mechanisms/attentional_v2/runtime/working_pressure.json`
+  - concrete observed state:
+    - `current_sentence_id = c15-s248`
+    - `open_meaning_unit_sentence_ids = c15-s158 .. c15-s248`
+    - open span size `= 91`
+    - `working_pressure.pressure_snapshot` had already cooled out
+- Status: `observed`
+- Next action:
+  - if the narrow repair loop is reopened later, prioritize a deterministic stale-unit close/reset rule before adding more prompt pressure or more local read depth
+
+### 17. Callback-cue widening alone still collapses into chapter-end retrospect unless an explicit earlier target is forced
+- Pattern kind: `failure_mode`
+- Source mechanism: `attentional_v2`
+- Potential destination: next narrow bridge-specificity refinement
+- Why it matters:
+  - The second narrow-repair smoke showed that seeing `前面`-style callback pressure is not the same as producing an honest callback bridge.
+  - Without a concrete earlier source target, the mechanism still tends to satisfy the pressure with a generic retrospective chapter reaction.
+- Contributing causes:
+  - explicit callback-cue routing widened retrieval pressure, but the controller/bridge path still allowed chapter-end retrospect to absorb the case
+  - bridge-specificity is still weaker than the cue-detection path
+- Evidence:
+  - round-2 smoke blocker:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/nawaer_baodian_private_zh__chapter_22/attentional_v2/_mechanisms/attentional_v2/runtime/reaction_records.json`
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/nawaer_baodian_private_zh__chapter_22/attentional_v2/_mechanisms/attentional_v2/runtime/move_history.json`
+  - concrete observed output:
+    - the only visible reaction remained `rx:Chapter_22:c22-s87:retrospect:1`
+- Status: `observed`
+- Next action:
+  - if the repair loop is reopened, require bridge resolution to either name a concrete earlier target or decline explicitly; do not let retrospective chapter summary count as bridge satisfaction
+
 ## Current Selective Implementation Queue
 
-### Priority 0. Reduce `attentional_v2` call amplification before the next broad excerpt judged rerun
+### Priority 0. Prevent late low-pressure open spans from dragging through the chapter tail
 - Why now:
-  - the first bounded throughput repair already proved it can remove most of the extra call volume on the ROI-first micro-slice
-  - the judged micro-slice then showed that this repair does not obviously collapse quality on the same bounded harness
+  - the second narrow-repair smoke failed before judged promotion because `xidaduo` turned into a `91`-sentence stale open span
 - Boundaries:
-  - keep `attentional_v2`'s chapter-scale thematic threading and bounded visible reactions as design invariants
-  - do not "solve" throughput by flattening the mechanism into `iterator_v1`-style free reaction emission
+  - do not solve this by flattening the mechanism into denser always-on local reactions
+  - keep the existing no-LLM watch path, controller fast path, and lazy bridge retrieval as baseline
 - Concrete implementation direction:
-  - keep the landed runtime-schedule repair as baseline:
-    - no-LLM watch path for `monitor` and `no_zoom`
-    - controller fast path for straightforward `advance`
-    - lazy bridge retrieval
-    - tighter `reaction_emission` gate
-  - do not spend the next loop on another broad throughput pass
-  - the next narrow mechanism repair, if any, should target exact target-anchor carrythrough on the remaining `xidaduo`-style misses
-  - revisit chapter-end slow-cycle behavior or `zoom_now` prompt density only if a later broader rerun shows renewed throughput pressure
+  - if a later third round is approved, start with a deterministic stale-unit close/reset rule when:
+    - an open span is already large
+    - working pressure is cool
+    - no anchored hinge, bridge pull, or reframe pressure remains live
+  - do not add more prompt sophistication before that control bug is fixed
 
-### Priority 1. Extend the landed micro-selectivity repair into narrative / reference-heavy English local cases
+### Priority 1. Continue honest callback resolution until bridge specificity is real
 - Why now:
-  - retry-2 already improved the English local split on `women_and_economics_public_en__9` and `on_liberty_public_en__10`
-  - the remaining local losses are now concentrated on `up_from_slavery_public_en__10` and `walden_205_en__10`, where the mechanism still feels too retrospective or too globally correct instead of locally earned
-- Boundaries:
-  - keep gated reaction emission
-  - keep meaning-unit closure as the controlling frame
-  - do not convert `attentional_v2` into a flat multi-reaction stream
+  - `nawaer` still ended round 2 as a chapter-end retrospect instead of a concrete earlier-target callback bridge
 - Concrete implementation direction:
-  - keep the new phrase-level cue stack as baseline rather than reopening the earlier micro-selectivity debate
-  - landed in code on `2026-03-28`:
-    - Phase 4 deterministic local cue packets now include `actor_intention`, `social_pressure`, and `causal_stakes`
-    - short spans may synthesize one bounded local candidate from those cues when the local gate is genuinely open
-    - prompt wording now prefers one grounded local why-now observation or question over broader retrospective restatement
-  - next verification move:
-    - use the completed judged rerun as the repair discriminator:
-      - preserve the `walden_205_en__10` single-axis threading behavior
-      - focus the next narrow repair on `up_from_slavery_public_en__10` chapter presence and early-cue uptake
-  - keep the boundedness rule:
-    - do not add generic reaction density just to make the local layer look busier
+  - if the loop is reopened, force `bridge_resolution` to either:
+    - name a concrete earlier source target and relation
+    - or decline explicitly
+  - do not allow callback pressure to be "satisfied" by thematic retrospect alone
 
-### Priority 2. Preserve chapter-scale thematic threading as a protected invariant
+### Priority 2. Preserve local-anchor carrythrough without benchmark injection
 - Why now:
-  - the same comparison showed this is one of `attentional_v2`'s strongest differentiators in `system_regression`
-  - a local-reading repair that damages this strength would be a bad trade
+  - the original narrow repair target is still real: `xidaduo`-style late-local reversals and `meiguoren`-style definition closure should get closer to the current passage, not just the surrounding chapter argument
 - Concrete implementation direction:
-  - treat chapter-scale accumulation as non-negotiable when testing local-reading improvements
-  - reject any local-reading change that increases surface activity but weakens motif threading, callback carryover, or chapter-arc closure
+  - keep the repair grounded in local text, local state, and nearby backcheck only
+  - reject any future change that depends on benchmark metadata or turns V2 into a sentence-matching solver
 
-### Priority 3. Continue honest callback resolution instead of forced bridging
+### Priority 3. Preserve chapter-scale thematic threading as a protected invariant
 - Why now:
-  - one of the remaining narrow failures still comes from seeing callback pressure without handling missing anchors honestly
+  - the formal excerpt run still shows that chapter-local pressure tracking is one of `attentional_v2`'s strongest real differentiators
 - Concrete implementation direction:
-  - add a stronger explicit outcome for:
-    - callback cue present
-    - honest supporting anchor not available
-  - prefer unresolved-but-honest bridge state over a weak earlier echo
-
-### Priority 4. Deepen distinction / recognition-gap closure without broad redesign
-- Why now:
-  - the repair passes improved distinction handling, but some cases still become shallow rather than fully centered on the recognition gap
-- Concrete implementation direction:
-  - strengthen closure-time prioritization when the local cue packet marks a distinction or recognition gap
-  - keep this as a bounded prompt/controller refinement, not a mechanism rewrite
-
-### Priority 5. Keep target-alignment failure as a hard comparative anti-pattern
-- Why now:
-  - the broader comparison also showed that rich local behavior is worthless when the mechanism drifts off the target chapter
-- Concrete implementation direction:
-  - preserve this as a negative gate in future cross-mechanism evaluation and synthesis
-  - do not adopt any local-reading behavior from another mechanism without checking target-alignment reliability
+  - reject any future repair that improves one brittle exact-anchor bucket by sacrificing motif threading, callback carryover, or chapter-arc closure

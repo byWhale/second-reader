@@ -6,6 +6,7 @@ import json
 
 from src.attentional_v2 import bridge as bridge_module
 from src.attentional_v2.bridge import bridge_resolution, run_phase5_bridge_cycle
+from src.attentional_v2.retrieval import generate_candidate_set
 from src.attentional_v2.schemas import (
     build_default_reader_policy,
     build_empty_anchor_memory,
@@ -82,6 +83,12 @@ def test_bridge_resolution_writes_manifest_and_keeps_search_rare(tmp_path, monke
                 "target_sentence_id": "c1-s1",
                 "relation_type": "contrast",
                 "why_now": "the current line flips the earlier relation",
+                "quote": "Value first appears in relation.",
+            },
+            "primary_attribution": {
+                "target_quote": "Value first appears in relation.",
+                "current_quote": "Now the relation begins to invert.",
+                "relation_explanation": "The current line inverts the earlier relation frame instead of merely repeating it.",
             },
             "supporting_bridges": [
                 {
@@ -137,10 +144,92 @@ def test_bridge_resolution_writes_manifest_and_keeps_search_rare(tmp_path, monke
 
     assert result["decision"] == "bridge"
     assert result["primary_bridge"]["target_anchor_id"] == "a-1"
+    assert result["primary_attribution"]["target_quote"] == "Value first appears in relation."
     assert result["supporting_bridges"][0]["target_sentence_id"] == "c1-s2"
     assert result["search_policy_mode"] == "defer_search"
-    assert manifest["prompt_version"] == "attentional_v2.bridge_resolution.v1"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v1"
+    assert manifest["prompt_version"] == "attentional_v2.bridge_resolution.v3"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v7"
+
+
+def test_bridge_resolution_declines_generic_bridge_without_specific_attribution(monkeypatch):
+    """Bridge judgment should decline when it cannot name the specific earlier target and local relation honestly."""
+
+    def fake_invoke_json(_system: str, _prompt: str, default: object) -> object:
+        return {
+            "decision": "bridge",
+            "reason": "the chapter generally returns to an earlier theme",
+            "primary_bridge": {
+                "target_anchor_id": "a-1",
+                "target_sentence_id": "c1-s1",
+                "relation_type": "callback",
+                "why_now": "this feels like a chapter-level callback",
+            },
+            "primary_attribution": {
+                "target_quote": "",
+                "current_quote": "",
+                "relation_explanation": "The chapter generally returns to an earlier theme.",
+            },
+            "supporting_bridges": [],
+            "activation_updates": [],
+            "state_operations": [],
+            "knowledge_use_mode": "book_grounded_only",
+            "search_policy_mode": "no_search",
+            "search_trigger": "none",
+            "search_query": "",
+        }
+
+    monkeypatch.setattr(bridge_module, "invoke_json", fake_invoke_json)
+
+    result = bridge_resolution(
+        current_span_sentences=[
+            _sentence("c1-s2", "The frame turns toward exchange.", sentence_index=2),
+            _sentence("c1-s3", "Now the relation begins to invert.", sentence_index=3),
+        ],
+        candidate_set=_candidate_set(),
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        output_language="en",
+    )
+
+    assert result["decision"] == "decline"
+    assert result["primary_bridge"] is None
+    assert result["primary_attribution"] is None
+
+
+def test_generate_candidate_set_treats_qianmian_as_explicit_callback_marker():
+    """Chinese backward-looking cues like `前面` should unlock source-callback retrieval beyond the local window."""
+
+    document = {
+        "chapters": [
+            {
+                "id": 1,
+                "title": "Chapter 1",
+                "sentences": [
+                    _sentence("c1-s1", "先讲一个总论。", sentence_index=1),
+                    _sentence("c1-s2", "例如，假设你是世界上最好的深海潜水员。", sentence_index=2),
+                    *[
+                        _sentence(f"c1-s{index}", f"这是中间的铺垫句 {index}。", sentence_index=index)
+                        for index in range(3, 20)
+                    ],
+                    _sentence("c1-s20", "前面举了潜水员的例子，现在要把这个例子转回信誉与机会。", sentence_index=20),
+                ],
+            }
+        ]
+    }
+
+    result = generate_candidate_set(
+        document,
+        current_sentence_id="c1-s20",
+        current_text="前面举了潜水员的例子，现在要把这个例子转回信誉与机会。",
+        anchor_memory=build_empty_anchor_memory(),
+    )
+
+    assert any(
+        candidate.get("candidate_kind") == "source_callback" and candidate.get("sentence_id") == "c1-s2"
+        for candidate in result["lookback_candidates"]
+    )
 
 
 def test_run_phase5_bridge_cycle_materializes_anchor_state(monkeypatch):
@@ -154,6 +243,12 @@ def test_run_phase5_bridge_cycle_materializes_anchor_state(monkeypatch):
                 "target_sentence_id": "c1-s2",
                 "relation_type": "callback",
                 "why_now": "the phrase returns with a sharper claim",
+                "quote": "The frame turns toward exchange.",
+            },
+            "primary_attribution": {
+                "target_quote": "The frame turns toward exchange.",
+                "current_quote": "Now the relation begins to invert.",
+                "relation_explanation": "The later line sharpens the earlier exchange frame into an inversion.",
             },
             "supporting_bridges": [],
             "activation_updates": [

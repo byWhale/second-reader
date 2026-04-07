@@ -5,7 +5,13 @@ from __future__ import annotations
 import json
 
 from src.attentional_v2 import nodes as nodes_module
-from src.attentional_v2.nodes import controller_decision, run_phase4_local_cycle, zoom_read
+from src.attentional_v2.nodes import (
+    controller_decision,
+    meaning_unit_closure,
+    run_phase4_local_cycle,
+    select_local_cycle_span,
+    zoom_read,
+)
 from src.attentional_v2.schemas import (
     build_default_reader_policy,
     build_empty_anchor_memory,
@@ -84,7 +90,7 @@ def test_zoom_read_writes_prompt_manifest_and_normalizes_payload(tmp_path, monke
     assert result["bridge_candidate"]["target_anchor_id"] == "a-1"
     assert result["consider_reaction_emission"] is True
     assert manifest["prompt_version"] == "attentional_v2.zoom_read.v5"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v5"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v7"
 
 
 def test_zoom_read_prompt_includes_micro_selectivity_cues(tmp_path, monkeypatch):
@@ -164,6 +170,25 @@ def test_zoom_read_prompt_includes_narrative_pressure_cues(tmp_path, monkeypatch
     assert "causal_stakes" in captured["prompt"]
 
 
+def test_select_local_cycle_span_narrows_long_span_on_sharp_late_local_hinge():
+    """A sharp late-local hinge should be analyzed through a bounded tail span instead of the whole open unit."""
+
+    span = [
+        _sentence("c19-s30", "欧洲的移民潮把很多人推向海外。", sentence_index=30),
+        _sentence("c19-s31", "美国在中国华侨眼中是“金山”。", sentence_index=31),
+        _sentence("c19-s32", "想发财的冒个险去捞一票，成则衣锦还乡，败则为异域之鬼。", sentence_index=32),
+        _sentence("c19-s33", "不但去美国的这样，散布在南洋和欧洲的华侨们，多少都是这样的。", sentence_index=33),
+        _sentence("c19-s34", "在他们，出外是个手段，不是目的；在国内走码头的山西帮、湖南帮，何尝不是如此？", sentence_index=34),
+    ]
+
+    narrowed = select_local_cycle_span(
+        current_span_sentences=span,
+        trigger_state={"output": "zoom_now", "gate_state": "hot", "signals": []},
+    )
+
+    assert [sentence["sentence_id"] for sentence in narrowed] == ["c19-s32", "c19-s33", "c19-s34"]
+
+
 def test_controller_decision_refuses_bridge_without_candidates(monkeypatch):
     """Controller guardrails should fall back when the model asks to bridge without a real target."""
 
@@ -232,6 +257,168 @@ def test_controller_decision_uses_fast_path_without_invoking_llm(monkeypatch):
     }
 
 
+def test_meaning_unit_closure_includes_anchor_focus_and_backcheck_window(tmp_path, monkeypatch):
+    """meaning_unit_closure should carry the local focus packet and tiny backcheck window into the prompt."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    captured: dict[str, str] = {}
+
+    def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
+        captured["prompt"] = prompt
+        return {
+            "closure_decision": "close",
+            "meaning_unit_summary": "The reversal stays on the bodily contradiction itself.",
+            "anchor_focus": {
+                "anchor_quote": "他的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                "focus_sentence_id": "c15-s192",
+                "focus_kind": "sentence",
+                "source": "zoom_anchor",
+            },
+            "anchor_relation": {
+                "relation_status": "anchored",
+                "relation_to_focus": "The reading returns to the exact bodily contradiction instead of drifting to a saintly aura.",
+                "current_focus_quote": "他的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                "same_chapter_pressure_only": False,
+                "local_backcheck_used": True,
+                "can_emit_visible_reaction": True,
+            },
+            "dominant_move": "advance",
+            "proposed_state_operations": [],
+            "bridge_candidates": [],
+            "reaction_candidate": None,
+            "unresolved_pressure_note": "",
+        }
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = meaning_unit_closure(
+        current_span_sentences=[
+            _sentence("c15-s191", "世尊的精辟法义则明了、简洁、易懂，不含任何古怪疯狂或荒谬的内容。", sentence_index=191),
+            _sentence("c15-s192", "但悉达多的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。", sentence_index=192),
+            _sentence("c15-s193", "自世尊佛陀步入涅槃，悉达多是唯一一位我见过的圣人，他让我感受到他的神圣！", sentence_index=193),
+        ],
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        boundary_context={"gate_state": "hot"},
+        reader_policy=build_default_reader_policy(),
+        output_language="zh",
+        output_dir=output_dir,
+        book_title="悉达多",
+        author="赫尔曼·黑塞",
+        chapter_title="乔文达",
+        zoom_result={
+            "local_interpretation": "The local hinge is the contradiction between doctrine and embodied presence.",
+            "anchor_quote": "他的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+            "anchor_focus": {
+                "anchor_quote": "他的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                "focus_sentence_id": "c15-s192",
+                "focus_kind": "sentence",
+                "source": "zoom_anchor",
+            },
+            "pressure_updates": [],
+            "activation_updates": [],
+            "bridge_candidate": None,
+            "consider_reaction_emission": True,
+            "uncertainty_note": "",
+        },
+    )
+
+    assert '"anchor_focus"' in captured["prompt"]
+    assert "Anchor backcheck window:" in captured["prompt"]
+    assert result["anchor_relation"]["relation_status"] == "anchored"
+    assert result["anchor_relation"]["local_backcheck_used"] is True
+
+
+def test_run_phase4_local_cycle_holds_reaction_when_anchor_relation_is_unresolved(tmp_path, monkeypatch):
+    """The local cycle should keep chapter-adjacent but anchor-unclear moments internal instead of surfacing them."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+
+    def fake_invoke_json(system_prompt: str, _prompt: str, default: object) -> object:
+        if "sentence-level zoom node" in system_prompt:
+            return {
+                "local_interpretation": "The chapter keeps circling holiness and aura.",
+                "anchor_quote": "但悉达多的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                "pressure_updates": [],
+                "activation_updates": [],
+                "bridge_candidate": {},
+                "consider_reaction_emission": True,
+                "uncertainty_note": "",
+            }
+        if "meaning-unit closure node" in system_prompt:
+            return {
+                "closure_decision": "close",
+                "meaning_unit_summary": "The chapter keeps returning to a saintly aura that exceeds doctrine.",
+                "anchor_focus": {
+                    "anchor_quote": "但悉达多的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                    "focus_sentence_id": "c15-s192",
+                    "focus_kind": "sentence",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "related_but_unresolved",
+                    "relation_to_focus": "This still feels important at the chapter level, but the exact bodily contradiction is not yet closed.",
+                    "current_focus_quote": "但悉达多的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                    "same_chapter_pressure_only": True,
+                    "local_backcheck_used": True,
+                    "can_emit_visible_reaction": False,
+                },
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": {
+                    "type": "discern",
+                    "anchor_quote": "但悉达多的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。",
+                    "content": "The aura of sanctity outruns the doctrinal frame.",
+                    "related_anchor_quotes": [],
+                    "search_query": "",
+                    "search_results": [],
+                },
+                "unresolved_pressure_note": "The exact local reversal still needs another bounded pass.",
+            }
+        if "controller-decision node" in system_prompt:
+            return {
+                "chosen_move": "advance",
+                "reason": "the model thinks it can move on",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            }
+        if "reaction-emission gate" in system_prompt:
+            raise AssertionError("reaction_emission should not run when anchor relation is unresolved")
+        return default
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c15-s193", "自世尊佛陀步入涅槃，悉达多是唯一一位我见过的圣人，他让我感受到他的神圣！", sentence_index=193),
+        current_span_sentences=[
+            _sentence("c15-s191", "世尊的精辟法义则明了、简洁、易懂，不含任何古怪疯狂或荒谬的内容。", sentence_index=191),
+            _sentence("c15-s192", "但悉达多的手脚,他的双眼、额头，他的微笑、问候和姿态却不同于他的思想。", sentence_index=192),
+            _sentence("c15-s193", "自世尊佛陀步入涅槃，悉达多是唯一一位我见过的圣人，他让我感受到他的神圣！", sentence_index=193),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot"},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="zh",
+        output_dir=output_dir,
+        book_title="悉达多",
+        author="赫尔曼·黑塞",
+        chapter_title="乔文达",
+        boundary_context={"gate_state": "hot"},
+    )
+
+    assert result["closure_result"]["closure_decision"] == "continue"
+    assert result["closure_result"]["dominant_move"] == "dwell"
+    assert result["closure_result"]["reaction_candidate"] is None
+    assert result["reaction_result"] is None
+
+
 def test_run_phase4_local_cycle_honors_node_handoff_and_reaction_gate(tmp_path, monkeypatch):
     """The Phase 4 cycle should call the nodes in order and emit an anchored reaction only when warranted."""
 
@@ -256,6 +443,20 @@ def test_run_phase4_local_cycle_honors_node_handoff_and_reaction_gate(tmp_path, 
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The local span closes around a contrastive turn.",
+                "anchor_focus": {
+                    "anchor_quote": "However, value shifts here.",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "sentence",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The turn sits in the exact reversal sentence instead of a broad chapter summary.",
+                    "current_focus_quote": "However, value shifts here.",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": True,
+                },
                 "dominant_move": "bridge",
                 "proposed_state_operations": [
                     {
@@ -354,6 +555,7 @@ def test_run_phase4_local_cycle_honors_node_handoff_and_reaction_gate(tmp_path, 
     assert calls == ["zoom", "closure", "controller", "emit"]
     assert result["zoom_result"]["anchor_quote"] == "However, value shifts here."
     assert result["closure_result"]["closure_decision"] == "close"
+    assert result["closure_result"]["anchor_relation"]["relation_status"] == "anchored"
     assert result["controller_result"]["chosen_move"] == "bridge"
     assert result["reaction_result"]["decision"] == "emit"
     assert result["reaction_result"]["reaction"]["type"] == "discern"
@@ -383,6 +585,20 @@ def test_run_phase4_local_cycle_passes_local_cues_into_reaction_emission(tmp_pat
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": 'The sentence uses a marked phrase to flatten a contested point.',
+                "anchor_focus": {
+                    "anchor_quote": '"simple"',
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "phrase",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": 'The quoted word "simple" is the exact local hinge that needs surfacing.',
+                    "current_focus_quote": '"simple"',
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": True,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -475,6 +691,20 @@ def test_run_phase4_local_cycle_keeps_zoom_bridge_hints(monkeypatch):
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The local unit is closed but bridge-aware.",
+                "anchor_focus": {
+                    "anchor_quote": "However, value shifts here.",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "sentence",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The local turn is already settled and can now look backward honestly.",
+                    "current_focus_quote": "However, value shifts here.",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -539,6 +769,20 @@ def test_run_phase4_local_cycle_skips_lazy_bridge_loader_without_bridge_pressure
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The local turn settles cleanly without bridge pull.",
+                "anchor_focus": {
+                    "anchor_quote": "However, value shifts here.",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "sentence",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The local turn is specific and already closed on the focal sentence.",
+                    "current_focus_quote": "However, value shifts here.",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -599,6 +843,20 @@ def test_run_phase4_local_cycle_materializes_lazy_bridge_candidates_once_when_pr
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The local turn stays bridge-aware.",
+                "anchor_focus": {
+                    "anchor_quote": "However, value shifts here.",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "sentence",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The local turn is settled enough to justify a narrow backward check.",
+                    "current_focus_quote": "However, value shifts here.",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -677,6 +935,219 @@ def test_run_phase4_local_cycle_materializes_lazy_bridge_candidates_once_when_pr
     assert result["controller_result"]["target_sentence_id"] == "c1-s1"
 
 
+def test_run_phase4_local_cycle_materializes_lazy_bridge_candidates_on_explicit_callback_cue(monkeypatch):
+    """An explicit backward-looking cue should open deterministic bridge retrieval even without prior callback state."""
+
+    loader_calls: list[str] = []
+    captured: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        nodes_module,
+        "zoom_read",
+        lambda **_kwargs: {
+            "local_interpretation": "The sentence explicitly turns back to the diver example.",
+            "anchor_quote": "前面举了潜水员的例子",
+            "anchor_focus": {
+                "anchor_quote": "前面举了潜水员的例子",
+                "focus_sentence_id": "c22-s40",
+                "focus_kind": "phrase",
+                "source": "zoom_anchor",
+            },
+            "pressure_updates": [],
+            "activation_updates": [],
+            "bridge_candidate": None,
+            "consider_reaction_emission": False,
+            "uncertainty_note": "",
+        },
+    )
+    monkeypatch.setattr(
+        nodes_module,
+        "meaning_unit_closure",
+        lambda **_kwargs: {
+            "closure_decision": "close",
+            "meaning_unit_summary": "The current sentence cashes out the earlier diver example into a reputation bridge.",
+            "anchor_focus": {
+                "anchor_quote": "前面举了潜水员的例子",
+                "focus_sentence_id": "c22-s40",
+                "focus_kind": "phrase",
+                "source": "zoom_anchor",
+            },
+            "anchor_relation": {
+                "relation_status": "anchored",
+                "relation_to_focus": "The sentence names the earlier example directly and turns it into the current argument.",
+                "current_focus_quote": "前面举了潜水员的例子",
+                "same_chapter_pressure_only": False,
+                "local_backcheck_used": False,
+                "can_emit_visible_reaction": False,
+            },
+            "dominant_move": "advance",
+            "proposed_state_operations": [],
+            "bridge_candidates": [],
+            "reaction_candidate": None,
+            "unresolved_pressure_note": "",
+        },
+    )
+
+    def fake_controller_decision(**kwargs):
+        captured["bridge_candidates"] = kwargs["bridge_candidates"]
+        return {
+            "chosen_move": "bridge",
+            "reason": "the explicit callback cue should test the earlier diver example",
+            "target_anchor_id": "",
+            "target_sentence_id": "c22-s18",
+        }
+
+    monkeypatch.setattr(nodes_module, "controller_decision", fake_controller_decision)
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c22-s40", "前面举了潜水员的例子，由于你的潜水技能非常出色，知名度很高。", sentence_index=40),
+        current_span_sentences=[
+            _sentence("c22-s39", "我认为，赚钱很关键的一点就是知名度和信誉度。", sentence_index=39),
+            _sentence("c22-s40", "前面举了潜水员的例子，由于你的潜水技能非常出色，知名度很高。", sentence_index=40),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot", "signals": []},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        lazy_bridge_loader=lambda: (
+            loader_calls.append("load") or {
+                "current_sentence_id": "c22-s40",
+                "memory_candidates": [],
+                "lookback_candidates": [
+                    {
+                        "candidate_kind": "source_callback",
+                        "sentence_id": "c22-s18",
+                        "chapter_id": 22,
+                        "chapter_title": "如何获得运气",
+                        "text": "例如，假设你是世界上最好的深海潜水员。",
+                        "text_role": "body",
+                        "locator": {},
+                        "overlap_score": 4.0,
+                        "retrieval_channel": "source_callback",
+                        "relation_type": "callback",
+                    }
+                ],
+            },
+            [
+                {
+                    "candidate_kind": "source_callback",
+                    "target_anchor_id": "",
+                    "target_sentence_id": "c22-s18",
+                    "retrieval_channel": "source_callback",
+                    "relation_type": "callback",
+                    "score": 4.0,
+                    "why_now": "",
+                    "quote": "例如，假设你是世界上最好的深海潜水员。",
+                }
+            ],
+        ),
+        output_language="zh",
+        output_dir=None,
+        book_title="纳瓦尔宝典",
+        author="纳瓦尔",
+        chapter_title="如何获得运气",
+        boundary_context={"gate_state": "hot", "callback_anchor_ids": []},
+    )
+
+    assert loader_calls == ["load"]
+    assert captured["bridge_candidates"][0]["target_sentence_id"] == "c22-s18"
+    assert result["controller_result"]["chosen_move"] == "bridge"
+    assert result["candidate_set"]["current_sentence_id"] == "c22-s40"
+
+
+def test_run_phase4_local_cycle_force_closes_anchored_sharp_local_hinge(monkeypatch):
+    """A bounded late-local hinge that is already anchored should close instead of being re-absorbed into a broad open span."""
+
+    monkeypatch.setattr(
+        nodes_module,
+        "zoom_read",
+        lambda **_kwargs: {
+            "local_interpretation": "The sentence flips emigration from a goal into a means.",
+            "anchor_quote": "出外是个手段，不是目的",
+            "anchor_focus": {
+                "anchor_quote": "出外是个手段，不是目的",
+                "focus_sentence_id": "c19-s34",
+                "focus_kind": "phrase",
+                "source": "zoom_anchor",
+            },
+            "pressure_updates": [],
+            "activation_updates": [],
+            "bridge_candidate": None,
+            "consider_reaction_emission": False,
+            "uncertainty_note": "",
+        },
+    )
+    monkeypatch.setattr(
+        nodes_module,
+        "meaning_unit_closure",
+        lambda **_kwargs: {
+            "closure_decision": "continue",
+            "meaning_unit_summary": "The line makes a clean local distinction: going abroad is a means, not the end itself.",
+            "anchor_focus": {
+                "anchor_quote": "出外是个手段，不是目的",
+                "focus_sentence_id": "c19-s34",
+                "focus_kind": "phrase",
+                "source": "zoom_anchor",
+            },
+            "anchor_relation": {
+                "relation_status": "anchored",
+                "relation_to_focus": "The distinction resolves directly on the phrase that reframes emigration.",
+                "current_focus_quote": "出外是个手段，不是目的",
+                "same_chapter_pressure_only": False,
+                "local_backcheck_used": True,
+                "can_emit_visible_reaction": True,
+            },
+            "dominant_move": "advance",
+            "proposed_state_operations": [],
+            "bridge_candidates": [],
+            "reaction_candidate": {
+                "type": "discern",
+                "anchor_quote": "出外是个手段，不是目的",
+                "content": "这句话把“出外”的位置压回工具层，不再把离乡本身当作终点。",
+                "related_anchor_quotes": [],
+                "search_query": "",
+                "search_results": [],
+            },
+            "unresolved_pressure_note": "",
+        },
+    )
+    monkeypatch.setattr(
+        nodes_module,
+        "reaction_emission",
+        lambda **_kwargs: {
+            "decision": "withhold",
+            "reason": "not testing emission here",
+            "reaction": None,
+        },
+    )
+
+    result = run_phase4_local_cycle(
+        focal_sentence=_sentence("c19-s34", "在他们，出外是个手段，不是目的；在国内走码头的山西帮、湖南帮，何尝不是如此？", sentence_index=34),
+        current_span_sentences=[
+            _sentence("c19-s32", "想发财的冒个险去捞一票，成则衣锦还乡，败则为异域之鬼。", sentence_index=32),
+            _sentence("c19-s33", "不但去美国的这样，散布在南洋和欧洲的华侨们，多少都是这样的。", sentence_index=33),
+            _sentence("c19-s34", "在他们，出外是个手段，不是目的；在国内走码头的山西帮、湖南帮，何尝不是如此？", sentence_index=34),
+        ],
+        trigger_state={"output": "zoom_now", "gate_state": "hot", "signals": []},
+        working_pressure=build_empty_working_pressure(),
+        anchor_memory=build_empty_anchor_memory(),
+        knowledge_activations=build_empty_knowledge_activations(),
+        reader_policy=build_default_reader_policy(),
+        bridge_candidates=[],
+        output_language="zh",
+        output_dir=None,
+        book_title="美国人的性格",
+        author="费孝通",
+        chapter_title="第十九章",
+        boundary_context={"gate_state": "hot", "local_cycle_scope": "narrow_focus_tail"},
+    )
+
+    assert result["closure_result"]["closure_decision"] == "close"
+    assert result["closure_result"]["reaction_candidate"]["anchor_quote"] == "出外是个手段，不是目的"
+
+
 def test_zoom_read_prompt_receives_local_textual_cues(monkeypatch):
     """Zoom prompt should include deterministic cue packets for local callback/distinction pressure."""
 
@@ -733,6 +1204,20 @@ def test_run_phase4_local_cycle_keeps_compact_local_anchor_bounded_without_zoom_
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "Mill compresses the turn into one compact principle phrase.",
+                "anchor_focus": {
+                    "anchor_quote": "one very simple principle",
+                    "focus_sentence_id": "c1-s1",
+                    "focus_kind": "phrase",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The compact phrase is already the locally settled hinge, but zoom kept the reaction gate closed.",
+                    "current_focus_quote": "one very simple principle",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -790,6 +1275,20 @@ def test_run_phase4_local_cycle_uses_pressure_cues_for_bounded_synthetic_candida
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The question compresses dependence and vulnerability into one direct appeal.",
+                "anchor_focus": {
+                    "anchor_quote": '"O Christian, will you send me back?"',
+                    "focus_sentence_id": "c1-s1",
+                    "focus_kind": "sentence",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The plea itself is the local hinge, and the unresolved power relation stays visible right on that line.",
+                    "current_focus_quote": '"O Christian, will you send me back?"',
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": True,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -855,6 +1354,20 @@ def test_run_phase4_local_cycle_keeps_pressure_cues_bounded_without_zoom_gate(mo
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The line satirizes a teacher whose content bends to patron preference.",
+                "anchor_focus": {
+                    "anchor_quote": "preference of a majority of his patrons",
+                    "focus_sentence_id": "c1-s1",
+                    "focus_kind": "phrase",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The satire is still local and answerable to the patron-pressure phrase, but zoom never opened a visible reaction.",
+                    "current_focus_quote": "preference of a majority of his patrons",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -909,6 +1422,20 @@ def test_run_phase4_local_cycle_keeps_pressure_cues_bounded_without_zoom_gate(mo
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The sentence turns a schooling mismatch into a concrete social consequence.",
+                "anchor_focus": {
+                    "anchor_quote": "went to the bad",
+                    "focus_sentence_id": "c1-s1",
+                    "focus_kind": "phrase",
+                    "source": "focal_sentence",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The consequence phrase is locally clear, but the runner is only on the watch path here.",
+                    "current_focus_quote": "went to the bad",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -975,6 +1502,20 @@ def test_run_phase4_local_cycle_uses_multi_cue_pressure_for_bounded_three_senten
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The passage holds motive, patron pressure, and the likely cost together.",
+                "anchor_focus": {
+                    "anchor_quote": "preference of a majority of his patrons",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "phrase",
+                    "source": "focal_sentence",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The local hinge is the patron-pressure phrase, now widened by the neighboring motive and consequence sentences.",
+                    "current_focus_quote": "preference of a majority of his patrons",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": True,
+                    "can_emit_visible_reaction": True,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -1052,6 +1593,20 @@ def test_run_phase4_local_cycle_keeps_three_sentence_pressure_span_bounded_witho
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The social pressure is visible, but the passage has already settled the point.",
+                "anchor_focus": {
+                    "anchor_quote": "preference of a majority of his patrons",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "phrase",
+                    "source": "focal_sentence",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The local hinge is still the patron-pressure phrase, but the moment no longer needs surfacing.",
+                    "current_focus_quote": "preference of a majority of his patrons",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -1111,6 +1666,20 @@ def test_run_phase4_local_cycle_degrades_zoom_llm_error(monkeypatch):
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The local turn still closes cleanly without zoom support.",
+                "anchor_focus": {
+                    "anchor_quote": "However, value shifts here.",
+                    "focus_sentence_id": "c1-s2",
+                    "focus_kind": "sentence",
+                    "source": "focal_sentence",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "Even without zoom support, the local turn is still answerable to the focal sentence itself.",
+                    "current_focus_quote": "However, value shifts here.",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": False,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],
@@ -1171,6 +1740,20 @@ def test_run_phase4_local_cycle_withholds_when_reaction_emission_llm_fails(monke
             return {
                 "closure_decision": "close",
                 "meaning_unit_summary": "The sentence narrows many desires into one forced route.",
+                "anchor_focus": {
+                    "anchor_quote": "single channel and a single choice",
+                    "focus_sentence_id": "c1-s1",
+                    "focus_kind": "phrase",
+                    "source": "zoom_anchor",
+                },
+                "anchor_relation": {
+                    "relation_status": "anchored",
+                    "relation_to_focus": "The forced-route phrase is the exact local hinge that earns a visible reaction.",
+                    "current_focus_quote": "single channel and a single choice",
+                    "same_chapter_pressure_only": False,
+                    "local_backcheck_used": False,
+                    "can_emit_visible_reaction": True,
+                },
                 "dominant_move": "advance",
                 "proposed_state_operations": [],
                 "bridge_candidates": [],

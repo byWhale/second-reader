@@ -10,6 +10,9 @@ from .schemas import AnchorMemoryState
 
 
 _CALLBACK_MARKERS = (
+    "as noted earlier",
+    "as mentioned earlier",
+    "earlier example",
     "since that day",
     "from that day",
     "when they were young",
@@ -20,11 +23,18 @@ _CALLBACK_MARKERS = (
     "once",
     "remember",
     "recall",
+    "above",
     "當年",
     "当年",
     "自從",
     "自从",
     "那日",
+    "前面",
+    "前文",
+    "上文",
+    "之前",
+    "此前",
+    "前述",
     "先前",
     "從前",
     "从前",

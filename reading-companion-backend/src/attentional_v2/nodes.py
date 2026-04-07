@@ -14,6 +14,8 @@ from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, invok
 from .prompts import ATTENTIONAL_V2_PROMPTS
 from .schemas import (
     AnchorMemoryState,
+    AnchorFocus,
+    AnchorRelationAssessment,
     BridgeCandidate,
     ClosureDecision,
     ControllerDecisionResult,
@@ -56,6 +58,8 @@ _STATE_OPERATION_TYPES = {
 }
 _CLOSURE_DECISIONS: set[ClosureDecision] = {"continue", "close"}
 _EMISSION_DECISIONS: set[ReactionEmissionDecision] = {"emit", "withhold"}
+_ANCHOR_FOCUS_KINDS = {"phrase", "sentence", "span"}
+_ANCHOR_RELATION_STATUSES = {"anchored", "related_but_unresolved", "unclear"}
 _SYNTHETIC_REACTION_CUE_TYPES = {
     "marked_phrase",
     "loaded_wording",
@@ -65,7 +69,23 @@ _SYNTHETIC_REACTION_CUE_TYPES = {
     "social_pressure",
     "causal_stakes",
 }
+_SHARP_LOCAL_FOCUS_CUE_TYPES = {
+    "callback_cue",
+    "distinction_cue",
+    "marked_phrase",
+    "loaded_wording",
+    "analogy_image",
+}
+_SHARP_LOCAL_TRIGGER_SIGNAL_KINDS = {
+    "callback_activation",
+    "definition_or_distinction",
+    "discourse_turn",
+    "sentence_role_shift",
+}
 _CALLBACK_MARKERS = (
+    "as noted earlier",
+    "as mentioned earlier",
+    "earlier example",
     "since that day",
     "from that day",
     "when they were young",
@@ -73,11 +93,18 @@ _CALLBACK_MARKERS = (
     "previously",
     "remember",
     "recall",
+    "above",
     "當年",
     "当年",
     "自從",
     "自从",
     "那日",
+    "前面",
+    "前文",
+    "上文",
+    "之前",
+    "此前",
+    "前述",
     "先前",
     "從前",
     "从前",
@@ -342,6 +369,123 @@ def _cue_anchor_quote(local_textual_cues: list[dict[str, str]], *, focal_text: s
     return cleaned_focal[:180]
 
 
+def _cue_types(local_textual_cues: list[dict[str, str]]) -> set[str]:
+    """Return the distinct cue types present in one local cue packet."""
+
+    return {
+        _clean_text(cue.get("cue_type"))
+        for cue in local_textual_cues
+        if isinstance(cue, dict) and _clean_text(cue.get("cue_type"))
+    }
+
+
+def _trigger_signal_kinds(trigger_state: TriggerState) -> set[str]:
+    """Return the distinct trigger signal kinds present on the current reading moment."""
+
+    return {
+        _clean_text(signal.get("signal_kind"))
+        for signal in trigger_state.get("signals", [])
+        if isinstance(signal, dict) and _clean_text(signal.get("signal_kind"))
+    }
+
+
+def select_local_cycle_span(
+    *,
+    current_span_sentences: list[dict[str, object]],
+    trigger_state: TriggerState,
+    max_focus_sentences: int = 3,
+) -> list[dict[str, object]]:
+    """Return the span that the local cycle should actually reason over.
+
+    When a long open meaning unit contains one sharp late-local hinge, we narrow the
+    analysis span to the tail window so the hinge does not get swallowed back into a
+    much broader local accumulation.
+    """
+
+    if len(current_span_sentences) <= max(1, int(max_focus_sentences)):
+        return current_span_sentences
+    tail_span = current_span_sentences[-max(1, int(max_focus_sentences)) :]
+    tail_cues = _local_textual_cues(tail_span)
+    if _cue_types(tail_cues) & _SHARP_LOCAL_FOCUS_CUE_TYPES:
+        return tail_span
+    if _trigger_signal_kinds(trigger_state) & _SHARP_LOCAL_TRIGGER_SIGNAL_KINDS:
+        return tail_span
+    return current_span_sentences
+
+
+def _find_sentence_for_anchor_quote(
+    sentences: list[dict[str, object]],
+    *,
+    anchor_quote: str,
+) -> dict[str, object] | None:
+    """Return the first sentence that contains the current local anchor quote."""
+
+    cleaned_anchor = _clean_text(anchor_quote)
+    if not cleaned_anchor:
+        return None
+    for sentence in sentences:
+        text = _clean_text(sentence.get("text"))
+        if cleaned_anchor and cleaned_anchor in text:
+            return sentence
+    return None
+
+
+def _build_anchor_focus(
+    *,
+    anchor_quote: str,
+    fallback_sentence: dict[str, object],
+    current_span_sentences: list[dict[str, object]] | None = None,
+    source: str,
+) -> AnchorFocus | None:
+    """Build a compact local-focus packet that later nodes can stay answerable to."""
+
+    cleaned_anchor = _clean_text(anchor_quote)
+    span = current_span_sentences or [fallback_sentence]
+    focus_sentence = _find_sentence_for_anchor_quote(span, anchor_quote=cleaned_anchor) or fallback_sentence
+    focus_text = _clean_text(focus_sentence.get("text"))
+    if not cleaned_anchor:
+        cleaned_anchor = focus_text[:180]
+    if not cleaned_anchor:
+        return None
+    focus_kind = "phrase"
+    if cleaned_anchor == focus_text:
+        focus_kind = "sentence"
+    return {
+        "anchor_quote": cleaned_anchor,
+        "focus_sentence_id": _clean_text(focus_sentence.get("sentence_id")),
+        "focus_kind": focus_kind,
+        "source": source,
+    }
+
+
+def _anchor_backcheck_window(
+    current_span_sentences: list[dict[str, object]],
+    *,
+    anchor_focus: AnchorFocus | None,
+) -> list[dict[str, object]]:
+    """Return a tiny local re-check window around the active local hinge."""
+
+    if not current_span_sentences:
+        return []
+    focus_sentence_id = _clean_text((anchor_focus or {}).get("focus_sentence_id"))
+    focus_index = len(current_span_sentences) - 1
+    if focus_sentence_id:
+        for index, sentence in enumerate(current_span_sentences):
+            if _clean_text(sentence.get("sentence_id")) == focus_sentence_id:
+                focus_index = index
+                break
+    start = max(0, focus_index - 1)
+    end = min(len(current_span_sentences), focus_index + 2)
+    return [
+        {
+            "sentence_id": _clean_text(sentence.get("sentence_id")),
+            "text": _clean_text(sentence.get("text")),
+            "text_role": _clean_text(sentence.get("text_role")),
+        }
+        for sentence in current_span_sentences[start:end]
+    ]
+
+
 def _has_compact_local_anchor(*, anchor_quote: str, focal_text: str) -> bool:
     """Return whether a phrase-level anchor is compact enough to justify a bounded extra emission check."""
 
@@ -356,6 +500,110 @@ def _has_compact_local_anchor(*, anchor_quote: str, focal_text: str) -> bool:
     return len(cleaned_anchor) <= max(18, int(len(cleaned_focal) * 0.75))
 
 
+def _normalize_anchor_focus(value: object, *, fallback: AnchorFocus | None = None) -> AnchorFocus | None:
+    """Normalize one local-focus packet, falling back to the deterministic packet when needed."""
+
+    if not isinstance(value, dict):
+        return fallback
+    anchor_quote = _clean_text(value.get("anchor_quote")) or _clean_text((fallback or {}).get("anchor_quote"))
+    focus_sentence_id = _clean_text(value.get("focus_sentence_id")) or _clean_text((fallback or {}).get("focus_sentence_id"))
+    focus_kind = _clean_text(value.get("focus_kind")) or _clean_text((fallback or {}).get("focus_kind")) or "phrase"
+    if focus_kind not in _ANCHOR_FOCUS_KINDS:
+        focus_kind = _clean_text((fallback or {}).get("focus_kind")) or "phrase"
+    source = _clean_text(value.get("source")) or _clean_text((fallback or {}).get("source")) or "zoom_anchor"
+    if not anchor_quote:
+        return fallback
+    return {
+        "anchor_quote": anchor_quote,
+        "focus_sentence_id": focus_sentence_id,
+        "focus_kind": focus_kind,
+        "source": source,
+    }
+
+
+def _normalize_anchor_relation(value: object, *, anchor_focus: AnchorFocus | None) -> AnchorRelationAssessment | None:
+    """Normalize one closure-time relation-to-anchor assessment."""
+
+    if not isinstance(value, dict):
+        return None
+    relation_status = _clean_text(value.get("relation_status")) or "unclear"
+    if relation_status not in _ANCHOR_RELATION_STATUSES:
+        relation_status = "unclear"
+    current_focus_quote = _clean_text(value.get("current_focus_quote")) or _clean_text((anchor_focus or {}).get("anchor_quote"))
+    relation_to_focus = _clean_text(value.get("relation_to_focus"))
+    same_chapter_pressure_only = bool(value.get("same_chapter_pressure_only"))
+    local_backcheck_used = bool(value.get("local_backcheck_used"))
+    can_emit_visible_reaction = bool(value.get("can_emit_visible_reaction"))
+    if relation_status != "anchored":
+        can_emit_visible_reaction = False
+    if not current_focus_quote and anchor_focus is None:
+        return None
+    return {
+        "relation_status": relation_status,
+        "relation_to_focus": relation_to_focus,
+        "current_focus_quote": current_focus_quote,
+        "same_chapter_pressure_only": same_chapter_pressure_only,
+        "local_backcheck_used": local_backcheck_used,
+        "can_emit_visible_reaction": can_emit_visible_reaction,
+    }
+
+
+def _anchor_relation_allows_visible_reaction(anchor_relation: AnchorRelationAssessment | None) -> bool:
+    """Return whether the current local reading moment is specific enough to surface visibly."""
+
+    if anchor_relation is None:
+        return False
+    return (
+        _clean_text(anchor_relation.get("relation_status")) == "anchored"
+        and bool(anchor_relation.get("can_emit_visible_reaction"))
+    )
+
+
+def _should_hold_local_closure(
+    *,
+    anchor_relation: AnchorRelationAssessment | None,
+    closure_result: MeaningUnitClosureResult,
+    current_span_sentences: list[dict[str, object]],
+    local_textual_cues: list[dict[str, str]],
+) -> bool:
+    """Return whether a narrow late-local hinge should stay unresolved for one more local pass."""
+
+    if anchor_relation is None:
+        return False
+    relation_status = _clean_text(anchor_relation.get("relation_status"))
+    if relation_status == "anchored":
+        return False
+    if len(current_span_sentences) > 3:
+        return False
+    cue_types = {str(item.get("cue_type", "") or "") for item in local_textual_cues if isinstance(item, dict)}
+    if cue_types & {"distinction_cue", "marked_phrase", "loaded_wording", "analogy_image"}:
+        return True
+    return bool(closure_result.get("reaction_candidate"))
+
+
+def _should_force_close_local_hinge(
+    *,
+    anchor_relation: AnchorRelationAssessment | None,
+    closure_result: MeaningUnitClosureResult,
+    current_span_sentences: list[dict[str, object]],
+    local_textual_cues: list[dict[str, str]],
+) -> bool:
+    """Return whether a bounded local-hinge pass should close instead of re-expanding."""
+
+    if _clean_text(closure_result.get("closure_decision")) == "close":
+        return False
+    if len(current_span_sentences) > 3:
+        return False
+    if not _anchor_relation_allows_visible_reaction(anchor_relation):
+        return False
+    if bool((anchor_relation or {}).get("same_chapter_pressure_only")):
+        return False
+    cue_types = _cue_types(local_textual_cues)
+    if not cue_types & _SHARP_LOCAL_FOCUS_CUE_TYPES:
+        return False
+    return bool(_clean_text(closure_result.get("meaning_unit_summary")) or closure_result.get("reaction_candidate"))
+
+
 def _micro_selective_reaction_candidate(
     *,
     zoom_result: ZoomReadResult | None,
@@ -365,6 +613,8 @@ def _micro_selective_reaction_candidate(
 ) -> ReactionCandidate | None:
     """Build one bounded synthetic local reaction candidate when the phrase-level pressure is clear."""
 
+    if not _anchor_relation_allows_visible_reaction(closure_result.get("anchor_relation")):
+        return None
     unresolved_pressure_note = _clean_text(closure_result.get("unresolved_pressure_note"))
     cue_types = {str(item.get("cue_type", "") or "") for item in local_textual_cues if isinstance(item, dict)}
     high_signal_cues = cue_types & _SYNTHETIC_REACTION_CUE_TYPES
@@ -543,6 +793,7 @@ def _bridge_pressure_present(
     boundary_context: dict[str, object] | None,
     zoom_result: ZoomReadResult | None,
     closure_result: MeaningUnitClosureResult,
+    local_textual_cues: list[dict[str, str]] | None = None,
 ) -> bool:
     """Return whether the current local moment warrants deterministic bridge retrieval."""
 
@@ -551,12 +802,14 @@ def _bridge_pressure_present(
         for item in (boundary_context or {}).get("callback_anchor_ids", [])
         if _clean_text(item)
     ] if isinstance((boundary_context or {}).get("callback_anchor_ids"), list) else []
+    cue_types = _cue_types(local_textual_cues or [])
     return any(
         (
             bool(callback_anchor_ids),
             bool((zoom_result or {}).get("bridge_candidate")),
             bool(closure_result.get("bridge_candidates")),
             str(closure_result.get("dominant_move", "") or "") == "bridge",
+            "callback_cue" in cue_types,
         )
     )
 
@@ -626,10 +879,17 @@ def zoom_read(
     anchor_quote = _clean_text(payload.get("anchor_quote")) if isinstance(payload, dict) else ""
     if anchor_quote and anchor_quote not in focal_text:
         anchor_quote = ""
+    anchor_focus = _build_anchor_focus(
+        anchor_quote=anchor_quote,
+        fallback_sentence=focal_sentence,
+        current_span_sentences=[*local_context_sentences, focal_sentence],
+        source="zoom_anchor" if anchor_quote else "focal_sentence",
+    )
     bridge_candidate = _normalize_bridge_candidate(payload.get("bridge_candidate")) if isinstance(payload, dict) else None
     return {
         "local_interpretation": _clean_text(payload.get("local_interpretation")) if isinstance(payload, dict) else "",
         "anchor_quote": anchor_quote,
+        "anchor_focus": anchor_focus,
         "pressure_updates": _normalize_state_operations(payload.get("pressure_updates")) if isinstance(payload, dict) else [],
         "activation_updates": _normalize_state_operations(payload.get("activation_updates")) if isinstance(payload, dict) else [],
         "bridge_candidate": bridge_candidate,
@@ -671,6 +931,15 @@ def meaning_unit_closure(
         for sentence in current_span_sentences
     ]
     local_textual_cues = _local_textual_cues(current_span_sentences)
+    fallback_anchor_focus = _normalize_anchor_focus(
+        (zoom_result or {}).get("anchor_focus"),
+        fallback=_build_anchor_focus(
+            anchor_quote=_clean_text((zoom_result or {}).get("anchor_quote")),
+            fallback_sentence=current_span_sentences[-1] if current_span_sentences else {},
+            current_span_sentences=current_span_sentences,
+            source="zoom_anchor" if _clean_text((zoom_result or {}).get("anchor_quote")) else "focal_sentence",
+        ),
+    )
     user_prompt = _render_prompt(
         prompts.meaning_unit_closure_prompt,
         structural_frame=_json_block(structural_frame),
@@ -681,6 +950,10 @@ def meaning_unit_closure(
         activation_context=_json_block(_activation_context(knowledge_activations)),
         local_textual_cues=_json_block(local_textual_cues),
         zoom_result=_json_block(dict(zoom_result or {})),
+        anchor_focus=_json_block(dict(fallback_anchor_focus or {})),
+        anchor_backcheck_window=_json_block(
+            _anchor_backcheck_window(current_span_sentences, anchor_focus=fallback_anchor_focus)
+        ),
         policy_snapshot=_json_block(reader_policy),
         output_language_name=language_name(output_language),
     )
@@ -702,9 +975,19 @@ def meaning_unit_closure(
     dominant_move = _clean_text(payload.get("dominant_move")).lower().replace("-", "_") if isinstance(payload, dict) else ""
     if dominant_move not in _MOVE_TYPES:
         dominant_move = "advance"
+    anchor_focus = _normalize_anchor_focus(
+        payload.get("anchor_focus") if isinstance(payload, dict) else None,
+        fallback=fallback_anchor_focus,
+    )
+    anchor_relation = _normalize_anchor_relation(
+        payload.get("anchor_relation") if isinstance(payload, dict) else None,
+        anchor_focus=anchor_focus,
+    )
     return {
         "closure_decision": closure_decision,  # type: ignore[typeddict-item]
         "meaning_unit_summary": _clean_text(payload.get("meaning_unit_summary")) if isinstance(payload, dict) else "",
+        "anchor_focus": anchor_focus,
+        "anchor_relation": anchor_relation,
         "dominant_move": dominant_move,  # type: ignore[typeddict-item]
         "proposed_state_operations": _normalize_state_operations(payload.get("proposed_state_operations")) if isinstance(payload, dict) else [],
         "bridge_candidates": _normalize_bridge_candidates(payload.get("bridge_candidates")) if isinstance(payload, dict) else [],
@@ -904,17 +1187,50 @@ def run_phase4_local_cycle(
         closure_result = {
             "closure_decision": "continue",
             "meaning_unit_summary": "",
+            "anchor_focus": _normalize_anchor_focus((zoom_result or {}).get("anchor_focus"), fallback=None),
+            "anchor_relation": None,
             "dominant_move": "advance",
             "proposed_state_operations": [],
             "bridge_candidates": [],
             "reaction_candidate": None,
             "unresolved_pressure_note": "meaning_unit_closure_unavailable",
         }
+    closure_local_cues = _local_textual_cues(current_span_sentences)
+    if _should_hold_local_closure(
+        anchor_relation=closure_result.get("anchor_relation"),
+        closure_result=closure_result,
+        current_span_sentences=current_span_sentences,
+        local_textual_cues=closure_local_cues,
+    ):
+        unresolved_note = _clean_text(closure_result.get("unresolved_pressure_note"))
+        closure_result = {
+            **closure_result,
+            "closure_decision": "continue",
+            "dominant_move": "dwell",
+            "reaction_candidate": None,
+            "unresolved_pressure_note": unresolved_note or "local_anchor_backcheck_pending",
+        }
+    elif not _anchor_relation_allows_visible_reaction(closure_result.get("anchor_relation")):
+        closure_result = {
+            **closure_result,
+            "reaction_candidate": None,
+        }
+    elif _should_force_close_local_hinge(
+        anchor_relation=closure_result.get("anchor_relation"),
+        closure_result=closure_result,
+        current_span_sentences=current_span_sentences,
+        local_textual_cues=closure_local_cues,
+    ):
+        closure_result = {
+            **closure_result,
+            "closure_decision": "close",
+        }
     lazy_bridge_candidates: list[BridgeCandidate] = []
     if _bridge_pressure_present(
         boundary_context=boundary_context,
         zoom_result=zoom_result,
         closure_result=closure_result,
+        local_textual_cues=closure_local_cues,
     ) and lazy_bridge_loader is not None:
         candidate_set, lazy_bridge_candidates = lazy_bridge_loader()
     merged_bridge_candidates = []
@@ -957,7 +1273,7 @@ def run_phase4_local_cycle(
             focal_text=_clean_text(focal_sentence.get("text")),
         )
     )
-    reaction_local_cues = _local_textual_cues(current_span_sentences)
+    reaction_local_cues = closure_local_cues
     effective_suggested_reaction = suggested_reaction or _micro_selective_reaction_candidate(
         zoom_result=zoom_result,
         closure_result=closure_result,
@@ -965,11 +1281,14 @@ def run_phase4_local_cycle(
         focal_text=_clean_text(focal_sentence.get("text")),
     )
     should_consider_reaction = (
+        _anchor_relation_allows_visible_reaction(closure_result.get("anchor_relation"))
+        and (
         bool(suggested_reaction)
         or bool(
             zoom_result
             and zoom_result.get("consider_reaction_emission")
             and effective_suggested_reaction
+        )
         )
     )
     if should_consider_reaction:
@@ -991,6 +1310,9 @@ def run_phase4_local_cycle(
                     "chosen_move": str(controller_result.get("chosen_move", "advance")),
                     "compact_local_anchor": compact_local_anchor,
                     "synthetic_local_candidate": bool(effective_suggested_reaction and not suggested_reaction),
+                    "anchor_relation_status": _clean_text((closure_result.get("anchor_relation") or {}).get("relation_status")),
+                    "anchor_relation_note": _clean_text((closure_result.get("anchor_relation") or {}).get("relation_to_focus")),
+                    "same_chapter_pressure_only": bool((closure_result.get("anchor_relation") or {}).get("same_chapter_pressure_only")),
                 },
                 output_language=output_language,
                 output_dir=output_dir,

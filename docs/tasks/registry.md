@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-06T11:41:52Z`
+Last updated: `2026-04-06T16:14:18Z`
 
 ## Status Values
 - `active`
@@ -18,14 +18,14 @@ Last updated: `2026-04-06T11:41:52Z`
 - `done`
 - `cancelled`
 
-## Active
+## Blocked
 
 ### `TASK-PHASE9-DECISIVE-EVAL` — Run the split-surface Phase 9 evaluation lanes
-- Status: `active`
+- Status: `blocked`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded `attentional_v2` throughput repair and judged ROI-first micro-slice remain the mechanism-repair proof, and the formal `excerpt surface v1.1` lane is now also complete with machine aggregate/report plus a human interpretation report. The only still-running mainline lane is the judged long-span accumulation comparison; once it finishes, compare it against the now-complete excerpt evidence bundle and decide whether the next move is a narrow `attentional_v2` local-anchor repair or the larger excerpt-surface ROI retune.
+- Next: treat `excerpt surface v1.1` as the current valid excerpt evidence bundle, and treat the long-span judged lane as completed but invalid because it ended in blanket `judge_unavailable` / `mechanism_failure`. The split-surface eval task is no longer waiting on running jobs; it is blocked on the paused `attentional_v2` narrow-repair loop and on a later explicit decision about how to reopen long-span evidence.
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -49,18 +49,27 @@ Last updated: `2026-04-06T11:41:52Z`
   - `bgjob_excerpt_surface_v1_1_judged_shard_d_20260406` (`completed`)
   - `bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406` (`completed`)
   - `bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406` (`completed`)
+  - `bgjob_accumulation_benchmark_v1_judged_20260406` (`completed`)
+
+### `TASK-ATTENTIONAL-V2-NARROW-REPAIR-V1` — Run the bounded local-anchor and callback-bridge repair loop on `attentional_v2`
+- Status: `blocked`
+- Lane: `mechanism_eval`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
+- Next: the automatic loop is paused at its own stop rule. Round 1 improved the micro-slice but failed the `meiguoren` guard and only partially fixed `nawaer`; round 2 passed targeted `pytest` but the smoke exposed late-tail open-span drag in `xidaduo` and still no explicit earlier-target bridge in `nawaer`. No round-2 judged rerun or new full formal excerpt rerun was launched. Any further repair now needs an explicit new round outside V1's two-round cap.
+- Jobs: none
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
-- Status: `active`
+- Status: `blocked`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the honest-short freeze as the active long-span draft and use it now: `huochu_shengming_de_yiyi_private_zh__8` and its `2` revise probes are removed from the mainline, leaving `5` active windows and `7` frozen probes. The judged accumulation lane is now the only active background eval job; the next check is to confirm that it emits the merged `aggregate/report` outputs cleanly and then compare it against the already completed excerpt evidence bundle.
+- Next: keep the honest-short freeze as the active long-span draft, but do not treat `attentional_v2_accumulation_benchmark_v1_judged_20260406` as usable evidence: the run completed and emitted `aggregate/report/llm_usage`, yet all `7` probes ended `judge_unavailable` with `mechanism_failure`. Diagnose the per-window failure surface before making any next long-span decision.
 - Jobs:
   - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405` (`completed`)
-  - `bgjob_accumulation_benchmark_v1_judged_20260406` (`running`)
+  - `bgjob_accumulation_benchmark_v1_judged_20260406` (`completed`)
 
 ## Parked
 
@@ -84,7 +93,7 @@ Last updated: `2026-04-06T11:41:52Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-PHASE9-DECISIVE-EVAL` and `TASK-ACCUMULATION-BENCHMARK-V1` are active; broader construction should resume only if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
+- Next: keep the landed builder available as support infrastructure, but do not open a new general builder wave while `TASK-PHASE9-DECISIVE-EVAL` and `TASK-ACCUMULATION-BENCHMARK-V1` remain unresolved; broader construction should resume only if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_zh_callbacklookback_20260330` (`completed`)
@@ -105,7 +114,7 @@ Last updated: `2026-04-06T11:41:52Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the bounded controller scratch-safe and reusable, but do not widen automation while decisive mechanism-eval work is active; with current model cost pressure, do not spend on non-mainline comparison support loops; resume only if later work needs one explicitly scoped audit-stage-only reproducibility pass or another concrete support-lane unblocker
+- Next: keep the bounded controller scratch-safe and reusable, but do not widen automation while decisive mechanism-eval work remains unresolved; with current model cost pressure, do not spend on non-mainline comparison support loops; resume only if later work needs one explicitly scoped audit-stage-only reproducibility pass or another concrete support-lane unblocker
 - Jobs:
   - `bgjob_closed_loop_en_broader_callbackpromptfix_20260331` (`completed`)
   - `bgjob_closed_loop_bilingual_broader_callbackpromptfix_20260331` (`failed`)
@@ -147,7 +156,7 @@ Last updated: `2026-04-06T11:41:52Z`
 - Lane: `documentation`
 - Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/open-questions.md`
-- Blocked by: `TASK-PHASE9-DECISIVE-EVAL`
+- Blocked by: `TASK-PHASE9-DECISIVE-EVAL`, `TASK-ATTENTIONAL-V2-NARROW-REPAIR-V1`
 - Next: resolve `Q10` once benchmark stabilization has settled enough to freeze stable mechanism behavior intentionally
 
 ### `TASK-FE-SECTION-RETIREMENT` — Retire section-first chapter/detail and marks surfaces

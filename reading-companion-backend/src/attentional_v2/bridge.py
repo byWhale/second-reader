@@ -31,6 +31,7 @@ from .schemas import (
     AnchorMemoryState,
     AnchorRecord,
     AnchorRelation,
+    BridgeAttribution,
     BridgeCandidate,
     BridgeResolutionResult,
     KnowledgeActivationsState,
@@ -54,6 +55,22 @@ _ANCHOR_RELATION_TYPES = {
     "question_resolved_by",
     "callback",
 }
+_GENERIC_BRIDGE_MARKERS = (
+    "earlier in the chapter",
+    "earlier in this chapter",
+    "earlier theme",
+    "chapter theme",
+    "chapter-level",
+    "generic callback",
+    "earlier point",
+    "earlier idea",
+    "本章",
+    "前文主题",
+    "结构",
+    "章节层面",
+    "泛泛",
+    "大意",
+)
 
 
 def _timestamp() -> str:
@@ -187,6 +204,71 @@ def _select_candidate(
     return None
 
 
+def _normalize_bridge_attribution(value: object) -> BridgeAttribution | None:
+    """Normalize one explicit bridge-attribution packet."""
+
+    if not isinstance(value, dict):
+        return None
+    target_quote = _clean_text(value.get("target_quote"))
+    current_quote = _clean_text(value.get("current_quote"))
+    relation_explanation = _clean_text(value.get("relation_explanation"))
+    if not any((target_quote, current_quote, relation_explanation)):
+        return None
+    return {
+        "target_quote": target_quote,
+        "current_quote": current_quote,
+        "relation_explanation": relation_explanation,
+    }
+
+
+def _quotes_align(left: str, right: str) -> bool:
+    """Return whether two compact quotes clearly refer to the same textual target."""
+
+    clean_left = _clean_text(left)
+    clean_right = _clean_text(right)
+    if not clean_left or not clean_right:
+        return False
+    return clean_left in clean_right or clean_right in clean_left
+
+
+def _current_quote_is_grounded(
+    *,
+    current_quote: str,
+    current_span_sentences: list[dict[str, object]],
+) -> bool:
+    """Return whether one claimed current quote actually appears in the current local span."""
+
+    clean_current = _clean_text(current_quote)
+    if not clean_current:
+        return False
+    return any(clean_current in _clean_text(sentence.get("text")) for sentence in current_span_sentences)
+
+
+def _bridge_attribution_is_specific(
+    attribution: BridgeAttribution | None,
+    *,
+    primary_bridge: BridgeCandidate | None,
+    current_span_sentences: list[dict[str, object]],
+) -> bool:
+    """Return whether the bridge explanation names a concrete earlier target and local relation."""
+
+    if attribution is None or primary_bridge is None:
+        return False
+    target_quote = _clean_text(attribution.get("target_quote"))
+    current_quote = _clean_text(attribution.get("current_quote"))
+    relation_explanation = _clean_text(attribution.get("relation_explanation"))
+    if not target_quote or not current_quote or len(relation_explanation) < 10:
+        return False
+    if any(marker in relation_explanation.lower() for marker in _GENERIC_BRIDGE_MARKERS):
+        return False
+    candidate_quote = _clean_text(primary_bridge.get("quote"))
+    if candidate_quote and not _quotes_align(target_quote, candidate_quote):
+        return False
+    if not _current_quote_is_grounded(current_quote=current_quote, current_span_sentences=current_span_sentences):
+        return False
+    return True
+
+
 def _materialize_bridge_target(
     state: AnchorMemoryState,
     candidate: BridgeCandidate,
@@ -304,6 +386,7 @@ def bridge_resolution(
             "decision": "decline",
             "reason": "No deterministic source candidates are available.",
             "primary_bridge": None,
+            "primary_attribution": None,
             "supporting_bridges": [],
             "activation_updates": [],
             "state_operations": [],
@@ -357,6 +440,7 @@ def bridge_resolution(
 
     primary_requested = _normalize_bridge_candidate(payload.get("primary_bridge")) if isinstance(payload, dict) else None
     primary_bridge = _select_candidate(primary_requested, candidate_pool)
+    primary_attribution = _normalize_bridge_attribution(payload.get("primary_attribution")) if isinstance(payload, dict) else None
     supporting_requested = _normalize_bridge_candidates(payload.get("supporting_bridges")) if isinstance(payload, dict) else []
     supporting_bridges = [
         candidate
@@ -364,8 +448,17 @@ def bridge_resolution(
         if candidate is not None and (primary_bridge is None or not _bridge_candidates_match(candidate, primary_bridge))
     ]
 
-    if decision == "bridge" and primary_bridge is None:
+    if decision == "bridge" and (
+        primary_bridge is None
+        or not _bridge_attribution_is_specific(
+            primary_attribution,
+            primary_bridge=primary_bridge,
+            current_span_sentences=current_span_sentences,
+        )
+    ):
         decision = "decline"
+        primary_bridge = None
+        primary_attribution = None
         supporting_bridges = []
 
     requested_search_mode = _clean_text(payload.get("search_policy_mode")) if isinstance(payload, dict) else ""
@@ -388,6 +481,7 @@ def bridge_resolution(
         "decision": decision,  # type: ignore[typeddict-item]
         "reason": _clean_text(payload.get("reason")) if isinstance(payload, dict) else "",
         "primary_bridge": primary_bridge,
+        "primary_attribution": primary_attribution,
         "supporting_bridges": supporting_bridges,
         "activation_updates": _normalize_state_operations(payload.get("activation_updates")) if isinstance(payload, dict) else [],
         "state_operations": _normalize_state_operations(payload.get("state_operations")) if isinstance(payload, dict) else [],
@@ -484,6 +578,7 @@ def run_phase5_bridge_cycle(
                 "decision": "decline",
                 "reason": "No current span is available.",
                 "primary_bridge": None,
+                "primary_attribution": None,
                 "supporting_bridges": [],
                 "activation_updates": [],
                 "state_operations": [],

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-06T11:41:52Z",
+  "updated_at": "2026-04-06T16:14:18Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -188,7 +188,7 @@
         "bgjob_callbackslice_auditrerun_20260331"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the landed builder available as support infrastructure, but do not open a new general builder wave while TASK-PHASE9-DECISIVE-EVAL and TASK-ACCUMULATION-BENCHMARK-V1 are active; broader construction should resume only if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested.",
+      "next_action": "Keep the landed builder available as support infrastructure, but do not open a new general builder wave while TASK-PHASE9-DECISIVE-EVAL and TASK-ACCUMULATION-BENCHMARK-V1 remain unresolved; broader construction should resume only if later decisive eval results expose a specific blocker or if one explicitly scoped audit-stage-only reproducibility pass is requested.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
@@ -382,7 +382,7 @@
         "bgjob_closed_loop_bilingual_broader_auditcoherencefix_20260330"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the bounded controller scratch-safe and reusable, but do not widen automation while decisive mechanism-eval work is active; with current model cost pressure, do not spend on non-mainline comparison support loops; resume only if later work needs one explicitly scoped audit-stage-only reproducibility pass or another concrete support-lane unblocker.",
+      "next_action": "Keep the bounded controller scratch-safe and reusable, but do not widen automation while decisive mechanism-eval work remains unresolved; with current model cost pressure, do not spend on non-mainline comparison support loops; resume only if later work needs one explicitly scoped audit-stage-only reproducibility pass or another concrete support-lane unblocker.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
@@ -624,7 +624,8 @@
       "acceptance_ref": "docs/implementation/new-reading-mechanism/open-questions.md",
       "next_action": "Resolve Q10 after benchmark stabilization is strong enough that stable mechanism behavior can be frozen intentionally.",
       "blocked_by": [
-        "TASK-PHASE9-DECISIVE-EVAL"
+        "TASK-PHASE9-DECISIVE-EVAL",
+        "TASK-ATTENTIONAL-V2-NARROW-REPAIR-V1"
       ],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/open-questions.md",
@@ -725,7 +726,7 @@
     {
       "id": "TASK-PHASE9-DECISIVE-EVAL",
       "title": "Run the split-surface Phase 9 evaluation lanes",
-      "status": "active",
+      "status": "blocked",
       "lane": "mechanism_eval",
       "priority": "high",
       "detail_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
@@ -765,10 +766,11 @@
         "bgjob_excerpt_surface_v1_1_judged_shard_c_20260406",
         "bgjob_excerpt_surface_v1_1_judged_shard_d_20260406",
         "bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406",
-        "bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406"
+        "bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406",
+        "bgjob_accumulation_benchmark_v1_judged_20260406"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Treat the completed dual-pool recovery retry3 plus explicit merge as partial evidence only; the bounded attentional_v2 throughput repair and judged ROI-first micro-slice remain the mechanism-repair proof, and the formal excerpt surface v1.1 lane is now also complete with machine aggregate/report plus a human interpretation report. The only still-running mainline lane is the judged long-span accumulation comparison; once it finishes, compare it against the now-complete excerpt evidence bundle and decide whether the next move is a narrow attentional_v2 local-anchor repair or the larger excerpt-surface ROI retune.",
+      "next_action": "Treat excerpt surface v1.1 as the current valid excerpt evidence bundle, and treat the long-span judged lane as completed but invalid because it ended in blanket judge_unavailable / mechanism_failure. The split-surface eval task is no longer waiting on running jobs; it is blocked on the paused attentional_v2 narrow-repair loop and on a later explicit decision about how to reopen long-span evidence.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
@@ -845,13 +847,53 @@
         "reading-companion-backend/src/reading_runtime/llm_gateway.py",
         "reading-companion-backend/tests/test_llm_gateway.py"
       ],
-      "last_updated": "2026-04-06T11:41:52Z",
+      "last_updated": "2026-04-06T16:14:18Z",
+      "last_updated_by": "codex"
+    },
+    {
+      "id": "TASK-ATTENTIONAL-V2-NARROW-REPAIR-V1",
+      "title": "Run the bounded local-anchor and callback-bridge repair loop on attentional_v2",
+      "status": "blocked",
+      "lane": "mechanism_eval",
+      "priority": "high",
+      "detail_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
+      "truth_refs": [
+        "docs/backend-reading-mechanisms/attentional_v2.md",
+        "docs/backend-reader-evaluation.md",
+        "docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md"
+      ],
+      "decision_refs": [],
+      "job_refs": [],
+      "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
+      "next_action": "The automatic loop is paused at its own stop rule. Round 1 improved the micro-slice but failed the meiguoren guard and only partially fixed nawaer; round 2 passed targeted pytest but the smoke exposed late-tail open-span drag in xidaduo and still no explicit earlier-target bridge in nawaer. No round-2 judged rerun or new full formal excerpt rerun was launched. Any further repair now needs an explicit new round outside V1's two-round cap.",
+      "blocked_by": [],
+      "evidence_refs": [
+        "reading-companion-backend/src/attentional_v2/schemas.py",
+        "reading-companion-backend/src/attentional_v2/prompts.py",
+        "reading-companion-backend/src/attentional_v2/nodes.py",
+        "reading-companion-backend/src/attentional_v2/bridge.py",
+        "reading-companion-backend/src/attentional_v2/retrieval.py",
+        "reading-companion-backend/src/attentional_v2/runner.py",
+        "reading-companion-backend/tests/test_attentional_v2_nodes.py",
+        "reading-companion-backend/tests/test_attentional_v2_bridge.py",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_20260406/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_judged_narrow_repair_20260406/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_guard_meiguoren_judged_narrow_repair_20260406/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/xidaduo_private_zh__chapter_15/attentional_v2/_mechanisms/attentional_v2/runtime/local_buffer.json",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/xidaduo_private_zh__chapter_15/attentional_v2/_mechanisms/attentional_v2/runtime/trigger_state.json",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/xidaduo_private_zh__chapter_15/attentional_v2/_mechanisms/attentional_v2/runtime/working_pressure.json",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/shards/default/outputs/nawaer_baodian_private_zh__chapter_22/attentional_v2/_mechanisms/attentional_v2/runtime/reaction_records.json",
+        "docs/backend-reading-mechanisms/attentional_v2.md",
+        "docs/implementation/new-reading-mechanism/execution-tracker.md",
+        "docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md"
+      ],
+      "last_updated": "2026-04-06T16:14:18Z",
       "last_updated_by": "codex"
     },
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V1",
       "title": "Build the bounded long-span window benchmark for coherent_accumulation",
-      "status": "active",
+      "status": "blocked",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
@@ -871,7 +913,7 @@
         "bgjob_accumulation_benchmark_v1_judged_20260406"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the honest-short freeze as the active long-span draft and use it now: huochu_shengming_de_yiyi_private_zh__8 and its two revise probes are removed from the mainline, leaving five active windows and seven frozen probes. The judged accumulation lane is now the only active background eval job; the next check is to confirm that it emits the merged aggregate/report outputs cleanly and then compare it against the already completed excerpt evidence bundle.",
+      "next_action": "Keep the honest-short freeze as the active long-span draft, but do not treat attentional_v2_accumulation_benchmark_v1_judged_20260406 as usable evidence: the run completed and emitted aggregate/report/llm_usage, yet all seven probes ended judge_unavailable with mechanism_failure. Diagnose the per-window failure surface before making any next long-span decision.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
@@ -894,9 +936,14 @@
         "reading-companion-backend/state/job_registry/jobs/bgjob_accumulation_benchmark_v1_repair_first_review_20260405.json",
         "reading-companion-backend/state/job_registry/logs/bgjob_accumulation_benchmark_v1_repair_first_review_20260405.log",
         "reading-companion-backend/eval/review_packets/archive/accumulation_benchmark_v1_repair_first_review_20260405/dataset_review_pipeline_summary.json",
-        "reading-companion-backend/eval/review_packets/archive/accumulation_benchmark_v1_repair_first_review_20260405/llm_review_report.md"
+        "reading-companion-backend/eval/review_packets/archive/accumulation_benchmark_v1_repair_first_review_20260405/llm_review_report.md",
+        "reading-companion-backend/state/job_registry/jobs/bgjob_accumulation_benchmark_v1_judged_20260406.json",
+        "reading-companion-backend/state/job_registry/logs/bgjob_accumulation_benchmark_v1_judged_20260406.log",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_20260406/summary/aggregate.json",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_20260406/summary/report.md",
+        "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_20260406/summary/llm_usage.json"
       ],
-      "last_updated": "2026-04-06T11:41:52Z",
+      "last_updated": "2026-04-06T16:14:18Z",
       "last_updated_by": "codex"
     },
     {

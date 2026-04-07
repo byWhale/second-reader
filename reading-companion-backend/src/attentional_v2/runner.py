@@ -29,7 +29,7 @@ from src.iterator_reader.llm_utils import llm_invocation_scope, runtime_trace_co
 from .bridge import build_anchor_record, candidate_pool_for_bridge_resolution, run_phase5_bridge_cycle
 from .evaluation import build_normalized_eval_bundle, persist_normalized_eval_bundle
 from .intake import process_sentence_intake
-from .nodes import run_phase4_local_cycle
+from .nodes import run_phase4_local_cycle, select_local_cycle_span
 from .resume import persist_reading_position, resume_from_checkpoint, write_full_checkpoint
 from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
@@ -667,6 +667,10 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     continue
 
                 current_span_sentences = _span_sentences(local_buffer)
+                analysis_span_sentences = select_local_cycle_span(
+                    current_span_sentences=current_span_sentences,
+                    trigger_state=trigger_state,
+                )
                 candidate_cache: dict[str, object] | None = None
                 bridge_candidate_cache: list[BridgeCandidate] | None = None
 
@@ -689,7 +693,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
 
                 phase4 = run_phase4_local_cycle(
                     focal_sentence=sentence,
-                    current_span_sentences=current_span_sentences,
+                    current_span_sentences=analysis_span_sentences,
                     trigger_state=trigger_state,
                     working_pressure=working_pressure,
                     anchor_memory=anchor_memory,
@@ -721,6 +725,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                             for anchor_id in trigger_state.get("callback_anchor_ids", [])
                             if _clean_text(anchor_id)
                         ],
+                        "local_cycle_scope": (
+                            "narrow_focus_tail"
+                            if len(analysis_span_sentences) < len(current_span_sentences)
+                            else "full_open_span"
+                        ),
                     },
                 )
                 zoom_result = dict(phase4.get("zoom_result") or {})
@@ -771,7 +780,9 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 emitted_reaction: AnchoredReactionRecord | None = None
                 reaction_payload = reaction_result.get("reaction") if isinstance(reaction_result.get("reaction"), dict) else {}
                 current_anchor = build_anchor_record(
-                    sentence_start_id=_clean_text(current_span_sentences[0].get("sentence_id")) if current_span_sentences else sentence_id,
+                    sentence_start_id=_clean_text(analysis_span_sentences[0].get("sentence_id"))
+                    if analysis_span_sentences
+                    else sentence_id,
                     sentence_end_id=sentence_id,
                     quote=_clean_text(reaction_payload.get("anchor_quote")) or _clean_text(sentence.get("text")),
                     locator=dict(sentence.get("locator", {})) if isinstance(sentence.get("locator"), dict) else {},
@@ -816,7 +827,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     if not candidate_set:
                         candidate_set, _ = lazy_bridge_loader()
                     phase5 = run_phase5_bridge_cycle(
-                        current_span_sentences=current_span_sentences,
+                        current_span_sentences=analysis_span_sentences,
                         candidate_set=candidate_set,
                         working_pressure=working_pressure,
                         anchor_memory=anchor_memory,

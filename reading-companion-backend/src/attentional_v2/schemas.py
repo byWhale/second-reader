@@ -24,6 +24,8 @@ SearchPolicyMode = Literal["no_search", "defer_search", "search_now"]
 SearchTrigger = Literal["none", "identity_critical_reference", "blocking_allusion", "genuine_curiosity", "ornamental_curiosity"]
 ActivationStatus = Literal["weak", "plausible", "strong", "rejected", "dropped"]
 AnchorRelationType = Literal["echo", "contrast", "cause", "support", "question_opened_by", "question_resolved_by", "callback"]
+AnchorFocusKind = Literal["phrase", "sentence", "span"]
+AnchorRelationStatus = Literal["anchored", "related_but_unresolved", "unclear"]
 TriggerFamily = Literal["integrity", "salience", "knowledge_risk"]
 TriggerSignalKind = Literal[
     "discourse_turn",
@@ -190,6 +192,34 @@ class ReactionCandidate(TypedDict, total=False):
     search_results: list[SearchHit]
 
 
+class AnchorFocus(TypedDict, total=False):
+    """One compact local-focus packet carried across the local interpretive loop."""
+
+    anchor_quote: str
+    focus_sentence_id: str
+    focus_kind: AnchorFocusKind | str
+    source: str
+
+
+class AnchorRelationAssessment(TypedDict, total=False):
+    """How the current interpretation relates back to the original local focus."""
+
+    relation_status: AnchorRelationStatus | str
+    relation_to_focus: str
+    current_focus_quote: str
+    same_chapter_pressure_only: bool
+    local_backcheck_used: bool
+    can_emit_visible_reaction: bool
+
+
+class BridgeAttribution(TypedDict, total=False):
+    """Explicit source-grounded explanation for one accepted bridge."""
+
+    target_quote: str
+    current_quote: str
+    relation_explanation: str
+
+
 class ReactionAnchor(TypedDict, total=False):
     """One persisted source anchor embedded directly into a durable visible reaction."""
 
@@ -224,6 +254,7 @@ class ZoomReadResult(TypedDict, total=False):
 
     local_interpretation: str
     anchor_quote: str
+    anchor_focus: AnchorFocus | None
     pressure_updates: list[StateOperation]
     activation_updates: list[StateOperation]
     bridge_candidate: BridgeCandidate | None
@@ -236,6 +267,8 @@ class MeaningUnitClosureResult(TypedDict, total=False):
 
     closure_decision: ClosureDecision
     meaning_unit_summary: str
+    anchor_focus: AnchorFocus | None
+    anchor_relation: AnchorRelationAssessment | None
     dominant_move: MoveType
     proposed_state_operations: list[StateOperation]
     bridge_candidates: list[BridgeCandidate]
@@ -258,6 +291,7 @@ class BridgeResolutionResult(TypedDict, total=False):
     decision: BridgeResolutionDecision
     reason: str
     primary_bridge: BridgeCandidate | None
+    primary_attribution: BridgeAttribution | None
     supporting_bridges: list[BridgeCandidate]
     activation_updates: list[StateOperation]
     state_operations: list[StateOperation]

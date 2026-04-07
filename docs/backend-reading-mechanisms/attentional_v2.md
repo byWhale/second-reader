@@ -418,6 +418,12 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - Future evaluation work still needed:
   - curate the tracked `attentional_v2` benchmark datasets and later chapter-level evaluation corpus before any real end-to-end comparison
   - run the true `iterator_v1` comparison only after that dataset work is complete
+- Current narrow-repair drift note:
+  - the bounded local-anchor / callback-bridge repair loop has already landed two focused code rounds in the working tree and both targeted test slices are green
+  - however, the second repair-round smoke exposed a new late-tail failure:
+    - `xidaduo_private_zh__chapter_15` drifted into a `91`-sentence open meaning-unit span by `c15-s248` even after pressure had cooled
+  - the same smoke also showed that explicit callback-cue routing alone still did not produce a concrete earlier-target bridge in `nawaer_baodian_private_zh__chapter_22`
+  - until that blocker is resolved, do not treat the current working-tree repair state as ready for another full formal excerpt rerun
 - The survey stage must stay coarse enough that it does not become hidden full-book cheating.
 - Retrieval pressure, rare-search gating, and revisit behavior will likely need careful budget control during implementation.
 - Stable doc-promotion timing under `Q10` still remains open.

@@ -296,6 +296,52 @@ Update when: status changes, blockers appear, or phases complete.
           - `insight_and_clarification`: `8` cases, `attentional_v2 = 6`, `iterator_v1 = 1`, `tie = 1`
           - no `judge_unavailable`
           - no `mechanism_failure`
+      - bounded narrow-repair autoloop status after the formal excerpt readout:
+        - round 1 landed the first narrow local-anchor / callback-honesty repair in:
+          - `reading-companion-backend/src/attentional_v2/schemas.py`
+          - `reading-companion-backend/src/attentional_v2/prompts.py`
+          - `reading-companion-backend/src/attentional_v2/nodes.py`
+          - `reading-companion-backend/src/attentional_v2/bridge.py`
+          - `reading-companion-backend/tests/test_attentional_v2_nodes.py`
+          - `reading-companion-backend/tests/test_attentional_v2_bridge.py`
+        - round-1 validation completed:
+          - smoke:
+            - `attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_20260406`
+          - judged:
+            - `attentional_v2_excerpt_micro_slice_v1_judged_narrow_repair_20260406`
+          - guard:
+            - `attentional_v2_excerpt_guard_meiguoren_judged_narrow_repair_20260406`
+        - round-1 interpretation:
+          - the bounded judged slice still beat the previously recorded micro-slice baseline
+          - but the `meiguoren` local-definition guard remained below gate
+          - and the `nawaer` callback case was still only partially repaired
+          - therefore no full formal excerpt rerun was launched from round 1
+        - round 2 landed additional local-tail narrowing and callback-cue routing in:
+          - `reading-companion-backend/src/attentional_v2/prompts.py`
+          - `reading-companion-backend/src/attentional_v2/retrieval.py`
+          - `reading-companion-backend/src/attentional_v2/nodes.py`
+          - `reading-companion-backend/src/attentional_v2/runner.py`
+          - `reading-companion-backend/tests/test_attentional_v2_nodes.py`
+          - `reading-companion-backend/tests/test_attentional_v2_bridge.py`
+        - targeted validation for round 2:
+          - `./.venv/bin/pytest tests/test_attentional_v2_nodes.py tests/test_attentional_v2_bridge.py tests/test_attentional_v2_scaffold.py -q`
+          - result:
+            - `33 passed`
+        - round-2 smoke launch:
+          - `attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406`
+        - round-2 blocker outcome:
+          - the run was intentionally stopped before judged promotion after two new blocking symptoms appeared
+          - `xidaduo_private_zh__chapter_15` drifted into a late-chapter open-span tail:
+            - `current_sentence_id = c15-s248`
+            - `open_meaning_unit_sentence_ids = c15-s158 .. c15-s248`
+            - open span size `= 91`
+            - `working_pressure.pressure_snapshot` had already cooled out
+          - `nawaer_baodian_private_zh__chapter_22` still emitted only one visible reaction:
+            - `rx:Chapter_22:c22-s87:retrospect:1`
+            - this remained a chapter-end retrospect rather than a concrete earlier-target callback bridge
+        - stop condition:
+          - per the bounded plan, the automatic loop stopped after the second focused repair round hit blocker state
+          - no round-2 judged rerun, no second guard rerun, and no new `excerpt surface v1.1` formal judged rerun were launched
     - the active benchmark pointer is still the clustered benchmark v1 draft:
       - do not merge, replace, or repoint based on the notes-guided line until its isolated outputs are reviewed intentionally
   - unattended automation should not widen further while the remaining minimum reader-character proof and trust-gate lane stay active
@@ -308,7 +354,7 @@ Update when: status changes, blockers appear, or phases complete.
       - the remaining heavy skew after the dual-target config was not caused by bad local bindings; it came from each Python process starting its in-memory pooled-tier cursor at index `0`, then scope pinning keeping a long reading scope on that first chosen target
       - `src/reading_runtime/llm_gateway.py` now persists a shared pooled-tier `next_index` cursor under `BACKEND_RUNTIME_ROOT/state/llm_gateway/tier_dispatch/`, so future sibling processes rotate across `MiniMax-M2.7-personal` and `MiniMax-M2.7-personal-2` instead of all beginning from the same target
       - the targeted regression coverage is now in `tests/test_llm_gateway.py`
-      - current in-flight excerpt/accumulation jobs were launched before that repair and can therefore remain visibly skewed until a fresh launch
+      - the earlier excerpt and long-span jobs that were already running at the time of that repair could remain visibly skewed until they finished or were relaunched
     - local operator config is now aligned with the current dual-personal pooled posture:
       - `config/llm_targets.local.json` contains:
         - `MiniMax-M2.7-personal`
@@ -330,7 +376,7 @@ Update when: status changes, blockers appear, or phases complete.
     - current live launch posture:
       - allow exactly two heavy processes total on the same personal key during this phase
       - broader judged excerpt reruns still stay conservative by default, but the bounded ROI-first micro-slice is now allowed to use a slightly faster local posture:
-        - active micro-slice judged rerun:
+        - bounded micro-slice judged rerun posture:
           - `mechanism_execution_mode = parallel`
           - `judge_execution_mode = parallel`
           - `unit_workers = 2`
@@ -615,24 +661,21 @@ Update when: status changes, blockers appear, or phases complete.
         - interpretation:
           - the project chose the honest-short route instead of spending more time trying to rescue the weak camp-experience single-chapter window
           - the remaining long-span draft is now intentionally smaller but benchmark-cleaner
-        - current next gate:
-          - the judged accumulation lane is now launched in parallel under pooled local targets:
-            - job id:
-              - `bgjob_accumulation_benchmark_v1_judged_20260406`
-            - run id:
-              - `attentional_v2_accumulation_benchmark_v1_judged_20260406`
-            - process caps:
-              - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 6`
-              - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
-            - run shape:
-              - `stage = all -> merge`
-              - `target-slice = both`
-              - `judge-mode = llm`
-              - `mechanism_execution_mode = parallel`
-              - `judge_execution_mode = parallel`
-              - `unit_workers = 2`
-              - `judge_workers = 2`
-          - do not reopen a broad long-span builder or repair wave unless later judged evidence exposes a concrete blocker
+        - first mainline judged run is now completed:
+          - job id:
+            - `bgjob_accumulation_benchmark_v1_judged_20260406`
+          - run id:
+            - `attentional_v2_accumulation_benchmark_v1_judged_20260406`
+          - outputs:
+            - `summary/aggregate.json`
+            - `summary/report.md`
+            - `summary/llm_usage.json`
+          - top-line result:
+            - `coherent_accumulation`: `7` cases, `tie = 7`, `judge_unavailable = 7`, `mechanism_failure = 7`
+            - `insight_and_clarification`: `7` cases, `tie = 7`, `judge_unavailable = 7`, `mechanism_failure = 7`
+          - interpretation:
+            - the lane is complete, but it did not produce usable long-span evidence
+            - do not reopen a broad long-span builder or repair wave until the concrete failure surface is inspected window by window
   - current model-call cost is high enough that new comparison work outside the mechanism mainline should stay paused for now:
     - keep broader comparison checkpoints as baseline references, not active rerun targets
     - keep active spend on decisive mechanism-eval runs plus the minimum support diagnostics they still require

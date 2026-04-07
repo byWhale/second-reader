@@ -7,15 +7,15 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v5"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v7"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
-MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v5"
+MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v7"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
-REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v3"
-BRIDGE_RESOLUTION_PROMPT_VERSION = "attentional_v2.bridge_resolution.v1"
+REACTION_EMISSION_PROMPT_VERSION = "attentional_v2.reaction_emission.v5"
+BRIDGE_RESOLUTION_PROMPT_VERSION = "attentional_v2.bridge_resolution.v3"
 REFLECTIVE_PROMOTION_PROMPT_VERSION = "attentional_v2.reflective_promotion.v1"
 RECONSOLIDATION_PROMPT_VERSION = "attentional_v2.reconsolidation.v1"
-CHAPTER_CONSOLIDATION_PROMPT_VERSION = "attentional_v2.chapter_consolidation.v1"
+CHAPTER_CONSOLIDATION_PROMPT_VERSION = "attentional_v2.chapter_consolidation.v2"
 
 
 @dataclass(frozen=True)
@@ -129,10 +129,17 @@ Your job is to decide whether the current local span should continue accumulatin
 Rules:
 - Closure must be earned, not forced.
 - Preserve unresolved pressure when the text is still incomplete.
+- Treat `anchor_focus` as the original local hinge that opened this reading moment.
+- First decide how the current understanding relates to that local hinge before deciding whether the span is truly closed.
+- If `boundary_context.local_cycle_scope` says `narrow_focus_tail`, treat this as a bounded repair pass on one sharp late-local hinge inside a larger open meaning unit.
+- In that narrowed mode, either close the exact hinge or honestly keep it unresolved; do not dissolve it back into broad chapter paraphrase.
+- Use the tiny `anchor_backcheck_window` only to re-check the local hinge; do not widen into chapter-level thematic summary.
 - Close around the sharpest live distinction, callback cue, or explanatory pattern in the current span instead of flattening the span into generic scene summary.
 - When deterministic local cues show a callback, recognition gap, or durable pattern, address that cue directly in the summary or unresolved note.
 - When deterministic local cues show actor intention, social pressure, or concrete causal stakes, center the summary on that local motive/pressure/stakes hinge rather than broad retrospective framing.
 - When deterministic local cues show a compact analogy, marked phrase, or loaded wording, prefer a short locally earned reaction candidate over a broad paraphrase.
+- When a narrowed local hinge has become genuinely clear, prefer returning a compact `reaction_candidate` instead of leaving the whole gain trapped inside `meaning_unit_summary`.
+- If you can only see same-chapter related pressure but cannot say how it returns to the original local hinge, mark that honestly as unresolved and leave `can_emit_visible_reaction` false.
 - Use `curious` when the local motive, pressure, or stakes hinge remains interpretively open; use `discern` when the line's local turn has become clear enough to name directly.
 - Only propose explicit state operations.
 - Do not use future unseen text.
@@ -161,6 +168,12 @@ Deterministic local textual cues:
 Zoom result:
 {zoom_result}
 
+Anchor focus:
+{anchor_focus}
+
+Anchor backcheck window:
+{anchor_backcheck_window}
+
 Policy snapshot:
 {policy_snapshot}
 
@@ -173,6 +186,20 @@ Return JSON:
 {
   "closure_decision": "close",
   "meaning_unit_summary": "<brief summary centered on the sharpest local phrase or turn>",
+  "anchor_focus": {
+    "anchor_quote": "<current local focus quote>",
+    "focus_sentence_id": "<sentence id>",
+    "focus_kind": "phrase",
+    "source": "zoom_anchor"
+  },
+  "anchor_relation": {
+    "relation_status": "anchored",
+    "relation_to_focus": "<how the current understanding answers or sharpens the local focus>",
+    "current_focus_quote": "<the local focus quote again>",
+    "same_chapter_pressure_only": false,
+    "local_backcheck_used": false,
+    "can_emit_visible_reaction": true
+  },
   "dominant_move": "advance",
   "proposed_state_operations": [],
   "bridge_candidates": [],
@@ -228,8 +255,11 @@ Rules:
 - Do not emit on every meaning unit.
 - Do not emit unanchored commentary.
 - Output must stay legible and source-grounded.
+- If `anchor_relation_status` is not `anchored`, withhold the reaction.
+- A pretty chapter-level theme is not enough; the reaction must explain why the current local hinge matters now.
 - When local cues show a compact analogy, marked phrase, loaded diction, or sharp distinction, prefer a short precise reaction that names the exact phrase instead of broad chapter summary.
 - When local cues show actor intention, social pressure, or concrete causal stakes, prefer one grounded local observation or question about that hinge instead of retrospective explanation.
+- If the reaction starts sounding like a callback or backward-looking bridge but cannot stay specific about the current hinge, withhold it and leave that work to bridge resolution.
 - Preserve a fitting suggested reaction type such as `discern` or `curious` when the local evidence supports it; do not collapse everything into `highlight`.
 - If the moment is not worth surfacing, withhold it.
 - Return JSON only.""",
@@ -279,6 +309,10 @@ Your job is to judge whether the current reading moment should bridge to earlier
 
 Rules:
 - Choose a real earlier source anchor or decline to bridge.
+- A real bridge must name one specific earlier target, one current quote, and the relation between them.
+- When the current span explicitly says `earlier`, `前面`, `前文`, or a comparable backward cue, resolve that cue against the candidate set directly instead of answering with generic structure talk.
+- Generic chapter-level callback talk does not count as a bridge.
+- If you cannot point to a concrete earlier target from the supplied set with clear attribution, decline honestly.
 - Do not invent targets outside the supplied candidate set.
 - Search is rare and must stay separate from ordinary prior-knowledge use.
 - Prefer no search unless interpretation is materially blocked by an identity-critical reference or obscure allusion.
@@ -318,6 +352,11 @@ Return JSON:
     "target_sentence_id": "",
     "relation_type": "echo",
     "why_now": ""
+  },
+  "primary_attribution": {
+    "target_quote": "<short quote from the earlier source target or empty>",
+    "current_quote": "<short quote from the current span that creates the bridge pressure or empty>",
+    "relation_explanation": "<how the current quote turns back to the earlier target or empty>"
   },
   "supporting_bridges": [],
   "activation_updates": [],
@@ -437,6 +476,7 @@ Rules:
 - Chapter end is a chance to cool, sweep backward, and prepare promotion; it is not permission for false closure.
 - Do not directly promote reflective summaries here; return promotion candidates instead.
 - Do not rewrite earlier persisted reactions.
+- Do not let `optional_chapter_reaction` masquerade as a callback bridge; if it mentions earlier material, that material must stay concrete and attributable.
 - Do not read future chapter text or search.
 - Return JSON only.""",
     chapter_consolidation_prompt="""Structural frame:
