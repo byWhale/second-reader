@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-08T04:31:10Z",
+  "updated_at": "2026-04-08T11:31:24Z",
   "tasks": [
     {
       "id": "TASK-MECH-EN-RERUN",
@@ -803,10 +803,11 @@
         "bgjob_excerpt_surface_v1_1_eval_orchestrator_unitready_retry1_20260406",
         "bgjob_excerpt_surface_v1_1_smoke_supremacy_recovery_20260406",
         "bgjob_accumulation_benchmark_v1_judged_20260406",
-        "bgjob_accumulation_benchmark_v1_judged_rerun_20260407"
+        "bgjob_accumulation_benchmark_v1_judged_rerun_20260407",
+        "bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep excerpt surface v1.1 as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The active blocker is now narrowed to one question only: whether the repaired long-span harness can complete one full formal judged rerun cleanly after the successful 2-window recovery smoke. The live step is bgjob_accumulation_benchmark_v1_judged_rerun_20260407.",
+      "next_action": "Keep excerpt surface v1.1 as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The active blocker is now narrowed to one question only: whether the repaired long-span harness can finish the targeted repair of value_of_others_private_en__8_10 and clear the last judge_unavailable / mechanism_failure pair from the completed formal rerun. The live step is bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
@@ -930,7 +931,7 @@
         "docs/implementation/new-reading-mechanism/execution-tracker.md",
         "docs/implementation/new-reading-mechanism/mechanism-pattern-ledger.md"
       ],
-      "last_updated": "2026-04-07T11:10:01Z",
+      "last_updated": "2026-04-08T11:31:24Z",
       "last_updated_by": "codex"
     },
     {
@@ -956,10 +957,11 @@
         "bgjob_accumulation_benchmark_v1_judged_20260406",
         "bgjob_accumulation_smoke_pair_recovery_20260407",
         "bgjob_accumulation_benchmark_v1_judged_rerun_20260407",
-        "bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408"
+        "bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408",
+        "bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/execution-tracker.md",
-      "next_action": "Keep the honest-short freeze as the active long-span draft, treat attentional_v2_accumulation_benchmark_v1_judged_20260406 as a diagnosed invalid lane rather than generic mechanism failure, and use the completed 2-window recovery smoke as proof that bundle/probe materialization is back. The current active move is the full formal judged rerun bgjob_accumulation_benchmark_v1_judged_rerun_20260407 / attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407. In parallel, an auxiliary isolated V1-only read is running as bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408 to harvest the iterator_v1 artifact for value_of_others_private_en__8_10 without writing into the in-flight formal run.",
+      "next_action": "Keep the honest-short freeze as the active long-span draft, treat attentional_v2_accumulation_benchmark_v1_judged_20260406 as a diagnosed invalid lane rather than generic mechanism failure, and use the completed 2-window recovery smoke as proof that bundle/probe materialization is back. The full formal rerun attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407 has already completed as a process, but one window still needs targeted same-run repair after a transient iterator_v1 failure on value_of_others_private_en__8_10. The active move is bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408, and future relaunches can now reuse resumable failed output trees because run_accumulation_comparison.py has landed one bounded resume-aware recovery pass for recoverable transient failures.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
@@ -994,7 +996,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_20260406/shards/main/cases/supremacy_private_en__13__probe_1.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_smoke_recovery_pair_20260407/meta/selected_windows.json"
       ],
-      "last_updated": "2026-04-08T04:31:10Z",
+      "last_updated": "2026-04-08T11:31:24Z",
       "last_updated_by": "codex"
     },
     {

@@ -7,11 +7,11 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-08T04:31:10Z`
+Last verified: `2026-04-08T11:31:24Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
-- Use the completed 2-window `long-span` smoke as recovery evidence that the April 6 `bundle_missing` failure is no longer blocking bundle/probe materialization, then keep one full formal judged rerun running overnight.
+- Use the completed 2-window `long-span` smoke as recovery evidence that the April 6 `bundle_missing` failure is no longer blocking bundle/probe materialization, then repair the completed full formal rerun with targeted same-run recovery instead of paying for another whole-surface relaunch.
 - Product-boundary clarification is now landed:
   - `book_analysis` is treated as a retired legacy capability preserved only for compatibility/debugging rather than as a live secondary product lane
   - public `/analysis/*` routes remain for compatibility, but the active backend launcher and OpenAPI operation ids now describe deep reading explicitly
@@ -98,41 +98,40 @@ Last verified: `2026-04-08T04:31:10Z`
     - remaining caveat:
       - this smoke did not materialize top-level `summary/aggregate.json` or `summary/report.md`, so treat it as harness-recovery evidence rather than the final long-span comparison artifact
   - current next move:
-    - one full formal judged rerun on the full long-span draft is now running overnight:
+    - the full formal judged rerun has completed as a process:
       - job id:
         - `bgjob_accumulation_benchmark_v1_judged_rerun_20260407`
       - run id:
         - `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
-      - posture:
-        - `stage = all -> merge`
-        - `judge-mode = llm`
-        - `target-slice = both`
-        - `mechanism-filter = both`
-        - `mechanism_execution_mode = parallel`
-        - `judge_execution_mode = parallel`
-        - `unit_workers = 2`
-        - `judge_workers = 2`
-        - `LLM_PROCESS_RUNTIME_PROFILE_MAX_CONCURRENCY = 6`
-        - `LLM_PROCESS_EVAL_JUDGE_PROFILE_MAX_CONCURRENCY = 4`
-    - one auxiliary isolated `iterator_v1`-only read is also running on the still-unfinished heavy window so we can inspect V1's actual reading artifact without writing into the in-flight formal run root:
+      - current interpretation:
+        - treat it as near-complete but still not final evidence because one window remains degraded by a single `iterator_v1` transient failure on `value_of_others_private_en__8_10`
+        - the merged summary currently still contains `judge_unavailable = 1` and `mechanism_failure = 1`
+    - the isolated diagnosis-only `iterator_v1` read has already failed once with a transient connection error and is no longer the main recovery path:
       - job id:
         - `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408`
       - run id:
         - `attentional_v2_accumulation_value_of_others_iterator_v1_bundle_20260408`
-      - posture:
-        - `stage = bundle`
-        - `judge-mode = none`
-        - `mechanism-filter = iterator_v1`
-        - `window-case-id = value_of_others_private_en__8_10`
-        - `unit_workers = 1`
-    - do not spend on a fresh excerpt full-surface rerun unless the long-span lane fails again
+      - interpretation:
+        - it proved the failure was a checkpointable runtime interruption rather than “no resume support”
+        - its persisted runtime state shows `resume_available = true`, `problem_code = network_blocked`, and `last_checkpoint_at` set on Chapter 8
+    - the active long-span move is now the same-run targeted repair job:
+      - job id:
+        - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
+      - scope:
+        - rerun only `iterator_v1` for `value_of_others_private_en__8_10`
+        - then re-judge that window
+        - then re-merge the already-completed formal run
+    - landed orchestration hardening:
+      - `reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py` now supports one bounded resume-aware recovery pass for recoverable transient failures
+      - if a recovery launch sees an existing resumable failed output tree, it now resumes from that checkpoint instead of wiping the mechanism output directory first
+      - the in-flight recovery job above started before this code landed, so it will not pick up the new behavior unless relaunched
+    - do not spend on a fresh excerpt full-surface rerun unless the long-span recovery still fails after the hardened runner is used
 - Current repo posture:
-  - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows two active background jobs:
-    - `bgjob_accumulation_benchmark_v1_judged_rerun_20260407`
-    - `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408`
+  - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows one active background job:
+    - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
   - do not launch a new full excerpt formal rerun tonight
-  - the one approved overnight lane is the full long-span formal judged rerun
-  - the auxiliary isolated `iterator_v1` read is diagnosis-only evidence and does not replace or mutate the main formal long-span lane
+  - the full long-span formal judged rerun has already finished; the only approved long-span work right now is the targeted same-run repair
+  - the earlier isolated `iterator_v1` read is diagnosis-only evidence and does not replace or mutate the main formal long-span lane
   - do not reopen dataset retune or long-span redesign inside this repair-first / diagnosis-only pass
 
 ## Current Strategy
@@ -998,7 +997,8 @@ Last verified: `2026-04-08T04:31:10Z`
       - keep pooled routing without `LLM_FORCE_TARGET_ID`
       - allow one active long-span judged lane plus a re-sharded excerpt judged lane when the excerpt side can reuse completed smoke bundles
       - raise scope-level parallelism through more shards, but keep each judged shard on moderate process caps instead of maxing every process independently
-- There are currently no active background jobs in the registry.
+- There is currently one active background job in the registry:
+  - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
 - the latest completed long-span judged job is:
   - `bgjob_accumulation_benchmark_v1_judged_20260406`
     - result:

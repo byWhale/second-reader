@@ -57,6 +57,13 @@ MECHANISM_KEYS = ("attentional_v2", "iterator_v1")
 MECHANISM_FILTER_VALUES = ("attentional_v2", "iterator_v1", "both")
 TARGET_SLICE_VALUES = ("coherent_accumulation", "insight_and_clarification", "both")
 STAGE_VALUES = ("all", "bundle", "judge", "merge")
+RECOVERABLE_MECHANISM_PROBLEM_CODES = {
+    "network_blocked",
+    "llm_timeout",
+    "llm_quota",
+    "search_timeout",
+    "search_quota",
+}
 TARGET_FIELD_BY_SLICE = {
     "coherent_accumulation": ("accumulation_probes_frozen_draft", "accumulation_probe_core_draft"),
     "insight_and_clarification": (
@@ -608,6 +615,36 @@ def _isolated_output_dir(output_dir: Path):
         yield
 
 
+def _run_state_path(output_dir: Path) -> Path:
+    return output_dir / "_runtime" / "run_state.json"
+
+
+def _recoverable_resume_context(output_dir: Path, *, error: Exception | None = None) -> dict[str, str] | None:
+    payload = _load_json_if_exists(_run_state_path(output_dir))
+    if not isinstance(payload, dict):
+        payload = {}
+    current_activity = payload.get("current_reading_activity")
+    if not isinstance(current_activity, dict):
+        current_activity = {}
+    problem_code = _clean_text(getattr(error, "problem_code", "")).lower()
+    if not problem_code:
+        problem_code = _clean_text(current_activity.get("problem_code")).lower()
+    if not problem_code:
+        problem_code = _clean_text(payload.get("problem_code")).lower()
+    if problem_code not in RECOVERABLE_MECHANISM_PROBLEM_CODES:
+        return None
+    if not bool(payload.get("resume_available")):
+        return None
+    stage = _clean_text(payload.get("stage")).lower()
+    if stage == "completed":
+        return None
+    return {
+        "problem_code": problem_code,
+        "last_checkpoint_at": _clean_text(payload.get("last_checkpoint_at")),
+        "stage": stage,
+    }
+
+
 def _summarize_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     chapter_outputs = [dict(item) for item in bundle.get("chapters") or [] if isinstance(item, dict)]
     reactions = []
@@ -649,12 +686,13 @@ def _summarize_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _run_mechanism_for_window(
+def _run_mechanism_attempt(
     window: WindowCase,
     source: dict[str, Any],
     *,
     mechanism_key: str,
     shard_root: Path,
+    resume_from_existing: bool,
 ) -> dict[str, Any]:
     if mechanism_key == "attentional_v2":
         mechanism = AttentionalV2Mechanism()
@@ -666,8 +704,13 @@ def _run_mechanism_for_window(
     book_path = ROOT / str(source["relative_local_path"])
     isolated_output_dir = shard_root / "outputs" / window.window_case_id / mechanism_key
     runtime_dir = isolated_output_dir / "_runtime"
-    _log_window_progress(window, f"[mechanism-start] {mechanism_key}")
-    shutil.rmtree(isolated_output_dir, ignore_errors=True)
+    _log_window_progress(
+        window,
+        f"[mechanism-start] {mechanism_key}"
+        + (" resume=true" if resume_from_existing else ""),
+    )
+    if not resume_from_existing:
+        shutil.rmtree(isolated_output_dir, ignore_errors=True)
     isolated_output_dir.parent.mkdir(parents=True, exist_ok=True)
     result = None
     with runtime_progress_heartbeat(
@@ -682,7 +725,7 @@ def _run_mechanism_for_window(
                     ReadRequest(
                         book_path=book_path,
                         chapter_number=chapter_id,
-                        continue_mode=index > 0,
+                        continue_mode=resume_from_existing or index > 0,
                         user_intent=DEFAULT_USER_INTENT,
                         language_mode=window.output_language,
                         task_mode="sequential",
@@ -701,6 +744,57 @@ def _run_mechanism_for_window(
         "bundle_summary": _summarize_bundle(bundle),
         "error": "",
     }
+
+
+def _run_mechanism_for_window(
+    window: WindowCase,
+    source: dict[str, Any],
+    *,
+    mechanism_key: str,
+    shard_root: Path,
+) -> dict[str, Any]:
+    isolated_output_dir = shard_root / "outputs" / window.window_case_id / mechanism_key
+    recovery_context = _recoverable_resume_context(isolated_output_dir)
+    resume_from_existing = recovery_context is not None
+    recovery_already_used = resume_from_existing
+    if recovery_context is not None:
+        checkpoint_note = (
+            f" last_checkpoint_at={recovery_context['last_checkpoint_at']}"
+            if recovery_context.get("last_checkpoint_at")
+            else ""
+        )
+        stage_note = f" stage={recovery_context['stage']}" if recovery_context.get("stage") else ""
+        _log_window_progress(
+            window,
+            f"[mechanism-resume-existing] {mechanism_key} problem_code={recovery_context['problem_code']}"
+            f"{checkpoint_note}{stage_note}",
+        )
+
+    while True:
+        try:
+            return _run_mechanism_attempt(
+                window,
+                source,
+                mechanism_key=mechanism_key,
+                shard_root=shard_root,
+                resume_from_existing=resume_from_existing,
+            )
+        except Exception as exc:
+            recovery_context = _recoverable_resume_context(isolated_output_dir, error=exc)
+            if recovery_already_used or recovery_context is None:
+                raise
+            checkpoint_note = (
+                f" last_checkpoint_at={recovery_context['last_checkpoint_at']}"
+                if recovery_context.get("last_checkpoint_at")
+                else ""
+            )
+            _log_window_progress(
+                window,
+                f"[mechanism-auto-recover] {mechanism_key} problem_code={recovery_context['problem_code']}"
+                f"{checkpoint_note}",
+            )
+            resume_from_existing = True
+            recovery_already_used = True
 
 
 def _run_mechanism_worker(payload_path: Path, result_path: Path) -> int:

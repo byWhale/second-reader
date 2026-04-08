@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from eval.attentional_v2 import run_accumulation_comparison as accumulation_comparison
+from src.iterator_reader.llm_utils import ReaderLLMError
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -171,6 +172,26 @@ def _book_document() -> dict[str, Any]:
             }
         ],
     }
+
+
+def _window_case(window_case_id: str = "window_a") -> accumulation_comparison.WindowCase:
+    return accumulation_comparison.WindowCase(
+        window_case_id=window_case_id,
+        source_id="source_a",
+        book_title="Book A",
+        author="Author A",
+        output_language="en",
+        benchmark_line="demo",
+        window_kind="single_chapter",
+        chapter_case_ids=["source_a__1"],
+        chapter_ids=["1"],
+        chapter_numbers=[1],
+        chapter_titles=["Chapter 1"],
+        sentence_count=12,
+        selection_group_id=window_case_id,
+        selection_group_label="Window A",
+        cross_chapter_window={},
+    )
 
 
 def _window_result(window_case_id: str = "window_a") -> dict[str, Any]:
@@ -420,3 +441,151 @@ def test_mechanism_filter_single_mechanism_only_writes_one_bundle(monkeypatch, t
     run_root = tmp_path / "runs" / "acc_mechanism_filter_demo"
     assert (run_root / "shards" / "default" / "bundles" / "iterator_v1" / "window_a.json").exists()
     assert not (run_root / "shards" / "default" / "bundles" / "attentional_v2" / "window_a.json").exists()
+
+
+def test_run_mechanism_for_window_auto_recovers_with_resume(monkeypatch, tmp_path: Path) -> None:
+    window = _window_case()
+    source = {"relative_local_path": "state/library_sources/source_a.epub"}
+    shard_root = tmp_path / "runs" / "acc_auto_recover" / "shards" / "main"
+    output_dir = shard_root / "outputs" / window.window_case_id / "iterator_v1"
+    calls: list[bool] = []
+
+    def fake_attempt(
+        inner_window,
+        inner_source,
+        *,
+        mechanism_key: str,
+        shard_root: Path,
+        resume_from_existing: bool,
+    ) -> dict[str, Any]:
+        assert inner_window.window_case_id == window.window_case_id
+        assert inner_source == source
+        assert mechanism_key == "iterator_v1"
+        calls.append(resume_from_existing)
+        marker = output_dir / "checkpoint.marker"
+        if len(calls) == 1:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            marker.write_text("partial-progress", encoding="utf-8")
+            _write_json(
+                output_dir / "_runtime" / "run_state.json",
+                {
+                    "stage": "error",
+                    "resume_available": True,
+                    "last_checkpoint_at": "2026-04-08T05:30:27Z",
+                    "current_reading_activity": {"problem_code": "network_blocked"},
+                },
+            )
+            raise RuntimeError("Connection error.")
+        assert resume_from_existing is True
+        assert marker.exists()
+        return {
+            "status": "completed",
+            "mechanism_key": mechanism_key,
+            "mechanism_label": "Iterator V1",
+            "output_dir": str(output_dir),
+            "normalized_eval_bundle": {"reactions": [{"content": "Recovered"}]},
+            "bundle_summary": {"reaction_count": 1},
+            "error": "",
+        }
+
+    monkeypatch.setattr(accumulation_comparison, "_run_mechanism_attempt", fake_attempt)
+
+    payload = accumulation_comparison._run_mechanism_for_window(
+        window,
+        source,
+        mechanism_key="iterator_v1",
+        shard_root=shard_root,
+    )
+
+    assert calls == [False, True]
+    assert payload["status"] == "completed"
+    assert payload["normalized_eval_bundle"]["reactions"][0]["content"] == "Recovered"
+
+
+def test_run_mechanism_for_window_resumes_existing_checkpoint_first(monkeypatch, tmp_path: Path) -> None:
+    window = _window_case()
+    source = {"relative_local_path": "state/library_sources/source_a.epub"}
+    shard_root = tmp_path / "runs" / "acc_resume_existing" / "shards" / "main"
+    output_dir = shard_root / "outputs" / window.window_case_id / "iterator_v1"
+    marker = output_dir / "checkpoint.marker"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    marker.write_text("partial-progress", encoding="utf-8")
+    _write_json(
+        output_dir / "_runtime" / "run_state.json",
+        {
+            "stage": "error",
+            "resume_available": True,
+            "last_checkpoint_at": "2026-04-08T05:30:27Z",
+            "current_reading_activity": {"problem_code": "network_blocked"},
+        },
+    )
+    calls: list[bool] = []
+
+    def fake_attempt(
+        inner_window,
+        inner_source,
+        *,
+        mechanism_key: str,
+        shard_root: Path,
+        resume_from_existing: bool,
+    ) -> dict[str, Any]:
+        calls.append(resume_from_existing)
+        assert resume_from_existing is True
+        assert marker.exists()
+        return {
+            "status": "completed",
+            "mechanism_key": mechanism_key,
+            "mechanism_label": "Iterator V1",
+            "output_dir": str(output_dir),
+            "normalized_eval_bundle": {"reactions": [{"content": "Recovered from existing checkpoint"}]},
+            "bundle_summary": {"reaction_count": 1},
+            "error": "",
+        }
+
+    monkeypatch.setattr(accumulation_comparison, "_run_mechanism_attempt", fake_attempt)
+
+    payload = accumulation_comparison._run_mechanism_for_window(
+        window,
+        source,
+        mechanism_key="iterator_v1",
+        shard_root=shard_root,
+    )
+
+    assert calls == [True]
+    assert payload["status"] == "completed"
+
+
+def test_run_window_bundle_writes_failed_payload_after_recovery_exhausted(monkeypatch, tmp_path: Path) -> None:
+    window = _window_case()
+    run_root = tmp_path / "runs" / "acc_failed_after_recovery"
+    shard_id = "main"
+
+    def fail_after_recovery(_window, _source, *, mechanism_key: str, shard_root: Path) -> dict[str, Any]:
+        raise ReaderLLMError(f"{mechanism_key} transient recovery exhausted", problem_code="network_blocked")
+
+    monkeypatch.setattr(accumulation_comparison, "_run_mechanism_for_window", fail_after_recovery)
+
+    payload = accumulation_comparison._run_window_bundle(
+        window,
+        source={"relative_local_path": "state/library_sources/source_a.epub"},
+        run_root=run_root,
+        shard_id=shard_id,
+        mechanism_execution_mode="serial",
+        mechanism_filter="iterator_v1",
+        skip_existing=False,
+    )
+
+    bundle_payload = json.loads(
+        (
+            run_root
+            / "shards"
+            / shard_id
+            / "bundles"
+            / "iterator_v1"
+            / f"{window.window_case_id}.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert bundle_payload["status"] == "failed"
+    assert "transient recovery exhausted" in bundle_payload["error"]
+    assert payload["mechanisms"]["iterator_v1"]["status"] == "failed"

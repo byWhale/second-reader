@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-08T04:31:10Z`
+Last updated: `2026-04-08T11:31:24Z`
 
 ## Status Values
 - `active`
@@ -25,28 +25,35 @@ Last updated: `2026-04-08T04:31:10Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep the honest-short freeze as the active long-span draft, treat `attentional_v2_accumulation_benchmark_v1_judged_20260406` as a diagnosed invalid lane rather than generic mechanism failure, and use the completed 2-window recovery smoke as proof that bundle/probe materialization is back. The current active move is the full formal judged rerun:
+- Next: keep the honest-short freeze as the active long-span draft, treat `attentional_v2_accumulation_benchmark_v1_judged_20260406` as a diagnosed invalid lane rather than generic mechanism failure, and use the completed 2-window recovery smoke as proof that bundle/probe materialization is back. The full formal rerun has now completed as a process, but one window still needs targeted same-run repair after a transient `iterator_v1` failure on `value_of_others_private_en__8_10`:
   - prior recovery evidence:
     - job: `bgjob_accumulation_smoke_pair_recovery_20260407` (`completed`)
     - run: `attentional_v2_accumulation_benchmark_v1_smoke_recovery_pair_20260407`
     - result: both windows and both probe payloads completed cleanly for both mechanisms without `bundle_missing`
-  - overnight mainline launch:
-    - job: `bgjob_accumulation_benchmark_v1_judged_rerun_20260407`
+  - completed mainline rerun:
+    - job: `bgjob_accumulation_benchmark_v1_judged_rerun_20260407` (`completed`)
     - run: `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
-    - goal: obtain the first valid full long-span formal judged evidence lane after the materialization repair
-  - auxiliary diagnosis launch:
-    - job: `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408` (`running`)
+    - result: merged outputs exist, but the summary still carries `judge_unavailable = 1` and `mechanism_failure = 1`
+  - isolated diagnosis launch:
+    - job: `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408` (`completed`)
     - run: `attentional_v2_accumulation_value_of_others_iterator_v1_bundle_20260408`
     - scope: isolated `iterator_v1`-only bundle read for `value_of_others_private_en__8_10`
-    - goal: harvest the V1 reading artifact without writing into the in-flight formal rerun
+    - result: failed again with one checkpointable transient connection error; useful as diagnosis, not as recovery
+  - active targeted repair:
+    - job: `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408` (`running`)
+    - goal: rerun only the failed mechanism/window inside the completed formal run, then re-judge and re-merge
+  - landed orchestration hardening:
+    - `run_accumulation_comparison.py` now preserves resumable failed output trees and allows one bounded resume-aware recovery pass on recoverable transient failures
+    - future relaunches of the same failed mechanism/window no longer need to wipe progress before retrying
 - Jobs:
   - `bgjob_accumulation_benchmark_v1_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_rejudged_first_review_20260404` (`completed`)
   - `bgjob_accumulation_benchmark_v1_repair_first_review_20260405` (`completed`)
   - `bgjob_accumulation_benchmark_v1_judged_20260406` (`completed`)
   - `bgjob_accumulation_smoke_pair_recovery_20260407` (`completed`)
-  - `bgjob_accumulation_benchmark_v1_judged_rerun_20260407` (`running`)
-  - `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408` (`running`)
+  - `bgjob_accumulation_benchmark_v1_judged_rerun_20260407` (`completed`)
+  - `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408` (`completed`)
+  - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408` (`running`)
 
 ## Blocked
 
@@ -55,7 +62,7 @@ Last updated: `2026-04-08T04:31:10Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/execution-tracker.md`
-- Next: keep `excerpt surface v1.1` as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The active blocker is now narrowed to one question only: whether the repaired long-span harness can complete one full formal judged rerun cleanly after the successful 2-window recovery smoke. The live step is `bgjob_accumulation_benchmark_v1_judged_rerun_20260407`.
+- Next: keep `excerpt surface v1.1` as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The active blocker is now narrowed to one question only: whether the repaired long-span harness can finish the targeted repair of `value_of_others_private_en__8_10` and clear the last `judge_unavailable / mechanism_failure` pair from the completed formal rerun. The live step is `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`.
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
