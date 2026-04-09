@@ -20,9 +20,41 @@ const statusMeta: Record<BookShelfCard["reading_status"], { label: string; icon:
   error: { label: term("state.needsAttention"), icon: AlertTriangle, color: "text-[var(--destructive)]" },
 };
 
+type RuntimeStatusReason = "runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned";
+
+function readStatusReason(value: unknown): RuntimeStatusReason | null {
+  const rawReason =
+    value && typeof value === "object" && "status_reason" in value
+      ? (value as { status_reason?: unknown }).status_reason
+      : null;
+  switch (rawReason) {
+    case "runtime_stale":
+    case "runtime_interrupted":
+    case "resume_incompatible":
+    case "dev_run_abandoned":
+      return rawReason;
+    default:
+      return null;
+  }
+}
+
 function statusSummary(book: BookShelfCard) {
   if (book.reading_status === "analyzing") {
     return `${statusMeta[book.reading_status].label} · ${book.completed_chapters}/${book.total_chapters} ${term("view.chapters").toLowerCase()}`;
+  }
+  if (book.reading_status === "paused") {
+    switch (readStatusReason(book)) {
+      case "runtime_stale":
+        return copy("bookshelf.status.paused.runtimeStale");
+      case "runtime_interrupted":
+        return copy("bookshelf.status.paused.runtimeInterrupted");
+      case "resume_incompatible":
+        return copy("bookshelf.status.paused.resumeIncompatible");
+      case "dev_run_abandoned":
+        return copy("bookshelf.status.paused.devRunAbandoned");
+      default:
+        return statusMeta[book.reading_status].label;
+    }
   }
   return statusMeta[book.reading_status].label;
 }

@@ -733,6 +733,11 @@ export interface components {
              */
             status: "queued" | "parsing_structure" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
             /**
+             * Status Reason
+             * @description Additive reason explaining why the current paused/error-like state was reached when applicable.
+             */
+            status_reason?: ("runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned") | null;
+            /**
              * Structure Ready
              * @description Whether the structure tree is ready to render.
              */
@@ -832,6 +837,11 @@ export interface components {
              */
             status: "analyzing" | "paused" | "completed" | "error" | "not_started";
             /**
+             * Status Reason
+             * @description Additive reason explaining why the current paused/error-like state was reached when applicable.
+             */
+            status_reason?: ("runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned") | null;
+            /**
              * Title
              * @description Book title.
              */
@@ -925,6 +935,11 @@ export interface components {
              * @enum {string}
              */
             reading_status: "not_started" | "analyzing" | "paused" | "completed" | "error";
+            /**
+             * Status Reason
+             * @description Additive reason explaining why the current paused/error-like state was reached when applicable.
+             */
+            status_reason?: ("runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned") | null;
             /**
              * Title
              * @description Title of the book.
@@ -1651,6 +1666,11 @@ export interface components {
              * @enum {string}
              */
             status: "queued" | "parsing_structure" | "ready" | "deep_reading" | "chapter_note_generation" | "paused" | "completed" | "error";
+            /**
+             * Status Reason
+             * @description Additive reason explaining why the current paused/error-like state was reached when applicable.
+             */
+            status_reason?: ("runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned") | null;
             /**
              * Total Chapters
              * @description Total number of chapters when known.

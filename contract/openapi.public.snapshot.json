@@ -715,6 +715,24 @@
             "title": "Status",
             "type": "string"
           },
+          "status_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "runtime_stale",
+                  "runtime_interrupted",
+                  "resume_incompatible",
+                  "dev_run_abandoned"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additive reason explaining why the current paused/error-like state was reached when applicable.",
+            "title": "Status Reason"
+          },
           "structure_ready": {
             "description": "Whether the structure tree is ready to render.",
             "title": "Structure Ready",
@@ -877,6 +895,24 @@
             "title": "Status",
             "type": "string"
           },
+          "status_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "runtime_stale",
+                  "runtime_interrupted",
+                  "resume_incompatible",
+                  "dev_run_abandoned"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additive reason explaining why the current paused/error-like state was reached when applicable.",
+            "title": "Status Reason"
+          },
           "title": {
             "description": "Book title.",
             "title": "Title",
@@ -1019,6 +1055,24 @@
             ],
             "title": "Reading Status",
             "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "runtime_stale",
+                  "runtime_interrupted",
+                  "resume_incompatible",
+                  "dev_run_abandoned"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additive reason explaining why the current paused/error-like state was reached when applicable.",
+            "title": "Status Reason"
           },
           "title": {
             "description": "Title of the book.",
@@ -2336,6 +2390,24 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "status_reason": {
+            "anyOf": [
+              {
+                "enum": [
+                  "runtime_stale",
+                  "runtime_interrupted",
+                  "resume_incompatible",
+                  "dev_run_abandoned"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Additive reason explaining why the current paused/error-like state was reached when applicable.",
+            "title": "Status Reason"
           },
           "total_chapters": {
             "anyOf": [

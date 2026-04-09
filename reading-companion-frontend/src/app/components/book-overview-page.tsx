@@ -57,12 +57,55 @@ type RuntimeStateSummary = {
   toneClassName: string;
 };
 
+type RuntimeStatusReason = "runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned";
 type MessageParams = Record<string, string | number | null | undefined>;
 
 const OVERVIEW_SECTION_EYEBROW_STYLE = uiTypography.eyebrow satisfies CSSProperties;
 const OVERVIEW_CARD_TITLE_STYLE = uiTypography.cardTitle satisfies CSSProperties;
 const OVERVIEW_CARD_BODY_STYLE = uiTypography.body satisfies CSSProperties;
 const OVERVIEW_CARD_META_STYLE = uiTypography.bodyMedium satisfies CSSProperties;
+
+function readStatusReason(value: unknown): RuntimeStatusReason | null {
+  const rawReason =
+    value && typeof value === "object" && "status_reason" in value
+      ? (value as { status_reason?: unknown }).status_reason
+      : null;
+  switch (rawReason) {
+    case "runtime_stale":
+    case "runtime_interrupted":
+    case "resume_incompatible":
+    case "dev_run_abandoned":
+      return rawReason;
+    default:
+      return null;
+  }
+}
+
+function resolveStatusReason(
+  detail: BookDetailResponse,
+  analysis: AnalysisStateResponse | null,
+): RuntimeStatusReason | null {
+  return readStatusReason(analysis) ?? readStatusReason(detail);
+}
+
+function isLastKnownPausedReason(reason: RuntimeStatusReason | null) {
+  return reason != null;
+}
+
+function pausedResumeHint(reason: RuntimeStatusReason | null) {
+  switch (reason) {
+    case "runtime_stale":
+      return copy("overview.cta.resumeUnavailable.runtimeStale");
+    case "runtime_interrupted":
+      return copy("overview.cta.resumeUnavailable.runtimeInterrupted");
+    case "resume_incompatible":
+      return copy("overview.cta.resumeUnavailable.resumeIncompatible");
+    case "dev_run_abandoned":
+      return copy("overview.cta.resumeUnavailable.devRunAbandoned");
+    default:
+      return copy("overview.cta.resumeUnavailable.generic");
+  }
+}
 
 function formatTimestamp(value?: string | null) {
   if (!value) {
@@ -107,10 +150,21 @@ function resolveStructuredCopy(
 }
 
 function resolveCurrentStep(analysis: AnalysisStateResponse | null) {
+  const statusReason = readStatusReason(analysis);
   const structuredStep = resolveStructuredCopy(
     analysis?.current_state_panel.current_phase_step_key ?? analysis?.current_phase_step_key,
     analysis?.current_state_panel.current_phase_step_params ?? analysis?.current_phase_step_params,
   );
+  if (analysis?.status === "paused" && isLastKnownPausedReason(statusReason)) {
+    const segmentRef = currentSegmentRef(analysis);
+    if (segmentRef) {
+      return copy("overview.runtime.lastKnownSection", { value: segmentRef });
+    }
+    if (structuredStep) {
+      return copy("overview.runtime.lastKnownStatus.prefix", { value: structuredStep });
+    }
+    return copy("overview.runtime.lastKnownFocus");
+  }
   if (structuredStep) {
     return structuredStep;
   }
@@ -211,6 +265,7 @@ function describeRuntimeState(
   analysis: AnalysisStateResponse | null,
   options: { isParsing: boolean },
 ): RuntimeStateSummary {
+  const statusReason = resolveStatusReason(detail, analysis);
   const phase = resolveCurrentStep(analysis).trim();
   const waiting = hasWaitingStep(analysis);
   const liveActivity = currentReadingActivity(analysis);
@@ -222,6 +277,34 @@ function describeRuntimeState(
   const completedChapters = analysis?.completed_chapters ?? detail.completed_chapter_count;
 
   if (detail.status === "paused") {
+    if (statusReason === "runtime_stale") {
+      return {
+        label: copy("overview.runtime.state.paused.runtimeStale.label"),
+        detail: copy("overview.runtime.state.paused.runtimeStale.detail"),
+        toneClassName: "text-[var(--warm-700)]",
+      };
+    }
+    if (statusReason === "runtime_interrupted") {
+      return {
+        label: copy("overview.runtime.state.paused.runtimeInterrupted.label"),
+        detail: copy("overview.runtime.state.paused.runtimeInterrupted.detail"),
+        toneClassName: "text-[var(--warm-700)]",
+      };
+    }
+    if (statusReason === "resume_incompatible") {
+      return {
+        label: copy("overview.runtime.state.paused.resumeIncompatible.label"),
+        detail: copy("overview.runtime.state.paused.resumeIncompatible.detail"),
+        toneClassName: "text-[var(--warm-700)]",
+      };
+    }
+    if (statusReason === "dev_run_abandoned") {
+      return {
+        label: copy("overview.runtime.state.paused.devRunAbandoned.label"),
+        detail: copy("overview.runtime.state.paused.devRunAbandoned.detail"),
+        toneClassName: "text-[var(--warm-700)]",
+      };
+    }
     return {
       label: copy("overview.runtime.state.paused.label"),
       detail: phase || copy("overview.runtime.state.paused.detail"),
@@ -341,6 +424,7 @@ function currentChapterRuntimeLabel(
       panel.current_phase_step_key ?? analysis.current_phase_step_key,
       panel.current_phase_step_params ?? analysis.current_phase_step_params,
     )?.trim() ?? "";
+  const statusReason = readStatusReason(analysis);
   if (options.isParsing) {
     if (hasWaitingStep(analysis)) {
       return chapter.result_ready ? copy("overview.runtime.waitingResume") : copy("overview.runtime.waitingNext");
@@ -351,6 +435,15 @@ function currentChapterRuntimeLabel(
   }
 
   const sectionRef = currentSegmentRef(analysis);
+  if (analysis.status === "paused" && isLastKnownPausedReason(statusReason)) {
+    if (sectionRef) {
+      return copy("overview.runtime.lastKnownSection", { value: sectionRef });
+    }
+    if (step) {
+      return copy("overview.runtime.lastKnownStatus.prefix", { value: step });
+    }
+    return copy("overview.runtime.lastKnownFocus");
+  }
   if (sectionRef) {
     return copy("overview.runtime.readingSection", { value: sectionRef });
   }
@@ -960,7 +1053,7 @@ type CurrentMindstreamActivity = {
   message: string;
   context: string | null;
   contextKind: "excerpt" | "query" | "none";
-  mode: "active" | "waiting" | "slow" | "degraded";
+  mode: "active" | "waiting" | "slow" | "degraded" | "paused";
 };
 
 type MindstreamTrailPreview = {
@@ -1443,6 +1536,27 @@ function buildCurrentMindstreamActivity(
   }
 
   const liveActivity = analysis.current_reading_activity ?? analysis.current_state_panel.current_reading_activity ?? null;
+  const statusReason = readStatusReason(analysis);
+  if (analysis.status === "paused") {
+    const context = liveActivity ? buildCurrentMindstreamContext(liveActivity) : { context: null, contextKind: "none" as const };
+    let key: ControlledCopyKey = "overview.mindstream.paused.generic";
+    if (statusReason === "runtime_stale") {
+      key = "overview.mindstream.paused.runtimeStale";
+    } else if (statusReason === "runtime_interrupted") {
+      key = "overview.mindstream.paused.runtimeInterrupted";
+    } else if (statusReason === "resume_incompatible") {
+      key = "overview.mindstream.paused.resumeIncompatible";
+    } else if (statusReason === "dev_run_abandoned") {
+      key = "overview.mindstream.paused.devRunAbandoned";
+    }
+    return {
+      message: contentCopy(key, locale),
+      context: context.context,
+      contextKind: context.contextKind,
+      mode: "paused",
+    };
+  }
+
   if (liveActivity) {
     const startedAtMs = timestampToMs(liveActivity.started_at) ?? timestampToMs(liveActivity.updated_at) ?? nowMs;
     const updatedAtMs = timestampToMs(liveActivity.updated_at) ?? startedAtMs;
@@ -2081,7 +2195,7 @@ function MindstreamHeroCard({
     activeReactionId != null && activeThoughtChapterId != null
       ? `${canonicalChapterPath(detail.book_id, activeThoughtChapterId)}?reaction=${activeReactionId}`
       : null;
-  const showLiveMeta = Boolean(currentMoveType || activeReactionId != null);
+  const showLiveMeta = currentActivity?.mode !== "paused" && Boolean(currentMoveType || activeReactionId != null);
 
   return (
     <section className="mb-8 rounded-3xl border border-[var(--warm-300)]/30 bg-white px-6 py-6 shadow-sm md:px-10 md:py-9">
@@ -2093,7 +2207,7 @@ function MindstreamHeroCard({
       </div>
 
       <div className="mt-7 flex items-start gap-4 md:mt-9 md:gap-6">
-        {currentActivity ? (
+        {currentActivity && currentActivity.mode !== "paused" ? (
           <span
             className="mt-2.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--amber-accent)] md:mt-2.5 md:h-3 md:w-3"
             aria-hidden="true"
@@ -2311,6 +2425,10 @@ export function BookOverviewPage() {
   const { detail, marks } = data;
   const contentLanguage = normalizeContentLocale(detail.output_language || detail.book_language);
   const isRuntimeState = detail.status === "analyzing" || detail.status === "paused";
+  const statusReason = resolveStatusReason(detail, analysisResource.analysis);
+  const analysisResumeAvailable = analysisResource.analysis?.resume_available === true;
+  const shouldShowResumeButton = detail.status === "paused" && analysisResumeAvailable;
+  const shouldShowResumeUnavailableHint = detail.status === "paused" && !analysisResource.loading && !analysisResumeAvailable;
   const viewMode: StructureViewMode =
     detail.status === "completed" ? "result" : isRuntimeState || detail.status === "error" ? "progress" : "outline";
   const structureChapters = buildOverviewChapters(detail, analysisResource.analysis);
@@ -2343,7 +2461,7 @@ export function BookOverviewPage() {
               {copy("overview.cta.start")}
             </button>
           ) : null}
-          {detail.status === "paused" ? (
+          {shouldShowResumeButton ? (
             <button
               type="button"
               onClick={handleResumeAnalysis}
@@ -2381,6 +2499,11 @@ export function BookOverviewPage() {
           {resumeError ? (
             <p className="text-[var(--destructive)]" style={{ fontSize: "0.8125rem" }}>
               {resumeError}
+            </p>
+          ) : null}
+          {shouldShowResumeUnavailableHint ? (
+            <p className="text-[var(--warm-500)]" style={{ fontSize: "0.8125rem", lineHeight: 1.6 }}>
+              {pausedResumeHint(statusReason)}
             </p>
           ) : null}
         </div>

@@ -66,19 +66,23 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 
 ## Surface Mapping
 - `GET /api/books`
-  - Built from `book_manifest` plus `run_state`.
-  - Uses the canonical product job records in `state/job_registry/jobs/*.json` as a guard so the shelf can still show `analyzing` while live runtime files are catching up.
+  - Built from `book_manifest`, `run_state`, and shared runtime-truth projection.
+  - Uses the canonical product job records in `state/job_registry/jobs/*.json` plus runtime freshness to decide whether the shelf should still show `analyzing`.
+  - If `run_state` still looks active but there is no active canonical job truth and the runtime heartbeat is older than 45 seconds, aggregation now projects the card to `paused` with `status_reason = runtime_stale` instead of trusting the stale stage literally.
   - `state/jobs/*.json` remains a compatibility shadow during the current migration window.
   - Adds per-book mark counts from `state/user_marks.json`.
   - Hides stale opaque upload/test stub manifests that never became real books, so failed hash-like upload leftovers do not pollute the visible shelf.
 - `GET /api/books/{book_id}`
   - Uses `book_manifest` for metadata and chapter tree.
-  - Uses `run_state` to decide the book's current overall status and in-progress chapter.
+  - Uses shared runtime-truth projection instead of trusting `run_state.stage` directly.
+  - Adds optional additive `status_reason` so the frontend can distinguish ordinary paused books from stale/interrupted recovery states without changing the top-level status enum.
   - Uses completed chapter result files to build aggregate reaction counts and result readiness.
   - Uses `user_marks` for `my_mark_count`.
 - `GET /api/books/{book_id}/analysis-state`
-  - Uses `book_manifest`, `run_state`, `runtime_shell`, `parse_state`, `activity.jsonl`, and chapter result files together.
-  - Builds progress metrics, chapter tree statuses, the live `current_reading_activity` snapshot, `resume_available`, `last_checkpoint_at`, recent completed chapters, recent reactions, and the `current_state_panel`.
+  - Uses `book_manifest`, `run_state`, `runtime_shell`, `parse_state`, canonical product job truth, `activity.jsonl`, and chapter result files together.
+  - Builds progress metrics, chapter tree statuses, `status_reason`, `current_reading_activity`, `resume_available`, `last_checkpoint_at`, recent completed chapters, recent reactions, and the `current_state_panel`.
+  - `resume_available` is now projected from usable resume truth, not just from whatever older runtime files last claimed. A stale runtime shell or leftover checkpoint artifact is not enough on its own.
+  - When the current public state is `paused` because of `runtime_stale` or `runtime_interrupted`, aggregation preserves the last-known chapter/section/activity pointers but treats them as last-known runtime snapshots rather than live reading claims.
   - For non-iterator mechanisms, additive locus projection now prefers:
     - explicit `reading_locus`
     - shared runtime-shell cursor
@@ -111,8 +115,9 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 
 ## Aggregation Responsibilities
 - `reading-companion-backend/src/library/catalog.py`
-  - Owns artifact discovery, legacy-path fallback, view aggregation, and most product-facing payload shaping.
+  - Owns artifact discovery, legacy-path fallback, view aggregation, shared runtime-truth projection, and most product-facing payload shaping.
   - Converts raw manifests, runtime files, activity streams, and chapter artifacts into bookshelf, book detail, chapter detail, chapter outline, and analysis-state views.
+  - Must not durably rewrite runtime files in GET paths. Stale/orphan reconciliation belongs to startup/runtime recovery, not to read-only aggregation.
   - May consume `_mechanisms/iterator_v1/derived/structure.json` for iterator-era section backfill, but should not treat that artifact as the universal parsed-book substrate.
   - Must keep non-iterator chapter/result flows functional without forcing every mechanism to emit `structure.json`.
   - Now also projects additive anchor- and locus-native fields upward without removing current compatibility fields prematurely.
@@ -125,6 +130,9 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
 - `reading-companion-backend/src/api/realtime.py`
   - Reuses `refresh_job()` and `get_analysis_state()` to build WebSocket snapshots.
   - It does not define a separate source of truth for live state; it republishes the same aggregated state surfaces used by REST.
+- `reading-companion-backend/src/library/runtime_truth.py`
+  - Owns the shared helper that decides whether a runtime snapshot is truly active, stale-orphaned, or only last-known.
+  - Keeps bookshelf, detail, analysis-state, and job polling aligned on the same `status_reason` and resumability truth.
 
 ## Normalization Boundary
 - Internal ids vs public ids

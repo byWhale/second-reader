@@ -43,8 +43,19 @@ Frontend defaults can be overridden with:
 - Backend `target_url`, `result_url`, and `open_target` values are frontend routes, not backend URLs.
 - `GET /api/books` now suppresses stale opaque upload/test stubs that never became real readable books, so the routed bookshelf is expected to show only meaningful shelf entries rather than old hash-like failed-upload leftovers.
 - Backend analysis state and the mindstream view of the activity feed are used by the adaptive `/books/:id` overview when a book is in progress; WebSocket messages trigger refreshes, while polling remains the fallback.
-- The top live line in `Reading mindstream` is driven by `analysis-state.current_reading_activity`, which is a realtime snapshot of the active reading phase rather than a persisted history item.
+- The top runtime line in `Reading mindstream` is driven by `analysis-state.current_reading_activity`, which is a runtime snapshot rather than a persisted history item.
+- Public runtime surfaces now also carry additive `status_reason` on:
+  - `GET /api/books`
+  - `GET /api/books/{book_id}`
+  - `GET /api/books/{book_id}/analysis-state`
+  - `GET /api/jobs/{job_id}`
+- Frontend integration rules for paused recovery states:
+  - keep the existing top-level status enums
+  - when `status = paused` and `status_reason = runtime_stale` or `runtime_interrupted`, treat `current_reading_activity` and `current_state_panel.current_section_ref` as last-known state, not as live progress
+  - only show resume CTA when `analysis-state.resume_available = true`
+  - when `resume_available = false`, present the pause honestly without a misleading continue button
 - `analysis-state.current_reading_activity.current_excerpt` is the normalized live excerpt text for the active segment; compact UI positions such as breadcrumbs are expected to truncate locally instead of depending on backend shortening.
+- In paused stale/interrupted states, the same excerpt field should be rendered as the last-known excerpt rather than as text being actively read now.
 - The backend now also additively emits richer mechanism-valued fields on those same surfaces:
   - `analysis-state.current_reading_activity.reading_locus`
   - `analysis-state.current_reading_activity.move_type`
@@ -57,11 +68,13 @@ Frontend defaults can be overridden with:
   - the overview breadcrumb and live quote now prefer `reading_locus.excerpt` over the older `current_excerpt` fallback when both exist
   - the overview live chips now surface `move_type` and `active_reaction_id` when the active mechanism provides them
   - the recent trail now falls back to `current_state_panel.recent_reactions` instead of falsely rendering empty when the historical mindstream feed is sparse
+  - stale/interrupted paused books now use `status_reason` plus `resume_available` to switch from false-live wording to last-known wording on bookshelf and overview surfaces
 - For `attentional_v2`, chapter/detail routes now also tolerate older compatibility manifests that are missing `result_file` by resolving the mechanism-owned compatibility payloads directly; this keeps routed chapter review working during live reads and manifest rewrites.
 - The historical mindstream list still comes from `GET /api/books/{book_id}/activity` with `stream=mindstream` and remains separate from the live activity snapshot.
 - For `attentional_v2`, standard-mode checkpoint and resume events may now also appear in the shared `stream=system` activity feed; deep controller diagnostics remain debug-only and do not belong to the routed frontend contract.
 - Runtime guard events such as stalled heartbeats, timeout detection, unsupported runtime launches, and forced pauses are still written into the same activity feed with `stream=system`, but they are now reserved for internal diagnostics rather than the main user-facing overview.
 - Additional system-side recovery events now include `resume_incompatible`, `fresh_rerun_started`, and `dev_run_abandoned`.
+- The compatibility analysis page should follow the same paused/last-known semantics as the main overview when it is still routed or rendered.
 - `GET /api/books/{book_id}/analysis-log` remains available as an internal diagnostic endpoint, but it is no longer part of the routed frontend integration surface.
 - Deferred upload stops after the chapter-level structure parse; `analysis/start` and `analysis/resume` then perform semantic segmentation as the preparation phase before deep reading continues on the same long-task surface.
 - Public `book_id`, `reaction_id`, and `mark_id` values are integer IDs even when backend runtime artifacts still use internal string identifiers.

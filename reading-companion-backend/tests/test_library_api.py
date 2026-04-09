@@ -20,7 +20,7 @@ from src.iterator_reader.storage import (
     run_state_file,
     structure_file,
 )
-from src.library.jobs import refresh_job, save_job
+from src.library.jobs import recover_unfinished_jobs, refresh_job, save_job
 from src.library.storage import upload_file
 from src.library.user_marks import delete_mark, list_book_marks, load_marks_state, put_mark
 from src.reading_runtime.artifacts import runtime_shell_file
@@ -724,6 +724,109 @@ def test_refresh_job_pauses_running_job_when_runtime_updates_go_stale(tmp_path, 
     assert {item["type"] for item in activity} >= {"runtime_stalled", "job_paused_by_runtime_guard"}
 
 
+def test_orphan_stale_runtime_projects_to_paused_truth_and_last_known_snapshot(tmp_path):
+    """Stale active runtime artifacts without active job truth should project as paused with last-known context."""
+
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    public_book_id = to_api_book_id(book_id)
+    output_dir = tmp_path / "output" / book_id
+    run_state_path = _run_state_path(output_dir)
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["updated_at"] = "2026-03-07T00:00:00Z"
+    run_state["resume_available"] = True
+    run_state["current_phase_step"] = "语义切分中"
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_json(
+        runtime_shell_file(output_dir),
+        {
+            "mechanism_key": "attentional_v2",
+            "status": "running",
+            "phase": "reading",
+            "cursor": {
+                "position_kind": "span",
+                "chapter_id": 1,
+                "chapter_ref": "Chapter 1",
+                "span_start_sentence_id": "c1-s1",
+                "span_end_sentence_id": "c1-s2",
+            },
+            "resume_available": True,
+            "last_checkpoint_id": "ckpt-stale",
+            "last_checkpoint_at": "2026-03-15T07:04:56Z",
+            "updated_at": "2026-03-15T07:04:56Z",
+        },
+    )
+
+    api_module.app.state.root = tmp_path
+    client = TestClient(api_module.app)
+
+    books_payload = client.get("/api/books").json()
+    detail_payload = client.get(f"/api/books/{public_book_id}").json()
+    analysis_payload = client.get(f"/api/books/{public_book_id}/analysis-state").json()
+
+    assert books_payload["items"][0]["reading_status"] == "paused"
+    assert books_payload["items"][0]["status_reason"] == "runtime_stale"
+    assert detail_payload["status"] == "paused"
+    assert detail_payload["status_reason"] == "runtime_stale"
+    assert analysis_payload["status"] == "paused"
+    assert analysis_payload["status_reason"] == "runtime_stale"
+    assert analysis_payload["stage_label_key"] == "system.stage.paused"
+    assert analysis_payload["current_phase_step_key"] == "system.step.waitingToResume"
+    assert analysis_payload["resume_available"] is False
+    assert analysis_payload["last_checkpoint_at"] == "2026-03-15T07:04:56Z"
+    assert analysis_payload["current_state_panel"]["current_section_ref"] == "1.1"
+    assert analysis_payload["current_reading_activity"]["phase"] == "reading"
+    assert analysis_payload["current_reading_activity"]["reading_locus"] == {
+        "kind": "span",
+        "chapter_id": 1,
+        "chapter_ref": "Chapter 1",
+        "excerpt": "1.1",
+        "locator": None,
+        "sentence_start_id": "c1-s1",
+        "sentence_end_id": "c1-s2",
+    }
+
+
+def test_recover_unfinished_jobs_reconciles_orphan_active_runs_without_duplicate_events(tmp_path):
+    """Startup recovery should durably pause stale orphan runtimes and dedupe guard events."""
+
+    book_id = _bootstrap_book(tmp_path, stage="deep_reading")
+    output_dir = tmp_path / "output" / book_id
+    run_state_path = _run_state_path(output_dir)
+    run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    run_state["updated_at"] = "2026-03-07T00:00:00Z"
+    run_state["resume_available"] = True
+    run_state_path.write_text(json.dumps(run_state, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_json(
+        runtime_shell_file(output_dir),
+        {
+            "mechanism_key": "attentional_v2",
+            "status": "running",
+            "phase": "reading",
+            "resume_available": True,
+            "last_checkpoint_id": "ckpt-stale",
+            "last_checkpoint_at": "2026-03-15T07:04:56Z",
+            "updated_at": "2026-03-15T07:04:56Z",
+        },
+    )
+
+    recover_unfinished_jobs(root=tmp_path)
+    recover_unfinished_jobs(root=tmp_path)
+
+    paused_run_state = json.loads(run_state_path.read_text(encoding="utf-8"))
+    activity = _load_jsonl(existing_activity_file(output_dir))
+    runtime_stalled_events = [item for item in activity if item.get("type") == "runtime_stalled"]
+    paused_guard_events = [item for item in activity if item.get("type") == "job_paused_by_runtime_guard"]
+
+    assert paused_run_state["stage"] == "paused"
+    assert paused_run_state["current_phase_step"] == "等待继续执行"
+    assert paused_run_state["resume_available"] is False
+    assert "Runtime activity stalled" in str(paused_run_state["error"])
+    assert len(runtime_stalled_events) == 1
+    assert len(paused_guard_events) == 1
+    assert paused_guard_events[0]["details"]["resume_available"] is False
+    assert paused_guard_events[0]["details"]["status_reason"] == "runtime_stale"
+
+
 def test_refresh_job_abandons_old_dev_boot_runs(tmp_path, monkeypatch):
     """Development-mode jobs from an older boot should be abandoned instead of trusted."""
     jobs_module = importlib.import_module("src.library.jobs")
@@ -1256,6 +1359,23 @@ def test_analysis_state_prefers_parse_checkpoint_during_structure_stage(tmp_path
     book_id = _bootstrap_book(tmp_path, stage="parsing_structure")
     public_book_id = to_api_book_id(book_id)
     output_dir = tmp_path / "output" / book_id
+    upload_path = upload_file("job-parse-live", tmp_path)
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(b"epub")
+    save_job(
+        {
+            "job_id": "job-parse-live",
+            "status": "parsing_structure",
+            "job_kind": "parse",
+            "upload_path": str(upload_path),
+            "book_id": book_id,
+            "pid": 1234,
+            "created_at": "2026-03-14T01:00:00Z",
+            "updated_at": "2026-03-14T01:00:00Z",
+            "error": None,
+        },
+        tmp_path,
+    )
     _write_json(
         parse_state_file(output_dir),
         {

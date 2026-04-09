@@ -23,6 +23,45 @@ function renderStructuredText(
   return maybeCopy(key, params as Record<string, string | number | null> | undefined) ?? fallback ?? "";
 }
 
+type RuntimeStatusReason = "runtime_stale" | "runtime_interrupted" | "resume_incompatible" | "dev_run_abandoned";
+
+function readStatusReason(value: unknown): RuntimeStatusReason | null {
+  const rawReason =
+    value && typeof value === "object" && "status_reason" in value
+      ? (value as { status_reason?: unknown }).status_reason
+      : null;
+  switch (rawReason) {
+    case "runtime_stale":
+    case "runtime_interrupted":
+    case "resume_incompatible":
+    case "dev_run_abandoned":
+      return rawReason;
+    default:
+      return null;
+  }
+}
+
+function isActiveAnalysisStatus(status: AnalysisStateResponse["status"]) {
+  return status === "queued" || status === "parsing_structure" || status === "deep_reading" || status === "chapter_note_generation";
+}
+
+function isLastKnownPausedReason(reason: RuntimeStatusReason | null) {
+  return reason != null;
+}
+
+function chapterStatusLabel(chapter: AnalysisStateResponse["chapters"][number], pausedLastKnown: boolean) {
+  if (chapter.status === "completed") {
+    return copy("analysis.structure.status.ready");
+  }
+  if (chapter.status === "in_progress") {
+    return pausedLastKnown ? copy("analysis.structure.status.pausedHere") : copy("analysis.structure.status.readingNow");
+  }
+  if (chapter.status === "error") {
+    return copy("analysis.structure.status.needsAttention");
+  }
+  return copy("analysis.structure.status.queued");
+}
+
 export function AnalysisPage() {
   const { id = "", bookId = "" } = useParams();
   const resolvedBookId = id || bookId;
@@ -103,13 +142,13 @@ export function AnalysisPage() {
   }, [bookIdNumber, refreshTick]);
 
   if (loading && !analysis) {
-    return <LoadingState title="Loading reading progress..." />;
+    return <LoadingState title={copy("analysis.loading")} />;
   }
 
   if (error || !analysis) {
     const errorState = getErrorPresentation(error, {
-      title: "Analysis view is unavailable",
-      message: "The reading progress is not available right now.",
+      title: copy("analysis.error.title"),
+      message: copy("analysis.error.message"),
     });
     return (
       <ErrorState
@@ -119,17 +158,28 @@ export function AnalysisPage() {
           setLoading(true);
           setRefreshTick((value) => value + 1);
         }}
-        linkLabel="Back to books"
+        linkLabel={copy("analysis.action.backToBooks")}
         linkTo="/books"
       />
     );
   }
 
+  const statusReason = readStatusReason(analysis);
+  const pausedLastKnown = analysis.status === "paused" && isLastKnownPausedReason(statusReason);
+  const liveLike = isActiveAnalysisStatus(analysis.status);
+  const stageText = renderStructuredText(analysis.stage_label_key, analysis.stage_label_params, copy("overview.runtime.syncing"));
+  const lastCheckpointText = analysis.last_checkpoint_at
+    ? copy("analysis.meta.lastCheckpoint", { value: formatTimestamp(analysis.last_checkpoint_at) })
+    : copy("analysis.meta.noCheckpoint");
+  const pulseText = analysis.current_state_panel.pulse_message
+    ?? analysis.pulse_message
+    ?? (pausedLastKnown ? copy("analysis.currentState.noLastKnownPulse") : copy("analysis.currentState.noLivePulse"));
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
       <div className="bg-white rounded-3xl border border-[var(--warm-300)]/30 p-6 shadow-sm">
         <p className="text-[var(--warm-500)] mb-1 uppercase tracking-[0.18em]" style={{ fontSize: "0.6875rem", fontWeight: 600 }}>
-          Live Analysis
+          {pausedLastKnown ? copy("analysis.eyebrow.lastKnown") : copy("analysis.eyebrow.live")}
         </p>
         <h1 className="text-[var(--warm-900)] mb-1" style={{ fontSize: "1.75rem", fontWeight: 600 }}>
           {analysis.title}
@@ -140,16 +190,21 @@ export function AnalysisPage() {
 
         <div className="flex items-center gap-4 flex-wrap mb-4 text-[var(--warm-600)]" style={{ fontSize: "0.8125rem" }}>
           <span className="inline-flex items-center gap-1.5">
-            <LoaderCircle className={`w-4 h-4 ${analysis.status === "completed" ? "" : "animate-spin text-[var(--amber-accent)]"}`} />
-            {renderStructuredText(analysis.stage_label_key, analysis.stage_label_params, copy("overview.runtime.syncing"))}
+            <LoaderCircle className={`w-4 h-4 ${liveLike ? "animate-spin text-[var(--amber-accent)]" : ""}`} />
+            {stageText}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Clock3 className="w-4 h-4" />
-            {analysis.eta_seconds != null ? `${analysis.eta_seconds}s remaining` : "ETA unavailable"}
+            {liveLike
+              ? (analysis.eta_seconds != null ? `${analysis.eta_seconds}s remaining` : copy("analysis.meta.etaUnavailable"))
+              : lastCheckpointText}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <BookOpen className="w-4 h-4" />
-            {analysis.completed_chapters}/{analysis.total_chapters} chapters
+            {copy("analysis.meta.chapters", {
+              completed: analysis.completed_chapters,
+              total: analysis.total_chapters,
+            })}
           </span>
         </div>
 
@@ -165,7 +220,7 @@ export function AnalysisPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--amber-accent)] text-white no-underline hover:bg-[var(--warm-700)] transition-colors"
               style={{ fontSize: "0.875rem", fontWeight: 500 }}
             >
-              Open current page
+              {copy("analysis.action.openCurrent")}
               <ArrowRight className="w-4 h-4" />
             </Link>
           ) : null}
@@ -182,7 +237,7 @@ export function AnalysisPage() {
           <div className="flex items-center gap-2 mb-4">
             <TreePine className="w-4 h-4 text-[var(--amber-accent)]" />
             <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-              Structure
+              {copy("analysis.section.structure")}
             </h2>
           </div>
           <div className="space-y-2">
@@ -207,13 +262,7 @@ export function AnalysisPage() {
                       {chapter.segment_count} sections
                     </p>
                     <p className="text-[var(--warm-500)]" style={{ fontSize: "0.75rem" }}>
-                      {chapter.status === "completed"
-                        ? "Ready"
-                        : chapter.status === "in_progress"
-                          ? "Reading now"
-                          : chapter.status === "error"
-                            ? "Needs attention"
-                            : "Queued"}
+                      {chapterStatusLabel(chapter, pausedLastKnown && chapter.is_current)}
                     </p>
                   </div>
                 </div>
@@ -224,7 +273,7 @@ export function AnalysisPage() {
                     className="inline-flex mt-3 text-[var(--amber-accent)] no-underline hover:text-[var(--warm-700)]"
                     style={{ fontSize: "0.8125rem", fontWeight: 500 }}
                   >
-                    Open chapter result
+                    {copy("analysis.structure.openChapter")}
                   </Link>
                 ) : null}
               </div>
@@ -237,25 +286,25 @@ export function AnalysisPage() {
             <div className="flex items-center gap-2 mb-4">
               <Search className="w-4 h-4 text-[var(--amber-accent)]" />
               <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                Current state
+                {copy("analysis.section.currentState")}
               </h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-2xl bg-[var(--warm-100)] p-4">
                 <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-                  Chapter
+                  {pausedLastKnown ? copy("analysis.currentState.lastKnownChapter") : copy("analysis.currentState.chapter")}
                 </p>
                 <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-                  {analysis.current_state_panel.current_chapter_ref ?? "Waiting for structure"}
+                  {analysis.current_state_panel.current_chapter_ref ?? copy("analysis.currentState.waitingForStructure")}
                 </p>
               </div>
               <div className="rounded-2xl bg-[var(--warm-100)] p-4">
                 <p className="text-[var(--warm-500)] mb-1" style={{ fontSize: "0.75rem" }}>
-                  Section
+                  {pausedLastKnown ? copy("analysis.currentState.lastKnownSection") : copy("analysis.currentState.section")}
                 </p>
                 <p className="text-[var(--warm-900)]" style={{ fontSize: "0.9375rem", fontWeight: 600 }}>
-                  {analysis.current_state_panel.current_section_ref ?? "Pending"}
+                  {analysis.current_state_panel.current_section_ref ?? copy("analysis.currentState.pending")}
                 </p>
               </div>
             </div>
@@ -274,7 +323,7 @@ export function AnalysisPage() {
             </div>
 
             <p className="text-[var(--warm-600)] mt-4" style={{ fontSize: "0.875rem", lineHeight: 1.7 }}>
-              {analysis.current_state_panel.pulse_message ?? analysis.pulse_message ?? "No live pulse yet."}
+              {pulseText}
             </p>
           </section>
 
@@ -283,7 +332,7 @@ export function AnalysisPage() {
               <div className="flex items-center gap-2 mb-4">
                 <BookOpen className="w-4 h-4 text-[var(--amber-accent)]" />
                 <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                  Recently completed
+                  {copy("analysis.section.recentCompleted")}
                 </h2>
               </div>
               <div className="space-y-3">
@@ -313,7 +362,7 @@ export function AnalysisPage() {
             <div className="flex items-center gap-2 mb-4">
               <Activity className="w-4 h-4 text-[var(--amber-accent)]" />
               <h2 className="text-[var(--warm-900)]" style={{ fontSize: "1rem", fontWeight: 600 }}>
-                Activity feed
+                {copy("analysis.section.activityFeed")}
               </h2>
             </div>
             <div className="space-y-4">

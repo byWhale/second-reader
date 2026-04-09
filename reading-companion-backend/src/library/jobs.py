@@ -12,6 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .catalog import find_book_id_by_source, source_asset_path
+from .runtime_truth import (
+    effective_resume_available,
+    iter_orphan_active_runs,
+    latest_job_for_book,
+)
 from .storage import (
     job_file,
     job_log_file,
@@ -774,26 +779,47 @@ def _resume_target_status(record: dict, book_id: str | None, root: Path | None =
     return "deep_reading"
 
 
-def _pause_runtime_state(book_id: str, *, previous_status: str, error: str, root: Path | None = None) -> None:
+def _pause_runtime_state(
+    book_id: str,
+    *,
+    previous_status: str,
+    error: str,
+    root: Path | None = None,
+    latest_job: dict | None = None,
+) -> None:
     """Write paused status into the book runtime files."""
     output_dir = _book_output_dir(book_id, root)
     run_state_path = existing_run_state_file(output_dir)
+    parse_state_path = existing_parse_state_file(output_dir)
+    runtime_shell = _load_book_runtime_shell(book_id, root)
+    parse_payload = load_runtime_json(parse_state_path) if parse_state_path.exists() else None
     if run_state_path.exists():
         payload = load_runtime_json(run_state_path)
         payload["stage"] = "paused"
         payload["error"] = error
-        payload["resume_available"] = True
+        payload["resume_available"] = effective_resume_available(
+            stage="paused",
+            run_state=payload,
+            parse_state=parse_payload,
+            runtime_shell=runtime_shell,
+            latest_job=latest_job,
+        )
         payload["updated_at"] = timestamp()
         payload["current_phase_step"] = "等待继续执行"
-        payload["last_checkpoint_at"] = payload.get("last_checkpoint_at") or timestamp()
+        payload["last_checkpoint_at"] = payload.get("last_checkpoint_at") or (runtime_shell or {}).get("last_checkpoint_at")
         save_job_json(run_state_path, payload)
 
-    parse_state_path = existing_parse_state_file(output_dir)
     if previous_status == "parsing_structure" and parse_state_path.exists():
-        payload = load_runtime_json(parse_state_path)
+        payload = parse_payload or {}
         payload["status"] = "paused"
         payload["error"] = error
-        payload["resume_available"] = True
+        payload["resume_available"] = effective_resume_available(
+            stage="paused",
+            run_state=load_runtime_json(run_state_path) if run_state_path.exists() else None,
+            parse_state=payload,
+            runtime_shell=runtime_shell,
+            latest_job=latest_job,
+        )
         payload["updated_at"] = timestamp()
         save_job_json(parse_state_path, payload)
 
@@ -810,6 +836,7 @@ def _abandon_dev_run(record: dict, *, book_id: str | None, run_state: dict | Non
             previous_status=_resume_target_status(normalized, book_id, root),
             error=message,
             root=root,
+            latest_job=normalized,
         )
         append_deduped_activity_event(
             _book_output_dir(book_id, root),
@@ -953,22 +980,6 @@ def _can_auto_resume(record: dict) -> bool:
     return _resume_supported(record) and int(record.get("auto_resume_count", 0) or 0) < AUTO_RESUME_LIMIT
 
 
-def latest_job_for_book(book_id: str, root: Path | None = None) -> dict | None:
-    """Return the latest persisted job for one book."""
-    migrate_product_shadow_jobs(root)
-    matches: list[dict] = []
-    for record in list_job_records(root, include_archived=True):
-        if str(record.get("domain", "") or PRODUCT_RUNTIME_DOMAIN) != PRODUCT_RUNTIME_DOMAIN:
-            continue
-        if str(record.get("book_id", "") or "") != book_id:
-            continue
-        matches.append(record)
-    if not matches:
-        return None
-    matches.sort(key=lambda item: (str(item.get("updated_at", "")), str(item.get("created_at", "")), str(item.get("job_id", ""))), reverse=True)
-    return matches[0]
-
-
 def read_job_log_tail(job_id: str, root: Path | None = None, *, line_limit: int = 120) -> list[str]:
     """Return the trailing lines from one job log file."""
     log_path = job_log_file(job_id, root)
@@ -980,6 +991,7 @@ def read_job_log_tail(job_id: str, root: Path | None = None, *, line_limit: int 
 
 def analysis_log_payload(book_id: str, root: Path | None = None, *, line_limit: int = 120) -> dict:
     """Return the latest analysis log snapshot for one book."""
+    migrate_product_shadow_jobs(root)
     record = latest_job_for_book(book_id, root=root)
     if not record:
         return {
@@ -998,6 +1010,7 @@ def analysis_log_payload(book_id: str, root: Path | None = None, *, line_limit: 
 
 def resume_job_for_book(book_id: str, root: Path | None = None) -> dict:
     """Resume the latest paused or failed job for one book."""
+    migrate_product_shadow_jobs(root)
     record = latest_job_for_book(book_id, root=root)
     if record is None:
         raise FileNotFoundError(book_id)
@@ -1027,6 +1040,47 @@ def recover_unfinished_jobs(root: Path | None = None) -> None:
         status = str(record.get("status", "queued") or "queued")
         if status in ACTIVE_JOB_STATUSES:
             refresh_job(str(record.get("job_id", "")), root=root)
+    for book_id, run_state, projection in iter_orphan_active_runs(root):
+        stale_seconds = projection.stale_seconds or ACTIVE_RUNTIME_STALE_SECONDS
+        error = _runtime_stalled_message(run_state, stale_seconds=stale_seconds)
+        _pause_runtime_state(
+            book_id,
+            previous_status=str(run_state.get("stage", "deep_reading") or "deep_reading"),
+            error=error,
+            root=root,
+            latest_job=projection.latest_job,
+        )
+        append_deduped_activity_event(
+            _book_output_dir(book_id, root),
+            {
+                "type": "runtime_stalled",
+                "message": error,
+                **_activity_context(run_state),
+                "details": {
+                    "stale_seconds": int(round(stale_seconds)),
+                    "source": "startup_orphan_reconcile",
+                },
+            },
+        )
+        append_deduped_activity_event(
+            _book_output_dir(book_id, root),
+            {
+                "type": "job_paused_by_runtime_guard",
+                "message": "Reader paused because an orphaned live runtime snapshot became stale.",
+                **_activity_context(run_state),
+                "details": {
+                    "resume_available": effective_resume_available(
+                        stage="paused",
+                        run_state=_load_book_run_state(book_id, root),
+                        parse_state=_load_book_parse_state(book_id, root),
+                        runtime_shell=_load_book_runtime_shell(book_id, root),
+                        latest_job=projection.latest_job,
+                    ),
+                    "status_reason": "runtime_stale",
+                    "source": "startup_orphan_reconcile",
+                },
+            },
+        )
 
 
 def refresh_job(job_id: str, root: Path | None = None) -> dict:
@@ -1072,7 +1126,13 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
         status = "paused" if book_id else "error"
         error = _runtime_stalled_message(run_state, stale_seconds=stale_seconds)
         if book_id:
-            _pause_runtime_state(book_id, previous_status=_resume_target_status(record, book_id, root), error=error, root=root)
+            _pause_runtime_state(
+                book_id,
+                previous_status=_resume_target_status(record, book_id, root),
+                error=error,
+                root=root,
+                latest_job={**record, "book_id": book_id, "status": "paused"},
+            )
             append_deduped_activity_event(
                 _book_output_dir(book_id, root),
                 {
@@ -1093,7 +1153,14 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
                     **_activity_context(run_state),
                     "details": {
                         "job_id": job_id,
-                        "resume_available": True,
+                        "resume_available": effective_resume_available(
+                            stage="paused",
+                            run_state=_load_book_run_state(book_id, root),
+                            parse_state=_load_book_parse_state(book_id, root),
+                            runtime_shell=_load_book_runtime_shell(book_id, root),
+                            latest_job={**record, "book_id": book_id, "status": "paused"},
+                        ),
+                        "status_reason": "runtime_stale",
                     },
                 },
             )
@@ -1107,7 +1174,13 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
         if book_id:
             status = "paused"
             error = error or "任务已停止，等待继续执行。"
-            _pause_runtime_state(book_id, previous_status=_resume_target_status(record, book_id, root), error=error, root=root)
+            _pause_runtime_state(
+                book_id,
+                previous_status=_resume_target_status(record, book_id, root),
+                error=error,
+                root=root,
+                latest_job={**record, "book_id": book_id, "status": "paused"},
+            )
             append_deduped_activity_event(
                 _book_output_dir(book_id, root),
                 {
@@ -1116,7 +1189,14 @@ def refresh_job(job_id: str, root: Path | None = None) -> dict:
                     **_activity_context(run_state),
                     "details": {
                         "job_id": job_id,
-                        "resume_available": True,
+                        "resume_available": effective_resume_available(
+                            stage="paused",
+                            run_state=_load_book_run_state(book_id, root),
+                            parse_state=_load_book_parse_state(book_id, root),
+                            runtime_shell=_load_book_runtime_shell(book_id, root),
+                            latest_job={**record, "book_id": book_id, "status": "paused"},
+                        ),
+                        "status_reason": "runtime_interrupted",
                     },
                 },
             )

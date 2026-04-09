@@ -107,7 +107,14 @@ Promotion from user upload into the durable source library or evaluation corpus 
 - `chapter_note_generation`
   - A compatibility-stage active status used while a read run is still finalizing chapter notes. Treat it as part of the live read lifecycle, not as a separate product mode.
 - `paused`
-  - The workflow stopped after a resumable checkpoint. The book overview should present continue/retry affordances rather than treating the run as complete.
+  - The workflow is not currently running, but the book still sits in a recoverable or recovery-adjacent stop state.
+  - Public surfaces keep the top-level state as `paused`; they do not introduce a separate public `interrupted` enum.
+  - Additive `status_reason` now explains why the run is paused, for example:
+    - `runtime_stale`
+    - `runtime_interrupted`
+    - `resume_incompatible`
+    - `dev_run_abandoned`
+  - Continue/retry affordances should only be shown when `resume_available = true`.
 - `completed`
   - Deep reading finished and the result surfaces should now read completed chapter artifacts.
 - `error`
@@ -140,7 +147,13 @@ Promotion from user upload into the durable source library or evaluation corpus 
     3. legacy iterator-artifact inference for old runs that predate shell/job mechanism metadata
     4. current default mechanism only when neither earlier source exists
 - Stale runtime handling
-  - If the process is still alive but live runtime updates stop arriving, the backend pauses the book, writes a human-facing stalled message, and appends `runtime_stalled` plus `job_paused_by_runtime_guard` into the system stream.
+  - Public active truth now comes from two coordinated signals:
+    - canonical product job record still active; or
+    - runtime stage is active and its heartbeat is still fresh
+  - The default active-runtime freshness window is 45 seconds.
+  - If `_runtime/run_state.json` still says the reader is active but there is no active canonical job truth and runtime updates are older than that window, the run is treated as an orphan active run.
+  - Aggregation immediately projects that orphan state to `paused` with `status_reason = runtime_stale`, without writing files in the GET path.
+  - Startup recovery then durably reconciles the same orphan runtime by writing paused state back to disk, preserving the last-known chapter/section/activity pointers and appending deduped `runtime_stalled` plus `job_paused_by_runtime_guard` events.
   - The default active-runtime stale threshold is 45 seconds.
 - Auto-resume budget
   - Demo/prod may auto-resume a stalled or unexpectedly stopped run once.
@@ -151,8 +164,9 @@ Promotion from user upload into the durable source library or evaluation corpus 
 
 ## What The Frontend Depends On
 - `analysis-state.current_reading_activity`
-  - Drives the live "what the reader is doing now" line on the book overview.
-  - This is a realtime snapshot, not a historical activity entry.
+  - Drives the "what the reader is doing now" line on the book overview.
+  - This is a runtime snapshot, not a historical activity entry.
+  - When `status = paused` with `status_reason = runtime_stale` or `runtime_interrupted`, the same field becomes a last-known snapshot rather than a live claim.
 - `analysis-state.resume_available`
   - Tells the frontend whether a continue action is meaningful after pauses, stops, or recovery events.
 - `analysis-state.last_checkpoint_at`

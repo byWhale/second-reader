@@ -27,6 +27,7 @@ from src.api.schemas import (
 )
 from src.library.catalog import get_activity, get_analysis_state, get_book
 from src.library.jobs import load_job, refresh_job
+from src.library.runtime_truth import infer_status_reason
 
 
 def _timestamp() -> str:
@@ -95,6 +96,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
     current_phase_step_params = None
     pulse_message = None
     current_reading_activity = None
+    status_reason = infer_status_reason(record.get("error"))
 
     if internal_book_id:
         analysis = None
@@ -105,6 +107,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
                 analysis = None
         if analysis:
             status = str(analysis.get("status", status))
+            status_reason = analysis.get("status_reason")
             book_title = str(analysis.get("title", "") or "") or None
             progress_percent = analysis.get("progress_percent")
             completed_chapters = int(analysis.get("completed_chapters", 0))
@@ -143,6 +146,7 @@ def build_job_status_response(job_id: str, root: Path) -> JobStatusResponse:
     return JobStatusResponse(
         job_id=str(record.get("job_id", job_id)),
         status=status,  # type: ignore[arg-type]
+        status_reason=status_reason,  # type: ignore[arg-type]
         book_id=(to_api_book_id(internal_book_id) if internal_book_id else None),
         book_title=book_title,
         progress_percent=progress_percent,
@@ -171,6 +175,7 @@ def build_job_snapshot_payload(job_status: JobStatusResponse) -> JobSnapshotPayl
     """Convert a job polling payload into the websocket snapshot payload."""
     return JobSnapshotPayload(
         status=job_status.status,
+        status_reason=job_status.status_reason,
         stage_label_key=job_status.stage_label_key,
         stage_label_params=job_status.stage_label_params,
         progress_percent=job_status.progress_percent,
@@ -194,6 +199,7 @@ def build_book_snapshot_payload(book_id: str, root: Path) -> JobSnapshotPayload:
     analysis = get_analysis_state(book_id, root)
     return JobSnapshotPayload(
         status=str(analysis.get("status", "queued")),
+        status_reason=analysis.get("status_reason"),
         stage_label_key=analysis.get("stage_label_key"),
         stage_label_params=analysis.get("stage_label_params"),
         progress_percent=analysis.get("progress_percent"),

@@ -27,6 +27,12 @@ ReactionFilter = Literal[
 MarkType = Literal[MARK_TYPES[0], MARK_TYPES[1], MARK_TYPES[2]]
 MoveType = Literal["advance", "dwell", "bridge", "reframe"]
 ResumeMode = Literal["warm_resume", "cold_resume", "reconstitution_resume"]
+StatusReason = Literal[
+    "runtime_stale",
+    "runtime_interrupted",
+    "resume_incompatible",
+    "dev_run_abandoned",
+]
 JobLifecycleStatus = Literal[
     "queued",
     "parsing_structure",
@@ -234,6 +240,10 @@ class BookShelfCard(ApiModel):
     reading_status: Literal["not_started", "analyzing", "paused", "completed", "error"] = Field(
         description="Current high-level reading state used by the bookshelf.",
     )
+    status_reason: Optional[StatusReason] = Field(
+        default=None,
+        description="Additive reason explaining why the current paused/error-like state was reached when applicable.",
+    )
     completed_chapters: int = Field(description="Number of finished chapters.")
     total_chapters: int = Field(description="Total number of chapters in the parsed book.")
     updated_at: str = Field(description="Last artifact update time for this book.")
@@ -282,6 +292,10 @@ class JobStatusResponse(ApiModel):
     job_id: str = Field(description="Job identifier.")
     status: JobLifecycleStatus = Field(
         description="Current execution stage of the upload/analysis job.",
+    )
+    status_reason: Optional[StatusReason] = Field(
+        default=None,
+        description="Additive reason explaining why the current paused/error-like state was reached when applicable.",
     )
     book_id: Optional[int] = Field(default=None, description="Resolved public integer book identifier once structure parsing finishes.")
     book_title: Optional[str] = Field(default=None, description="Resolved book title when known.")
@@ -410,6 +424,10 @@ class AnalysisStateResponse(ApiModel):
     status: Literal["queued", "parsing_structure", "deep_reading", "chapter_note_generation", "paused", "completed", "error"] = Field(
         description="Current lifecycle state of the active analysis.",
     )
+    status_reason: Optional[StatusReason] = Field(
+        default=None,
+        description="Additive reason explaining why the current paused/error-like state was reached when applicable.",
+    )
     stage_label_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current stage label when available.")
     stage_label_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current stage label.")
     progress_percent: Optional[float] = Field(default=None, description="Overall progress percentage from 0 to 100 when known.")
@@ -521,6 +539,10 @@ class BookDetailResponse(ApiModel):
     book_language: str = Field(description="Detected primary language of the source book.")
     output_language: str = Field(description="Language used for AI-generated output.")
     status: Literal["analyzing", "paused", "completed", "error", "not_started"] = Field(description="High-level book state for the result page.")
+    status_reason: Optional[StatusReason] = Field(
+        default=None,
+        description="Additive reason explaining why the current paused/error-like state was reached when applicable.",
+    )
     source_asset: SourceAsset = Field(description="Source EPUB asset configuration for epub.js.")
     chapters: list[ChapterListItem] = Field(description="Overview list of chapters in reading order.")
     my_mark_count: int = Field(description="Number of user marks attached to this book.")
@@ -706,6 +728,10 @@ class JobSnapshotPayload(ApiModel):
     """Initial or refreshed job snapshot payload."""
 
     status: str = Field(description="Current job status.")
+    status_reason: Optional[StatusReason] = Field(
+        default=None,
+        description="Additive reason explaining why the current paused/error-like state was reached when applicable.",
+    )
     stage_label_key: Optional[str] = Field(default=None, description="Stable UI copy key for the current stage label when available.")
     stage_label_params: Optional[dict[str, Any]] = Field(default=None, description="Parameters used to render the current stage label.")
     progress_percent: Optional[float] = Field(default=None, description="Overall progress percentage when known.")

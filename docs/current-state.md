@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-09T12:49:52Z`
+Last verified: `2026-04-09T16:23:21Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -37,6 +37,14 @@ Last verified: `2026-04-09T12:49:52Z`
       - missing source EPUB
       - timed-out / failed EPUB initialization
     - this slice is explicitly a compatibility-truth fix, not the V2-native chapter/marks redesign itself
+- Lifecycle/status-truth repair is now also landed across backend aggregation and the routed frontend:
+  - stale orphan runtime snapshots no longer render as fake live `analyzing` books
+  - public surfaces keep the existing top-level enums but now add optional `status_reason`
+  - `Women and Economics` is the current real validation sample:
+    - bookshelf now shows `paused` with `status_reason = runtime_stale`
+    - `/books/:id` now renders the chapter/section/excerpt as the last-known stop instead of pretending the reader is still live there
+    - resume CTA is suppressed when `resume_available = false`
+  - startup/runtime recovery now durably reconciles orphan active runs into paused state instead of leaving them stuck forever in stale `deep_reading`
 - Product-boundary clarification is now landed:
   - `book_analysis` is treated as a retired legacy capability preserved only for compatibility/debugging rather than as a live secondary product lane
   - public `/analysis/*` routes remain for compatibility, but the active backend launcher and OpenAPI operation ids now describe deep reading explicitly

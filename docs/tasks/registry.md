@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-09T12:49:52Z`
+Last updated: `2026-04-09T16:23:21Z`
 
 ## Status Values
 - `active`
@@ -37,6 +37,11 @@ Last updated: `2026-04-09T12:49:52Z`
     - honest slow-loading message
     - explicit missing-source state
     - explicit timeout/failure state instead of indefinite `Loading source EPUB...`
+  - lifecycle/status-truth fixes completed:
+    - stale orphan runtime snapshots now project to `paused` instead of fake live `analyzing`
+    - routed bookshelf and overview now consume additive `status_reason`
+    - paused stale/interrupted books now render last-known reading position honestly
+    - resume CTA now stays hidden when `resume_available = false`
   - next redesign chapter and marks surfaces around anchors and live thought lineage
   - do not open a separate cleanup-only wave for V1 display concepts before this lane
 - Jobs: none
@@ -192,6 +197,14 @@ Last updated: `2026-04-09T12:49:52Z`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md`
 - Next: keep `attentional_v2` as the default product deep-reading path, keep `iterator_v1` as the explicit fallback/legacy-resume path, and treat later V2-native frontend presentation plus section-first retirement as post-Phase-9 initiatives rather than as unfinished cutover scope.
+- Jobs: none
+
+### `TASK-RUNTIME-STALE-PAUSE-TRUTH` — Reconcile stale/interrupted reading truth across backend lifecycle state and routed frontend surfaces
+- Status: `done`
+- Lane: `migration`
+- Priority: `high`
+- Detail: `docs/backend-sequential-lifecycle.md`
+- Next: keep `status_reason` as the additive explanation layer for paused/error-like runtime states, keep stale-orphan reconciliation in startup/runtime recovery instead of GET paths, and treat restart/rerun UX as a separate future task rather than as part of this truth fix.
 - Jobs: none
 
 ### `TASK-DOC-Q10` — Decide when to promote `attentional_v2` working design into stable docs

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-09T12:49:52Z",
+  "updated_at": "2026-04-09T16:23:21Z",
   "tasks": [
     {
       "id": "TASK-PHASE9-COMPAT-CUTOVER",
@@ -36,6 +36,45 @@
         "reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md"
       ],
       "last_updated": "2026-04-08T13:50:14Z",
+      "last_updated_by": "codex"
+    },
+    {
+      "id": "TASK-RUNTIME-STALE-PAUSE-TRUTH",
+      "title": "Reconcile stale/interrupted reading truth across backend lifecycle state and routed frontend surfaces",
+      "status": "done",
+      "lane": "migration",
+      "priority": "high",
+      "detail_ref": "docs/backend-sequential-lifecycle.md",
+      "truth_refs": [
+        "docs/api-contract.md",
+        "docs/backend-sequential-lifecycle.md",
+        "docs/backend-state-aggregation.md",
+        "docs/api-integration.md"
+      ],
+      "decision_refs": [],
+      "job_refs": [],
+      "acceptance_ref": "docs/backend-sequential-lifecycle.md",
+      "next_action": "Keep status_reason as the additive explanation layer for paused/error-like runtime states, keep stale-orphan reconciliation in startup/runtime recovery rather than GET paths, and treat restart/rerun UX as a separate future task rather than as part of this truth fix.",
+      "blocked_by": [],
+      "evidence_refs": [
+        "docs/api-contract.md",
+        "docs/backend-sequential-lifecycle.md",
+        "docs/backend-state-aggregation.md",
+        "docs/api-integration.md",
+        "docs/current-state.md",
+        "reading-companion-backend/src/library/runtime_truth.py",
+        "reading-companion-backend/src/library/catalog.py",
+        "reading-companion-backend/src/library/jobs.py",
+        "reading-companion-backend/src/api/schemas.py",
+        "reading-companion-backend/src/api/realtime.py",
+        "reading-companion-backend/tests/test_library_api.py",
+        "reading-companion-backend/tests/test_public_contract.py",
+        "reading-companion-frontend/src/app/components/bookshelf-page.tsx",
+        "reading-companion-frontend/src/app/components/book-overview-page.tsx",
+        "reading-companion-frontend/src/app/components/analysis-page.tsx",
+        "reading-companion-frontend/src/app/config/controlled-copy.ts"
+      ],
+      "last_updated": "2026-04-09T16:23:21Z",
       "last_updated_by": "codex"
     },
     {
@@ -722,7 +761,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
-      "next_action": "Keep the first bounded truth/visibility slice as the new compatibility baseline: overview truth fixes, recent-trail fallback, live overview chips for reading_locus / move_type / active_reaction_id, and honest source-reader loading/unavailable states are now landed and browser-validated. Next redesign chapter and marks surfaces around anchor-native rendering and thought lineage, without opening a separate cleanup-only wave for V1 display concepts first.",
+      "next_action": "Keep iterator_v1 section-first presentation in compatibility-only posture and continue the V2-native frontend lane from the new truth baseline. The first bounded truth/visibility slice is now landed and browser-validated, including overview/source-reader truth fixes plus the stale-runtime status_reason + last-known-stop repair on bookshelf and overview surfaces. Next redesign chapter and marks surfaces around anchors and live thought lineage; do not open a separate cleanup-only wave for V1 display concepts before this lane.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
@@ -735,7 +774,7 @@
         "reading-companion-frontend/src/app/components/source-reader-pane.tsx",
         "reading-companion-frontend/src/app/config/controlled-copy.ts"
       ],
-      "last_updated": "2026-04-09T12:49:52Z",
+      "last_updated": "2026-04-09T16:23:21Z",
       "last_updated_by": "codex"
     },
     {

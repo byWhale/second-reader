@@ -278,6 +278,17 @@ def test_openapi_public_snapshot_and_key_contracts(tmp_path):
     assert current_activity["properties"]["reading_locus"]["anyOf"][0]["$ref"] == "#/components/schemas/ReadingLocus"
     assert current_activity["properties"]["move_type"]["anyOf"][0]["enum"] == ["advance", "dwell", "bridge", "reframe"]
 
+    expected_status_reason_enum = [
+        "runtime_stale",
+        "runtime_interrupted",
+        "resume_incompatible",
+        "dev_run_abandoned",
+    ]
+    assert schemas["BookShelfCard"]["properties"]["status_reason"]["anyOf"][0]["enum"] == expected_status_reason_enum
+    assert schemas["BookDetailResponse"]["properties"]["status_reason"]["anyOf"][0]["enum"] == expected_status_reason_enum
+    assert schemas["AnalysisStateResponse"]["properties"]["status_reason"]["anyOf"][0]["enum"] == expected_status_reason_enum
+    assert schemas["JobStatusResponse"]["properties"]["status_reason"]["anyOf"][0]["enum"] == expected_status_reason_enum
+
     mark_record = schemas["MarkRecord"]
     assert mark_record["properties"]["primary_anchor"]["anyOf"][0]["$ref"] == "#/components/schemas/ReactionAnchor"
 

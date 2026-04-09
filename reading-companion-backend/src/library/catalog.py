@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .pagination import paginate_items
+from .runtime_truth import (
+    coalesce_last_checkpoint_at,
+    effective_resume_available,
+    project_runtime_truth,
+)
 from .storage import jobs_dir, load_json as load_state_json
 from .user_marks import list_book_marks, list_marks
 from src.api.contract import (
@@ -40,6 +45,9 @@ from src.reading_runtime.artifacts import existing_runtime_shell_file
 
 
 _OPAQUE_BOOK_ID_RE = re.compile(r"^[0-9a-f]{12,}$")
+_LAST_KNOWN_RUNTIME_STATUS_REASONS = frozenset(
+    {"runtime_stale", "runtime_interrupted", "resume_incompatible", "dev_run_abandoned"}
+)
 
 
 def output_root(root: Path | None = None) -> Path:
@@ -319,18 +327,38 @@ def _sort_by_updated_and_id(items: list[dict], *, updated_key: str, id_key: str)
     return ordered
 
 
-def _display_status(manifest: dict, run_state: dict | None) -> str:
+def _public_status_reason(status: str, reason: str | None) -> str | None:
+    """Expose additive status_reason only for paused/error-style public states."""
+
+    return reason if status in {"paused", "error"} else None
+
+
+def _should_preserve_last_known_snapshot(status: str, status_reason: str | None) -> bool:
+    """Return whether paused runtime payloads should be treated as last-known snapshots."""
+
+    return status == "paused" and status_reason in _LAST_KNOWN_RUNTIME_STATUS_REASONS
+
+
+def _display_status(
+    manifest: dict,
+    run_state: dict | None,
+    *,
+    has_active_job: bool = False,
+    effective_stage: str | None = None,
+) -> str:
     """Map persisted state into the bookshelf/result-view status vocabulary."""
-    if run_state:
-        stage = str(run_state.get("stage", "")).strip()
+    stage = str(effective_stage or (run_state or {}).get("stage", "")).strip()
+    if stage:
         if stage == "error":
             return "error"
         if stage == "paused":
             return "paused"
         if stage == "completed":
             return "completed"
-        if stage in {"parsing_structure", "deep_reading"}:
+        if stage in {"parsing_structure", "deep_reading", "chapter_note_generation"}:
             return "analyzing"
+    if has_active_job:
+        return "analyzing"
     if any(str(chapter.get("status", "")).strip() == "done" for chapter in manifest.get("chapters", [])):
         return "completed"
     return "not_started"
@@ -426,9 +454,13 @@ def _runtime_shell(book_id: str, root: Path | None = None) -> dict[str, object] 
 
 def _book_card(book_id: str, manifest: dict, run_state: dict | None, root: Path | None = None) -> dict:
     """Build one bookshelf card payload."""
-    status = _display_status(manifest, run_state)
-    if status == "not_started" and _has_active_analysis_job(book_id, root=root):
-        status = "analyzing"
+    projection = project_runtime_truth(book_id, run_state, root=root)
+    status = _display_status(
+        manifest,
+        run_state,
+        has_active_job=projection.has_active_job,
+        effective_stage=projection.effective_stage,
+    )
     mark_count = len(list_book_marks(book_id, root=root))
     api_book_id = to_api_book_id(book_id)
     return {
@@ -439,6 +471,7 @@ def _book_card(book_id: str, manifest: dict, run_state: dict | None, root: Path 
         "book_language": str(manifest.get("book_language", "")),
         "output_language": str(manifest.get("output_language", "")),
         "reading_status": status,
+        "status_reason": _public_status_reason(status, projection.status_reason),
         "completed_chapters": _completed_chapter_count(manifest),
         "total_chapters": len(manifest.get("chapters", [])),
         "updated_at": str(manifest.get("updated_at", "")),
@@ -559,9 +592,13 @@ def get_book_detail(book_id: str, root: Path | None = None) -> dict:
             api_reaction_type = to_api_reaction_type(str(reaction_type))
             reaction_counts[api_reaction_type] = reaction_counts.get(api_reaction_type, 0) + int(count)
 
-    display_status = _display_status(manifest, run_state)
-    if display_status == "not_started" and _has_active_analysis_job(book_id, root=root):
-        display_status = "analyzing"
+    projection = project_runtime_truth(book_id, run_state, root=root)
+    display_status = _display_status(
+        manifest,
+        run_state,
+        has_active_job=projection.has_active_job,
+        effective_stage=projection.effective_stage,
+    )
 
     return {
         "book_id": api_book_id,
@@ -571,6 +608,7 @@ def get_book_detail(book_id: str, root: Path | None = None) -> dict:
         "book_language": str(manifest.get("book_language", "")),
         "output_language": str(manifest.get("output_language", "")),
         "status": display_status,
+        "status_reason": _public_status_reason(display_status, projection.status_reason),
         "source_asset": _source_asset(book_id, manifest),
         "chapters": chapters,
         "my_mark_count": len(list_book_marks(book_id, root=root)),
@@ -1032,9 +1070,13 @@ def _analysis_status(
     run_state: dict,
     *,
     current_chapter_id: int | None,
+    effective_stage: str | None = None,
 ) -> tuple[str, str | None, dict[str, Any] | None]:
     """Map run_state into the public analysis page status vocabulary."""
-    stage = str(run_state.get("stage", "ready"))
+    stage = str(effective_stage or run_state.get("stage", "ready"))
+    if stage == "queued":
+        key, params = _message_ref("system.stage.queued")
+        return "queued", key, params
     if stage == "completed":
         key, params = _message_ref("system.stage.completed")
         return "completed", key, params
@@ -1044,6 +1086,9 @@ def _analysis_status(
     if stage == "error":
         key, params = _message_ref("system.stage.error")
         return "error", key, params
+    if stage == "chapter_note_generation":
+        key, params = _message_ref("system.stage.chapterNoteGeneration")
+        return "chapter_note_generation", key, params
     if stage == "parsing_structure":
         if current_chapter_id is not None:
             chapter_ref = str(run_state.get("current_chapter_ref", "") or "").strip()
@@ -1089,15 +1134,25 @@ def _synthesized_current_reading_activity(
     current_segment_ref: str | None,
     current_chapter_ref: str | None,
     updated_at: str | None,
+    allow_last_known_snapshot: bool = False,
 ) -> dict[str, Any] | None:
     """Build a best-effort live activity snapshot for legacy run states."""
-    if status in {"completed", "paused", "error"}:
+    if status in {"completed", "error"}:
+        return None
+    if status == "paused" and not allow_last_known_snapshot:
         return None
 
     step_key = str(current_phase_step_key or "").strip()
     phase = None
     excerpt = None
-    if step_key in {
+    if status == "paused" and allow_last_known_snapshot:
+        if current_segment_ref:
+            phase = "reading"
+            excerpt = current_segment_ref
+        elif current_chapter_ref:
+            phase = "reading"
+            excerpt = current_chapter_ref
+    elif step_key in {
         "system.step.waitingToResume",
         "system.step.waitingCurrentChapterSegmentation",
         "system.step.waitingFirstChapterSegmentation",
@@ -1138,6 +1193,7 @@ def _analysis_current_reading_activity(
     *,
     run_state: dict[str, Any],
     status: str,
+    status_reason: str | None,
     current_phase_step_key: str | None,
     current_chapter_id: int | None = None,
     root: Path | None = None,
@@ -1192,6 +1248,7 @@ def _analysis_current_reading_activity(
             current_segment_ref=str(run_state.get("current_segment_ref", "") or "") or None,
             current_chapter_ref=str(run_state.get("current_chapter_ref", "") or "") or None,
             updated_at=str(run_state.get("updated_at", "") or "") or None,
+            allow_last_known_snapshot=_should_preserve_last_known_snapshot(status, status_reason),
         )
     if payload is None:
         return None
@@ -1485,6 +1542,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         raise FileNotFoundError(book_id)
     parse_state = _parse_state(book_id, root)
     runtime_shell = _runtime_shell(book_id, root)
+    projection = project_runtime_truth(book_id, run_state, root=root)
 
     current_chapter_id = int(run_state.get("current_chapter_id", 0) or 0) or None
     chapters = []
@@ -1548,31 +1606,49 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         if len(recent_reactions) >= 5:
             break
     status, stage_label_key, stage_label_params = _analysis_status(
-        run_state, current_chapter_id=current_chapter_id
+        run_state,
+        current_chapter_id=current_chapter_id,
+        effective_stage=projection.effective_stage,
     )
+    status_reason = _public_status_reason(status, projection.status_reason)
     completed_chapters = int(run_state.get("completed_chapters", 0) or 0)
     total_chapters = int(run_state.get("total_chapters", len(chapters)) or len(chapters))
     current_phase_step = str(run_state.get("current_phase_step", "") or "") or None
-    resume_available = bool(run_state.get("resume_available", False))
-    last_checkpoint_at = str(run_state.get("last_checkpoint_at", "") or "") or None
     if status == "parsing_structure" and parse_state:
         completed_chapters = int(parse_state.get("completed_chapters", completed_chapters) or completed_chapters)
         total_chapters = int(parse_state.get("total_chapters", total_chapters) or total_chapters)
         current_phase_step = str(parse_state.get("current_step", "") or "") or current_phase_step
-        resume_available = bool(parse_state.get("resume_available", resume_available))
-        last_checkpoint_at = str(parse_state.get("last_checkpoint_at", "") or "") or last_checkpoint_at
         if current_chapter_id is None:
             current_chapter_id = int(parse_state.get("current_chapter_id", 0) or 0) or None
         if not run_state.get("current_chapter_ref") and parse_state.get("current_chapter_ref"):
             run_state["current_chapter_ref"] = parse_state.get("current_chapter_ref")
+    if status == "paused" and _should_preserve_last_known_snapshot(status, status_reason):
+        current_phase_step = "等待继续执行"
     status, stage_label_key, stage_label_params = _analysis_status(
-        run_state, current_chapter_id=current_chapter_id
+        run_state,
+        current_chapter_id=current_chapter_id,
+        effective_stage=projection.effective_stage,
+    )
+    resume_available = effective_resume_available(
+        stage=projection.effective_stage,
+        run_state=run_state,
+        parse_state=parse_state,
+        runtime_shell=runtime_shell,
+        latest_job=projection.latest_job,
+    )
+    last_checkpoint_at = coalesce_last_checkpoint_at(
+        stage=projection.effective_stage,
+        run_state=run_state,
+        parse_state=parse_state,
+        runtime_shell=runtime_shell,
+        latest_job=projection.latest_job,
     )
     current_phase_step_key, current_phase_step_params = _analysis_phase_step_message(current_phase_step)
     current_reading_activity = _analysis_current_reading_activity(
         book_id,
         run_state=run_state,
         status=status,
+        status_reason=status_reason,
         current_phase_step_key=current_phase_step_key,
         current_chapter_id=current_chapter_id,
         root=root,
@@ -1582,16 +1658,27 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         status=status,
         output_language=output_language,
         current_chapter_ref=str(run_state.get("current_chapter_ref", "") or "") or None,
-        current_section_ref=str(run_state.get("current_segment_ref", "") or "") if status == "deep_reading" else None,
+        current_section_ref=(
+            str((current_reading_activity or {}).get("segment_ref", "") or "")
+            or (str(run_state.get("current_segment_ref", "") or "") if status == "deep_reading" else "")
+        ) or None,
         current_phase_step_key=current_phase_step_key,
     )
     progress_percent = round((completed_chapters / total_chapters) * 100, 2) if total_chapters > 0 else None
+    current_section_ref = None
+    if status == "deep_reading" or _should_preserve_last_known_snapshot(status, status_reason):
+        current_section_ref = (
+            _clean_text((current_reading_activity or {}).get("segment_ref"))
+            or _clean_text(run_state.get("current_segment_ref"))
+            or None
+        )
 
     return {
         "book_id": to_api_book_id(book_id),
         "title": str(manifest.get("book", "")),
         "author": str(manifest.get("author", "")),
         "status": status,
+        "status_reason": status_reason,
         "stage_label_key": stage_label_key,
         "stage_label_params": stage_label_params,
         "progress_percent": progress_percent,
@@ -1611,7 +1698,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
         "current_state_panel": {
             "current_chapter_id": current_chapter_id,
             "current_chapter_ref": run_state.get("current_chapter_ref"),
-            "current_section_ref": run_state.get("current_segment_ref") if status == "deep_reading" else None,
+            "current_section_ref": current_section_ref,
             "current_phase_step_key": current_phase_step_key,
             "current_phase_step_params": current_phase_step_params,
             "pulse_message": pulse_message,
@@ -1630,7 +1717,7 @@ def get_analysis_state(book_id: str, root: Path | None = None) -> dict:
                 "retryable": bool(resume_available),
                 "details": None,
             }
-            if status in {"error", "paused"}
+            if status in {"error", "paused"} and str(run_state.get("error", "") or "").strip()
             else None
         ),
     }

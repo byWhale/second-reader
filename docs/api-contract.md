@@ -185,8 +185,13 @@ except as migration compatibility text where the underlying value remains in the
 - public integer `book_id`
 - chapter tree items with integer `chapter_id`
 - parse-stage and deep-reading-stage progress in the same payload
+- optional additive `status_reason` when the current paused/error-like state needs a concrete explanation:
+  - `runtime_stale`
+  - `runtime_interrupted`
+  - `resume_incompatible`
+  - `dev_run_abandoned`
 - `current_phase_step`, `resume_available`, and `last_checkpoint_at` when available
-- `current_reading_activity` as a live snapshot, not a history event, including:
+- `current_reading_activity` as the current runtime snapshot, not a history event, including:
   - `phase`
   - `started_at`
   - `updated_at`
@@ -203,6 +208,10 @@ except as migration compatibility text where the underlying value remains in the
 - `current_state_panel.reaction_counts` keyed only by the five canonical reaction types
 - `recent_completed_chapters[].result_url` pointing to canonical frontend routes
 
+Snapshot semantics:
+- when `status` is active (`queued`, `parsing_structure`, `deep_reading`, `chapter_note_generation`), `current_reading_activity` and `current_state_panel.current_section_ref` describe live runtime state
+- when `status = paused` with `status_reason = runtime_stale` or `runtime_interrupted`, those same fields describe the last-known reading stop and must not be rendered as if reading were still live
+
 `segment_ref` remains a temporary compatibility sidecar. New mechanisms may project a richer `reading_locus` without treating section-first ontology as the primary truth.
 
 ### Upload And Job Polling
@@ -214,6 +223,7 @@ Stable expectations:
 - `job_id` is a string
 - `status` is a stable machine-readable job stage and may be `ready` after a deferred upload completes the chapter-level structure parse
 - `status` may also be `paused` when automatic recovery budget is exhausted and a manual continue action is required
+- optional additive `status_reason` may explain why a paused/error-like job reached that state without changing the top-level status enum
 - `book_id`, when known, is a public integer book id
 - `job_url` and `ws_url` remain backend API URLs
 - chapter progress fields such as `current_chapter_id` remain integers
@@ -228,6 +238,8 @@ Book shelf cards and book detail payloads use these public high-level states:
 - `paused`
 - `completed`
 - `error`
+
+These top-level status enums remain stable. Public paused/error-like surfaces may also add optional `status_reason` without introducing a new top-level `interrupted` status.
 
 ### Error Response Shape
 REST failures use the shared error envelope:
