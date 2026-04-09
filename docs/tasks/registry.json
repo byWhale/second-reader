@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-08T13:50:14Z",
+  "updated_at": "2026-04-09T00:31:07Z",
   "tasks": [
     {
       "id": "TASK-PHASE9-COMPAT-CUTOVER",
@@ -706,9 +706,9 @@
     {
       "id": "TASK-V2-NATIVE-READING-PRESENTATION",
       "title": "Redesign the routed reading surfaces around chapter text and anchored reactions",
-      "status": "queued",
+      "status": "active",
       "lane": "migration",
-      "priority": "medium",
+      "priority": "high",
       "detail_ref": "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
       "truth_refs": [
         "docs/product-interaction-model.md",
@@ -717,19 +717,21 @@
         "docs/frontend-visual-system.md"
       ],
       "decision_refs": [
-        "DEC-055"
+        "DEC-055",
+        "DEC-056"
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
-      "next_action": "Start only when the project intentionally begins post-Phase-9 frontend work. Promote reading_locus, primary_anchor, and related anchor-native fields from compatibility helpers into the primary UI model, while keeping section-era fields only as migration sidecars until retirement is safe.",
+      "next_action": "Treat the old iterator_v1 / section-first presentation as compatibility-only rather than as a co-equal product target, and start the V2-native frontend lane now. First fix routed-surface truth/visibility bugs on the in-progress overview, then promote reading_locus / move_type / active_reaction_id into the live overview model, then redesign chapter and marks surfaces around anchor-native rendering and thought lineage. Do not open a separate cleanup-only wave for V1 display concepts before this lane.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
         "docs/product-interaction-model.md",
         "docs/api-integration.md",
-        "docs/backend-state-aggregation.md"
+        "docs/backend-state-aggregation.md",
+        "docs/history/decision-log.md"
       ],
-      "last_updated": "2026-04-08T13:50:14Z",
+      "last_updated": "2026-04-09T00:15:30Z",
       "last_updated_by": "codex"
     },
     {
@@ -752,7 +754,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md",
-      "next_action": "Start only after the V2-native routed reading presentation is stable enough that section-era compatibility containers can be intentionally removed.",
+      "next_action": "Keep section-first compatibility fields and containers only as migration sidecars; start removal only after the V2-native overview, chapter, and marks surfaces are stable enough that the older presentation model is no longer needed for normal product use.",
       "blocked_by": [
         "TASK-V2-NATIVE-READING-PRESENTATION"
       ],
@@ -761,7 +763,7 @@
         "docs/api-contract.md",
         "docs/api-integration.md"
       ],
-      "last_updated": "2026-04-08T13:50:14Z",
+      "last_updated": "2026-04-09T00:15:30Z",
       "last_updated_by": "codex"
     },
     {
@@ -869,7 +871,7 @@
         "bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md",
-      "next_action": "Keep excerpt surface v1.1 as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The active blocker is now narrowed to one question only: whether the repaired long-span harness can finish the targeted repair of value_of_others_private_en__8_10 and clear the last judge_unavailable / mechanism_failure pair from the completed formal rerun. This remains a parallel evidence-cleanup lane rather than a blocker on the already-landed compatibility cutover. The live step is bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408.",
+      "next_action": "Keep excerpt surface v1.1 as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The long-span repair job is no longer running; it completed and removed the lingering mechanism_failure, but one insight_and_clarification judge_unavailable still remains on value_of_others_private_en__8_10__probe_1. This stays a parallel evidence-cleanup question rather than a blocker on the already-landed compatibility cutover.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
@@ -949,7 +951,7 @@
         "reading-companion-backend/src/reading_runtime/llm_gateway.py",
         "reading-companion-backend/tests/test_llm_gateway.py"
       ],
-      "last_updated": "2026-04-07T07:35:00Z",
+      "last_updated": "2026-04-09T00:31:07Z",
       "last_updated_by": "codex"
     },
     {
@@ -1023,7 +1025,7 @@
         "bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md",
-      "next_action": "Keep the honest-short freeze as the active long-span draft, treat attentional_v2_accumulation_benchmark_v1_judged_20260406 as a diagnosed invalid lane rather than generic mechanism failure, and use the completed 2-window recovery smoke as proof that bundle/probe materialization is back. The full formal rerun attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407 has already completed as a process, but one window still needs targeted same-run repair after a transient iterator_v1 failure on value_of_others_private_en__8_10. The active move is bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408, and future relaunches can now reuse resumable failed output trees because run_accumulation_comparison.py has landed one bounded resume-aware recovery pass for recoverable transient failures.",
+      "next_action": "Keep the honest-short freeze as the active long-span draft, treat attentional_v2_accumulation_benchmark_v1_judged_20260406 as a diagnosed invalid lane rather than generic mechanism failure, and treat the April 8 targeted same-run repair as completed. The merged rerun is now much cleaner, but one evaluation caveat still remains on insight_and_clarification for value_of_others_private_en__8_10__probe_1. The completed recovery removed the lingering mechanism_failure, coherent_accumulation is now clean with judge_unavailable_count = 0, and the remaining open question is whether to accept or later narrow-fix the last insight_and_clarification judge_unavailable. Future relaunches can now reuse resumable failed output trees because run_accumulation_comparison.py has landed one bounded resume-aware recovery pass for recoverable transient failures.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
@@ -1058,7 +1060,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_20260406/shards/main/cases/supremacy_private_en__13__probe_1.json",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_smoke_recovery_pair_20260407/meta/selected_windows.json"
       ],
-      "last_updated": "2026-04-08T11:31:24Z",
+      "last_updated": "2026-04-09T00:31:07Z",
       "last_updated_by": "codex"
     },
     {

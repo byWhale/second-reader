@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-08T13:50:14Z`
+Last updated: `2026-04-09T00:31:07Z`
 
 ## Status Values
 - `active`
@@ -25,7 +25,7 @@ Last updated: `2026-04-08T13:50:14Z`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
-- Next: keep the honest-short freeze as the active long-span draft, treat `attentional_v2_accumulation_benchmark_v1_judged_20260406` as a diagnosed invalid lane rather than generic mechanism failure, and use the completed 2-window recovery smoke as proof that bundle/probe materialization is back. The full formal rerun has now completed as a process, but one window still needs targeted same-run repair after a transient `iterator_v1` failure on `value_of_others_private_en__8_10`:
+- Next: keep the honest-short freeze as the active long-span draft, treat `attentional_v2_accumulation_benchmark_v1_judged_20260406` as a diagnosed invalid lane rather than generic mechanism failure, and treat the April 8 targeted same-run repair as completed. The merged rerun is now much cleaner, but one evaluation caveat still remains on `insight_and_clarification` for `value_of_others_private_en__8_10__probe_1`:
   - prior recovery evidence:
     - job: `bgjob_accumulation_smoke_pair_recovery_20260407` (`completed`)
     - run: `attentional_v2_accumulation_benchmark_v1_smoke_recovery_pair_20260407`
@@ -39,9 +39,13 @@ Last updated: `2026-04-08T13:50:14Z`
     - run: `attentional_v2_accumulation_value_of_others_iterator_v1_bundle_20260408`
     - scope: isolated `iterator_v1`-only bundle read for `value_of_others_private_en__8_10`
     - result: failed again with one checkpointable transient connection error; useful as diagnosis, not as recovery
-  - active targeted repair:
-    - job: `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408` (`running`)
+  - completed targeted repair:
+    - job: `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408` (`completed`)
     - goal: rerun only the failed mechanism/window inside the completed formal run, then re-judge and re-merge
+    - current result:
+      - `mechanism_failure_count = 0` across the merged long-span rerun
+      - `coherent_accumulation` is fully clean with `judge_unavailable_count = 0`
+      - one remaining `judge_unavailable` survives only on `insight_and_clarification`
   - landed orchestration hardening:
     - `run_accumulation_comparison.py` now preserves resumable failed output trees and allows one bounded resume-aware recovery pass on recoverable transient failures
     - future relaunches of the same failed mechanism/window no longer need to wipe progress before retrying
@@ -53,7 +57,25 @@ Last updated: `2026-04-08T13:50:14Z`
   - `bgjob_accumulation_smoke_pair_recovery_20260407` (`completed`)
   - `bgjob_accumulation_benchmark_v1_judged_rerun_20260407` (`completed`)
   - `bgjob_accumulation_value_of_others_iterator_v1_bundle_20260408` (`completed`)
-  - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408` (`running`)
+  - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408` (`completed`)
+
+### `TASK-V2-NATIVE-READING-PRESENTATION` — Redesign the routed reading surfaces around chapter text and anchored reactions
+- Status: `active`
+- Lane: `migration`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md`
+- Next: treat `iterator_v1` section-first presentation as compatibility-only rather than as a co-equal product target, and start the V2-native frontend lane now. Implement in this order:
+  - fix truth/visibility bugs on the current routed surfaces:
+    - contradictory reading-status labels on `/books/:id`
+    - false-empty recent trail during live V2 reading
+    - unreliable source-reader loading state
+  - promote V2 live-reading truth on the in-progress overview surface:
+    - `reading_locus`
+    - `move_type`
+    - `active_reaction_id`
+  - then redesign chapter and marks surfaces around anchors and live thought lineage
+  - do not open a separate cleanup-only wave for V1 display concepts before this lane
+- Jobs: none
 
 ## Blocked
 
@@ -62,7 +84,7 @@ Last updated: `2026-04-08T13:50:14Z`
 - Lane: `mechanism_eval`
 - Priority: `high`
 - Detail: `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
-- Next: keep `excerpt surface v1.1` as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The active blocker is now narrowed to one question only: whether the repaired long-span harness can finish the targeted repair of `value_of_others_private_en__8_10` and clear the last `judge_unavailable / mechanism_failure` pair from the completed formal rerun. This remains the parallel evidence-cleanup lane, not the blocker on the already-landed compatibility cutover. The live step is `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`.
+- Next: keep `excerpt surface v1.1` as the current valid formal excerpt evidence bundle and do not reopen excerpt reruns by default. The long-span repair job is no longer running; it completed and removed the lingering `mechanism_failure`, but one `insight_and_clarification` `judge_unavailable` still remains on `value_of_others_private_en__8_10__probe_1`. This stays a parallel evidence-cleanup question, not a blocker on the already-landed compatibility cutover.
 - Jobs:
   - `bgjob_human_notes_excerpt_smoke_light_20260404` (`completed`)
   - `bgjob_human_notes_guided_excerpt_eval_v1_judged_20260404` (`completed`)
@@ -176,20 +198,13 @@ Last updated: `2026-04-08T13:50:14Z`
 
 ## Queued
 
-### `TASK-V2-NATIVE-READING-PRESENTATION` — Redesign the routed reading surfaces around chapter text and anchored reactions
-- Status: `queued`
-- Lane: `migration`
-- Priority: `medium`
-- Detail: `docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md`
-- Next: start only when the project intentionally begins post-Phase-9 frontend work. Promote `reading_locus`, `primary_anchor`, and related anchor-native fields from compatibility helpers into the primary UI model, while keeping section-era compatibility fields only as migration sidecars until retirement is safe.
-
 ### `TASK-FE-SECTION-RETIREMENT` — Retire section-first chapter/detail and marks surfaces
 - Status: `queued`
 - Lane: `migration`
 - Priority: `medium`
 - Detail: `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
 - Blocked by: `TASK-V2-NATIVE-READING-PRESENTATION`
-- Next: start only after the V2-native routed reading presentation is stable enough that section-era compatibility containers can be intentionally removed
+- Next: keep section-first compatibility fields and containers only as migration sidecars; start removal only after the V2-native overview, chapter, and marks surfaces are stable enough that the older presentation model is no longer needed for normal product use
 
 ## Done
 

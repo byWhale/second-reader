@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-08T13:50:14Z`
+Last verified: `2026-04-09T00:31:07Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -18,6 +18,10 @@ Last verified: `2026-04-08T13:50:14Z`
   - the current routed frontend surfaces were validated against `attentional_v2` compatibility outputs on overview, chapter, and marks-related flows
   - V2-native frontend presentation and section-first retirement are now explicitly post-Phase-9 initiatives
   - long-span repair continues in parallel, but it is not a blocker on using the new default path
+- Frontend direction is now fixed for the next product lane:
+  - do not keep the old `iterator_v1` / section-first presentation as a co-equal product model
+  - keep that older presentation shape only as a compatibility shell while V2-native surfaces are being built
+  - do not spend on a standalone V1-concept cleanup wave first; demote those concepts progressively as V2-native UI lands
 - Product-boundary clarification is now landed:
   - `book_analysis` is treated as a retired legacy capability preserved only for compatibility/debugging rather than as a live secondary product lane
   - public `/analysis/*` routes remain for compatibility, but the active backend launcher and OpenAPI operation ids now describe deep reading explicitly
@@ -123,23 +127,29 @@ Last verified: `2026-04-08T13:50:14Z`
       - interpretation:
         - it proved the failure was a checkpointable runtime interruption rather than “no resume support”
         - its persisted runtime state shows `resume_available = true`, `problem_code = network_blocked`, and `last_checkpoint_at` set on Chapter 8
-    - the active long-span move is now the same-run targeted repair job:
+    - the same-run targeted repair job is now completed:
       - job id:
         - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
       - scope:
-        - rerun only `iterator_v1` for `value_of_others_private_en__8_10`
-        - then re-judge that window
-        - then re-merge the already-completed formal run
+        - reran only `iterator_v1` for `value_of_others_private_en__8_10`
+        - re-judged that window
+        - re-merged the already-completed formal run
+      - current merged posture:
+        - `mechanism_failure_count = 0` on both long-span targets
+        - `coherent_accumulation` is now clean with `judge_unavailable_count = 0`
+        - one remaining caveat survives on `insight_and_clarification`:
+          - `judge_unavailable_count = 1`
+          - the affected probe is `value_of_others_private_en__8_10__probe_1`
+          - the persisted reason is still `judge_unavailable`
     - landed orchestration hardening:
       - `reading-companion-backend/eval/attentional_v2/run_accumulation_comparison.py` now supports one bounded resume-aware recovery pass for recoverable transient failures
       - if a recovery launch sees an existing resumable failed output tree, it now resumes from that checkpoint instead of wiping the mechanism output directory first
       - the in-flight recovery job above started before this code landed, so it will not pick up the new behavior unless relaunched
     - do not spend on a fresh excerpt full-surface rerun unless the long-span recovery still fails after the hardened runner is used
 - Current repo posture:
-  - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows one active background job:
-    - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
+  - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows no active background jobs
   - do not launch a new full excerpt formal rerun tonight
-  - the full long-span formal judged rerun has already finished; the only approved long-span work right now is the targeted same-run repair
+  - the full long-span formal judged rerun has already finished, and the targeted same-run repair has also completed
   - the earlier isolated `iterator_v1` read is diagnosis-only evidence and does not replace or mutate the main formal long-span lane
   - do not reopen dataset retune or long-span redesign inside this repair-first / diagnosis-only pass
 
@@ -152,6 +162,11 @@ Last verified: `2026-04-08T13:50:14Z`
     - treat the completed 2-window smoke as sufficient recovery evidence for bundle/probe materialization
     - spend the next overnight slot on one full formal judged rerun of the full long-span draft
     - only reopen narrow harness work if that judged rerun reintroduces materialization failure
+  - `frontend` is now the next active product lane:
+    - begin V2-native routed presentation work without waiting for a separate V1 display cleanup pass
+    - first fix truth/visibility gaps on the in-progress overview surface
+    - then promote anchor- and locus-native rendering on chapter and marks surfaces
+    - only retire section-first compatibility containers after the V2-native surfaces are stable
   - the detailed background below remains useful, but where it conflicts with the April 7 lane update above, the April 7 update wins
 - Evaluation now uses two intentionally different semantic surfaces:
   - `excerpt surface`
@@ -2257,7 +2272,8 @@ Last verified: `2026-04-08T13:50:14Z`
 
 ## Open Decisions
 - none at the implementation-doc timing layer
-- remaining open work is now Phase 9 cutover and long-span evidence completion, not stable-doc promotion timing
+- remaining open work is now long-span evidence cleanup plus post-Phase-9 frontend migration, not stable-doc promotion timing
+- whether to keep the old V1 presentation as a co-equal product path is no longer open; it is now compatibility-only
 
 ## Active Risks
 - The new question-aligned private-library builder now keeps the live `v2` review-truth datasets as feedback input instead of overwriting them, but the new question-aligned outputs are still seed candidates rather than reviewed benchmark truth.
@@ -2295,12 +2311,13 @@ Last verified: `2026-04-08T13:50:14Z`
 
 ## Active Task IDs
 - `TASK-ACCUMULATION-BENCHMARK-V1`
+- `TASK-V2-NATIVE-READING-PRESENTATION`
 
 ## Blocked Task IDs
 - `TASK-PHASE9-DECISIVE-EVAL`
 
 ## Active Job IDs
-- `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
+- none
 
 ## Recommended Reading Path
 1. `AGENTS.md`

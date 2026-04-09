@@ -1487,3 +1487,30 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `docs/current-state.md`
 - `docs/tasks/registry.md`
 - `docs/tasks/registry.json`
+
+## Entry 53
+**ID**: DEC-056
+**Status**: active
+
+**Decision / Inflection**: Stop treating the old `iterator_v1` / section-first frontend presentation as a co-equal product UI direction, and make V2-native reading presentation the next active product-facing lane.
+
+**Period**: April 9, 2026, immediately after the compatibility-first cutover had already landed and a live UX audit showed that the main remaining gap was presentation truth rather than mechanism availability.
+
+**Problem**: After the default cutover, the product sat in an in-between state: `attentional_v2` was already the real reading mechanism, but the routed frontend still presented books mainly through a section-first compatibility shell. That created a new strategic ambiguity. The team could either keep investing in the old V1-shaped presentation as if it might remain a permanent product model, or accept that the compatibility shell had served its purpose and move the UI itself toward V2-native truth. Without an explicit decision, future work could easily drift into low-value cleanup, preserve the wrong mental model, or keep the product story blurry.
+
+**Alternatives considered**: Keep the V1-shaped presentation as a parallel candidate product model, run a standalone cleanup-only pass to de-emphasize V1 concepts before any V2 redesign, or delay frontend migration until every long-span evidence lane was fully clean.
+
+**Why this path won**: The project already has enough evidence to trust `attentional_v2` as the main reading path. The remaining weakness is not "can V2 read?" but "can the product show V2 honestly and vividly?" That makes a V2-native presentation pass more valuable than another round of preserving or polishing the older section-first model. At the same time, keeping the old presentation only as a compatibility shell preserves stability while the new UI lands, without forcing a risky all-at-once removal.
+
+**What changed in the system**: Stable current-state and task-routing docs now treat `V2-native reading presentation` as the next active migration lane rather than as a distant queued idea. `iterator_v1` presentation concepts are now explicitly compatibility-only for product UI planning, not a co-equal design target. The next frontend sequence is fixed as: first repair truth/visibility bugs on the current routed surfaces, then promote V2 live-reading state on `/books/:id`, then redesign chapter and marks surfaces around anchors, loci, and thought lineage. `Section-first retirement` remains a later cleanup lane rather than the first move.
+
+**Why it matters later**: Future contributors will otherwise see a mixed product and infer that the old section-first UI was still an endorsed product option. This entry records the intended interpretation instead: the compatibility shell remains only to avoid breaking the current app while the product-facing reading experience catches up to the already-landed V2 mechanism.
+
+**Primary evidence**:
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md`
+- `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
+- `docs/api-integration.md`
+- `docs/backend-state-aggregation.md`

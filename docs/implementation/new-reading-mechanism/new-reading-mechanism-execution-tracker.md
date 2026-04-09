@@ -15,7 +15,7 @@ Update when: status changes, blockers appear, or phases complete.
 - Overall status:
   - `in_progress`
 - Current phase:
-  - `Phase 9: Migration, Stabilization, And Default-Cutover Readiness`
+  - `Post-Phase-9: V2-Native Presentation And Evidence Cleanup`
 - Naming discipline:
   - the `Phase 0-9` labels in this file are implementation-plan stages
   - they are not the preferred vocabulary for explaining the mechanism's live reading loop
@@ -57,6 +57,16 @@ Update when: status changes, blockers appear, or phases complete.
   - current background-job posture:
     - `reading-companion-backend/state/job_registry/active_jobs.md` currently shows:
       - `bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408`
+- April 9 frontend-direction summary:
+  - `presentation posture`:
+    - do not keep the old `iterator_v1` / section-first presentation as a co-equal product path
+    - keep that older presentation shape only as a compatibility shell while new UI lands
+    - do not open a standalone cleanup-only pass for V1 display concepts first
+  - `next implementation order`:
+    - first fix truth/visibility bugs on the current routed overview and reader surfaces
+    - then promote V2 live-reading truth on `/books/:id` using `reading_locus`, `move_type`, and `active_reaction_id`
+    - then redesign chapter and marks surfaces around anchors and thought lineage
+    - only after that begin intentional section-first retirement
 - Current strategy discipline:
   - dataset-builder and controller work are now bounded enabling lanes for evaluation rather than independent finish lines
   - book source origin is now explicitly treated as operational provenance rather than as a benchmark-design axis:

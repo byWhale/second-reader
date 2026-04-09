@@ -12,6 +12,11 @@ Update when: the Phase 9 cutover boundary, workstreams, gates, or task routing c
   - `iterator_v1` remains callable as an explicit fallback and legacy-resume path
   - the current routed frontend surfaces were validated on the compatibility-first overview/chapter/marks path
   - stable docs, current-state, and task routing now all treat V2-native presentation as the next separate lane rather than as unfinished Phase 9 scope
+- Current post-Phase-9 posture as of `2026-04-09`:
+  - the next active migration lane is `V2-native reading presentation`
+  - do not keep the old `iterator_v1` / section-first presentation as a co-equal product design target
+  - keep that older presentation shape only as a temporary compatibility shell while V2-native surfaces land
+  - do not spend on a cleanup-only V1 display pass before the V2-native lane starts
 
 ## Summary
 - Phase 9 now ends at `compatibility cutover`, not at a full frontend-native redesign.
@@ -65,20 +70,26 @@ Update when: the Phase 9 cutover boundary, workstreams, gates, or task routing c
 - `V2-native reading presentation`
   - redesign routed frontend surfaces around chapter text plus anchored reactions
   - promote `reading_locus`, `primary_anchor`, and `related_anchors` from additive helpers to primary UI truth
+  - current implementation order:
+    - first fix truth/visibility gaps on the routed in-progress overview surface
+    - then make live V2 reading state legible on `/books/:id`
+    - then redesign chapter and marks surfaces around anchors, loci, and thought lineage
+  - do not preserve the old section-first presentation as a parallel product model during this lane
 - `Section-first retirement`
   - intentionally remove the old section-first dependency from chapter/detail and marks surfaces
   - retire compatibility requirements only after the V2-native presentation is stable
+  - this remains a follow-on cleanup lane, not the first move
 - `Product polish`
   - refine presentation, interaction polish, and portfolio/demo packaging after the main mechanism cutover is already done
 
 ## Task Routing
 - Completed implementation lane:
   - `TASK-PHASE9-COMPAT-CUTOVER`
+- Active next migration lane:
+  - `TASK-V2-NATIVE-READING-PRESENTATION`
 - Parallel evidence-cleanup lane:
   - `TASK-ACCUMULATION-BENCHMARK-V1`
 - Parallel but narrower blocked eval lane:
   - `TASK-PHASE9-DECISIVE-EVAL`
-- Post-Phase-9 queued presentation lane:
-  - `TASK-V2-NATIVE-READING-PRESENTATION`
 - Post-Phase-9 deferred UI retirement lane:
   - `TASK-FE-SECTION-RETIREMENT`
