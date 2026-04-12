@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-12T08:36:36Z`
+Last updated: `2026-04-12T09:03:53Z`
 
 ## Status Values
 - `active`
@@ -33,10 +33,13 @@ Last updated: `2026-04-12T08:36:36Z`
     - trigger output no longer suppresses formal正文 reading
     - the live control skeleton is now `navigate.unitize + read + navigate.route`
     - span authority now matches the exact chosen unit
-  - next implement `Phase B`:
-    - make `read` carry forward prior context while reading the current unit
-    - let `read` own `implicit uptake`, optional raw reaction, and optional requests for `active recall / look-back`
-    - do not introduce a standalone `reuse` action; prior-material use should remain an observational result of `read`
+  - `Phase B` is now landed:
+    - `read` now owns the authoritative current-unit packet on the live path
+    - the live runner now builds bounded carry-forward context and allows one bounded `active recall / look-back` supplement
+    - raw reaction truth now comes directly from `read`, with mechanism-private `read_audit` records for context use
+  - next implement `Phase C`:
+    - restructure state and prompt packetization so long-distance continuity becomes easier to use without collapsing into one large memory blob
+    - keep public/frontend compatibility surfaces unchanged while that deeper state work lands
 - Jobs: none
 
 ### `TASK-V2-NATIVE-READING-PRESENTATION` — Redesign the routed reading surfaces around chapter text and anchored reactions

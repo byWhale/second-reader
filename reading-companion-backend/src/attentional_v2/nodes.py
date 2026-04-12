@@ -14,21 +14,26 @@ from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, invok
 from .prompts import ATTENTIONAL_V2_PROMPTS
 from .schemas import (
     AnchorMemoryState,
+    CarryForwardContext,
     AnchorFocus,
     AnchorRelationAssessment,
     BridgeCandidate,
     ClosureDecision,
+    ContextRequest,
     ControllerDecisionResult,
     GateState,
     KnowledgeActivationsState,
     MeaningUnitClosureResult,
     MoveType,
     NavigateRouteDecision,
+    PriorMaterialUse,
     PreviewRange,
     ReactionCandidate,
     ReactionEmissionDecision,
     ReactionEmissionResult,
     ReactionType,
+    ReadAnchorEvidence,
+    ReadUnitResult,
     ReaderPolicy,
     StateOperation,
     TriggerState,
@@ -50,6 +55,7 @@ _REACTION_TYPES: set[ReactionType] = {
 }
 _MOVE_TYPES: set[MoveType] = {"advance", "dwell", "bridge", "reframe"}
 _ROUTE_ACTIONS = {"commit", "continue", "bridge_back", "reframe"}
+_CONTEXT_REQUEST_KINDS = {"active_recall", "look_back"}
 _UNITIZE_BOUNDARY_TYPES: set[UnitizeBoundaryType] = {
     "paragraph_end",
     "intra_paragraph_semantic_close",
@@ -1063,6 +1069,130 @@ def _normalize_reaction_candidate(value: object) -> ReactionCandidate | None:
     }
 
 
+def _normalize_read_anchor_evidence(
+    value: object,
+    *,
+    allowed_sentence_ids: set[str],
+) -> list[ReadAnchorEvidence]:
+    """Normalize one list of read-anchor evidence packets."""
+
+    evidence: list[ReadAnchorEvidence] = []
+    if not isinstance(value, list):
+        return evidence
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        sentence_id = _clean_text(item.get("sentence_id"))
+        quote = _clean_text(item.get("quote"))
+        why_it_matters = _clean_text(item.get("why_it_matters"))
+        if not sentence_id or sentence_id not in allowed_sentence_ids or not quote:
+            continue
+        evidence.append(
+            {
+                "sentence_id": sentence_id,
+                "quote": quote,
+                "why_it_matters": why_it_matters,
+            }
+        )
+    return evidence
+
+
+def _normalize_prior_material_use(
+    value: object,
+    *,
+    allowed_ref_ids: set[str],
+) -> PriorMaterialUse:
+    """Normalize one prior-material-use packet against visible context refs."""
+
+    if not isinstance(value, dict):
+        return {
+            "materially_used": False,
+            "explanation": "",
+            "supporting_ref_ids": [],
+        }
+    materially_used = bool(value.get("materially_used"))
+    explanation = _clean_text(value.get("explanation"))
+    supporting_ref_ids = [
+        ref_id
+        for ref_id in (
+            _clean_text(item)
+            for item in value.get("supporting_ref_ids", [])
+            if isinstance(value.get("supporting_ref_ids"), list)
+        )
+        if ref_id and (not allowed_ref_ids or ref_id in allowed_ref_ids)
+    ]
+    if not materially_used:
+        explanation = ""
+        supporting_ref_ids = []
+    return {
+        "materially_used": materially_used,
+        "explanation": explanation,
+        "supporting_ref_ids": supporting_ref_ids[:4],
+    }
+
+
+def _normalize_context_request(value: object) -> ContextRequest | None:
+    """Normalize one bounded supplemental-context request."""
+
+    if not isinstance(value, dict):
+        return None
+    kind = _clean_text(value.get("kind")).lower().replace("-", "_")
+    if kind not in _CONTEXT_REQUEST_KINDS:
+        return None
+    return {
+        "kind": kind,  # type: ignore[typeddict-item]
+        "reason": _clean_text(value.get("reason")),
+        "anchor_ids": [
+            _clean_text(item)
+            for item in value.get("anchor_ids", [])
+            if isinstance(value.get("anchor_ids"), list) and _clean_text(item)
+        ][:4],
+        "sentence_ids": [
+            _clean_text(item)
+            for item in value.get("sentence_ids", [])
+            if isinstance(value.get("sentence_ids"), list) and _clean_text(item)
+        ][:4],
+    }
+
+
+def _fallback_read_unit_result(
+    *,
+    current_unit_sentences: list[dict[str, object]],
+    continuation_pressure: bool = False,
+    reason: str = "",
+) -> ReadUnitResult:
+    """Return one conservative fallback read result."""
+
+    fallback_sentence = current_unit_sentences[-1] if current_unit_sentences else {}
+    sentence_id = _clean_text(fallback_sentence.get("sentence_id"))
+    sentence_text = _clean_text(fallback_sentence.get("text"))
+    anchor_evidence = (
+        [
+            {
+                "sentence_id": sentence_id,
+                "quote": sentence_text[:240],
+                "why_it_matters": reason or "read_unit_fallback",
+            }
+        ]
+        if sentence_id and sentence_text
+        else []
+    )
+    return {
+        "local_understanding": "",
+        "move_hint": "advance",
+        "continuation_pressure": bool(continuation_pressure),
+        "implicit_uptake": [],
+        "anchor_evidence": anchor_evidence,
+        "prior_material_use": {
+            "materially_used": False,
+            "explanation": "",
+            "supporting_ref_ids": [],
+        },
+        "raw_reaction": None,
+        "context_request": None,
+    }
+
+
 def _has_reframe_pressure(working_pressure: WorkingPressureState) -> bool:
     """Return whether the current pressure snapshot is explicitly asking for a reframe."""
 
@@ -1203,36 +1333,167 @@ def navigate_unitize(
     )
 
 
+def _route_targets_from_ref_ids(
+    supporting_ref_ids: list[str],
+) -> tuple[str, str]:
+    """Extract one best-effort route target from supporting context refs."""
+
+    target_anchor_id = ""
+    target_sentence_id = ""
+    for ref_id in supporting_ref_ids:
+        cleaned = _clean_text(ref_id)
+        if cleaned.startswith("anchor:") and not target_anchor_id:
+            target_anchor_id = cleaned.split("anchor:", 1)[1]
+        elif cleaned.startswith("lookback:anchor:") and not target_anchor_id:
+            target_anchor_id = cleaned.split("lookback:anchor:", 1)[1]
+        elif cleaned.startswith("lookback:sentence:") and not target_sentence_id:
+            target_sentence_id = cleaned.split("lookback:sentence:", 1)[1]
+        elif cleaned.startswith("sentence:") and not target_sentence_id:
+            target_sentence_id = cleaned.split("sentence:", 1)[1]
+    return target_anchor_id, target_sentence_id
+
+
+def read_unit(
+    *,
+    current_unit_sentences: list[dict[str, object]],
+    carry_forward_context: CarryForwardContext,
+    reader_policy: ReaderPolicy,
+    output_language: str,
+    supplemental_context: dict[str, object] | None = None,
+    output_dir: Path | None = None,
+    book_title: str = "",
+    author: str = "",
+    chapter_title: str = "",
+) -> ReadUnitResult:
+    """Run the authoritative formal read for one chosen unit."""
+
+    prompts = ATTENTIONAL_V2_PROMPTS
+    structural_frame = _structural_frame(
+        book_title=book_title,
+        author=author,
+        chapter_title=chapter_title,
+        output_language=output_language,
+    )
+    user_prompt = _render_prompt(
+        prompts.read_unit_prompt,
+        structural_frame=_json_block(structural_frame),
+        current_unit=_json_block(
+            [
+                {
+                    "sentence_id": _clean_text(sentence.get("sentence_id")),
+                    "text": _clean_text(sentence.get("text")),
+                    "text_role": _clean_text(sentence.get("text_role")),
+                }
+                for sentence in current_unit_sentences
+            ]
+        ),
+        carry_forward_context=_json_block(carry_forward_context),
+        supplemental_context=_json_block(dict(supplemental_context or {})),
+        policy_snapshot=_json_block(reader_policy),
+        output_language_name=language_name(output_language),
+    )
+    _write_prompt_manifest(
+        output_dir,
+        node_name="read_unit",
+        prompt_version=prompts.read_unit_version,
+        system_prompt=prompts.read_unit_system,
+        user_prompt=user_prompt,
+        promptset_version=prompts.promptset_version,
+    )
+    with llm_invocation_scope(trace_context=LLMTraceContext(stage="phase4", node="read_unit")):
+        payload = invoke_json(prompts.read_unit_system, user_prompt, default={})
+
+    allowed_sentence_ids = {
+        _clean_text(sentence.get("sentence_id"))
+        for sentence in current_unit_sentences
+        if _clean_text(sentence.get("sentence_id"))
+    }
+    allowed_ref_ids = {
+        _clean_text(ref.get("ref_id"))
+        for ref in carry_forward_context.get("refs", [])
+        if isinstance(ref, dict) and _clean_text(ref.get("ref_id"))
+    }
+    if isinstance(supplemental_context, dict):
+        allowed_ref_ids.update(
+            _clean_text(ref.get("ref_id"))
+            for ref in supplemental_context.get("refs", [])
+            if isinstance(ref, dict) and _clean_text(ref.get("ref_id"))
+        )
+        allowed_ref_ids.update(
+            _clean_text(excerpt.get("ref_id"))
+            for excerpt in supplemental_context.get("excerpts", [])
+            if isinstance(excerpt, dict) and _clean_text(excerpt.get("ref_id"))
+        )
+
+    move_hint = _clean_text(payload.get("move_hint") if isinstance(payload, dict) else "").lower().replace("-", "_")
+    if move_hint not in _MOVE_TYPES:
+        move_hint = "advance"
+    anchor_evidence = _normalize_read_anchor_evidence(
+        payload.get("anchor_evidence") if isinstance(payload, dict) else None,
+        allowed_sentence_ids=allowed_sentence_ids,
+    )
+    raw_reaction = _normalize_reaction_candidate(payload.get("raw_reaction")) if isinstance(payload, dict) else None
+    if not anchor_evidence and raw_reaction is not None:
+        raw_anchor_quote = _clean_text(raw_reaction.get("anchor_quote"))
+        for sentence in current_unit_sentences:
+            sentence_id = _clean_text(sentence.get("sentence_id"))
+            sentence_text = _clean_text(sentence.get("text"))
+            if raw_anchor_quote and sentence_id and raw_anchor_quote in sentence_text:
+                anchor_evidence = [
+                    {
+                        "sentence_id": sentence_id,
+                        "quote": raw_anchor_quote,
+                        "why_it_matters": _clean_text(payload.get("local_understanding")) if isinstance(payload, dict) else "",
+                    }
+                ]
+                break
+    result: ReadUnitResult = {
+        "local_understanding": _clean_text(payload.get("local_understanding")) if isinstance(payload, dict) else "",
+        "move_hint": move_hint,  # type: ignore[typeddict-item]
+        "continuation_pressure": bool(payload.get("continuation_pressure")) if isinstance(payload, dict) else False,
+        "implicit_uptake": _normalize_state_operations(payload.get("implicit_uptake")) if isinstance(payload, dict) else [],
+        "anchor_evidence": anchor_evidence,
+        "prior_material_use": _normalize_prior_material_use(
+            payload.get("prior_material_use") if isinstance(payload, dict) else None,
+            allowed_ref_ids=allowed_ref_ids,
+        ),
+        "raw_reaction": raw_reaction,
+        "context_request": _normalize_context_request(payload.get("context_request")) if isinstance(payload, dict) else None,
+    }
+    return result
+
+
 def navigate_route(
     *,
-    unitize_decision: UnitizeDecision,
-    closure_result: MeaningUnitClosureResult,
-    controller_result: ControllerDecisionResult,
-    reaction_result: ReactionEmissionResult | None,
+    read_result: ReadUnitResult,
 ) -> NavigateRouteDecision:
-    """Normalize the next-step route so authority stays bound to the chosen unit."""
+    """Normalize the next-step route from the authoritative read packet."""
 
-    chosen_move = _clean_text(controller_result.get("chosen_move")).lower().replace("-", "_")
+    move_hint = _clean_text(read_result.get("move_hint")).lower().replace("-", "_")
     action = "commit"
-    if chosen_move == "bridge":
+    if move_hint == "bridge":
         action = "bridge_back"
-    elif chosen_move == "reframe":
+    elif move_hint == "reframe":
         action = "reframe"
-    elif closure_result.get("closure_decision") == "continue" or bool(unitize_decision.get("continuation_pressure")):
+    elif bool(read_result.get("continuation_pressure")):
         action = "continue"
     if action not in _ROUTE_ACTIONS:
         action = "commit"
+    prior_material_use = dict(read_result.get("prior_material_use") or {})
+    target_anchor_id, target_sentence_id = _route_targets_from_ref_ids(
+        [
+            _clean_text(ref_id)
+            for ref_id in prior_material_use.get("supporting_ref_ids", [])
+            if isinstance(prior_material_use.get("supporting_ref_ids"), list) and _clean_text(ref_id)
+        ]
+    )
     return {
         "action": action,  # type: ignore[typeddict-item]
-        "reason": _clean_text(controller_result.get("reason")) or _clean_text(closure_result.get("unresolved_pressure_note")),
+        "reason": _clean_text(prior_material_use.get("explanation")) or _clean_text(read_result.get("local_understanding")),
         "close_current_unit": True,
-        "target_anchor_id": _clean_text(controller_result.get("target_anchor_id")),
-        "target_sentence_id": _clean_text(controller_result.get("target_sentence_id")),
-        "persist_raw_reaction": bool(
-            isinstance(reaction_result, dict)
-            and reaction_result.get("decision") == "emit"
-            and isinstance(reaction_result.get("reaction"), dict)
-        ),
+        "target_anchor_id": target_anchor_id,
+        "target_sentence_id": target_sentence_id,
+        "persist_raw_reaction": bool(read_result.get("raw_reaction")),
     }
 
 

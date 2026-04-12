@@ -257,6 +257,65 @@ def append_anchor_relation(state: AnchorMemoryState, relation: AnchorRelation) -
     return next_state  # type: ignore[return-value]
 
 
+def apply_anchor_memory_operations(
+    state: AnchorMemoryState,
+    operations: list[StateOperation],
+) -> AnchorMemoryState:
+    """Apply explicit anchor-memory mutations from read/bridge outputs."""
+
+    next_state = state
+    for operation in operations:
+        if str(operation.get("target_store", "") or "") != "anchor_memory":
+            continue
+        payload = operation.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        operation_type = str(operation.get("operation_type", "") or "")
+
+        if operation_type in {"create", "update", "retain_anchor"}:
+            anchor_id = str(operation.get("item_id", "") or payload.get("anchor_id", "") or "")
+            sentence_start_id = str(payload.get("sentence_start_id", "") or "")
+            sentence_end_id = str(payload.get("sentence_end_id", "") or sentence_start_id or "")
+            quote = str(payload.get("quote", "") or "")
+            if not any((anchor_id, sentence_start_id, quote)):
+                continue
+            anchor: AnchorRecord = {
+                "anchor_id": anchor_id or f"anchor:{sentence_start_id}:{sentence_end_id}",
+                "sentence_start_id": sentence_start_id,
+                "sentence_end_id": sentence_end_id,
+                "quote": quote,
+                "locator": dict(payload.get("locator", {})) if isinstance(payload.get("locator"), dict) else {},
+                "anchor_kind": str(payload.get("anchor_kind", "") or "unit_evidence"),
+                "why_it_mattered": str(payload.get("why_it_mattered", "") or str(operation.get("reason", "") or "")),
+                "status": str(payload.get("status", "") or "active"),
+                "linked_reaction_ids": list(payload.get("linked_reaction_ids", []))
+                if isinstance(payload.get("linked_reaction_ids"), list)
+                else [],
+                "linked_activation_ids": list(payload.get("linked_activation_ids", []))
+                if isinstance(payload.get("linked_activation_ids"), list)
+                else [],
+            }
+            next_state = upsert_anchor_record(next_state, anchor)
+            continue
+
+        if operation_type == "link_anchors":
+            relation_id = str(operation.get("item_id", "") or payload.get("relation_id", "") or "")
+            source_anchor_id = str(payload.get("source_anchor_id", "") or "")
+            target_anchor_id = str(payload.get("target_anchor_id", "") or "")
+            if not source_anchor_id or not target_anchor_id:
+                continue
+            relation: AnchorRelation = {
+                "relation_id": relation_id or f"relation:{source_anchor_id}:{target_anchor_id}",
+                "relation_type": str(payload.get("relation_type", "") or "echo"),
+                "source_anchor_id": source_anchor_id,
+                "target_anchor_id": target_anchor_id,
+                "rationale": str(payload.get("rationale", "") or str(operation.get("reason", "") or "")),
+            }
+            next_state = append_anchor_relation(next_state, relation)
+
+    return next_state
+
+
 def upsert_reflective_item(
     state: ReflectiveSummariesState,
     *,

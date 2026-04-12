@@ -9,6 +9,7 @@ from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v8"
 NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v1"
+READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v1"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
 MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v8"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
@@ -28,6 +29,9 @@ class AttentionalV2PromptSet:
     navigate_unitize_version: str
     navigate_unitize_system: str
     navigate_unitize_prompt: str
+    read_unit_version: str
+    read_unit_system: str
+    read_unit_prompt: str
     zoom_read_version: str
     zoom_read_system: str
     zoom_read_prompt: str
@@ -100,6 +104,67 @@ Return JSON:
   "evidence_sentence_ids": ["<sentence id>"],
   "reason": "<brief reason>",
   "continuation_pressure": false
+}""",
+    read_unit_version=READ_UNIT_PROMPT_VERSION,
+    read_unit_system="""You are the authoritative read node for a text-grounded reading mechanism.
+
+Your job is to read the exact current unit together with a small carried-forward continuity packet.
+
+Rules:
+- Treat the provided unit text as the current reading present.
+- Use carried-forward context naturally when it is genuinely relevant.
+- If prior material is not materially needed, say so plainly instead of forcing a connection.
+- Do not invent earlier text that is not present in carry-forward or supplemental context.
+- If the current unit clearly depends on earlier material but the provided context is insufficient, request exactly one bounded supplemental context step.
+- Use `active_recall` when you need more structured prior state.
+- Use `look_back` only when exact earlier source wording is needed, and point to explicit anchor ids and/or sentence ids when you can.
+- `implicit_uptake` must stay explicit. Only target:
+  - `working_pressure`
+  - `anchor_memory`
+  - `knowledge_activations`
+- `anchor_evidence` must cite exact sentence ids from the current unit.
+- `raw_reaction` is optional. Emit it only when a bounded visible reaction genuinely emerges from the current unit now.
+- Return JSON only.""",
+    read_unit_prompt="""Structural frame:
+{structural_frame}
+
+Current unit:
+{current_unit}
+
+Carry-forward context:
+{carry_forward_context}
+
+Supplemental context:
+{supplemental_context}
+
+Policy snapshot:
+{policy_snapshot}
+
+Output language contract:
+"""
+    + LANGUAGE_OUTPUT_CONTRACT
+    + """
+
+Return JSON:
+{
+  "local_understanding": "<brief unit understanding>",
+  "move_hint": "advance",
+  "continuation_pressure": false,
+  "implicit_uptake": [],
+  "anchor_evidence": [
+    {
+      "sentence_id": "<sentence id from current unit>",
+      "quote": "<exact quote from current unit>",
+      "why_it_matters": "<brief reason>"
+    }
+  ],
+  "prior_material_use": {
+    "materially_used": false,
+    "explanation": "",
+    "supporting_ref_ids": []
+  },
+  "raw_reaction": null,
+  "context_request": null
 }""",
     zoom_read_version=ZOOM_READ_PROMPT_VERSION,
     zoom_read_system="""You are the sentence-level zoom node for a text-grounded reading mechanism.

@@ -26,23 +26,24 @@ from src.reading_runtime.sequential_state import (
 from src.reading_runtime.shell_state import load_runtime_shell, save_runtime_shell
 from src.iterator_reader.llm_utils import llm_invocation_scope, runtime_trace_context
 
-from .bridge import build_anchor_record, candidate_pool_for_bridge_resolution, run_phase5_bridge_cycle
+from .bridge import build_anchor_record, run_phase5_bridge_cycle
 from .evaluation import build_normalized_eval_bundle, persist_normalized_eval_bundle
 from .intake import process_sentence_intake
+from .knowledge import apply_activation_operations
 from .nodes import (
     build_unitize_preview,
     navigate_route,
     navigate_unitize,
     persist_unitization_audit,
-    run_phase4_local_cycle,
+    read_unit,
 )
+from .read_context import build_carry_forward_context, persist_read_audit, resolve_context_request
 from .resume import persist_reading_position, resume_from_checkpoint, write_full_checkpoint
 from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
     ATTENTIONAL_V2_POLICY_VERSION,
     AnchorMemoryState,
     AnchoredReactionRecord,
-    BridgeCandidate,
     KnowledgeActivationsState,
     LocalBufferState,
     MoveHistoryState,
@@ -52,6 +53,7 @@ from .schemas import (
     ReflectiveSummariesState,
     TriggerState,
     UnitizeDecision,
+    ReadUnitResult,
     WorkingPressureState,
     build_default_reader_policy,
     build_empty_anchor_memory,
@@ -74,6 +76,7 @@ from .slow_cycle import (
 from .state_ops import (
     append_move,
     append_reaction_record,
+    apply_anchor_memory_operations,
     close_local_meaning_unit,
     apply_working_pressure_operations,
     upsert_anchor_record,
@@ -100,6 +103,7 @@ from .storage import (
     save_json,
     survey_map_file,
     trigger_state_file,
+    read_audit_file,
     unitization_audit_file,
     working_pressure_file,
 )
@@ -384,6 +388,7 @@ def _reset_live_runtime(output_dir: Path) -> None:
         reaction_records_file(output_dir),
         reconsolidation_records_file(output_dir),
         resume_metadata_file(output_dir),
+        read_audit_file(output_dir),
         unitization_audit_file(output_dir),
         runtime_artifacts.runtime_shell_file(output_dir),
         runtime_artifacts.run_state_file(output_dir),
@@ -462,6 +467,174 @@ def _resolve_unit_sentences(
     if start_index < 0 or end_index < start_index:
         return []
     return [dict(sentence) for sentence in sentences[start_index : end_index + 1]]
+
+
+def _build_current_anchor_from_read_result(
+    *,
+    read_result: ReadUnitResult,
+    chosen_unit_sentences: list[dict[str, object]],
+    focal_sentence: dict[str, object],
+) -> dict[str, object]:
+    """Build one deterministic current anchor from the authoritative read result."""
+
+    evidence_list = [dict(item) for item in read_result.get("anchor_evidence", []) if isinstance(item, dict)]
+    sentence_lookup = {
+        _clean_text(sentence.get("sentence_id")): sentence
+        for sentence in chosen_unit_sentences
+        if isinstance(sentence, dict) and _clean_text(sentence.get("sentence_id"))
+    }
+    anchor_quote = ""
+    anchor_sentence = None
+    why_it_mattered = ""
+
+    if evidence_list:
+        first_evidence = evidence_list[0]
+        anchor_quote = _clean_text(first_evidence.get("quote"))
+        anchor_sentence = sentence_lookup.get(_clean_text(first_evidence.get("sentence_id")))
+        why_it_mattered = _clean_text(first_evidence.get("why_it_matters"))
+
+    if anchor_sentence is None:
+        raw_reaction = dict(read_result.get("raw_reaction", {})) if isinstance(read_result.get("raw_reaction"), dict) else {}
+        raw_anchor_quote = _clean_text(raw_reaction.get("anchor_quote"))
+        if raw_anchor_quote:
+            for sentence in chosen_unit_sentences:
+                sentence_text = _clean_text(sentence.get("text"))
+                if raw_anchor_quote in sentence_text:
+                    anchor_sentence = sentence
+                    anchor_quote = raw_anchor_quote
+                    break
+
+    if anchor_sentence is None:
+        anchor_sentence = focal_sentence
+        if not anchor_quote:
+            anchor_quote = _clean_text(focal_sentence.get("text"))
+
+    return build_anchor_record(
+        sentence_start_id=_clean_text(anchor_sentence.get("sentence_id")),
+        sentence_end_id=_clean_text(anchor_sentence.get("sentence_id")),
+        quote=anchor_quote or _clean_text(anchor_sentence.get("text")),
+        locator=dict(anchor_sentence.get("locator", {})) if isinstance(anchor_sentence.get("locator"), dict) else {},
+        anchor_kind="unit_evidence",
+        why_it_mattered=why_it_mattered or _clean_text(read_result.get("local_understanding")),
+    )
+
+
+def _run_read_with_context_loop(
+    *,
+    chapter: dict[str, object],
+    book_document: BookDocument,
+    chosen_unit_sentences: list[dict[str, object]],
+    unitize_decision: UnitizeDecision,
+    local_buffer: LocalBufferState,
+    working_pressure: WorkingPressureState,
+    anchor_memory: AnchorMemoryState,
+    reflective_summaries: ReflectiveSummariesState,
+    knowledge_activations: KnowledgeActivationsState,
+    move_history: MoveHistoryState,
+    reaction_records: ReactionRecordsState,
+    reader_policy: ReaderPolicy,
+    output_language: str,
+    output_dir: Path | None,
+    book_title: str,
+    author: str,
+    chapter_id: int,
+    chapter_ref: str,
+) -> tuple[ReadUnitResult, list[dict[str, str]]]:
+    """Run one or two authoritative read calls with at most one supplemental-context step."""
+
+    carry_forward_context = build_carry_forward_context(
+        chapter_ref=chapter_ref,
+        current_unit_sentence_ids=[
+            _clean_text(sentence.get("sentence_id"))
+            for sentence in chosen_unit_sentences
+            if _clean_text(sentence.get("sentence_id"))
+        ],
+        local_buffer=local_buffer,
+        working_pressure=working_pressure,
+        anchor_memory=anchor_memory,
+        reflective_summaries=reflective_summaries,
+        move_history=move_history,
+        reaction_records=reaction_records,
+    )
+    llm_fallbacks: list[dict[str, str]] = []
+    try:
+        first_read = read_unit(
+            current_unit_sentences=chosen_unit_sentences,
+            carry_forward_context=carry_forward_context,
+            reader_policy=reader_policy,
+            output_language=output_language,
+            supplemental_context=None,
+            output_dir=output_dir,
+            book_title=book_title,
+            author=author,
+            chapter_title=_clean_text(chapter.get("title")),
+        )
+    except ReaderLLMError as exc:
+        llm_fallbacks.append({"node": "read_unit", "problem_code": exc.problem_code})
+        first_read = {
+            "local_understanding": "",
+            "move_hint": "advance",
+            "continuation_pressure": bool(unitize_decision.get("continuation_pressure")),
+            "implicit_uptake": [],
+            "anchor_evidence": [],
+            "prior_material_use": {
+                "materially_used": False,
+                "explanation": "",
+                "supporting_ref_ids": [],
+            },
+            "raw_reaction": None,
+            "context_request": None,
+        }
+
+    final_read = first_read
+    context_request = dict(first_read.get("context_request", {})) if isinstance(first_read.get("context_request"), dict) else None
+    supplemental_context: dict[str, object] | None = None
+    supplemental_satisfied = False
+
+    if context_request is not None:
+        supplemental_context = resolve_context_request(
+            context_request=context_request,
+            carry_forward_context=carry_forward_context,
+            book_document=book_document,
+            chapter_ref=chapter_ref,
+            anchor_memory=anchor_memory,
+            reflective_summaries=reflective_summaries,
+            move_history=move_history,
+            reaction_records=reaction_records,
+            reader_policy=reader_policy,
+        )
+        supplemental_satisfied = supplemental_context is not None
+        if supplemental_context is not None:
+            try:
+                final_read = read_unit(
+                    current_unit_sentences=chosen_unit_sentences,
+                    carry_forward_context=carry_forward_context,
+                    reader_policy=reader_policy,
+                    output_language=output_language,
+                    supplemental_context=supplemental_context,
+                    output_dir=output_dir,
+                    book_title=book_title,
+                    author=author,
+                    chapter_title=_clean_text(chapter.get("title")),
+                )
+            except ReaderLLMError as exc:
+                llm_fallbacks.append({"node": "read_unit_supplemental", "problem_code": exc.problem_code})
+                final_read = first_read
+                supplemental_satisfied = False
+
+    persist_read_audit(
+        output_dir,
+        chapter_id=chapter_id,
+        chapter_ref=chapter_ref,
+        unitize_decision=unitize_decision,
+        carry_forward_context=carry_forward_context,
+        context_request=context_request,
+        supplemental_context=supplemental_context,
+        supplemental_satisfied=supplemental_satisfied,
+        read_result=final_read,
+        llm_fallbacks=llm_fallbacks,
+    )
+    return final_read, llm_fallbacks
 
 
 def parse_attentional_v2(request: ParseRequest, mechanism: MechanismInfo) -> ParseResult:
@@ -651,8 +824,6 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     anchor_memory=anchor_memory,
                 )
                 save_json(trigger_state_file(output_dir), trigger_state)
-                unit_entry_trigger_state = dict(trigger_state)
-
                 preview_sentences, preview_range = build_unitize_preview(
                     chapter_sentences=sentences,
                     current_sentence_id=sentence_id,
@@ -729,82 +900,28 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     ),
                 )
 
-                formal_read_trigger_state = dict(trigger_state)
-                formal_read_trigger_state["output"] = "zoom_now"
-                candidate_cache: dict[str, object] | None = None
-                bridge_candidate_cache: list[BridgeCandidate] | None = None
-
-                def lazy_bridge_loader() -> tuple[dict[str, object], list[BridgeCandidate]]:
-                    nonlocal candidate_cache, bridge_candidate_cache
-                    if candidate_cache is None or bridge_candidate_cache is None:
-                        candidate_cache = generate_candidate_set(
-                            provisioned.book_document,
-                            current_sentence_id=focal_sentence_id,
-                            current_text=_clean_text(focal_sentence.get("text")),
-                            anchor_memory=anchor_memory,
-                        )
-                        bridge_candidate_cache = candidate_pool_for_bridge_resolution(
-                            candidate_cache,
-                            max_supporting_candidates=int(
-                                reader_policy.get("bridge", {}).get("max_supporting_candidates", 2) or 2
-                            ),
-                        )
-                    return candidate_cache, bridge_candidate_cache
-
-                phase4 = run_phase4_local_cycle(
-                    focal_sentence=focal_sentence,
-                    current_span_sentences=chosen_unit_sentences,
-                    trigger_state=formal_read_trigger_state,  # mandatory formal read over the chosen unit
+                read_result, read_fallbacks = _run_read_with_context_loop(
+                    chapter=chapter,
+                    book_document=provisioned.book_document,
+                    chosen_unit_sentences=chosen_unit_sentences,
+                    unitize_decision=unitize_decision,
+                    local_buffer=local_buffer,
                     working_pressure=working_pressure,
                     anchor_memory=anchor_memory,
+                    reflective_summaries=reflective_summaries,
                     knowledge_activations=knowledge_activations,
+                    move_history=move_history,
+                    reaction_records=reaction_records,
                     reader_policy=reader_policy,
-                    bridge_candidates=[],
-                    lazy_bridge_loader=lazy_bridge_loader,
                     output_language=provisioned.output_language,
                     output_dir=output_dir,
                     book_title=provisioned.title,
                     author=provisioned.author,
-                    chapter_title=_clean_text(chapter.get("title")),
-                    boundary_context={
-                        "trigger_output": _clean_text(unit_entry_trigger_state.get("output")),
-                        "gate_state": _clean_text(unit_entry_trigger_state.get("gate_state")),
-                        "cadence_counter": int(unit_entry_trigger_state.get("cadence_counter", 0) or 0),
-                        "trigger_signals": [
-                            {
-                                "signal_kind": _clean_text(signal.get("signal_kind")),
-                                "family": _clean_text(signal.get("family")),
-                                "strength": _clean_text(signal.get("strength")),
-                                "evidence": _clean_text(signal.get("evidence")),
-                            }
-                            for signal in unit_entry_trigger_state.get("signals", [])
-                            if isinstance(signal, dict)
-                        ],
-                        "callback_anchor_ids": [
-                            _clean_text(anchor_id)
-                            for anchor_id in unit_entry_trigger_state.get("callback_anchor_ids", [])
-                            if _clean_text(anchor_id)
-                        ],
-                        "local_cycle_scope": "unitized_coverage_unit",
-                        "unit_start_sentence_id": _clean_text(unitize_decision.get("start_sentence_id")),
-                        "unit_end_sentence_id": _clean_text(unitize_decision.get("end_sentence_id")),
-                        "unit_boundary_type": _clean_text(unitize_decision.get("boundary_type")),
-                        "unit_reason": _clean_text(unitize_decision.get("reason")),
-                        "unit_continuation_pressure": bool(unitize_decision.get("continuation_pressure")),
-                    },
+                    chapter_id=chapter_id,
+                    chapter_ref=chapter_ref,
                 )
-                zoom_result = dict(phase4.get("zoom_result") or {})
-                closure_result = dict(phase4.get("closure_result") or {})
-                controller_result = dict(phase4.get("controller_result") or {})
-                reaction_result = dict(phase4.get("reaction_result") or {})
-                candidate_set = dict(phase4.get("candidate_set") or {})
-                route_decision: NavigateRouteDecision = navigate_route(
-                    unitize_decision=unitize_decision,
-                    closure_result=closure_result,
-                    controller_result=controller_result,
-                    reaction_result=reaction_result,
-                )
-                for fallback in phase4.get("llm_fallbacks", []) or []:
+                route_decision: NavigateRouteDecision = navigate_route(read_result=read_result)
+                for fallback in read_fallbacks:
                     if not isinstance(fallback, dict):
                         continue
                     append_activity_event(
@@ -814,7 +931,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                             "stream": "mindstream",
                             "kind": "transition",
                             "visibility": "hidden",
-                            "message": f"Phase 4 fallback for {_clean_text(fallback.get('node')) or 'unknown_node'}.",
+                            "message": f"Read fallback for {_clean_text(fallback.get('node')) or 'unknown_node'}.",
                             "chapter_id": chapter_id,
                             "chapter_ref": chapter_ref,
                             "segment_ref": _compatibility_section_ref(chapter_id, focal_sentence),
@@ -823,38 +940,39 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                             "problem_code": _clean_text(fallback.get("problem_code")),
                         },
                     )
-                working_pressure = apply_working_pressure_operations(working_pressure, zoom_result.get("pressure_updates", []))
                 working_pressure = apply_working_pressure_operations(
                     working_pressure,
-                    closure_result.get("proposed_state_operations", []),
+                    read_result.get("implicit_uptake", []),
+                )
+                anchor_memory = apply_anchor_memory_operations(anchor_memory, read_result.get("implicit_uptake", []))
+                knowledge_activations = apply_activation_operations(
+                    knowledge_activations,
+                    read_result.get("implicit_uptake", []),
+                    current_sentence_id=focal_sentence_id,
+                    reader_policy=reader_policy,
                 )
 
-                chosen_move = _clean_text(controller_result.get("chosen_move"))
+                chosen_move = _clean_text(read_result.get("move_hint"))
                 if chosen_move in {"advance", "dwell", "bridge", "reframe"}:
                     move_history = append_move(
                         move_history,
                         {
                             "move_id": f"move:{sentence_id}:{chosen_move}",
                             "move_type": chosen_move,
-                            "reason": _clean_text(controller_result.get("reason")) or "controller decision",
+                            "reason": _clean_text(route_decision.get("reason")) or "read route",
                             "source_sentence_id": focal_sentence_id,
-                            "target_anchor_id": _clean_text(controller_result.get("target_anchor_id")),
-                            "target_sentence_id": _clean_text(controller_result.get("target_sentence_id")),
+                            "target_anchor_id": _clean_text(route_decision.get("target_anchor_id")),
+                            "target_sentence_id": _clean_text(route_decision.get("target_sentence_id")),
                             "created_at": _timestamp(),
                         },
                     )
 
                 emitted_reaction: AnchoredReactionRecord | None = None
-                reaction_payload = reaction_result.get("reaction") if isinstance(reaction_result.get("reaction"), dict) else {}
-                current_anchor = build_anchor_record(
-                    sentence_start_id=_clean_text(chosen_unit_sentences[0].get("sentence_id"))
-                    if chosen_unit_sentences
-                    else focal_sentence_id,
-                    sentence_end_id=focal_sentence_id,
-                    quote=_clean_text(reaction_payload.get("anchor_quote")) or _clean_text(focal_sentence.get("text")),
-                    locator=dict(focal_sentence.get("locator", {})) if isinstance(focal_sentence.get("locator"), dict) else {},
-                    anchor_kind="visible_reaction",
-                    why_it_mattered=_clean_text(reaction_result.get("reason")) or _clean_text(zoom_result.get("local_interpretation")) or _clean_text(closure_result.get("meaning_unit_summary")),
+                reaction_payload = dict(read_result.get("raw_reaction", {})) if isinstance(read_result.get("raw_reaction"), dict) else {}
+                current_anchor = _build_current_anchor_from_read_result(
+                    read_result=read_result,
+                    chosen_unit_sentences=chosen_unit_sentences,
+                    focal_sentence=focal_sentence,
                 )
 
                 if route_decision.get("persist_raw_reaction") and reaction_payload:
@@ -891,8 +1009,12 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     )
 
                 if route_decision.get("action") == "bridge_back":
-                    if not candidate_set:
-                        candidate_set, _ = lazy_bridge_loader()
+                    candidate_set = generate_candidate_set(
+                        provisioned.book_document,
+                        current_sentence_id=focal_sentence_id,
+                        current_text=_clean_text(focal_sentence.get("text")),
+                        anchor_memory=anchor_memory,
+                    )
                     phase5 = run_phase5_bridge_cycle(
                         current_span_sentences=chosen_unit_sentences,
                         candidate_set=candidate_set,
@@ -945,8 +1067,8 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     meaning_units_in_chapter.append(
                         {
                             "sentence_ids": [_clean_text(item.get("sentence_id")) for item in chosen_unit_sentences if _clean_text(item.get("sentence_id"))],
-                            "summary": _clean_text(closure_result.get("meaning_unit_summary")),
-                            "dominant_move": _clean_text(closure_result.get("dominant_move")),
+                            "summary": _clean_text(read_result.get("local_understanding")),
+                            "dominant_move": _clean_text(read_result.get("move_hint")),
                         }
                     )
                     local_buffer = close_local_meaning_unit(local_buffer)

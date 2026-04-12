@@ -21,6 +21,7 @@ UnitizeBoundaryType = Literal[
     "budget_cap",
 ]
 RouteAction = Literal["commit", "continue", "bridge_back", "reframe"]
+ContextRequestKind = Literal["active_recall", "look_back"]
 StateOperationType = Literal["create", "update", "cool", "drop", "retain_anchor", "link_anchors", "promote", "supersede", "reactivate"]
 ClosureDecision = Literal["continue", "close"]
 ReactionEmissionDecision = Literal["emit", "withhold"]
@@ -182,6 +183,67 @@ class UnitizeDecision(TypedDict, total=False):
     evidence_sentence_ids: list[str]
     reason: str
     continuation_pressure: bool
+
+
+class CarryForwardRef(TypedDict, total=False):
+    """One bounded carry-forward reference exposed to the read node."""
+
+    ref_id: str
+    kind: str
+    item_id: str
+    summary: str
+    sentence_id: str
+    anchor_id: str
+    reaction_id: str
+    move_id: str
+
+
+class CarryForwardContext(TypedDict, total=False):
+    """Small stable continuity packet passed into every formal read."""
+
+    working_pressure_digest: dict[str, object]
+    reflective_digest: list[dict[str, object]]
+    anchor_digest: list[dict[str, object]]
+    continuity_digest: dict[str, object]
+    refs: list[CarryForwardRef]
+
+
+class PriorMaterialUse(TypedDict, total=False):
+    """Observation of whether prior material materially informed the current read."""
+
+    materially_used: bool
+    explanation: str
+    supporting_ref_ids: list[str]
+
+
+class ContextRequest(TypedDict, total=False):
+    """Optional request for one bounded supplemental-context pass."""
+
+    kind: ContextRequestKind
+    reason: str
+    anchor_ids: list[str]
+    sentence_ids: list[str]
+
+
+class ReadAnchorEvidence(TypedDict, total=False):
+    """One exact unit-local anchor cited by the read step."""
+
+    sentence_id: str
+    quote: str
+    why_it_matters: str
+
+
+class ReadUnitResult(TypedDict, total=False):
+    """Authoritative formal-read packet for one chosen coverage unit."""
+
+    local_understanding: str
+    move_hint: MoveType
+    continuation_pressure: bool
+    implicit_uptake: list[StateOperation]
+    anchor_evidence: list[ReadAnchorEvidence]
+    prior_material_use: PriorMaterialUse
+    raw_reaction: ReactionCandidate | None
+    context_request: ContextRequest | None
 
 
 class StateOperation(TypedDict, total=False):

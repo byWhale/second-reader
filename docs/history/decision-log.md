@@ -1540,3 +1540,33 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/src/attentional_v2/runner.py`
 - `reading-companion-backend/src/attentional_v2/nodes.py`
 - `reading-companion-backend/src/attentional_v2/schemas.py`
+
+## Entry 55
+**ID**: DEC-058
+**Status**: active
+
+**Decision / Inflection**: Make `read` the canonical owner of formal unit reading, carried-forward-context use, `implicit_uptake`, and optional raw reaction in live `attentional_v2`, instead of keeping the old zoom/closure/controller/reaction-emission chain on the live path.
+
+**Period**: April 12, 2026, immediately after Phase A had already fixed coverage admission and span-authority alignment, and the next mechanism question was how prior context and raw reaction truth should actually be integrated into one live read.
+
+**Problem**: Phase A ensured that every chosen unit now gets formal reading, but the live semantics were still fragmented in the older local-cycle shape. That older chain made it too hard to explain what the mechanism had really read, where prior material entered, and which component truly owned the raw reaction. It also encouraged a misleading implementation direction where “reuse” might become a separate mechanism action instead of a natural consequence of reading with carried continuity.
+
+**Alternatives considered**: Keep the old `zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission` chain on the live path, add a standalone `reuse` node/action, or let routing/reaction remain semi-LLM-owned after a thin local read step.
+
+**Why this path won**: The project’s first-principles goal is a reading agent, not a pipeline that performs reading-adjacent bookkeeping through extra synthetic actions. A single authoritative `read` step matches that goal better: it reads the chosen unit, receives a small carried-forward continuity packet by default, asks for more context only when needed, and surfaces any raw reaction directly. That keeps the model’s semantic freedom where it belongs while leaving deterministic code to handle bounded recall/look-back, audit trails, and state application.
+
+**What changed in the system**: The live runner now builds a bounded `carry-forward context` from persisted state before each formal unit read. `read` returns the authoritative `ReadUnitResult`, including `local_understanding`, `move_hint`, `continuation_pressure`, `implicit_uptake`, `anchor_evidence`, `prior_material_use`, optional `raw_reaction`, and optional `context_request`. If `read` explicitly asks for more context, the runner may perform at most one bounded supplemental step through deterministic `active_recall` or exact `look_back`, then rerun `read` once. `navigate.route` is now a deterministic consumer of the final read packet, raw reaction persistence comes directly from `read`, and private `read_audit` records now capture carry-forward refs plus supplemental-context satisfaction.
+
+**Why it matters later**: Future contributors will otherwise see `read`, old phase-era helper names, and several state artifacts side by side and may assume the mechanism still has multiple competing owners for local understanding and reaction truth. This entry records the intended ownership boundary after Phase B: live `attentional_v2` reads through one authoritative `read` packet, while older helper nodes remain historical/compatibility territory rather than the live control spine.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `reading-companion-backend/src/attentional_v2/runner.py`
+- `reading-companion-backend/src/attentional_v2/nodes.py`
+- `reading-companion-backend/src/attentional_v2/read_context.py`
+- `reading-companion-backend/src/attentional_v2/schemas.py`
+- `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
+- `reading-companion-backend/tests/test_attentional_v2_phase_b.py`

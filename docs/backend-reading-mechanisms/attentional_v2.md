@@ -46,19 +46,25 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - heuristic trigger output no longer decides whether正文 receives formal reading
     - the live loop now routes through `navigate.unitize -> read -> navigate.route`
     - span authority is now tied to the exact chosen coverage unit rather than a reconstructed late tail
+- Phase B of the post-eval structural rework is now also landed.
+  - `read` is now the canonical owner of the current-unit read packet on the live path.
+  - Each formal unit read now receives a small `carry-forward context` built from persisted state.
+  - `read` may request at most one bounded supplemental step through `active_recall` or `look_back`.
+  - `raw reaction` truth now comes directly from `read`, and private `read_audit` records capture context use.
 
 ## Naming Note
 - `Phase 3`, `Phase 4`, `Phase 5`, and `Phase 6` in this document refer to historical implementation-stage groupings, not to a user-facing or mechanism-intrinsic sequence of named runtime phases.
 - The live runtime should be explained as a reading loop:
   - sentence intake and watch-state update
   - `navigate.unitize`
-  - mandatory formal unit read
+  - mandatory formal unit read with bounded carry-forward context
+  - optional one bounded supplemental recall / look-back pass when `read` asks for it
   - `navigate.route`
   - optional `bridge_resolution`
   - chapter-end slow-cycle work such as `chapter_consolidation`, `reflective_promotion`, and `reconsolidation`
 - Internal helper names such as `run_phase4_local_cycle` are retained historical engineering labels for now.
-  - They package the local interpretive loop.
-  - They should not be read as proof that the mechanism itself defines a first-class runtime concept called `Phase 4`.
+  - They remain available as legacy helper territory and test coverage for historical node behavior.
+  - They are no longer the live formal read path and should not be read as proof that the mechanism itself defines a first-class runtime concept called `Phase 4`.
 
 ## Core Primitives / Ontology
 - `sentence stream`
@@ -95,10 +101,13 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - They no longer decide whether正文 gets a formal read.
   - Their Phase A role is observability, cheap salience evidence, and later audit/debug support.
 - The live Phase A control loop is now:
+- The live Phase A/B control loop is now:
   - ingest the next unread sentence
   - persist watch-state / trigger metadata
   - `navigate.unitize` over a fixed preview window
-  - formally read the chosen coverage unit
+  - build a small `carry-forward context` from persisted state
+  - formally read the chosen coverage unit through `read`
+  - when `read` explicitly asks for more context, resolve at most one bounded `active_recall` or `look_back` supplement and rerun `read` once
   - `navigate.route` over that exact unit
 - `navigate.unitize` is now the sole selector of the next coverage unit.
   - Boundary choice is prompt-led and semantic.
@@ -107,33 +116,25 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - current paragraph remainder
     - plus the next paragraph in the same section
   - Because the current canonical substrate does not expose stable section ids, "same section" is implemented conservatively by refusing to cross into heading paragraphs during preview construction.
-- The formal unit read still reuses the existing local-cycle internals for now.
-  - In Phase A, the chosen coverage unit is passed through the old `zoom_read -> meaning_unit_closure -> controller_decision -> optional reaction_emission` chain.
-  - The key change is that this chain now runs only after the exact unit has already been selected.
+- `read` is now the authoritative formal unit-read node.
+  - It owns current-unit understanding, carried-forward-context use, `implicit_uptake`, `prior_material_use`, optional `raw_reaction`, and optional `context_request`.
+  - It no longer depends on the old `zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission` chain on the live path.
 - `navigate.route` is now the sole next-step decision layer for that same chosen unit.
-  - In Phase A it is still a thin adapter over closure/controller outputs.
+  - In Phase B it deterministically consumes `ReadUnitResult`.
   - Its main job is to keep close/continue/bridge decisions answerable to the exact unit that was just read.
 - Span visibility and authority are now aligned.
   - The span being read is the span being judged.
   - The span being judged is the only span that can be closed or extended.
   - The old runner behavior where a narrow late tail could implicitly close a larger hidden open span is no longer the live path.
-- The live local-cycle boundary context still carries trigger/watch evidence, but now also carries:
+- The unitization decision now carries the exact boundary evidence used on the live path:
   - chosen unit start/end sentence ids
+  - preview range
   - unit boundary type
   - unitization reason
   - continuation-pressure flag
-- The current local controller candidate pool can merge three sources before choosing the next move:
-  - one optional zoom-level bridge hint
-  - closure-level bridge candidates
-  - deterministic bridge candidates generated from the already-read source
-- Deterministic source bridge retrieval is now lazy rather than unconditional.
-  - The runtime materializes the deterministic candidate set only when bridge pressure is present.
-  - Bridge pressure currently means at least one of:
-    - boundary-context callback-anchor ids
-    - a zoom-level bridge hint
-    - closure-level bridge candidates
-    - a closure move that already points toward `bridge`
-  - Once materialized, the same deterministic candidate set is reused for both controller input and later `bridge_resolution`.
+- The current bridge path is now downstream of `read`.
+  - `navigate.route` derives `bridge_back` from the final `ReadUnitResult`.
+  - If the route asks for `bridge_back`, the runtime then materializes the deterministic candidate set and enters `bridge_resolution`.
 - The bridge layer then adds bridge judgment after deterministic candidate generation when that pressure actually exists:
   - `candidate_generation_if_needed -> bridge_resolution -> durable anchor / move updates`
 - The next move is one of:
@@ -159,32 +160,23 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 
 ## LLM Call Schedule
 - The main LLM is now called for every formal coverage unit, not for every sentence and not only for old `zoom_now` moments.
-- The current scaffolded node bundle is:
+- The live node bundle is now:
   - `navigate_unitize`
-  - `zoom_read`
-  - `meaning_unit_closure`
-  - `controller_decision`
-  - `reaction_emission`
+  - `read_unit`
+  - optional second `read_unit` after one bounded `active_recall` or `look_back` supplement
   - `bridge_resolution`
   - `reflective_promotion`
   - `reconsolidation`
   - `chapter_consolidation`
-- These nodes are implemented, prompt-versioned, and now wired into the live default sentence-order runner.
-- The runtime schedule is intentionally sparser than the raw node list may suggest:
+- Historical helper nodes such as `zoom_read`, `meaning_unit_closure`, `controller_decision`, and `reaction_emission` still exist as legacy helper/test territory, but they are no longer on the live runner critical path.
+- The runtime schedule is intentionally narrower than the old node inventory:
   - sentence-level intake still runs without LLM
-  - `navigate_unitize` now decides the next coverage unit before formal reading begins
+  - `navigate_unitize` decides the next coverage unit before formal reading begins
   - trigger/watch outputs still exist, but they no longer suppress formal reading
-  - `controller_decision` now has a deterministic fast path for unambiguous `advance` cases
-    - when closure already says `advance`
-    - and merged bridge candidates are empty
-    - and reframe pressure is absent
-    - the runtime emits a synthetic controller result instead of calling the controller LLM
-  - `reaction_emission` remains an LLM gate, but it is now tighter
-    - it runs when closure already surfaced a normalized reaction candidate
-    - or when zoom explicitly opened reaction consideration and a bounded high-signal synthetic local candidate exists
-    - `compact_local_anchor` alone no longer opens this gate
-  - deterministic bridge retrieval is no longer paid up front for every local cycle
-    - it is loaded lazily and reused only when bridge pressure justifies it
+  - `read_unit` owns local understanding, prior-material use, `implicit_uptake`, optional `raw_reaction`, and optional `context_request`
+  - at most one supplemental context step is allowed per chosen unit
+  - `navigate.route` is deterministic in Phase B and does not make another LLM call
+  - deterministic bridge retrieval is only paid when `navigate.route` actually chooses `bridge_back`
 - Default call types are:
   - `chapter opening`
     - set initial expectations and open questions using title, chapter heading, and opening span
@@ -212,46 +204,23 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - author
     - chapter title
     - position within chapter/book
-  - `focal span`
+  - `current unit`
     - the exact chosen coverage unit
-  - `local context`
-    - for Phase A unit reads, the earlier sentences inside the chosen unit
-  - `working memory`
-    - active hypotheses
-    - open tensions
-    - unresolved questions
-    - active motifs and recurrence notes
-  - `boundary context`
-    - trigger/watch output
-    - gate state
-    - cadence counter
-    - trigger-signal evidence
-    - callback-anchor ids
-    - unit start/end ids
-    - unit boundary type
-    - unitization reason
-    - continuation-pressure flag
-  - `retrieved anchors`
-    - a small set of earlier spans selected because they are semantically, structurally, or motif-recurrently relevant
-  - `deterministic candidate set`
-    - memory-first retained anchors plus bounded look-back source-space candidates for honest bridge judgment
-  - `deterministic local textual cues`
-    - compact cue packets such as:
-      - `callback_cue`
-      - `distinction_cue`
-      - `recognition_gap`
-      - `durable_pattern`
-      - `actor_intention`
-      - `social_pressure`
-      - `causal_stakes`
-    - these cues are meant to keep local interpretation centered on the exact textual pressure instead of flattening it into generic scene summary
-- Retrieved anchors are chosen by a mix of:
-  - semantic similarity
-  - motif recurrence
-  - unresolved-question linkage
-  - structural centrality
-  - recency when helpful, but not as the only signal
-- Deterministic source retrieval now stays local by default, but when the focal sentence carries explicit backward-looking callback markers it may widen to a broader already-read source scan to surface earlier callback candidates instead of only nearby lexical echoes.
+  - `carry-forward context`
+    - bounded `working_pressure` digest
+    - bounded reflective digest
+    - bounded recent anchor digest
+    - recent continuity digest from `local_buffer + move_history + reaction_records`
+    - declared reference ids so `read` can point back to the exact prior material it materially used
+  - optional `supplemental_context`
+    - one bounded `active_recall` packet from persisted state
+    - or one exact `look_back` packet with earlier source text by explicit refs
+- Default carried context is intentionally small.
+  - It should be enough for ordinary continuity without silently turning into a giant memory blob.
+  - It does not inject full `knowledge_activations`, full reaction history, or long raw source excerpts by default.
+- `look_back` is explicit and exact.
+  - It requires resolvable `anchor_id` and/or `sentence_id` refs.
+  - If the earlier source text cannot be resolved, the runner keeps the first `read` result rather than recursing further.
 - Phase A unitization preview is intentionally narrow and deterministic.
   - It previews only the current paragraph remainder and the next paragraph in the same section.
   - The semantic choice of where to stop inside that preview is prompt-led.
@@ -328,6 +297,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/runtime/local_continuity.json`
   - `_mechanisms/attentional_v2/runtime/trigger_state.json`
   - `_mechanisms/attentional_v2/runtime/unitization_audit.jsonl`
+  - `_mechanisms/attentional_v2/runtime/read_audit.jsonl`
   - `_mechanisms/attentional_v2/runtime/working_pressure.json`
   - `_mechanisms/attentional_v2/runtime/anchor_memory.json`
   - `_mechanisms/attentional_v2/runtime/reflective_summaries.json`
@@ -350,10 +320,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/internal/prompt_manifests/*.json`
 - Current scaffolded prompt manifests now include:
   - `navigate_unitize`
-  - `zoom_read`
-  - `meaning_unit_closure`
-  - `controller_decision`
-  - `reaction_emission`
+  - `read_unit`
   - `bridge_resolution`
   - `reflective_promotion`
   - `reconsolidation`
@@ -442,7 +409,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - keep debug mode optional rather than making deep diagnostics the baseline requirement for normal evaluation runs
 - Current evaluation note:
   - the completed `excerpt surface v1.1` formal judged run is the main product-readiness evidence bundle for this default cutover
-  - the long-span formal lane is still under targeted recovery, so full split-surface interpretation remains slightly incomplete
+  - the cleaned `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` lane is now the durable long-span evidence bundle
 - Current narrow-repair drift note:
   - the bounded local-anchor / callback-bridge repair loop has already landed two focused code rounds in the working tree and both targeted test slices are green
   - however, the second repair-round smoke exposed a new late-tail failure:

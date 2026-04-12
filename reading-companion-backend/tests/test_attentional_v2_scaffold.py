@@ -21,6 +21,7 @@ from src.attentional_v2.storage import (
     move_history_file,
     reaction_records_file,
     reader_policy_file,
+    read_audit_file,
     reflective_summaries_file,
     reconsolidation_records_file,
     revisit_index_file,
@@ -227,63 +228,45 @@ def test_attentional_v2_parse_book_creates_ready_artifacts_without_iterator_stru
 
 
 def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_results(tmp_path, monkeypatch):
-    """The live runner should produce checkpoints, reactions, and chapter compatibility payloads."""
+    """The live runner should persist unitization/read audits, reactions, and compatibility payloads."""
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
-    captured_bridge_candidates: list[dict[str, object]] = []
-    captured_boundary_contexts: list[dict[str, object]] = []
+    captured_unit_reads: list[list[str]] = []
+    captured_carry_forward_contexts: list[dict[str, object]] = []
 
-    def fake_phase4_local_cycle(**kwargs):
-        focal_sentence = kwargs["focal_sentence"]
+    def fake_read_unit(**kwargs):
+        current_unit_sentences = kwargs["current_unit_sentences"]
+        focal_sentence = current_unit_sentences[-1]
         anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
-        lazy_bridge_loader = kwargs.get("lazy_bridge_loader")
-        if lazy_bridge_loader is not None:
-            _candidate_set, bridge_candidates = lazy_bridge_loader()
-            captured_bridge_candidates.extend(bridge_candidates)
-        captured_boundary_contexts.append(dict(kwargs["boundary_context"]))
+        captured_unit_reads.append([str(sentence.get("sentence_id")) for sentence in current_unit_sentences])
+        captured_carry_forward_contexts.append(dict(kwargs["carry_forward_context"]))
         return {
-            "zoom_result": None,
-            "closure_result": {
-                "closure_decision": "close",
-                "meaning_unit_summary": f"Meaning unit around {anchor_quote[:24]}",
-                "dominant_move": "advance",
-                "proposed_state_operations": [],
-                "bridge_candidates": [],
-                "reaction_candidate": {
-                    "type": "highlight",
-                    "anchor_quote": anchor_quote,
-                    "content": f"Noted: {anchor_quote[:40]}",
-                    "related_anchor_quotes": [],
-                    "search_query": "",
-                    "search_results": [],
-                },
-                "unresolved_pressure_note": "",
+            "local_understanding": f"Meaning unit around {anchor_quote[:24]}",
+            "move_hint": "advance",
+            "continuation_pressure": False,
+            "implicit_uptake": [],
+            "anchor_evidence": [
+                {
+                    "sentence_id": str(focal_sentence.get("sentence_id")),
+                    "quote": anchor_quote,
+                    "why_it_matters": "The focal line became legible during the formal read.",
+                }
+            ],
+            "prior_material_use": {
+                "materially_used": False,
+                "explanation": "",
+                "supporting_ref_ids": [],
             },
-            "controller_result": {
-                "chosen_move": "advance",
-                "reason": "keep reading",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
+            "raw_reaction": {
+                "type": "highlight",
+                "anchor_quote": anchor_quote,
+                "content": f"Noted: {anchor_quote[:40]}",
+                "related_anchor_quotes": [],
+                "search_query": "",
+                "search_results": [],
             },
-            "reaction_result": {
-                "decision": "emit",
-                "reason": "surface the focal line",
-                "reaction": {
-                    "type": "highlight",
-                    "anchor_quote": anchor_quote,
-                    "content": f"Noted: {anchor_quote[:40]}",
-                    "related_anchor_quotes": [],
-                    "search_query": "",
-                    "search_results": [],
-                },
-            },
-            "bridge_candidates": list(captured_bridge_candidates),
-            "candidate_set": {
-                "current_sentence_id": "c1-s2",
-                "memory_candidates": [],
-                "lookback_candidates": [],
-            },
+            "context_request": None,
         }
 
     def fake_phase6_chapter_cycle(**kwargs):
@@ -328,28 +311,6 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
 
     monkeypatch.setattr(
         runner_module,
-        "generate_candidate_set",
-        lambda *args, **kwargs: {
-            "current_sentence_id": "c1-s2",
-            "memory_candidates": [],
-            "lookback_candidates": [
-                {
-                    "candidate_kind": "source_callback",
-                    "sentence_id": "c1-s1",
-                    "chapter_id": 1,
-                    "chapter_title": "Chapter 1",
-                    "text": "Alpha sentence.",
-                    "text_role": "body",
-                    "locator": {},
-                    "overlap_score": 3.5,
-                    "retrieval_channel": "source_callback",
-                    "relation_type": "callback",
-                }
-            ],
-        },
-    )
-    monkeypatch.setattr(
-        runner_module,
         "navigate_unitize",
         lambda *, current_sentence, preview_sentences, **_kwargs: {
             "start_sentence_id": current_sentence["sentence_id"],
@@ -365,7 +326,7 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
         },
     )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
-    monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
+    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
     mechanism = AttentionalV2Mechanism()
@@ -380,14 +341,17 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert result.normalized_eval_bundle is not None
     assert result.normalized_eval_bundle["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
     chapter_payload = json.loads(chapter_result_compatibility_file(result.output_dir, 1).read_text(encoding="utf-8"))
-    audit_lines = unitization_audit_file(result.output_dir).read_text(encoding="utf-8").strip().splitlines()
+    unitize_lines = unitization_audit_file(result.output_dir).read_text(encoding="utf-8").strip().splitlines()
+    read_audit_lines = read_audit_file(result.output_dir).read_text(encoding="utf-8").strip().splitlines()
+    read_audits = [json.loads(line) for line in read_audit_lines]
     assert chapter_payload["visible_reaction_count"] >= 1
-    assert captured_bridge_candidates[0]["target_sentence_id"] == "c1-s1"
-    assert captured_bridge_candidates[0]["retrieval_channel"] == "source_callback"
-    assert captured_boundary_contexts[0]["trigger_output"] == "zoom_now"
-    assert captured_boundary_contexts[0]["gate_state"] == "hot"
-    assert isinstance(captured_boundary_contexts[0]["trigger_signals"], list)
-    assert len(audit_lines) == 2
+    assert captured_unit_reads == [["c1-s1"], ["c1-s2"]]
+    assert captured_carry_forward_contexts[0]["continuity_digest"]["recent_reactions"] == []
+    assert captured_carry_forward_contexts[1]["continuity_digest"]["recent_reactions"]
+    assert len(unitize_lines) == 2
+    assert len(read_audit_lines) == 2
+    assert all(audit["raw_reaction_present"] is True for audit in read_audits)
+    assert read_audits[1]["carry_forward_ref_ids"]
     shell = load_runtime_shell(runtime_shell_file(result.output_dir))
     assert shell["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
     assert shell["status"] == "completed"
@@ -400,37 +364,33 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
 
 
 def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, monkeypatch):
-    """The live runner should not crash when reaction_emission decides emit but returns no reaction payload."""
+    """The live runner should tolerate a read result with no raw reaction payload."""
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
 
-    def fake_phase4_local_cycle(**kwargs):
-        focal_sentence = kwargs["focal_sentence"]
+    def fake_read_unit(**kwargs):
+        focal_sentence = kwargs["current_unit_sentences"][-1]
         anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
         return {
-            "zoom_result": None,
-            "closure_result": {
-                "closure_decision": "close",
-                "meaning_unit_summary": f"Meaning unit around {anchor_quote[:24]}",
-                "dominant_move": "advance",
-                "proposed_state_operations": [],
-                "bridge_candidates": [],
-                "reaction_candidate": None,
-                "unresolved_pressure_note": "",
+            "local_understanding": f"Meaning unit around {anchor_quote[:24]}",
+            "move_hint": "advance",
+            "continuation_pressure": False,
+            "implicit_uptake": [],
+            "anchor_evidence": [
+                {
+                    "sentence_id": str(focal_sentence.get("sentence_id")),
+                    "quote": anchor_quote,
+                    "why_it_matters": "The line was read, but it did not warrant a surfaced reaction.",
+                }
+            ],
+            "prior_material_use": {
+                "materially_used": False,
+                "explanation": "",
+                "supporting_ref_ids": [],
             },
-            "controller_result": {
-                "chosen_move": "advance",
-                "reason": "keep reading",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
-            },
-            "reaction_result": {
-                "decision": "emit",
-                "reason": "surface the focal line",
-                "reaction": None,
-            },
-            "bridge_candidates": [],
+            "raw_reaction": None,
+            "context_request": None,
         }
 
     def fake_phase6_chapter_cycle(**kwargs):
@@ -475,15 +435,6 @@ def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, m
 
     monkeypatch.setattr(
         runner_module,
-        "generate_candidate_set",
-        lambda *args, **kwargs: {
-            "current_sentence_id": "c1-s2",
-            "memory_candidates": [],
-            "lookback_candidates": [],
-        },
-    )
-    monkeypatch.setattr(
-        runner_module,
         "navigate_unitize",
         lambda *, current_sentence, preview_sentences, **_kwargs: {
             "start_sentence_id": current_sentence["sentence_id"],
@@ -499,7 +450,7 @@ def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, m
         },
     )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
-    monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
+    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
     mechanism = AttentionalV2Mechanism()
@@ -566,44 +517,28 @@ def test_attentional_v2_read_book_still_runs_formal_read_for_monitor_path(tmp_pa
             "callback_anchor_ids": [],
         }
 
-    phase4_calls: list[list[str]] = []
+    read_calls: list[list[str]] = []
 
-    def fake_phase4_local_cycle(**kwargs):
-        phase4_calls.append(
+    def fake_read_unit(**kwargs):
+        read_calls.append(
             [
                 str(sentence.get("sentence_id"))
-                for sentence in kwargs["current_span_sentences"]
+                for sentence in kwargs["current_unit_sentences"]
             ]
         )
         return {
-            "zoom_result": None,
-            "closure_result": {
-                "closure_decision": "close",
-                "meaning_unit_summary": "monitor path still got read",
-                "dominant_move": "advance",
-                "proposed_state_operations": [],
-                "bridge_candidates": [],
-                "reaction_candidate": None,
-                "unresolved_pressure_note": "",
+            "local_understanding": "monitor path still got read",
+            "move_hint": "advance",
+            "continuation_pressure": False,
+            "implicit_uptake": [],
+            "anchor_evidence": [],
+            "prior_material_use": {
+                "materially_used": False,
+                "explanation": "",
+                "supporting_ref_ids": [],
             },
-            "controller_result": {
-                "chosen_move": "advance",
-                "reason": "commit the unit",
-                "target_anchor_id": "",
-                "target_sentence_id": "",
-            },
-            "reaction_result": {
-                "decision": "withhold",
-                "reason": "no visible reaction",
-                "reaction": None,
-            },
-            "bridge_candidates": [],
-            "candidate_set": {
-                "current_sentence_id": kwargs["focal_sentence"]["sentence_id"],
-                "memory_candidates": [],
-                "lookback_candidates": [],
-            },
-            "llm_fallbacks": [],
+            "raw_reaction": None,
+            "context_request": None,
         }
 
     monkeypatch.setattr(
@@ -623,16 +558,7 @@ def test_attentional_v2_read_book_still_runs_formal_read_for_monitor_path(tmp_pa
         },
     )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
-    monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
-    monkeypatch.setattr(
-        runner_module,
-        "generate_candidate_set",
-        lambda *args, **kwargs: {
-            "current_sentence_id": "c1-s2",
-            "memory_candidates": [],
-            "lookback_candidates": [],
-        },
-    )
+    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
     mechanism = AttentionalV2Mechanism()
@@ -653,7 +579,7 @@ def test_attentional_v2_read_book_still_runs_formal_read_for_monitor_path(tmp_pa
     assert trigger_state["output"] == "monitor"
     assert chapter_payload["visible_reaction_count"] == 0
     assert shell["status"] == "completed"
-    assert phase4_calls == [["c1-s1"], ["c1-s2"]]
+    assert read_calls == [["c1-s1"], ["c1-s2"]]
 
 
 def test_attentional_v2_rejects_book_analysis_mode(tmp_path, monkeypatch):

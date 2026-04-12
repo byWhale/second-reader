@@ -11,6 +11,19 @@ Mechanism key: `attentional_v2`
 
 Scope: `post-Phase-9 backend structural rework under the existing attentional_v2 mechanism key`
 
+Implementation checkpoint:
+
+- `Phase A` is landed:
+  - trigger output no longer gates whether正文 text gets formal reading
+  - the live control skeleton is now `navigate.unitize -> read -> navigate.route`
+  - span authority now matches the exact chosen unit
+- `Phase B` is landed:
+  - `read` now owns the authoritative unit packet on the live path
+  - bounded `carry-forward context` is now the default continuity path into `read`
+  - `read` may request one bounded `active recall` or `look-back` supplement
+  - raw reaction truth now comes directly from `read`
+- next backend slice: `Phase C`
+
 Primary upstream evidence:
 
 - [long-span after-eval follow-up memo](../../../reading-companion-backend/docs/evaluation/long_span/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_followup_reflection_and_decisions.md)
@@ -360,6 +373,10 @@ The minimum audit payload should include:
 
 ### 7.2 Phase B — Rebuild read-context integration and continuity behavior
 
+Status:
+
+- landed on April 12, 2026 as the current read-context baseline under the existing `attentional_v2` key
+
 Goal:
 
 - make `read` explicitly responsible for reading the current unit together with carried-forward context
@@ -461,6 +478,27 @@ Deterministic code should not hard-code a semantic taxonomy of "allowed reuse ty
 - earlier material use should become visible in the core reading packet without adding a standalone `reuse` action
 - the mechanism should behave more like "carry forward by default, recall specifically only when needed"
 - no automatic collapse back into a giant memory blob
+
+#### Landed baseline
+
+- the live runner now builds a small `carry-forward context` from persisted state before each unit read
+- the authoritative live read path is now:
+  - build carry-forward context
+  - `read`
+  - optional one bounded supplemental pass through `active recall` or `look-back`
+  - `read` once more if that supplement was satisfied
+  - deterministic `navigate.route`
+- `read` now owns:
+  - current-unit reading
+  - `implicit_uptake`
+  - `prior_material_use`
+  - optional `raw_reaction`
+  - optional `context_request`
+- private `read_audit` records now capture:
+  - carry-forward refs used
+  - whether supplemental context was requested and satisfied
+  - final prior-material use
+  - final raw-reaction presence
 
 ### 7.3 Phase C — Restructure state and prompt packetization
 
@@ -713,14 +751,13 @@ Role:
 
 The next concrete move should be:
 
-1. treat `Phase A` as the landed control-skeleton baseline rather than as the next open design question
-2. define the code-facing contract for `Phase B`:
-   - `carry-forward context`
-   - `read` packet
-   - optional `active recall / look-back`
-3. make the `read` contract own prior-context use as a natural reading result rather than introducing a standalone `reuse` step
-4. preserve current compatibility surfaces while Phase B lands
-5. keep existing frontend work tracked in its own documents and tasks rather than under this plan
+1. treat `Phase A` and `Phase B` as the landed backend baseline rather than as open design questions
+2. define the code-facing contract for `Phase C`:
+   - typed state restructuring
+   - carry-forward packet derivation that is easier to use and audit
+   - clearer separation between always-carried continuity and on-demand exact recall
+3. preserve current compatibility surfaces while Phase C lands
+4. keep existing frontend work tracked in its own documents and tasks rather than under this plan
 
 ## 11. Success Criteria For This Plan
 

@@ -169,6 +169,12 @@ def unitization_audit_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "unitization_audit.jsonl"
 
 
+def read_audit_file(output_dir: Path) -> Path:
+    """Return the mechanism-private read-audit stream path."""
+
+    return runtime_dir(output_dir) / "read_audit.jsonl"
+
+
 def prompt_manifest_file(output_dir: Path, node_name: str) -> Path:
     """Return one node-level prompt-manifest path."""
 
@@ -213,6 +219,7 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "full_checkpoints": str(checkpoints_dir(output_dir).relative_to(output_dir)),
         "event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
         "debug_event_stream": str(event_stream_file(output_dir).relative_to(output_dir)),
+        "read_audit": str(read_audit_file(output_dir).relative_to(output_dir)),
         "prompt_manifests": str(prompt_manifests_dir(output_dir).relative_to(output_dir)),
     }
 

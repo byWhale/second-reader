@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-12T08:36:36Z",
+  "updated_at": "2026-04-12T09:03:53Z",
   "tasks": [
     {
       "id": "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
@@ -18,7 +18,7 @@
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue implementation from the new post-Phase-9 structural rework plan: keep the work under attentional_v2 rather than minting attentional_v3, treat the plan as backend-only, keep the existing frontend lane active in parallel under TASK-V2-NATIVE-READING-PRESENTATION, treat Phase A as the landed control-skeleton baseline where trigger output no longer suppresses formal reading and span authority matches the exact chosen unit, and next implement Phase B so read carries forward prior context, owns implicit uptake plus optional raw reaction, and may request active recall/look-back without introducing a standalone reuse action.",
+      "next_action": "Continue implementation from the new post-Phase-9 structural rework plan: keep the work under attentional_v2 rather than minting attentional_v3, treat the plan as backend-only, keep the existing frontend lane active in parallel under TASK-V2-NATIVE-READING-PRESENTATION, treat Phase A as the landed control-skeleton baseline where trigger output no longer suppresses formal reading and span authority matches the exact chosen unit, treat Phase B as the landed read-context baseline where read owns the authoritative unit packet plus bounded carry-forward and optional active recall/look-back, and next implement Phase C so state and prompt packetization become more usable without changing public compatibility surfaces.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
@@ -27,7 +27,7 @@
         "reading-companion-backend/docs/research/claude_code_context_management_research_20260412.md",
         "docs/backend-reading-mechanisms/attentional_v2.md"
       ],
-      "last_updated": "2026-04-12T08:36:36Z",
+      "last_updated": "2026-04-12T09:03:53Z",
       "last_updated_by": "codex"
     },
     {

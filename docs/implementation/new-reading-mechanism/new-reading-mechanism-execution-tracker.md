@@ -31,20 +31,27 @@ Update when: status changes, blockers appear, or phases complete.
       - `read`
       - `navigate.route`
     - span authority is now tied to the exact chosen unit rather than hidden tail-window reconstruction
+  - `Phase B` is now also landed in code under the existing `attentional_v2` mechanism key
+  - landed behavior:
+    - `read` now owns the authoritative current-unit packet on the live path
+    - the live runner now builds a bounded `carry-forward context` before each formal unit read
+    - `read` may request one bounded supplemental step through `active recall` or `look-back`
+    - `raw reaction` truth now comes directly from `read`
+    - mechanism-private `read_audit` records now capture carry-forward refs, supplemental-context satisfaction, and prior-material use
   - next active backend slice:
-    - `Phase B`
-    - make `read` carry forward prior context, produce `implicit uptake`, and optionally request `active recall / look-back`
-    - do not introduce a standalone `reuse` action; any use of prior material should appear as a natural reading result inside the `read` packet
+    - `Phase C`
+    - restructure state and prompt packetization so long-distance continuity becomes easier to use
+    - keep public/frontend compatibility surfaces stable while that deeper state work lands
 - Naming discipline:
   - the `Phase 0-9` labels in this file are implementation-plan stages
   - they are not the preferred vocabulary for explaining the mechanism's live reading loop
   - when describing runtime behavior, prefer node and loop terms such as:
     - `sentence intake`
-    - `trigger / gate`
-    - `zoom_read`
-    - `meaning_unit_closure`
-    - `controller_decision`
-    - `reaction_emission`
+    - `watch-state update`
+    - `navigate.unitize`
+    - `read`
+    - optional `active recall / look-back`
+    - `navigate.route`
     - `bridge_resolution`
     - `chapter-end slow cycle`
 - Current side branch:
