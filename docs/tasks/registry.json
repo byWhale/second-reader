@@ -1,7 +1,35 @@
 {
   "version": 1,
-  "updated_at": "2026-04-10T14:01:16Z",
+  "updated_at": "2026-04-12T06:57:53Z",
   "tasks": [
+    {
+      "id": "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
+      "title": "Execute the post-Phase-9 structural rework of attentional_v2",
+      "status": "active",
+      "lane": "mechanism_runtime",
+      "priority": "high",
+      "detail_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
+      "truth_refs": [
+        "docs/backend-reading-mechanisms/attentional_v2.md",
+        "docs/backend-reading-mechanism.md",
+        "docs/backend-reader-evaluation.md",
+        "docs/current-state.md"
+      ],
+      "decision_refs": [],
+      "job_refs": [],
+      "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
+      "next_action": "Begin implementation from the new post-Phase-9 structural rework plan: keep the work under attentional_v2 rather than minting attentional_v3, treat backend mechanism rework as the primary track, keep frontend/integration follow-through coordinated under the same initiative, and start with Phase A to replace heuristic permission gating with the new navigate.unitize + read + navigate.route control skeleton while preserving sentence-order fidelity, local pressure discipline, typed-state structure, and source-grounded evidence.",
+      "blocked_by": [],
+      "evidence_refs": [
+        "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
+        "reading-companion-backend/docs/evaluation/long_span/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_followup_reflection_and_decisions.md",
+        "reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md",
+        "reading-companion-backend/docs/research/claude_code_context_management_research_20260412.md",
+        "docs/backend-reading-mechanisms/attentional_v2.md"
+      ],
+      "last_updated": "2026-04-12T06:57:53Z",
+      "last_updated_by": "codex"
+    },
     {
       "id": "TASK-PHASE9-COMPAT-CUTOVER",
       "title": "Finish Phase 9 through compatibility cutover and default-path readiness",

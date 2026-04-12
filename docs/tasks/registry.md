@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-10T14:01:16Z`
+Last updated: `2026-04-12T06:57:53Z`
 
 ## Status Values
 - `active`
@@ -19,6 +19,21 @@ Last updated: `2026-04-10T14:01:16Z`
 - `cancelled`
 
 ## Active
+
+### `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK` — Execute the post-Phase-9 structural rework of `attentional_v2`
+- Status: `active`
+- Lane: `mechanism_runtime`
+- Priority: `high`
+- Detail: `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- Next: begin implementation from the new post-Phase-9 structural rework plan:
+  - keep the work under the existing `attentional_v2` mechanism key rather than minting `attentional_v3`
+  - treat backend mechanism rework as the primary track
+  - keep frontend / integration follow-through in the same initiative as a secondary coordinated track
+  - start with `Phase A`:
+    - replace heuristic permission gating with the new `navigate.unitize + read + navigate.route` control skeleton
+    - preserve sentence-order fidelity, local pressure discipline, typed-state structure, and source-grounded evidence
+    - do not start with compaction or multi-sub-agent orchestration
+- Jobs: none
 
 ### `TASK-V2-NATIVE-READING-PRESENTATION` — Redesign the routed reading surfaces around chapter text and anchored reactions
 - Status: `active`

@@ -19,6 +19,8 @@
 - 把逐题讨论沉淀成设计判断和后续实现边界
 - 给后面的机制改造提供方向约束
 
+它不负责沉淀“评测报告应该怎么写”的通用规范；这里应只保留由本轮评测结果反推出的机制问题、机制优点和后续改造方向。
+
 当前约束：
 
 - 这份文档是同一轮 long-span eval 的后续反思与决策文档
@@ -32,94 +34,6 @@
 | --- | --- | --- |
 | `5.1 《活出生命的意义》 probe 1` | `completed` | 第一批高置信机制结论与重设计方向来源 |
 | `5.2` - `5.7` | `pending` | 待继续逐题审视，并判断是否修正或补强本文的设计结论 |
-
-### 2.1 报告撰写反思与后续规范
-
-这轮 long-span 报告核对暴露出的，不只是机制问题，也有一组重复出现的报告写作错误。
-
-这些错误本身不会改变底层 case payload，但会显著降低报告的可读性、可信度和可审计性，因此需要单独沉淀。
-
-#### 2.1.1 这次反复犯过的错误
-
-1. formal probe 锚点与 supporting evidence 混写
-   - 最典型的是 `5.3` 和 `5.5`。
-   - 有时 formal `EARLY / MID / LATE` 题面明明是一句，但正文后面的举例实际上只是同章或同节的 supporting evidence，却被写得像是 exact direct hit。
-   - 这种写法会把“弱命中”误写成“正中题面”。
-
-2. 决定性 reaction 没有先列出来，后文却拿它当主论据
-   - 最典型的是 `5.1` 和后来的 `5.7`。
-   - 解释里点名说“这条 retrospective move 决定了胜负”，但前面并没有把这条 reaction 摆给读者看。
-   - 结果就是读者必须反复追问，或者自己去 case payload 里找原文。
-
-3. 上一题的解释主轴污染了下一题
-   - 最典型的是 `5.7` 一度混入 `5.6` 的“伤口 / 父子创伤 / 儿子离去”解释重心。
-   - 相邻 probe 可能发生在同一窗口、同一本书、同一人物弧线中，但它们考的仍然不是同一件事。
-   - 如果直接沿用上一题的语言，很容易把 probe 之间本来存在的区分度抹平。
-
-4. 把 hit count、weak match 或 broad continuity 过度解释成“已经读懂”
-   - 典型风险是把 `anchor_hit = 3/3`、`matched_reactions > 0`、或 same-chapter supporting evidence，直接写成“机制已经完成了这道题要求的闭合”。
-   - 但很多时候，真实情况只是：它保持了窗口连续性，或者留下一些 supporting bridge，并不等于 formal anchor 上已经有 clean direct hit。
-
-5. 负证据写得不对称
-   - 之前我们更容易展示“漂亮反应”，但没有同等明确地展示“关键 late anchor 完全没有 matched reaction / matched attention”。
-   - long-span 题里，“没读到”本身就是决定性证据，不能只写“读到了什么”。
-
-6. 把“有阅读价值”误写成“对这道 probe 贴题”
-   - 有些 reaction 对整本书理解很有帮助，比如人物图谱、机构图谱、global orientation。
-   - 但如果它不服务本题的 `judge_focus`，它就不应该被写成该题的决定性正证据。
-
-7. raw evidence provenance 没核实就进入叙述
-   - 这是最危险的一类。
-   - 一旦 source chapter、window、probe 或 raw artifact 本身存在错位，整段解释哪怕写得很漂亮，也不再可信。
-
-#### 2.1.2 这次形成的写作经验
-
-- main report 和 appendix 必须分工明确
-  - main report 负责给出“最小充分证据链”，让读者一遍看懂判分理由。
-  - appendix 负责给出更完整的 decisive reactions，保证读者可以审计。
-  - 不能让主报告写成半附录状态：既没有足够短，也没有把决定性证据列全。
-
-- 每个 probe 小节都要先把 benchmark target 固定住
-  - formal `EARLY / MID / LATE` 题面
-  - 正式结果
-  - case payload 入口
-  - appendix 对应节入口
-  - 这四件事没摆清楚，不进入解释。
-
-- 每条证据都要有身份标签
-  - `direct evidence`
-  - `same-section supporting evidence`
-  - `same-chapter supporting evidence`
-  - `negative evidence`
-  - 如果不写这个标签，读者会默认它们处于同一证据等级。
-
-- 结论强度必须和证据强度匹配
-  - 如果只是相对胜出，就写 `relative win`。
-  - 如果 formal anchor 上没有 clean direct hit，就不能写成“漂亮闭合”。
-  - 如果 evidence 更像 continuity-support 而不是 exact alignment，就要把这层区别写出来。
-
-#### 2.1.3 后续写评测报告的最小检查单
-
-每写完一个 probe 小节，至少过一遍下面这张清单：
-
-1. formal `EARLY / MID / LATE` 题面是否已经和 `probes.jsonl` / case payload 对齐。
-2. 文中所有例句，是否都能说清自己是 `direct`、`supporting` 还是 `negative` evidence。
-3. 如果后文引用了“决定胜负的某条 reaction”，前文是否已经贴出了这条 reaction。
-4. 关键 late anchor 若为 `0 matched reactions` 或 `0 matched attention events`，是否已经明确写出。
-5. 是否把“整本书理解有帮助”与“本题 judge_focus 贴题”分开了。
-6. 相邻 probe 是否重新写了一遍“这题真正考什么”，而不是沿用上一题的解释话术。
-7. raw evidence 的 `probe_id / window_case_id / chapter / section_ref / excerpt` 是否已经做过 provenance check。
-8. 本题的最终结论能否压缩成一句标准句式：
-   - formal anchor 对齐情况
-   - decisive direct / supporting evidence
-   - decisive negative evidence
-   - 为什么这些证据足以支持当前判分
-
-这些规范属于同一轮 long-span judged eval 的报告质量反思。
-
-更稳定、跨 surface 复用的规则，已经同步沉淀到：
-
-- [docs/backend-reader-evaluation.md](../../../../docs/backend-reader-evaluation.md)
 
 ## 3. 当前已确认的核心结论
 
@@ -947,6 +861,44 @@ deterministic code 仍然有价值，但价值应限定在：
 - `navigate.unitize` 可以看当前位置之后的一段 bounded forward text 来做边界裁决
   - 但它不应把那段未来文本的正文解释直接写入 durable memory
   - 真正的语义摄取仍然应发生在随后正式执行的 `read` 中
+
+### 6.13 面向后续 `decision-log` 的改动-原因映射
+
+为了避免后面真正实现时只记“改了什么”，却忘记“为什么必须这么改”，当前先把这一轮 long-span judged eval 到目前为止给出的高置信改动理由，压成一张可直接迁移到 `docs/history/decision-log.md` 的映射表。
+
+这里要明确：
+
+- 有些项是 judged 现象直接推出的结构性问题
+- 有些项则是 judged 现象触发后，经后续机制讨论才收束出来的设计约束
+
+两者都应该保留，但后面真正写 `decision-log` 时，不应把“eval 直接暴露的问题”和“在该问题上进一步做出的设计选择”混写成同一层证据。
+
+| 计划改动 | 直接原因 | 本轮评测暴露出的现象 |
+| --- | --- | --- |
+| 废弃 heuristic semantic trigger 作为“值不值得读”的主入口 | 重要文本会因为词面规则不显眼而根本进不了 LLM | `5.1 probe 1` 中关键 late hinge 没有被升格成真正 local read event，导致“不是理解差一点，而是根本没被送进大模型” |
+| 把顶层结构改成同一个 Reading Agent 的 `navigate + read` | 当前语义控制分散在 trigger / zoom / closure / controller / reaction gate，权责太碎，解释和调试都很困难 | 当前失败链条显示，真正的“阅读”“收口”“是否继续”“是否桥接”被多个半控制节点分割，难以保证一致性 |
+| 所有正文都必须经过 mandatory coverage read | 不能再允许“没触发就没读” | long-span 失败不是单纯 reaction 少，而是有些文本根本没有获得正式阅读权 |
+| 用作者结构为骨架 + bounded forward semantic unitization 来决定 coverage unit 边界 | 固定句数或过大的 open span 都会吞掉局部 hinge | 当前 span 体系中，大 logic span 被 late tail 小窗代表并最终被关闭，形成 authority mismatch |
+| coverage unit 本身加上长度 cap，并在被截断时显式保留 continuation pressure | 否则会重新回到“大 span 吞小 hinge”，并把未完动作误判成已闭合 | `probe 1` 讨论里已经看到长 open span 会冲淡关键句，使重要 late 文本没有相称处理权 |
+| `navigate.unitize` 的边界决定必须可审计 | 以后如果切错，需要知道错在 preview、结构判断、语义收口还是预算截断 | 当前机制里 span 太多、收口权太散，如果没有审计层，后面很难定位 unitization 错误 |
+| `read` 必须同时产出 `implicit uptake` 与 `continuity / reuse result` | V2 现在即使“记住了一点”，也不稳定地把前文真正用到当前理解里 | 多题讨论都指向：V2 不如 V1 稳定地把 earlier material reuse 成明确 bridge / retrospect / carry-forward |
+| continuity 默认依赖 `carry-forward context`，只在不够时才升级为 `active recall / look-back` | 利用前文不等于每次都去检索；真正的 retrieval 应该是例外而不是常态 | 我们讨论中已明确：更像人类阅读的是“带着已有脉络继续读”，而不是每段都翻回去找证据 |
+| Context / State Management 收敛为 `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` | V2 现有 state 设计有 typed 优势，但实际可用性不如 V1；V1 则证明了“可直接继续使用的记忆包”确实重要 | long-span 结果显示：V2 在长距 continuity 和记忆再利用上弱于 V1；同时现有 store 过多、主记忆界面不清楚 |
+| prompt 输入层改成 query-aware 派生视图，而不是把底层 state 原样塞给模型 | “怎么存”与“怎么给模型用”是两回事；V1 的强项恰恰在后者 | V1 的优势并不只在 memory territory，而在于它把前文整理成后续 prompt 真能继续使用的 packet |
+| `knowledge_activations` 收窄为 `read` 内的即时外部知识激活 | 外部典故/背景不应和书内人物、概念、脉络记忆混为同一层 | 讨论中已明确：它更适合作为即时认知事件，而不是主 durable memory |
+| `anchor_bank` 明确只做 source-grounded evidence base | 否则会重新变成“什么都往里塞的大记忆桶” | 我们已经区分清楚：人物/概念属于 `concept_registry`，故事线/论证线属于 `thread_trace`，`anchor_bank` 应只承载原文证据与链接 |
+| 原始 `raw reaction` 的语义来源回到 `read`，如果真实产生就如实持久化与展示 | 我们要暴露 agent 的真实阅读反应，而不是为了展示去再加工或审美式筛掉它 | 当前 `reaction_emission` 会把已形成的局部理解再过滤一层，使评测证据变薄；而产品目标也不是二次改写反应 |
+| 不把显式 compaction 当作先行实现目标，只在 chapter boundary / pause-resume / hard budget breach 考虑 continuation capsule | 现在更缺的是状态边界和可用性，而不是一个中心 compactor | 当前仓库里已有 cooling / promotion / consolidation / resume 等前置件，但还没有必要立刻引入完整 compaction 系统 |
+| 当前不引入多 `sub-agent` 作为主阅读骨架 | Reading Agent 的主体性和连续性更重要，多 agent 编排会过早把系统变成 orchestration problem | 讨论中已明确：side context 若以后引入，只应用于高体积回看、搜证、核对，而不是接管主阅读循环 |
+
+这张映射表的用途不是替代后续真正的 `decision-log`，而是提前固定：
+
+- 以后实现时，每一项结构性改动都应能回指到哪类 eval 现象
+- 以后写 `decision-log` 时，不应只写“采用了 navigate + read”，还应写清：
+  - 为什么必须废弃旧 semantic gate
+  - 为什么必须重组上下文管理
+  - 为什么 raw reaction 的语义来源要回到 `read`
+  - 为什么当前不把 compaction 和多 sub-agent 当作第一优先级
 
 ## 7. 当前建议的目标结构
 

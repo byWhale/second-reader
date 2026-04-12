@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-10T14:01:16Z`
+Last verified: `2026-04-12T06:57:53Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -20,6 +20,12 @@ Last verified: `2026-04-10T14:01:16Z`
   - the current routed frontend surfaces were validated against `attentional_v2` compatibility outputs on overview, chapter, and marks-related flows
   - V2-native frontend presentation and section-first retirement are now explicitly post-Phase-9 initiatives
   - long-span evidence cleanup is now complete, and it is not a blocker on using the new default path
+- A new post-Phase-9 implementation line is now opening for `attentional_v2`:
+  - evolve `attentional_v2` in place rather than minting `attentional_v3`
+  - use `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md` as the execution blueprint
+  - treat backend mechanism rework as the primary track
+  - treat frontend/integration follow-through as a coordinated secondary track under the same initiative
+  - keep the long-span after-eval memo as mechanism-evidence input rather than as the execution plan
 - Frontend direction is now fixed for the next product lane:
   - do not keep the old `iterator_v1` / section-first presentation as a co-equal product model
   - keep that older presentation shape only as a compatibility shell while V2-native surfaces are being built

@@ -15,7 +15,12 @@ Update when: status changes, blockers appear, or phases complete.
 - Overall status:
   - `in_progress`
 - Current phase:
-  - `Post-Phase-9: V2-Native Presentation And Evidence Cleanup`
+  - `Post-Phase-9: Attentional_v2 Structural Rework And V2-Native Follow-Through`
+- Current executable plan:
+  - `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+  - mechanism rework is now the primary track
+  - frontend / integration follow-through remains in scope, but follows the mechanism checkpoints rather than replacing them
+  - do not treat the long-span after-eval memo as the implementation plan
 - Naming discipline:
   - the `Phase 0-9` labels in this file are implementation-plan stages
   - they are not the preferred vocabulary for explaining the mechanism's live reading loop
