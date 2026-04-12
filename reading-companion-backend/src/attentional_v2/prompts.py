@@ -8,6 +8,7 @@ from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
 ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v8"
+NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v1"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
 MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v8"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
@@ -24,6 +25,9 @@ class AttentionalV2PromptSet:
 
     language_output_contract: str
     promptset_version: str
+    navigate_unitize_version: str
+    navigate_unitize_system: str
+    navigate_unitize_prompt: str
     zoom_read_version: str
     zoom_read_system: str
     zoom_read_prompt: str
@@ -53,6 +57,50 @@ class AttentionalV2PromptSet:
 ATTENTIONAL_V2_PROMPTS = AttentionalV2PromptSet(
     language_output_contract=LANGUAGE_OUTPUT_CONTRACT,
     promptset_version=ATTENTIONAL_V2_PROMPTSET_VERSION,
+    navigate_unitize_version=NAVIGATE_UNITIZE_PROMPT_VERSION,
+    navigate_unitize_system="""You are the navigation-unitization node for a text-grounded reading mechanism.
+
+Your job is to choose the next exact coverage unit that the reader will formally read.
+
+Rules:
+- Respect author structure first.
+- Choose the smallest complete local move that can honestly be read as one unit.
+- Prefer ending within the current paragraph.
+- Only continue into the next paragraph when the same local move is clearly continuing.
+- Do not cross the provided preview boundary.
+- Do not pretend a move is finished when it is still unfolding; preserve continuation pressure instead.
+- If you think the move is still unfinished at the preview boundary, choose the best honest end point you have and set `continuation_pressure` to true.
+- Cite exact sentence ids from the preview as evidence.
+- Return JSON only.""",
+    navigate_unitize_prompt="""Structural frame:
+{structural_frame}
+
+Current sentence:
+{current_sentence}
+
+Preview boundary:
+{preview_range}
+
+Preview sentences:
+{preview_sentences}
+
+Policy snapshot:
+{policy_snapshot}
+
+Output language contract:
+"""
+    + LANGUAGE_OUTPUT_CONTRACT
+    + """
+
+Return JSON:
+{
+  "start_sentence_id": "<must equal the first preview sentence id>",
+  "end_sentence_id": "<chosen final sentence id from the preview>",
+  "boundary_type": "paragraph_end",
+  "evidence_sentence_ids": ["<sentence id>"],
+  "reason": "<brief reason>",
+  "continuation_pressure": false
+}""",
     zoom_read_version=ZOOM_READ_PROMPT_VERSION,
     zoom_read_system="""You are the sentence-level zoom node for a text-grounded reading mechanism.
 

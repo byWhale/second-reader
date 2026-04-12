@@ -6,8 +6,10 @@ import json
 
 from src.attentional_v2 import nodes as nodes_module
 from src.attentional_v2.nodes import (
+    build_unitize_preview,
     controller_decision,
     meaning_unit_closure,
+    navigate_unitize,
     run_phase4_local_cycle,
     select_local_cycle_span,
     zoom_read,
@@ -30,6 +32,71 @@ def _sentence(sentence_id: str, text: str, *, text_role: str = "body", sentence_
         "text": text,
         "text_role": text_role,
     }
+
+
+def test_build_unitize_preview_keeps_current_paragraph_remainder_plus_next_paragraph_only():
+    """Phase A preview should stay within current paragraph remainder plus next paragraph."""
+
+    chapter_sentences = [
+        {"sentence_id": "c1-s1", "sentence_index": 1, "paragraph_index": 1, "text": "Para 1 first.", "text_role": "body"},
+        {"sentence_id": "c1-s2", "sentence_index": 2, "paragraph_index": 1, "text": "Para 1 second.", "text_role": "body"},
+        {"sentence_id": "c1-s3", "sentence_index": 3, "paragraph_index": 2, "text": "Para 2 first.", "text_role": "body"},
+        {"sentence_id": "c1-s4", "sentence_index": 4, "paragraph_index": 2, "text": "Para 2 second.", "text_role": "body"},
+        {"sentence_id": "c1-s5", "sentence_index": 5, "paragraph_index": 3, "text": "Section break.", "text_role": "section_heading"},
+        {"sentence_id": "c1-s6", "sentence_index": 6, "paragraph_index": 4, "text": "Para 4 first.", "text_role": "body"},
+    ]
+
+    preview, preview_range = build_unitize_preview(
+        chapter_sentences=chapter_sentences,
+        current_sentence_id="c1-s2",
+    )
+
+    assert [sentence["sentence_id"] for sentence in preview] == ["c1-s2", "c1-s3", "c1-s4"]
+    assert preview_range == {"start_sentence_id": "c1-s2", "end_sentence_id": "c1-s4"}
+
+
+def test_navigate_unitize_marks_budget_cap_when_guardrail_hits(tmp_path, monkeypatch):
+    """navigate_unitize should preserve continuation pressure when the emergency cap truncates the unit."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    reader_policy = build_default_reader_policy()
+    reader_policy["unitize"] = {"max_coverage_unit_sentences": 2}
+
+    preview_sentences = [
+        {"sentence_id": "c1-s1", "sentence_index": 1, "paragraph_index": 1, "text": "One.", "text_role": "body"},
+        {"sentence_id": "c1-s2", "sentence_index": 2, "paragraph_index": 1, "text": "Two.", "text_role": "body"},
+        {"sentence_id": "c1-s3", "sentence_index": 3, "paragraph_index": 1, "text": "Three.", "text_role": "body"},
+    ]
+
+    monkeypatch.setattr(
+        nodes_module,
+        "invoke_json",
+        lambda _system, _prompt, default: {
+            "start_sentence_id": "c1-s1",
+            "end_sentence_id": "c1-s3",
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": ["c1-s2", "c1-s3"],
+            "reason": "the move keeps unfolding",
+            "continuation_pressure": False,
+        },
+    )
+
+    decision = navigate_unitize(
+        current_sentence=preview_sentences[0],
+        preview_sentences=preview_sentences,
+        reader_policy=reader_policy,
+        output_language="en",
+        output_dir=output_dir,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_title="Chapter 1",
+    )
+
+    assert decision["end_sentence_id"] == "c1-s2"
+    assert decision["boundary_type"] == "budget_cap"
+    assert decision["continuation_pressure"] is True
+    assert decision["evidence_sentence_ids"] == ["c1-s1", "c1-s2"]
 
 
 def test_zoom_read_writes_prompt_manifest_and_normalizes_payload(tmp_path, monkeypatch):

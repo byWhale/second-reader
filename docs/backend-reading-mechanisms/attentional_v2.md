@@ -40,16 +40,20 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - compatibility chapter-result outputs without requiring `iterator_v1`-style `structure.json`
 - It is still intentionally unsupported for the retired legacy `book_analysis` mode in this slice.
 - Its goal is to preserve sentence-level fidelity while shifting the main reasoning unit from fixed sections toward dynamic meaning units and an explicit attention frontier.
+- Phase A of the post-eval structural rework is now landed.
+  - This did not change the mechanism key or public compatibility surface.
+  - It did change the live control skeleton:
+    - heuristic trigger output no longer decides whether正文 receives formal reading
+    - the live loop now routes through `navigate.unitize -> read -> navigate.route`
+    - span authority is now tied to the exact chosen coverage unit rather than a reconstructed late tail
 
 ## Naming Note
 - `Phase 3`, `Phase 4`, `Phase 5`, and `Phase 6` in this document refer to historical implementation-stage groupings, not to a user-facing or mechanism-intrinsic sequence of named runtime phases.
 - The live runtime should be explained as a reading loop:
-  - sentence intake
-  - trigger and gate update
-  - optional `zoom_read`
-  - `meaning_unit_closure`
-  - `controller_decision`
-  - optional `reaction_emission`
+  - sentence intake and watch-state update
+  - `navigate.unitize`
+  - mandatory formal unit read
+  - `navigate.route`
   - optional `bridge_resolution`
   - chapter-end slow-cycle work such as `chapter_consolidation`, `reflective_promotion`, and `reconsolidation`
 - Internal helper names such as `run_phase4_local_cycle` are retained historical engineering labels for now.
@@ -85,35 +89,39 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - It uses the shared `book document` to build a rough structural map of chapters, headings, and likely pivots.
 - It then reads through the text in sentence order.
   - Sentence order is the intake discipline.
-  - Meaning-unit consolidation is the reasoning discipline.
-- The live runtime now distinguishes three trigger outcomes during sentence intake:
-  - `no_zoom`
-    - stay on the watch path
-    - persist runtime bundle state and continue
-    - do not enter the full local interpretive loop
-    - do not materialize deterministic bridge candidates
-  - `monitor`
-    - same runtime persistence discipline as `no_zoom`
-    - still records trigger state and current reading position
-    - still skips the full local interpretive loop and deterministic bridge retrieval
-  - `zoom_now`
-    - enter the local interpretive loop
-    - this is the only trigger outcome that now opens `zoom_read`, `meaning_unit_closure`, `controller_decision`, and any later bridge or reaction work
-- The main control loop is:
-  - ingest sentence
-  - update local salience and open tensions
-  - consolidate into a meaning unit when enough text has accumulated
-  - update the attention frontier
-  - choose the next move
-- The current local interpretive loop has this node boundary and handoff shape:
-  - `zoom_read -> meaning_unit_closure -> controller_decision`
-  - optional `reaction_emission` gate after closure when the moment earns a visible anchored thought
-- The live local-cycle boundary context now carries:
-  - trigger output
-  - gate state
-  - trigger-signal evidence
-  - callback-anchor ids
-  so closure/controller decisions can stay answerable to the same trigger evidence that opened the local cycle.
+  - Coverage-unit selection is now the reasoning-entry discipline.
+- Sentence-level trigger detection still happens continuously during intake.
+  - `no_zoom`, `monitor`, and `zoom_now` are still persisted as watch metadata.
+  - They no longer decide whether正文 gets a formal read.
+  - Their Phase A role is observability, cheap salience evidence, and later audit/debug support.
+- The live Phase A control loop is now:
+  - ingest the next unread sentence
+  - persist watch-state / trigger metadata
+  - `navigate.unitize` over a fixed preview window
+  - formally read the chosen coverage unit
+  - `navigate.route` over that exact unit
+- `navigate.unitize` is now the sole selector of the next coverage unit.
+  - Boundary choice is prompt-led and semantic.
+  - Runtime guardrails only keep the unit from running away.
+  - The fixed Phase A preview window is:
+    - current paragraph remainder
+    - plus the next paragraph in the same section
+  - Because the current canonical substrate does not expose stable section ids, "same section" is implemented conservatively by refusing to cross into heading paragraphs during preview construction.
+- The formal unit read still reuses the existing local-cycle internals for now.
+  - In Phase A, the chosen coverage unit is passed through the old `zoom_read -> meaning_unit_closure -> controller_decision -> optional reaction_emission` chain.
+  - The key change is that this chain now runs only after the exact unit has already been selected.
+- `navigate.route` is now the sole next-step decision layer for that same chosen unit.
+  - In Phase A it is still a thin adapter over closure/controller outputs.
+  - Its main job is to keep close/continue/bridge decisions answerable to the exact unit that was just read.
+- Span visibility and authority are now aligned.
+  - The span being read is the span being judged.
+  - The span being judged is the only span that can be closed or extended.
+  - The old runner behavior where a narrow late tail could implicitly close a larger hidden open span is no longer the live path.
+- The live local-cycle boundary context still carries trigger/watch evidence, but now also carries:
+  - chosen unit start/end sentence ids
+  - unit boundary type
+  - unitization reason
+  - continuation-pressure flag
 - The current local controller candidate pool can merge three sources before choosing the next move:
   - one optional zoom-level bridge hint
   - closure-level bridge candidates
@@ -137,6 +145,12 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - revisit an earlier span that has become newly relevant
   - `reframe`
     - update the broader hypothesis about the chapter/book, then continue with changed attention priorities
+- Phase A route actions are normalized as:
+  - `commit`
+  - `continue`
+  - `bridge_back`
+  - `reframe`
+  These route labels are mechanism-internal control labels and do not yet replace the older controller move vocabulary in persisted compatibility outputs.
 - Reading is pushed forward by unresolved interpretive pressure under coverage constraints.
   - Coverage prevents wandering forever.
   - Interpretive pressure prevents mechanical traversal.
@@ -144,8 +158,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - Survey context may include coarse chapter structure, but live interpretive calls must not use future paragraphs as if they were already read.
 
 ## LLM Call Schedule
-- The main LLM is not called on every sentence.
+- The main LLM is now called for every formal coverage unit, not for every sentence and not only for old `zoom_now` moments.
 - The current scaffolded node bundle is:
+  - `navigate_unitize`
   - `zoom_read`
   - `meaning_unit_closure`
   - `controller_decision`
@@ -156,10 +171,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `chapter_consolidation`
 - These nodes are implemented, prompt-versioned, and now wired into the live default sentence-order runner.
 - The runtime schedule is intentionally sparser than the raw node list may suggest:
-  - `no_zoom` and `monitor` now form a no-LLM watch path
-    - they persist runtime state but skip the full local interpretive loop
-    - they also skip deterministic bridge retrieval
-  - only `zoom_now` opens the full local interpretive loop
+  - sentence-level intake still runs without LLM
+  - `navigate_unitize` now decides the next coverage unit before formal reading begins
+  - trigger/watch outputs still exist, but they no longer suppress formal reading
   - `controller_decision` now has a deterministic fast path for unambiguous `advance` cases
     - when closure already says `advance`
     - and merged bridge candidates are empty
@@ -199,20 +213,24 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - chapter title
     - position within chapter/book
   - `focal span`
-    - the sentence, paragraph, or short span that triggered the call
+    - the exact chosen coverage unit
   - `local context`
-    - immediately surrounding sentences or paragraphs already read
+    - for Phase A unit reads, the earlier sentences inside the chosen unit
   - `working memory`
     - active hypotheses
     - open tensions
     - unresolved questions
     - active motifs and recurrence notes
   - `boundary context`
-    - trigger output
+    - trigger/watch output
     - gate state
     - cadence counter
     - trigger-signal evidence
     - callback-anchor ids
+    - unit start/end ids
+    - unit boundary type
+    - unitization reason
+    - continuation-pressure flag
   - `retrieved anchors`
     - a small set of earlier spans selected because they are semantically, structurally, or motif-recurrently relevant
   - `deterministic candidate set`
@@ -234,6 +252,10 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - structural centrality
   - recency when helpful, but not as the only signal
 - Deterministic source retrieval now stays local by default, but when the focal sentence carries explicit backward-looking callback markers it may widen to a broader already-read source scan to surface earlier callback candidates instead of only nearby lexical echoes.
+- Phase A unitization preview is intentionally narrow and deterministic.
+  - It previews only the current paragraph remainder and the next paragraph in the same section.
+  - The semantic choice of where to stop inside that preview is prompt-led.
+  - Runtime only imposes an emergency hard guardrail through `reader_policy.unitize.max_coverage_unit_sentences` so unitization cannot silently expand without bound.
 - Search posture is separate from prior-knowledge posture.
   - Version-one search states are:
     - `no_search`
@@ -305,6 +327,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/runtime/local_buffer.json`
   - `_mechanisms/attentional_v2/runtime/local_continuity.json`
   - `_mechanisms/attentional_v2/runtime/trigger_state.json`
+  - `_mechanisms/attentional_v2/runtime/unitization_audit.jsonl`
   - `_mechanisms/attentional_v2/runtime/working_pressure.json`
   - `_mechanisms/attentional_v2/runtime/anchor_memory.json`
   - `_mechanisms/attentional_v2/runtime/reflective_summaries.json`
@@ -326,6 +349,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - debug-only diagnostics stream once Phase 8 debug mode is enabled
   - `_mechanisms/attentional_v2/internal/prompt_manifests/*.json`
 - Current scaffolded prompt manifests now include:
+  - `navigate_unitize`
   - `zoom_read`
   - `meaning_unit_closure`
   - `controller_decision`

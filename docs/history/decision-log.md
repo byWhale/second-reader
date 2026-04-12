@@ -1514,3 +1514,29 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
 - `docs/api-integration.md`
 - `docs/backend-state-aggregation.md`
+
+## Entry 54
+**ID**: DEC-057
+**Status**: active
+
+**Decision / Inflection**: Keep the existing `attentional_v2` mechanism key and evolve it in place through a structural Phase A rework, instead of branching into a separate `v3` mechanism.
+
+**Period**: April 12, 2026, after the first full long-span judged rerun and the follow-up mechanism review had already isolated V2's current failures to trigger authority, span-authority mismatch, and weak long-distance reuse rather than to its core reading philosophy.
+
+**Problem**: Formal evaluation showed a split result. `attentional_v2` had real excerpt-level strengths, especially around local pressure tracking and text-grounded reading discipline, but it also missed important long-span evidence because heuristic trigger outputs still controlled whether正文 entered formal reading and because smaller late-local analysis spans could effectively determine closure over larger hidden spans. The project needed a repair path that fixed those structural failures without discarding the sentence-fidelity, pressure-driven, typed-state advantages already proven valuable.
+
+**Alternatives considered**: Launch a separate `v3` mechanism with a fresh key and parallel artifact tree, continue making only small local patches inside the old trigger-gated control shape, or fall back toward `iterator_v1`-style section-first reading because it still outperformed V2 on some long-span probes.
+
+**Why this path won**: The evidence did not show that V2's underlying reading philosophy was wrong. It showed that specific control-surface decisions were wrong: trigger gating had too much authority, exact unit visibility and closure authority had drifted apart, and formal reading was not guaranteed for all正文. Keeping the same mechanism key preserves the product default, existing compatibility projections, and resume semantics, while letting the team selectively replace the failing control skeleton and carry V2's existing local-reading strengths forward.
+
+**What changed in the system**: The live V2 runner now routes every forward正文 step through `navigate.unitize -> read -> navigate.route` without changing the public mechanism key. Sentence-level trigger detection remains as watch metadata and observability support, but it no longer decides whether正文 receives formal LLM reading. A new prompt-led `navigate_unitize` node now chooses the exact coverage unit inside a bounded preview window, a mechanism-private unitization audit stream records each chosen unit, and the formal read path now operates on the exact chosen unit rather than on a reconstructed narrow tail that could silently inherit authority over a larger span. The existing local-cycle internals remain in place for now, but only after the coverage unit has already been fixed.
+
+**Why it matters later**: Future contributors will otherwise see a mix of old terminology (`phase4`, `trigger_state`, `zoom_now`) and new control behavior and may assume the code is half-migrated or that a `v3` branch was intended but never finished. This entry records the intended interpretation: Phase A is not an abandoned fork idea. It is the first landed slice of an in-place `attentional_v2` redesign that preserves V2's strengths while replacing the specific control skeleton that long-span evaluation proved unreliable.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `reading-companion-backend/docs/evaluation/long_span/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_followup_reflection_and_decisions.md`
+- `reading-companion-backend/src/attentional_v2/runner.py`
+- `reading-companion-backend/src/attentional_v2/nodes.py`
+- `reading-companion-backend/src/attentional_v2/schemas.py`

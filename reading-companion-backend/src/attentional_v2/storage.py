@@ -163,6 +163,12 @@ def event_stream_file(output_dir: Path) -> Path:
     return diagnostics_dir(output_dir) / "events.jsonl"
 
 
+def unitization_audit_file(output_dir: Path) -> Path:
+    """Return the mechanism-private unitization-audit stream path."""
+
+    return runtime_dir(output_dir) / "unitization_audit.jsonl"
+
+
 def prompt_manifest_file(output_dir: Path, node_name: str) -> Path:
     """Return one node-level prompt-manifest path."""
 

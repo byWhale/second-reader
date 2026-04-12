@@ -23,6 +23,8 @@ from .schemas import (
     KnowledgeActivationsState,
     MeaningUnitClosureResult,
     MoveType,
+    NavigateRouteDecision,
+    PreviewRange,
     ReactionCandidate,
     ReactionEmissionDecision,
     ReactionEmissionResult,
@@ -30,10 +32,12 @@ from .schemas import (
     ReaderPolicy,
     StateOperation,
     TriggerState,
+    UnitizeBoundaryType,
+    UnitizeDecision,
     WorkingPressureState,
     ZoomReadResult,
 )
-from .storage import prompt_manifest_file, save_json
+from .storage import append_jsonl, prompt_manifest_file, save_json, unitization_audit_file
 
 
 _REACTION_TYPES: set[ReactionType] = {
@@ -45,6 +49,14 @@ _REACTION_TYPES: set[ReactionType] = {
     "silent",
 }
 _MOVE_TYPES: set[MoveType] = {"advance", "dwell", "bridge", "reframe"}
+_ROUTE_ACTIONS = {"commit", "continue", "bridge_back", "reframe"}
+_UNITIZE_BOUNDARY_TYPES: set[UnitizeBoundaryType] = {
+    "paragraph_end",
+    "intra_paragraph_semantic_close",
+    "cross_paragraph_continuation",
+    "section_end",
+    "budget_cap",
+}
 _STATE_OPERATION_TYPES = {
     "create",
     "update",
@@ -728,6 +740,235 @@ def _write_prompt_manifest(
     )
 
 
+def _sentence_id(sentence: dict[str, object]) -> str:
+    """Return the normalized sentence id for one sentence-like mapping."""
+
+    return _clean_text(sentence.get("sentence_id"))
+
+
+def _sentence_paragraph_index(sentence: dict[str, object]) -> int:
+    """Return the best-effort paragraph index for one sentence-like mapping."""
+
+    locator = sentence.get("locator")
+    if isinstance(locator, dict):
+        paragraph_index = int(locator.get("paragraph_index", 0) or locator.get("paragraph_start", 0) or 0)
+        if paragraph_index > 0:
+            return paragraph_index
+    return int(sentence.get("paragraph_index", 0) or 0)
+
+
+def _sentences_by_paragraph(
+    sentences: list[dict[str, object]],
+) -> list[tuple[int, list[dict[str, object]]]]:
+    """Return ordered paragraph buckets for one chapter sentence list."""
+
+    paragraphs: list[tuple[int, list[dict[str, object]]]] = []
+    for sentence in sentences:
+        paragraph_index = _sentence_paragraph_index(sentence)
+        if paragraphs and paragraphs[-1][0] == paragraph_index:
+            paragraphs[-1][1].append(sentence)
+            continue
+        paragraphs.append((paragraph_index, [sentence]))
+    return paragraphs
+
+
+def build_unitize_preview(
+    *,
+    chapter_sentences: list[dict[str, object]],
+    current_sentence_id: str,
+) -> tuple[list[dict[str, object]], PreviewRange]:
+    """Return the fixed Phase A preview window for unitization.
+
+    Phase A preview is intentionally narrow:
+    - current paragraph remainder
+    - plus the next paragraph in the same section only
+
+    Since the canonical substrate does not expose stable section ids, "same section"
+    is approximated conservatively by refusing to cross into a heading paragraph.
+    """
+
+    ordered = [dict(sentence) for sentence in chapter_sentences if isinstance(sentence, dict)]
+    if not ordered:
+        return [], {"start_sentence_id": "", "end_sentence_id": ""}
+
+    current_index = next(
+        (index for index, sentence in enumerate(ordered) if _sentence_id(sentence) == _clean_text(current_sentence_id)),
+        -1,
+    )
+    if current_index < 0:
+        return [], {"start_sentence_id": "", "end_sentence_id": ""}
+
+    paragraphs = _sentences_by_paragraph(ordered)
+    current_paragraph_position = next(
+        (index for index, (_paragraph_index, bucket) in enumerate(paragraphs) if any(_sentence_id(item) == _clean_text(current_sentence_id) for item in bucket)),
+        -1,
+    )
+    if current_paragraph_position < 0:
+        return [], {"start_sentence_id": "", "end_sentence_id": ""}
+
+    current_paragraph = paragraphs[current_paragraph_position][1]
+    current_offset = next(
+        (index for index, sentence in enumerate(current_paragraph) if _sentence_id(sentence) == _clean_text(current_sentence_id)),
+        0,
+    )
+    preview_sentences = [dict(sentence) for sentence in current_paragraph[current_offset:]]
+
+    if current_paragraph_position + 1 < len(paragraphs):
+        next_paragraph = paragraphs[current_paragraph_position + 1][1]
+        next_is_heading = any(
+            _clean_text(sentence.get("text_role")) in {"section_heading", "chapter_heading"}
+            for sentence in next_paragraph
+        )
+        if not next_is_heading:
+            preview_sentences.extend(dict(sentence) for sentence in next_paragraph)
+
+    if not preview_sentences:
+        preview_sentences = [dict(ordered[current_index])]
+
+    return preview_sentences, {
+        "start_sentence_id": _sentence_id(preview_sentences[0]),
+        "end_sentence_id": _sentence_id(preview_sentences[-1]),
+    }
+
+
+def _current_paragraph_end_sentence_id(preview_sentences: list[dict[str, object]]) -> str:
+    """Return the sentence id at the end of the current paragraph preview slice."""
+
+    if not preview_sentences:
+        return ""
+    first_paragraph_index = _sentence_paragraph_index(preview_sentences[0])
+    current_paragraph = [
+        sentence
+        for sentence in preview_sentences
+        if _sentence_paragraph_index(sentence) == first_paragraph_index
+    ]
+    if not current_paragraph:
+        return _sentence_id(preview_sentences[-1])
+    return _sentence_id(current_paragraph[-1])
+
+
+def _normalize_unitize_boundary_type(value: object) -> UnitizeBoundaryType:
+    """Normalize one unitize boundary type with a conservative fallback."""
+
+    normalized = _clean_text(value).lower().replace("-", "_")
+    if normalized in _UNITIZE_BOUNDARY_TYPES:
+        return normalized  # type: ignore[return-value]
+    return "paragraph_end"
+
+
+def _apply_unitize_guardrail(
+    decision: UnitizeDecision,
+    *,
+    preview_sentences: list[dict[str, object]],
+    reader_policy: ReaderPolicy,
+) -> UnitizeDecision:
+    """Clamp a semantic unitize choice to Phase A's emergency sentence ceiling."""
+
+    if not preview_sentences:
+        return decision
+    max_sentences = int(reader_policy.get("unitize", {}).get("max_coverage_unit_sentences", 12) or 12)
+    if max_sentences <= 0:
+        max_sentences = 12
+
+    preview_ids = [_sentence_id(sentence) for sentence in preview_sentences if _sentence_id(sentence)]
+    preview_start = preview_ids[0]
+    preview_end = preview_ids[-1]
+    chosen_end = _clean_text(decision.get("end_sentence_id")) or _current_paragraph_end_sentence_id(preview_sentences) or preview_end
+    if chosen_end not in preview_ids:
+        chosen_end = _current_paragraph_end_sentence_id(preview_sentences) or preview_end
+
+    end_index = preview_ids.index(chosen_end)
+    if end_index + 1 > max_sentences:
+        bounded_end = preview_sentences[max_sentences - 1]
+        bounded_ids = preview_ids[:max_sentences]
+        return {
+            **decision,
+            "start_sentence_id": preview_start,
+            "end_sentence_id": _sentence_id(bounded_end),
+            "preview_range": {
+                "start_sentence_id": preview_start,
+                "end_sentence_id": preview_end,
+            },
+            "boundary_type": "budget_cap",
+            "evidence_sentence_ids": bounded_ids,
+            "continuation_pressure": True,
+            "reason": _clean_text(decision.get("reason")) or "unitize_budget_cap",
+        }
+
+    evidence_sentence_ids = [
+        sentence_id
+        for sentence_id in decision.get("evidence_sentence_ids", [])
+        if sentence_id in preview_ids[: end_index + 1]
+    ]
+    if not evidence_sentence_ids:
+        evidence_sentence_ids = preview_ids[: end_index + 1]
+    return {
+        **decision,
+        "start_sentence_id": preview_start,
+        "end_sentence_id": chosen_end,
+        "preview_range": {
+            "start_sentence_id": preview_start,
+            "end_sentence_id": preview_end,
+        },
+        "boundary_type": _normalize_unitize_boundary_type(decision.get("boundary_type")),
+        "evidence_sentence_ids": evidence_sentence_ids,
+        "continuation_pressure": bool(decision.get("continuation_pressure")),
+        "reason": _clean_text(decision.get("reason")),
+    }
+
+
+def _fallback_unitize_decision(preview_sentences: list[dict[str, object]]) -> UnitizeDecision:
+    """Return a deterministic paragraph-bounded fallback decision."""
+
+    if not preview_sentences:
+        return {
+            "start_sentence_id": "",
+            "end_sentence_id": "",
+            "preview_range": {"start_sentence_id": "", "end_sentence_id": ""},
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": [],
+            "reason": "unitize_fallback_empty_preview",
+            "continuation_pressure": False,
+        }
+    paragraph_end_sentence_id = _current_paragraph_end_sentence_id(preview_sentences) or _sentence_id(preview_sentences[-1])
+    preview_ids = [_sentence_id(sentence) for sentence in preview_sentences if _sentence_id(sentence)]
+    end_index = preview_ids.index(paragraph_end_sentence_id) if paragraph_end_sentence_id in preview_ids else len(preview_ids) - 1
+    return {
+        "start_sentence_id": _sentence_id(preview_sentences[0]),
+        "end_sentence_id": paragraph_end_sentence_id,
+        "preview_range": {
+            "start_sentence_id": _sentence_id(preview_sentences[0]),
+            "end_sentence_id": _sentence_id(preview_sentences[-1]),
+        },
+        "boundary_type": "paragraph_end",
+        "evidence_sentence_ids": preview_ids[: end_index + 1],
+        "reason": "unitize_fallback_current_paragraph",
+        "continuation_pressure": False,
+    }
+
+
+def persist_unitization_audit(
+    output_dir: Path | None,
+    *,
+    chapter_id: int,
+    chapter_ref: str,
+    unitize_decision: UnitizeDecision,
+) -> None:
+    """Append one mechanism-private unitization audit record."""
+
+    if output_dir is None:
+        return
+    append_jsonl(
+        unitization_audit_file(output_dir),
+        {
+            "recorded_at": _timestamp(),
+            "chapter_id": chapter_id,
+            "chapter_ref": chapter_ref,
+            "unitize_decision": dict(unitize_decision),
+        },
+    )
+
+
 def _normalize_state_operations(value: object) -> list[StateOperation]:
     """Normalize a list of explicit state operations."""
 
@@ -868,6 +1109,131 @@ def _bridge_pressure_present(
             "callback_cue" in cue_types,
         )
     )
+
+
+def navigate_unitize(
+    *,
+    current_sentence: dict[str, object],
+    preview_sentences: list[dict[str, object]],
+    reader_policy: ReaderPolicy,
+    output_language: str,
+    output_dir: Path | None = None,
+    book_title: str = "",
+    author: str = "",
+    chapter_title: str = "",
+) -> UnitizeDecision:
+    """Choose the next exact coverage unit inside the fixed Phase A preview window."""
+
+    fallback = _fallback_unitize_decision(preview_sentences)
+    prompts = ATTENTIONAL_V2_PROMPTS
+    structural_frame = _structural_frame(
+        book_title=book_title,
+        author=author,
+        chapter_title=chapter_title,
+        output_language=output_language,
+    )
+    preview_range = {
+        "start_sentence_id": _sentence_id(preview_sentences[0]) if preview_sentences else "",
+        "end_sentence_id": _sentence_id(preview_sentences[-1]) if preview_sentences else "",
+    }
+    user_prompt = _render_prompt(
+        prompts.navigate_unitize_prompt,
+        structural_frame=_json_block(structural_frame),
+        current_sentence=_json_block(
+            {
+                "sentence_id": _sentence_id(current_sentence),
+                "text": _clean_text(current_sentence.get("text")),
+                "text_role": _clean_text(current_sentence.get("text_role")),
+                "paragraph_index": _sentence_paragraph_index(current_sentence),
+            }
+        ),
+        preview_range=_json_block(preview_range),
+        preview_sentences=_json_block(
+            [
+                {
+                    "sentence_id": _sentence_id(sentence),
+                    "text": _clean_text(sentence.get("text")),
+                    "text_role": _clean_text(sentence.get("text_role")),
+                    "paragraph_index": _sentence_paragraph_index(sentence),
+                }
+                for sentence in preview_sentences
+            ]
+        ),
+        policy_snapshot=_json_block(reader_policy),
+        output_language_name=language_name(output_language),
+    )
+    _write_prompt_manifest(
+        output_dir,
+        node_name="navigate_unitize",
+        prompt_version=prompts.navigate_unitize_version,
+        system_prompt=prompts.navigate_unitize_system,
+        user_prompt=user_prompt,
+        promptset_version=prompts.promptset_version,
+    )
+
+    try:
+        with llm_invocation_scope(trace_context=LLMTraceContext(stage="phase4", node="navigate_unitize")):
+            payload = invoke_json(prompts.navigate_unitize_system, user_prompt, default={})
+        decision: UnitizeDecision = {
+            "start_sentence_id": _clean_text(payload.get("start_sentence_id")) if isinstance(payload, dict) else "",
+            "end_sentence_id": _clean_text(payload.get("end_sentence_id")) if isinstance(payload, dict) else "",
+            "preview_range": {
+                "start_sentence_id": preview_range["start_sentence_id"],
+                "end_sentence_id": preview_range["end_sentence_id"],
+            },
+            "boundary_type": _normalize_unitize_boundary_type(payload.get("boundary_type") if isinstance(payload, dict) else ""),
+            "evidence_sentence_ids": [
+                _clean_text(item)
+                for item in payload.get("evidence_sentence_ids", [])
+                if _clean_text(item)
+            ] if isinstance(payload, dict) and isinstance(payload.get("evidence_sentence_ids"), list) else [],
+            "reason": _clean_text(payload.get("reason")) if isinstance(payload, dict) else "",
+            "continuation_pressure": bool(payload.get("continuation_pressure")) if isinstance(payload, dict) else False,
+        }
+    except ReaderLLMError:
+        decision = fallback
+
+    return _apply_unitize_guardrail(
+        {
+            **fallback,
+            **decision,
+        },
+        preview_sentences=preview_sentences,
+        reader_policy=reader_policy,
+    )
+
+
+def navigate_route(
+    *,
+    unitize_decision: UnitizeDecision,
+    closure_result: MeaningUnitClosureResult,
+    controller_result: ControllerDecisionResult,
+    reaction_result: ReactionEmissionResult | None,
+) -> NavigateRouteDecision:
+    """Normalize the next-step route so authority stays bound to the chosen unit."""
+
+    chosen_move = _clean_text(controller_result.get("chosen_move")).lower().replace("-", "_")
+    action = "commit"
+    if chosen_move == "bridge":
+        action = "bridge_back"
+    elif chosen_move == "reframe":
+        action = "reframe"
+    elif closure_result.get("closure_decision") == "continue" or bool(unitize_decision.get("continuation_pressure")):
+        action = "continue"
+    if action not in _ROUTE_ACTIONS:
+        action = "commit"
+    return {
+        "action": action,  # type: ignore[typeddict-item]
+        "reason": _clean_text(controller_result.get("reason")) or _clean_text(closure_result.get("unresolved_pressure_note")),
+        "close_current_unit": True,
+        "target_anchor_id": _clean_text(controller_result.get("target_anchor_id")),
+        "target_sentence_id": _clean_text(controller_result.get("target_sentence_id")),
+        "persist_raw_reaction": bool(
+            isinstance(reaction_result, dict)
+            and reaction_result.get("decision") == "emit"
+            and isinstance(reaction_result.get("reaction"), dict)
+        ),
+    }
 
 
 def zoom_read(

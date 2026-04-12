@@ -343,5 +343,5 @@ def test_run_phase6_chapter_cycle_applies_cooling_promotion_and_optional_reactio
     assert result["reflective_summaries"]["chapter_understandings"][0]["item_id"] == "ru-1"
     assert result["reaction_records"]["records"][0]["type"] == "retrospect"
     assert result["compatibility_payload"]["visible_reaction_count"] == 1
-    assert chapter_manifest["prompt_version"] == "attentional_v2.chapter_consolidation.v1"
+    assert chapter_manifest["prompt_version"] == "attentional_v2.chapter_consolidation.v2"
     assert promotion_manifest["prompt_version"] == "attentional_v2.reflective_promotion.v1"

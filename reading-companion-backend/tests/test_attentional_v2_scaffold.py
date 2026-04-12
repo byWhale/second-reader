@@ -27,6 +27,7 @@ from src.attentional_v2.storage import (
     resume_metadata_file,
     survey_map_file,
     trigger_state_file,
+    unitization_audit_file,
     working_pressure_file,
 )
 from src.reading_core.runtime_contracts import ParseRequest, ReadRequest
@@ -180,6 +181,7 @@ def test_attentional_v2_initialization_writes_phase8_artifacts(tmp_path):
 
     policy = json.loads(reader_policy_file(output_dir).read_text(encoding="utf-8"))
     assert policy["policy_version"] == ATTENTIONAL_V2_POLICY_VERSION
+    assert policy["unitize"]["max_coverage_unit_sentences"] == 12
     assert policy["bridge"]["source_anchor_required"] is True
     assert policy["search"]["default_mode"] == "no_search"
     assert policy["resume"]["cold_resume_target_sentences"] == 8
@@ -346,6 +348,22 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
             ],
         },
     )
+    monkeypatch.setattr(
+        runner_module,
+        "navigate_unitize",
+        lambda *, current_sentence, preview_sentences, **_kwargs: {
+            "start_sentence_id": current_sentence["sentence_id"],
+            "end_sentence_id": current_sentence["sentence_id"],
+            "preview_range": {
+                "start_sentence_id": preview_sentences[0]["sentence_id"],
+                "end_sentence_id": preview_sentences[-1]["sentence_id"],
+            },
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": [current_sentence["sentence_id"]],
+            "reason": "test_unitize_single_sentence",
+            "continuation_pressure": False,
+        },
+    )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
     monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
@@ -362,12 +380,14 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert result.normalized_eval_bundle is not None
     assert result.normalized_eval_bundle["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
     chapter_payload = json.loads(chapter_result_compatibility_file(result.output_dir, 1).read_text(encoding="utf-8"))
+    audit_lines = unitization_audit_file(result.output_dir).read_text(encoding="utf-8").strip().splitlines()
     assert chapter_payload["visible_reaction_count"] >= 1
     assert captured_bridge_candidates[0]["target_sentence_id"] == "c1-s1"
     assert captured_bridge_candidates[0]["retrieval_channel"] == "source_callback"
     assert captured_boundary_contexts[0]["trigger_output"] == "zoom_now"
     assert captured_boundary_contexts[0]["gate_state"] == "hot"
     assert isinstance(captured_boundary_contexts[0]["trigger_signals"], list)
+    assert len(audit_lines) == 2
     shell = load_runtime_shell(runtime_shell_file(result.output_dir))
     assert shell["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
     assert shell["status"] == "completed"
@@ -462,6 +482,22 @@ def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, m
             "lookback_candidates": [],
         },
     )
+    monkeypatch.setattr(
+        runner_module,
+        "navigate_unitize",
+        lambda *, current_sentence, preview_sentences, **_kwargs: {
+            "start_sentence_id": current_sentence["sentence_id"],
+            "end_sentence_id": current_sentence["sentence_id"],
+            "preview_range": {
+                "start_sentence_id": preview_sentences[0]["sentence_id"],
+                "end_sentence_id": preview_sentences[-1]["sentence_id"],
+            },
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": [current_sentence["sentence_id"]],
+            "reason": "test_unitize_single_sentence",
+            "continuation_pressure": False,
+        },
+    )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
     monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
@@ -484,8 +520,8 @@ def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, m
     assert shell["status"] == "completed"
 
 
-def test_attentional_v2_read_book_skips_phase4_for_monitor_path_but_persists_runtime_bundle(tmp_path, monkeypatch):
-    """Monitor-only sentences should not enter the local interpretive loop and should still persist runtime state."""
+def test_attentional_v2_read_book_still_runs_formal_read_for_monitor_path(tmp_path, monkeypatch):
+    """Monitor-path sentences should still enter one formal unitized read in Phase A."""
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
@@ -530,16 +566,72 @@ def test_attentional_v2_read_book_skips_phase4_for_monitor_path_but_persists_run
             "callback_anchor_ids": [],
         }
 
-    monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
+    phase4_calls: list[list[str]] = []
+
+    def fake_phase4_local_cycle(**kwargs):
+        phase4_calls.append(
+            [
+                str(sentence.get("sentence_id"))
+                for sentence in kwargs["current_span_sentences"]
+            ]
+        )
+        return {
+            "zoom_result": None,
+            "closure_result": {
+                "closure_decision": "close",
+                "meaning_unit_summary": "monitor path still got read",
+                "dominant_move": "advance",
+                "proposed_state_operations": [],
+                "bridge_candidates": [],
+                "reaction_candidate": None,
+                "unresolved_pressure_note": "",
+            },
+            "controller_result": {
+                "chosen_move": "advance",
+                "reason": "commit the unit",
+                "target_anchor_id": "",
+                "target_sentence_id": "",
+            },
+            "reaction_result": {
+                "decision": "withhold",
+                "reason": "no visible reaction",
+                "reaction": None,
+            },
+            "bridge_candidates": [],
+            "candidate_set": {
+                "current_sentence_id": kwargs["focal_sentence"]["sentence_id"],
+                "memory_candidates": [],
+                "lookback_candidates": [],
+            },
+            "llm_fallbacks": [],
+        }
+
     monkeypatch.setattr(
         runner_module,
-        "run_phase4_local_cycle",
-        lambda **_kwargs: (_ for _ in ()).throw(AssertionError("monitor path should not enter phase4")),
+        "navigate_unitize",
+        lambda *, current_sentence, preview_sentences, **_kwargs: {
+            "start_sentence_id": current_sentence["sentence_id"],
+            "end_sentence_id": current_sentence["sentence_id"],
+            "preview_range": {
+                "start_sentence_id": preview_sentences[0]["sentence_id"],
+                "end_sentence_id": preview_sentences[-1]["sentence_id"],
+            },
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": [current_sentence["sentence_id"]],
+            "reason": "monitor path single sentence",
+            "continuation_pressure": False,
+        },
     )
+    monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
+    monkeypatch.setattr(runner_module, "run_phase4_local_cycle", fake_phase4_local_cycle)
     monkeypatch.setattr(
         runner_module,
         "generate_candidate_set",
-        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("monitor path should not load bridge candidates")),
+        lambda *args, **kwargs: {
+            "current_sentence_id": "c1-s2",
+            "memory_candidates": [],
+            "lookback_candidates": [],
+        },
     )
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
@@ -561,6 +653,7 @@ def test_attentional_v2_read_book_skips_phase4_for_monitor_path_but_persists_run
     assert trigger_state["output"] == "monitor"
     assert chapter_payload["visible_reaction_count"] == 0
     assert shell["status"] == "completed"
+    assert phase4_calls == [["c1-s1"], ["c1-s2"]]
 
 
 def test_attentional_v2_rejects_book_analysis_mode(tmp_path, monkeypatch):

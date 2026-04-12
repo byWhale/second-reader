@@ -13,6 +13,14 @@ from src.reading_core.runtime_contracts import ObservabilityMode, ResumeKind, Ru
 GateState = Literal["quiet", "watch", "hot", "must_evaluate"]
 TriggerDecision = Literal["no_zoom", "monitor", "zoom_now"]
 MoveType = Literal["advance", "dwell", "bridge", "reframe"]
+UnitizeBoundaryType = Literal[
+    "paragraph_end",
+    "intra_paragraph_semantic_close",
+    "cross_paragraph_continuation",
+    "section_end",
+    "budget_cap",
+]
+RouteAction = Literal["commit", "continue", "bridge_back", "reframe"]
 StateOperationType = Literal["create", "update", "cool", "drop", "retain_anchor", "link_anchors", "promote", "supersede", "reactivate"]
 ClosureDecision = Literal["continue", "close"]
 ReactionEmissionDecision = Literal["emit", "withhold"]
@@ -157,6 +165,25 @@ class TriggerState(TypedDict, total=False):
     callback_anchor_ids: list[str]
 
 
+class PreviewRange(TypedDict, total=False):
+    """One bounded preview range exposed to the unitization node."""
+
+    start_sentence_id: str
+    end_sentence_id: str
+
+
+class UnitizeDecision(TypedDict, total=False):
+    """One prompt-led coverage-unit selection for the next formal read."""
+
+    start_sentence_id: str
+    end_sentence_id: str
+    preview_range: PreviewRange
+    boundary_type: UnitizeBoundaryType
+    evidence_sentence_ids: list[str]
+    reason: str
+    continuation_pressure: bool
+
+
 class StateOperation(TypedDict, total=False):
     """One explicit state mutation proposed by a Phase 4 node."""
 
@@ -283,6 +310,17 @@ class ControllerDecisionResult(TypedDict, total=False):
     reason: str
     target_anchor_id: str
     target_sentence_id: str
+
+
+class NavigateRouteDecision(TypedDict, total=False):
+    """Normalized next-step routing result for one exact chosen coverage unit."""
+
+    action: RouteAction
+    reason: str
+    close_current_unit: bool
+    target_anchor_id: str
+    target_sentence_id: str
+    persist_raw_reaction: bool
 
 
 class BridgeResolutionResult(TypedDict, total=False):
@@ -519,6 +557,7 @@ class ReaderPolicy(TypedDict, total=False):
     mechanism_version: str
     policy_version: str
     updated_at: str
+    unitize: dict[str, object]
     gate: dict[str, object]
     controller: dict[str, object]
     knowledge: dict[str, object]
@@ -759,6 +798,9 @@ def build_default_reader_policy(
         "mechanism_version": mechanism_version,
         "policy_version": policy_version,
         "updated_at": _timestamp(),
+        "unitize": {
+            "max_coverage_unit_sentences": 12,
+        },
         "gate": {"default_state": "quiet"},
         "controller": {"default_move": "advance", "allow_bridge_without_anchor": False},
         "knowledge": {
