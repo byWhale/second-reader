@@ -102,8 +102,10 @@ def _checkpoint_state_counts(checkpoint: FullCheckpointState) -> dict[str, int]:
     """Return compact checkpoint counts that are useful for debug forensics."""
 
     local_buffer = checkpoint.get("local_buffer", {})
-    anchor_memory = checkpoint.get("anchor_memory", {})
-    reflective_summaries = checkpoint.get("reflective_summaries", {})
+    anchor_bank = checkpoint.get("anchor_bank", {}) or checkpoint.get("anchor_memory", {})
+    concept_registry = checkpoint.get("concept_registry", {})
+    thread_trace = checkpoint.get("thread_trace", {})
+    reflective_frames = checkpoint.get("reflective_frames", {}) or checkpoint.get("reflective_summaries", {})
     knowledge_activations = checkpoint.get("knowledge_activations", {})
     move_history = checkpoint.get("move_history", {})
     reaction_records = checkpoint.get("reaction_records", {})
@@ -111,8 +113,10 @@ def _checkpoint_state_counts(checkpoint: FullCheckpointState) -> dict[str, int]:
     return {
         "recent_sentence_count": len(local_buffer.get("recent_sentences", [])),
         "open_meaning_unit_sentence_count": len(local_buffer.get("open_meaning_unit_sentence_ids", [])),
-        "anchor_count": len(anchor_memory.get("anchor_records", [])),
-        "reflective_item_count": len(reflective_summaries.get("chapter_understandings", [])),
+        "anchor_count": len(anchor_bank.get("anchor_records", [])),
+        "concept_count": len(concept_registry.get("entries", [])),
+        "thread_count": len(thread_trace.get("entries", [])),
+        "reflective_item_count": len(reflective_frames.get("chapter_understandings", [])),
         "activation_count": len(knowledge_activations.get("activations", [])),
         "move_count": len(move_history.get("moves", [])),
         "reaction_count": len(reaction_records.get("records", [])),

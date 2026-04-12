@@ -12,8 +12,9 @@ from src.attentional_v2.slow_cycle import project_chapter_result_compatibility
 from src.attentional_v2.schemas import ATTENTIONAL_V2_MECHANISM_VERSION, ATTENTIONAL_V2_POLICY_VERSION, ATTENTIONAL_V2_SCHEMA_VERSION
 from src.attentional_v2.storage import (
     ATTENTIONAL_V2_MECHANISM_KEY,
-    anchor_memory_file,
+    anchor_bank_file,
     chapter_result_compatibility_file,
+    concept_registry_file,
     event_stream_file,
     knowledge_activations_file,
     local_buffer_file,
@@ -22,14 +23,15 @@ from src.attentional_v2.storage import (
     reaction_records_file,
     reader_policy_file,
     read_audit_file,
-    reflective_summaries_file,
+    reflective_frames_file,
     reconsolidation_records_file,
     revisit_index_file,
     resume_metadata_file,
     survey_map_file,
+    thread_trace_file,
     trigger_state_file,
     unitization_audit_file,
-    working_pressure_file,
+    working_state_file,
 )
 from src.reading_core.runtime_contracts import ParseRequest, ReadRequest
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
@@ -147,9 +149,9 @@ def test_attentional_v2_initialization_writes_phase8_artifacts(tmp_path):
     manifest = json.loads(mechanism_manifest_file(output_dir, ATTENTIONAL_V2_MECHANISM_KEY).read_text(encoding="utf-8"))
     assert manifest["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
 
-    working_pressure = json.loads(working_pressure_file(output_dir).read_text(encoding="utf-8"))
-    assert working_pressure["schema_version"] == ATTENTIONAL_V2_SCHEMA_VERSION
-    assert working_pressure["gate_state"] == "quiet"
+    working_state = json.loads(working_state_file(output_dir).read_text(encoding="utf-8"))
+    assert working_state["schema_version"] == ATTENTIONAL_V2_SCHEMA_VERSION
+    assert working_state["gate_state"] == "quiet"
 
     local_buffer = json.loads(local_buffer_file(output_dir).read_text(encoding="utf-8"))
     assert local_buffer["recent_sentences"] == []
@@ -161,10 +163,16 @@ def test_attentional_v2_initialization_writes_phase8_artifacts(tmp_path):
     local_continuity = json.loads(local_continuity_file(output_dir).read_text(encoding="utf-8"))
     assert local_continuity["recent_sentence_ids"] == []
 
-    anchor_memory = json.loads(anchor_memory_file(output_dir).read_text(encoding="utf-8"))
-    assert anchor_memory["anchor_records"] == []
+    concept_registry = json.loads(concept_registry_file(output_dir).read_text(encoding="utf-8"))
+    assert concept_registry["entries"] == []
 
-    reflective = json.loads(reflective_summaries_file(output_dir).read_text(encoding="utf-8"))
+    thread_trace = json.loads(thread_trace_file(output_dir).read_text(encoding="utf-8"))
+    assert thread_trace["entries"] == []
+
+    anchor_bank = json.loads(anchor_bank_file(output_dir).read_text(encoding="utf-8"))
+    assert anchor_bank["anchor_records"] == []
+
+    reflective = json.loads(reflective_frames_file(output_dir).read_text(encoding="utf-8"))
     assert reflective["chapter_understandings"] == []
 
     activations = json.loads(knowledge_activations_file(output_dir).read_text(encoding="utf-8"))
@@ -201,7 +209,7 @@ def test_attentional_v2_initialization_writes_phase8_artifacts(tmp_path):
     assert revisit["anchors"] == {}
 
     assert event_stream_file(output_dir).read_text(encoding="utf-8") == ""
-    assert result["artifact_map"]["working_pressure"].endswith("working_pressure.json")
+    assert result["artifact_map"]["working_state"].endswith("working_state.json")
 
 
 def test_attentional_v2_parse_book_creates_ready_artifacts_without_iterator_structure(tmp_path, monkeypatch):

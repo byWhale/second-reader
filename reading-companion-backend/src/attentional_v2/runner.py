@@ -24,7 +24,7 @@ from src.reading_runtime.sequential_state import (
     write_run_state,
 )
 from src.reading_runtime.shell_state import load_runtime_shell, save_runtime_shell
-from src.iterator_reader.llm_utils import llm_invocation_scope, runtime_trace_context
+from src.iterator_reader.llm_utils import ReaderLLMError, llm_invocation_scope, runtime_trace_context
 
 from .bridge import build_anchor_record, run_phase5_bridge_cycle
 from .evaluation import build_normalized_eval_bundle, persist_normalized_eval_bundle
@@ -42,30 +42,34 @@ from .resume import persist_reading_position, resume_from_checkpoint, write_full
 from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
     ATTENTIONAL_V2_POLICY_VERSION,
-    AnchorMemoryState,
+    AnchorBankState,
     AnchoredReactionRecord,
+    ConceptRegistryState,
     KnowledgeActivationsState,
     LocalBufferState,
     MoveHistoryState,
     NavigateRouteDecision,
     ReactionRecordsState,
     ReaderPolicy,
-    ReflectiveSummariesState,
+    ReflectiveFramesState,
+    ThreadTraceState,
     TriggerState,
     UnitizeDecision,
     ReadUnitResult,
-    WorkingPressureState,
+    WorkingState,
+    build_empty_anchor_bank,
+    build_empty_concept_registry,
     build_default_reader_policy,
-    build_empty_anchor_memory,
     build_empty_knowledge_activations,
     build_empty_local_buffer,
     build_empty_move_history,
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
-    build_empty_reflective_summaries,
+    build_empty_reflective_frames,
     build_empty_resume_metadata,
+    build_empty_thread_trace,
     build_empty_trigger_state,
-    build_empty_working_pressure,
+    build_empty_working_state,
 )
 from .slow_cycle import (
     build_reaction_record,
@@ -73,20 +77,32 @@ from .slow_cycle import (
     reaction_records_for_chapter,
     run_phase6_chapter_cycle,
 )
+from .state_migration import (
+    migrate_anchor_memory_to_new_layers,
+    migrate_legacy_runtime_state,
+    migrate_reflective_summaries_to_frames,
+    migrate_working_pressure_to_working_state,
+    project_legacy_anchor_memory,
+    project_legacy_reflective_summaries,
+    project_legacy_working_pressure,
+)
 from .state_ops import (
     append_move,
     append_reaction_record,
-    apply_anchor_memory_operations,
+    apply_anchor_bank_operations,
+    apply_concept_registry_operations,
+    apply_thread_trace_operations,
     close_local_meaning_unit,
-    apply_working_pressure_operations,
+    apply_working_state_operations,
     upsert_anchor_record,
 )
 from .state_projection import build_navigation_context
 from .storage import (
     ATTENTIONAL_V2_MECHANISM_KEY,
-    anchor_memory_file,
+    anchor_bank_file,
     chapter_result_compatibility_file,
     checkpoints_dir,
+    concept_registry_file,
     derived_dir,
     initialize_artifact_tree,
     knowledge_activations_file,
@@ -97,16 +113,17 @@ from .storage import (
     reaction_records_file,
     reader_policy_file,
     reconsolidation_records_file,
-    reflective_summaries_file,
+    reflective_frames_file,
     resume_metadata_file,
     revisit_index_file,
     runtime_dir,
     save_json,
     survey_map_file,
+    thread_trace_file,
     trigger_state_file,
     read_audit_file,
     unitization_audit_file,
-    working_pressure_file,
+    working_state_file,
 )
 from .survey import write_book_survey_artifacts
 from .retrieval import generate_candidate_set
@@ -229,9 +246,11 @@ def _default_builder(name: str) -> Callable[[], dict[str, object]]:
     builders: dict[str, Callable[[], dict[str, object]]] = {
         "local_buffer": lambda: build_empty_local_buffer(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "trigger_state": lambda: build_empty_trigger_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
-        "working_pressure": lambda: build_empty_working_pressure(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
-        "anchor_memory": lambda: build_empty_anchor_memory(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
-        "reflective_summaries": lambda: build_empty_reflective_summaries(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "working_state": lambda: build_empty_working_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "concept_registry": lambda: build_empty_concept_registry(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "thread_trace": lambda: build_empty_thread_trace(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "reflective_frames": lambda: build_empty_reflective_frames(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "anchor_bank": lambda: build_empty_anchor_bank(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "knowledge_activations": lambda: build_empty_knowledge_activations(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "move_history": lambda: build_empty_move_history(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "reaction_records": lambda: build_empty_reaction_records(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
@@ -259,12 +278,9 @@ def _load_or_default(path: Path, builder: Callable[[], dict[str, object]]) -> di
 def _load_runtime_bundle(output_dir: Path) -> dict[str, dict[str, object]]:
     """Load the attentional runtime bundle from persisted artifacts."""
 
-    return {
+    bundle = {
         "local_buffer": _load_or_default(local_buffer_file(output_dir), _default_builder("local_buffer")),
         "trigger_state": _load_or_default(trigger_state_file(output_dir), _default_builder("trigger_state")),
-        "working_pressure": _load_or_default(working_pressure_file(output_dir), _default_builder("working_pressure")),
-        "anchor_memory": _load_or_default(anchor_memory_file(output_dir), _default_builder("anchor_memory")),
-        "reflective_summaries": _load_or_default(reflective_summaries_file(output_dir), _default_builder("reflective_summaries")),
         "knowledge_activations": _load_or_default(
             knowledge_activations_file(output_dir),
             _default_builder("knowledge_activations"),
@@ -278,6 +294,34 @@ def _load_runtime_bundle(output_dir: Path) -> dict[str, dict[str, object]]:
         "reader_policy": _load_or_default(reader_policy_file(output_dir), _default_builder("reader_policy")),
         "resume_metadata": _load_or_default(resume_metadata_file(output_dir), _default_builder("resume_metadata")),
     }
+    new_state_paths = {
+        "working_state": working_state_file(output_dir),
+        "concept_registry": concept_registry_file(output_dir),
+        "thread_trace": thread_trace_file(output_dir),
+        "reflective_frames": reflective_frames_file(output_dir),
+        "anchor_bank": anchor_bank_file(output_dir),
+    }
+    loaded_new = {
+        name: load_json(path)
+        for name, path in new_state_paths.items()
+        if path.exists()
+    }
+    migrated = migrate_legacy_runtime_state(
+        working_pressure=load_json(runtime_dir(output_dir) / "working_pressure.json")
+        if (runtime_dir(output_dir) / "working_pressure.json").exists()
+        else None,
+        anchor_memory=load_json(runtime_dir(output_dir) / "anchor_memory.json")
+        if (runtime_dir(output_dir) / "anchor_memory.json").exists()
+        else None,
+        reflective_summaries=load_json(runtime_dir(output_dir) / "reflective_summaries.json")
+        if (runtime_dir(output_dir) / "reflective_summaries.json").exists()
+        else None,
+        existing_concept_registry=loaded_new.get("concept_registry"),  # type: ignore[arg-type]
+        existing_thread_trace=loaded_new.get("thread_trace"),  # type: ignore[arg-type]
+    )
+    for name in ("working_state", "concept_registry", "thread_trace", "reflective_frames", "anchor_bank"):
+        bundle[name] = loaded_new.get(name) or migrated[name] or _default_builder(name)()
+    return bundle
 
 
 def _save_runtime_bundle(output_dir: Path, bundle: dict[str, dict[str, object]]) -> None:
@@ -285,9 +329,11 @@ def _save_runtime_bundle(output_dir: Path, bundle: dict[str, dict[str, object]])
 
     save_json(local_buffer_file(output_dir), bundle["local_buffer"])
     save_json(trigger_state_file(output_dir), bundle["trigger_state"])
-    save_json(working_pressure_file(output_dir), bundle["working_pressure"])
-    save_json(anchor_memory_file(output_dir), bundle["anchor_memory"])
-    save_json(reflective_summaries_file(output_dir), bundle["reflective_summaries"])
+    save_json(working_state_file(output_dir), bundle["working_state"])
+    save_json(concept_registry_file(output_dir), bundle["concept_registry"])
+    save_json(thread_trace_file(output_dir), bundle["thread_trace"])
+    save_json(reflective_frames_file(output_dir), bundle["reflective_frames"])
+    save_json(anchor_bank_file(output_dir), bundle["anchor_bank"])
     save_json(knowledge_activations_file(output_dir), bundle["knowledge_activations"])
     save_json(move_history_file(output_dir), bundle["move_history"])
     save_json(reaction_records_file(output_dir), bundle["reaction_records"])
@@ -379,16 +425,21 @@ def _reset_live_runtime(output_dir: Path) -> None:
     """Clear live attentional runtime artifacts for one fresh full rerun."""
 
     for path in (
-        working_pressure_file(output_dir),
+        working_state_file(output_dir),
+        concept_registry_file(output_dir),
+        thread_trace_file(output_dir),
         local_buffer_file(output_dir),
         trigger_state_file(output_dir),
-        anchor_memory_file(output_dir),
-        reflective_summaries_file(output_dir),
+        anchor_bank_file(output_dir),
+        reflective_frames_file(output_dir),
         knowledge_activations_file(output_dir),
         move_history_file(output_dir),
         reaction_records_file(output_dir),
         reconsolidation_records_file(output_dir),
         resume_metadata_file(output_dir),
+        runtime_dir(output_dir) / "working_pressure.json",
+        runtime_dir(output_dir) / "anchor_memory.json",
+        runtime_dir(output_dir) / "reflective_summaries.json",
         read_audit_file(output_dir),
         unitization_audit_file(output_dir),
         runtime_artifacts.runtime_shell_file(output_dir),
@@ -527,9 +578,11 @@ def _run_read_with_context_loop(
     chosen_unit_sentences: list[dict[str, object]],
     unitize_decision: UnitizeDecision,
     local_buffer: LocalBufferState,
-    working_pressure: WorkingPressureState,
-    anchor_memory: AnchorMemoryState,
-    reflective_summaries: ReflectiveSummariesState,
+    working_state: WorkingState,
+    concept_registry: ConceptRegistryState,
+    thread_trace: ThreadTraceState,
+    reflective_frames: ReflectiveFramesState,
+    anchor_bank: AnchorBankState,
     knowledge_activations: KnowledgeActivationsState,
     move_history: MoveHistoryState,
     reaction_records: ReactionRecordsState,
@@ -551,9 +604,11 @@ def _run_read_with_context_loop(
             if _clean_text(sentence.get("sentence_id"))
         ],
         local_buffer=local_buffer,
-        working_pressure=working_pressure,
-        anchor_memory=anchor_memory,
-        reflective_summaries=reflective_summaries,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
         move_history=move_history,
         reaction_records=reaction_records,
     )
@@ -598,11 +653,18 @@ def _run_read_with_context_loop(
             carry_forward_context=carry_forward_context,
             book_document=book_document,
             chapter_ref=chapter_ref,
-            anchor_memory=anchor_memory,
-            reflective_summaries=reflective_summaries,
+            anchor_bank=anchor_bank,
+            concept_registry=concept_registry,
+            thread_trace=thread_trace,
+            reflective_frames=reflective_frames,
             move_history=move_history,
             reaction_records=reaction_records,
             reader_policy=reader_policy,
+            current_unit_sentence_ids=[
+                _clean_text(sentence.get("sentence_id"))
+                for sentence in chosen_unit_sentences
+                if _clean_text(sentence.get("sentence_id"))
+            ],
         )
         supplemental_satisfied = supplemental_context is not None
         if supplemental_context is not None:
@@ -753,9 +815,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
         reader_policy: ReaderPolicy = bundle["reader_policy"]  # type: ignore[assignment]
         local_buffer: LocalBufferState = bundle["local_buffer"]  # type: ignore[assignment]
         trigger_state: TriggerState = bundle["trigger_state"]  # type: ignore[assignment]
-        working_pressure: WorkingPressureState = bundle["working_pressure"]  # type: ignore[assignment]
-        anchor_memory: AnchorMemoryState = bundle["anchor_memory"]  # type: ignore[assignment]
-        reflective_summaries: ReflectiveSummariesState = bundle["reflective_summaries"]  # type: ignore[assignment]
+        working_state: WorkingState = bundle["working_state"]  # type: ignore[assignment]
+        concept_registry: ConceptRegistryState = bundle["concept_registry"]  # type: ignore[assignment]
+        thread_trace: ThreadTraceState = bundle["thread_trace"]  # type: ignore[assignment]
+        reflective_frames: ReflectiveFramesState = bundle["reflective_frames"]  # type: ignore[assignment]
+        anchor_bank: AnchorBankState = bundle["anchor_bank"]  # type: ignore[assignment]
         knowledge_activations: KnowledgeActivationsState = bundle["knowledge_activations"]  # type: ignore[assignment]
         move_history: MoveHistoryState = bundle["move_history"]  # type: ignore[assignment]
         reaction_records: ReactionRecordsState = bundle["reaction_records"]  # type: ignore[assignment]
@@ -818,11 +882,13 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
             while cursor < len(sentences):
                 sentence = sentences[cursor]
                 sentence_id = _clean_text(sentence.get("sentence_id"))
+                legacy_working_pressure = project_legacy_working_pressure(working_state)
+                legacy_anchor_memory = project_legacy_anchor_memory(anchor_bank, concept_registry, thread_trace)
                 local_buffer, trigger_state = process_sentence_intake(
                     sentence,
                     local_buffer=local_buffer,
-                    working_pressure=working_pressure,
-                    anchor_memory=anchor_memory,
+                    working_pressure=legacy_working_pressure,
+                    anchor_memory=legacy_anchor_memory,
                 )
                 save_json(trigger_state_file(output_dir), trigger_state)
                 preview_sentences, preview_range = build_unitize_preview(
@@ -834,9 +900,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     current_sentence_id=sentence_id,
                     local_buffer=local_buffer,
                     trigger_state=trigger_state,
-                    working_pressure=working_pressure,
-                    anchor_memory=anchor_memory,
-                    reflective_summaries=reflective_summaries,
+                    working_state=working_state,
+                    concept_registry=concept_registry,
+                    thread_trace=thread_trace,
+                    reflective_frames=reflective_frames,
+                    anchor_bank=anchor_bank,
                     move_history=move_history,
                     reaction_records=reaction_records,
                 )
@@ -865,11 +933,13 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     }
 
                 for later_sentence in chosen_unit_sentences[1:]:
+                    legacy_working_pressure = project_legacy_working_pressure(working_state)
+                    legacy_anchor_memory = project_legacy_anchor_memory(anchor_bank, concept_registry, thread_trace)
                     local_buffer, trigger_state = process_sentence_intake(
                         later_sentence,
                         local_buffer=local_buffer,
-                        working_pressure=working_pressure,
-                        anchor_memory=anchor_memory,
+                        working_pressure=legacy_working_pressure,
+                        anchor_memory=legacy_anchor_memory,
                     )
                     save_json(trigger_state_file(output_dir), trigger_state)
 
@@ -919,9 +989,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     chosen_unit_sentences=chosen_unit_sentences,
                     unitize_decision=unitize_decision,
                     local_buffer=local_buffer,
-                    working_pressure=working_pressure,
-                    anchor_memory=anchor_memory,
-                    reflective_summaries=reflective_summaries,
+                    working_state=working_state,
+                    concept_registry=concept_registry,
+                    thread_trace=thread_trace,
+                    reflective_frames=reflective_frames,
+                    anchor_bank=anchor_bank,
                     knowledge_activations=knowledge_activations,
                     move_history=move_history,
                     reaction_records=reaction_records,
@@ -953,11 +1025,19 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                             "problem_code": _clean_text(fallback.get("problem_code")),
                         },
                     )
-                working_pressure = apply_working_pressure_operations(
-                    working_pressure,
+                working_state = apply_working_state_operations(
+                    working_state,
                     read_result.get("implicit_uptake", []),
                 )
-                anchor_memory = apply_anchor_memory_operations(anchor_memory, read_result.get("implicit_uptake", []))
+                concept_registry = apply_concept_registry_operations(
+                    concept_registry,
+                    read_result.get("implicit_uptake", []),
+                )
+                thread_trace = apply_thread_trace_operations(
+                    thread_trace,
+                    read_result.get("implicit_uptake", []),
+                )
+                anchor_bank = apply_anchor_bank_operations(anchor_bank, read_result.get("implicit_uptake", []))
                 knowledge_activations = apply_activation_operations(
                     knowledge_activations,
                     read_result.get("implicit_uptake", []),
@@ -989,7 +1069,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 )
 
                 if route_decision.get("persist_raw_reaction") and reaction_payload:
-                    anchor_memory = upsert_anchor_record(anchor_memory, current_anchor)
+                    anchor_bank = upsert_anchor_record(anchor_bank, current_anchor)  # type: ignore[assignment]
                     chapter_reaction_count = len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))
                     emitted_reaction = build_reaction_record(
                         reaction=reaction_payload,
@@ -1022,17 +1102,19 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     )
 
                 if route_decision.get("action") == "bridge_back":
+                    legacy_working_pressure = project_legacy_working_pressure(working_state)
+                    legacy_anchor_memory = project_legacy_anchor_memory(anchor_bank, concept_registry, thread_trace)
                     candidate_set = generate_candidate_set(
                         provisioned.book_document,
                         current_sentence_id=focal_sentence_id,
                         current_text=_clean_text(focal_sentence.get("text")),
-                        anchor_memory=anchor_memory,
+                        anchor_memory=legacy_anchor_memory,
                     )
                     phase5 = run_phase5_bridge_cycle(
                         current_span_sentences=chosen_unit_sentences,
                         candidate_set=candidate_set,
-                        working_pressure=working_pressure,
-                        anchor_memory=anchor_memory,
+                        working_pressure=legacy_working_pressure,
+                        anchor_memory=legacy_anchor_memory,
                         knowledge_activations=knowledge_activations,
                         move_history=move_history,
                         reader_policy=reader_policy,
@@ -1043,8 +1125,12 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                         author=provisioned.author,
                         chapter_title=_clean_text(chapter.get("title")),
                     )
-                    working_pressure = phase5["working_pressure"]  # type: ignore[assignment]
-                    anchor_memory = phase5["anchor_memory"]  # type: ignore[assignment]
+                    working_state = migrate_working_pressure_to_working_state(phase5["working_pressure"])  # type: ignore[assignment]
+                    anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(
+                        phase5["anchor_memory"],  # type: ignore[arg-type]
+                        existing_concept_registry=concept_registry,
+                        existing_thread_trace=thread_trace,
+                    )
                     knowledge_activations = phase5["knowledge_activations"]  # type: ignore[assignment]
                     move_history = phase5["move_history"]  # type: ignore[assignment]
                     bridge_result = dict(phase5.get("bridge_result") or {})
@@ -1090,9 +1176,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     {
                         "local_buffer": local_buffer,
                         "trigger_state": trigger_state,
-                        "working_pressure": working_pressure,
-                        "anchor_memory": anchor_memory,
-                        "reflective_summaries": reflective_summaries,
+                        "working_state": working_state,
+                        "concept_registry": concept_registry,
+                        "thread_trace": thread_trace,
+                        "reflective_frames": reflective_frames,
+                        "anchor_bank": anchor_bank,
                         "knowledge_activations": knowledge_activations,
                         "move_history": move_history,
                         "reaction_records": reaction_records,
@@ -1131,9 +1219,9 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 chapter=chapter,
                 meaning_units_in_chapter=meaning_units_in_chapter,
                 chapter_end_anchor=chapter_end_anchor,
-                working_pressure=working_pressure,
-                anchor_memory=anchor_memory,
-                reflective_summaries=reflective_summaries,
+                working_pressure=project_legacy_working_pressure(working_state),
+                anchor_memory=project_legacy_anchor_memory(anchor_bank, concept_registry, thread_trace),
+                reflective_summaries=project_legacy_reflective_summaries(reflective_frames),
                 knowledge_activations=knowledge_activations,
                 reaction_records=reaction_records,
                 reader_policy=reader_policy,
@@ -1143,9 +1231,13 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 book_title=provisioned.title,
                 author=provisioned.author,
             )
-            working_pressure = phase6["working_pressure"]  # type: ignore[assignment]
-            anchor_memory = phase6["anchor_memory"]  # type: ignore[assignment]
-            reflective_summaries = phase6["reflective_summaries"]  # type: ignore[assignment]
+            working_state = migrate_working_pressure_to_working_state(phase6["working_pressure"])  # type: ignore[assignment]
+            anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(
+                phase6["anchor_memory"],  # type: ignore[arg-type]
+                existing_concept_registry=concept_registry,
+                existing_thread_trace=thread_trace,
+            )
+            reflective_frames = migrate_reflective_summaries_to_frames(phase6["reflective_summaries"])  # type: ignore[arg-type]
             knowledge_activations = phase6["knowledge_activations"]  # type: ignore[assignment]
             reaction_records = phase6["reaction_records"]  # type: ignore[assignment]
             chapter_statuses[chapter_id] = "done"
@@ -1183,9 +1275,11 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 {
                     "local_buffer": local_buffer,
                     "trigger_state": trigger_state,
-                    "working_pressure": working_pressure,
-                    "anchor_memory": anchor_memory,
-                    "reflective_summaries": reflective_summaries,
+                    "working_state": working_state,
+                    "concept_registry": concept_registry,
+                    "thread_trace": thread_trace,
+                    "reflective_frames": reflective_frames,
+                    "anchor_bank": anchor_bank,
                     "knowledge_activations": knowledge_activations,
                     "move_history": move_history,
                     "reaction_records": reaction_records,

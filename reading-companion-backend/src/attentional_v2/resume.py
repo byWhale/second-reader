@@ -30,22 +30,26 @@ from .schemas import (
     ReaderPolicy,
     ResumeMetadataState,
     TriggerState,
-    build_empty_anchor_memory,
+    build_empty_anchor_bank,
+    build_empty_concept_registry,
     build_empty_knowledge_activations,
     build_empty_local_buffer,
     build_empty_local_continuity,
     build_empty_move_history,
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
-    build_empty_reflective_summaries,
+    build_empty_reflective_frames,
     build_empty_resume_metadata,
+    build_empty_thread_trace,
     build_empty_trigger_state,
-    build_empty_working_pressure,
+    build_empty_working_state,
     build_default_reader_policy,
 )
+from .state_migration import migrate_legacy_runtime_state
 from .storage import (
     ATTENTIONAL_V2_MECHANISM_KEY,
-    anchor_memory_file,
+    anchor_bank_file,
+    concept_registry_file,
     full_checkpoint_file,
     knowledge_activations_file,
     load_json,
@@ -55,11 +59,13 @@ from .storage import (
     reaction_records_file,
     reader_policy_file,
     reconsolidation_records_file,
-    reflective_summaries_file,
+    reflective_frames_file,
     resume_metadata_file,
     save_json,
+    thread_trace_file,
     trigger_state_file,
-    working_pressure_file,
+    runtime_dir,
+    working_state_file,
 )
 
 
@@ -90,9 +96,11 @@ def _state_builders() -> dict[str, Callable[[], dict[str, object]]]:
         "local_buffer": lambda: build_empty_local_buffer(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "local_continuity": lambda: build_empty_local_continuity(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "trigger_state": lambda: build_empty_trigger_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
-        "working_pressure": lambda: build_empty_working_pressure(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
-        "anchor_memory": lambda: build_empty_anchor_memory(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
-        "reflective_summaries": lambda: build_empty_reflective_summaries(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "working_state": lambda: build_empty_working_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "concept_registry": lambda: build_empty_concept_registry(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "thread_trace": lambda: build_empty_thread_trace(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "reflective_frames": lambda: build_empty_reflective_frames(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "anchor_bank": lambda: build_empty_anchor_bank(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "knowledge_activations": lambda: build_empty_knowledge_activations(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "move_history": lambda: build_empty_move_history(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "reaction_records": lambda: build_empty_reaction_records(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
@@ -115,9 +123,11 @@ def _state_paths(output_dir: Path) -> dict[str, Path]:
         "local_buffer": local_buffer_file(output_dir),
         "local_continuity": local_continuity_file(output_dir),
         "trigger_state": trigger_state_file(output_dir),
-        "working_pressure": working_pressure_file(output_dir),
-        "anchor_memory": anchor_memory_file(output_dir),
-        "reflective_summaries": reflective_summaries_file(output_dir),
+        "working_state": working_state_file(output_dir),
+        "concept_registry": concept_registry_file(output_dir),
+        "thread_trace": thread_trace_file(output_dir),
+        "reflective_frames": reflective_frames_file(output_dir),
+        "anchor_bank": anchor_bank_file(output_dir),
         "knowledge_activations": knowledge_activations_file(output_dir),
         "move_history": move_history_file(output_dir),
         "reaction_records": reaction_records_file(output_dir),
@@ -243,10 +253,38 @@ def _load_runtime_bundle(output_dir: Path) -> dict[str, dict[str, object]]:
     """Load all Phase 7 runtime files with defaults for absent artifacts."""
 
     builders = _state_builders()
-    bundle: dict[str, dict[str, object]] = {}
-    for name, path in _state_paths(output_dir).items():
-        builder = builders[name]
-        bundle[name] = _load_or_default(path, builder)
+    bundle: dict[str, dict[str, object]] = {
+        name: _load_or_default(path, builders[name])
+        for name, path in _state_paths(output_dir).items()
+        if name not in {"working_state", "concept_registry", "thread_trace", "reflective_frames", "anchor_bank"}
+    }
+    new_paths = {
+        "working_state": working_state_file(output_dir),
+        "concept_registry": concept_registry_file(output_dir),
+        "thread_trace": thread_trace_file(output_dir),
+        "reflective_frames": reflective_frames_file(output_dir),
+        "anchor_bank": anchor_bank_file(output_dir),
+    }
+    loaded_new = {
+        name: load_json(path)
+        for name, path in new_paths.items()
+        if path.exists()
+    }
+    migrated = migrate_legacy_runtime_state(
+        working_pressure=load_json(runtime_dir(output_dir) / "working_pressure.json")
+        if (runtime_dir(output_dir) / "working_pressure.json").exists()
+        else None,
+        anchor_memory=load_json(runtime_dir(output_dir) / "anchor_memory.json")
+        if (runtime_dir(output_dir) / "anchor_memory.json").exists()
+        else None,
+        reflective_summaries=load_json(runtime_dir(output_dir) / "reflective_summaries.json")
+        if (runtime_dir(output_dir) / "reflective_summaries.json").exists()
+        else None,
+        existing_concept_registry=loaded_new.get("concept_registry"),  # type: ignore[arg-type]
+        existing_thread_trace=loaded_new.get("thread_trace"),  # type: ignore[arg-type]
+    )
+    for name in ("working_state", "concept_registry", "thread_trace", "reflective_frames", "anchor_bank"):
+        bundle[name] = loaded_new.get(name) or migrated[name] or builders[name]()
     return bundle
 
 
@@ -326,9 +364,11 @@ def write_full_checkpoint(
         "local_buffer": bundle["local_buffer"],  # type: ignore[typeddict-item]
         "local_continuity": continuity,  # type: ignore[typeddict-item]
         "trigger_state": bundle["trigger_state"],  # type: ignore[typeddict-item]
-        "working_pressure": bundle["working_pressure"],  # type: ignore[typeddict-item]
-        "anchor_memory": bundle["anchor_memory"],  # type: ignore[typeddict-item]
-        "reflective_summaries": bundle["reflective_summaries"],  # type: ignore[typeddict-item]
+        "working_state": bundle["working_state"],  # type: ignore[typeddict-item]
+        "concept_registry": bundle["concept_registry"],  # type: ignore[typeddict-item]
+        "thread_trace": bundle["thread_trace"],  # type: ignore[typeddict-item]
+        "reflective_frames": bundle["reflective_frames"],  # type: ignore[typeddict-item]
+        "anchor_bank": bundle["anchor_bank"],  # type: ignore[typeddict-item]
         "knowledge_activations": bundle["knowledge_activations"],  # type: ignore[typeddict-item]
         "move_history": bundle["move_history"],  # type: ignore[typeddict-item]
         "reaction_records": reaction_records,  # type: ignore[typeddict-item]
@@ -638,15 +678,17 @@ def resume_from_checkpoint(
             compatibility_issues = [str(issue) for issue in compatibility.get("issues", [])]
             effective_resume_kind = "warm_resume"
 
-    checkpoint_source = checkpoint or {
+    fallback_checkpoint_source = checkpoint or {
         "checkpoint_id": None,
         "cursor": shell.get("cursor", empty_cursor()),
         "local_buffer": live_bundle["local_buffer"],
         "local_continuity": live_bundle["local_continuity"],
         "trigger_state": live_bundle["trigger_state"],
-        "working_pressure": live_bundle["working_pressure"],
-        "anchor_memory": live_bundle["anchor_memory"],
-        "reflective_summaries": live_bundle["reflective_summaries"],
+        "working_state": live_bundle["working_state"],
+        "concept_registry": live_bundle["concept_registry"],
+        "thread_trace": live_bundle["thread_trace"],
+        "reflective_frames": live_bundle["reflective_frames"],
+        "anchor_bank": live_bundle["anchor_bank"],
         "knowledge_activations": live_bundle["knowledge_activations"],
         "move_history": live_bundle["move_history"],
         "reaction_records": live_bundle["reaction_records"],
@@ -654,6 +696,22 @@ def resume_from_checkpoint(
         "reader_policy": live_bundle["reader_policy"],
         "resume_metadata": live_bundle["resume_metadata"],
         "active_artifact_refs": shell.get("active_artifact_refs", {}),
+    }
+    migrated_checkpoint_state = migrate_legacy_runtime_state(
+        working_pressure=checkpoint.get("working_pressure") if isinstance(checkpoint, dict) else None,  # type: ignore[arg-type]
+        anchor_memory=checkpoint.get("anchor_memory") if isinstance(checkpoint, dict) else None,  # type: ignore[arg-type]
+        reflective_summaries=checkpoint.get("reflective_summaries") if isinstance(checkpoint, dict) else None,  # type: ignore[arg-type]
+        existing_concept_registry=(checkpoint or {}).get("concept_registry", live_bundle["concept_registry"]),  # type: ignore[arg-type]
+        existing_thread_trace=(checkpoint or {}).get("thread_trace", live_bundle["thread_trace"]),  # type: ignore[arg-type]
+    )
+    checkpoint_source = {
+        **fallback_checkpoint_source,
+        **migrated_checkpoint_state,
+        "working_state": dict((checkpoint or {}).get("working_state", migrated_checkpoint_state["working_state"])),
+        "concept_registry": dict((checkpoint or {}).get("concept_registry", migrated_checkpoint_state["concept_registry"])),
+        "thread_trace": dict((checkpoint or {}).get("thread_trace", migrated_checkpoint_state["thread_trace"])),
+        "reflective_frames": dict((checkpoint or {}).get("reflective_frames", migrated_checkpoint_state["reflective_frames"])),
+        "anchor_bank": dict((checkpoint or {}).get("anchor_bank", migrated_checkpoint_state["anchor_bank"])),
     }
 
     continuity = dict(checkpoint_source.get("local_continuity", {})) or build_empty_local_continuity(
@@ -718,9 +776,11 @@ def resume_from_checkpoint(
         "local_buffer": local_buffer,
         "local_continuity": continuity,
         "trigger_state": trigger_state,
-        "working_pressure": dict(checkpoint_source.get("working_pressure", live_bundle["working_pressure"])),
-        "anchor_memory": dict(checkpoint_source.get("anchor_memory", live_bundle["anchor_memory"])),
-        "reflective_summaries": dict(checkpoint_source.get("reflective_summaries", live_bundle["reflective_summaries"])),
+        "working_state": dict(checkpoint_source.get("working_state", live_bundle["working_state"])),
+        "concept_registry": dict(checkpoint_source.get("concept_registry", live_bundle["concept_registry"])),
+        "thread_trace": dict(checkpoint_source.get("thread_trace", live_bundle["thread_trace"])),
+        "reflective_frames": dict(checkpoint_source.get("reflective_frames", live_bundle["reflective_frames"])),
+        "anchor_bank": dict(checkpoint_source.get("anchor_bank", live_bundle["anchor_bank"])),
         "knowledge_activations": dict(checkpoint_source.get("knowledge_activations", live_bundle["knowledge_activations"])),
         "move_history": dict(checkpoint_source.get("move_history", live_bundle["move_history"])),
         "reaction_records": dict(checkpoint_source.get("reaction_records", live_bundle["reaction_records"])),

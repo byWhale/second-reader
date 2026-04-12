@@ -4,22 +4,32 @@ from __future__ import annotations
 
 from .schemas import (
     ActiveFocusDigest,
+    AnchorBankState,
     AnchorBankDigest,
     AnchorMemoryState,
     CarryForwardContext,
     CarryForwardRef,
+    ConceptRegistryState,
     ConceptDigestItem,
     LocalBufferState,
     MoveHistoryState,
     NavigationContext,
     ReactionRecordsState,
     ReflectiveFrameDigest,
+    ReflectiveFramesState,
     ReflectiveItem,
     ReflectiveSummariesState,
+    ThreadTraceState,
     ThreadDigestItem,
     TriggerState,
+    WorkingState,
     WorkingPressureState,
     WorkingStateDigest,
+)
+from .state_migration import (
+    migrate_anchor_memory_to_new_layers,
+    migrate_reflective_summaries_to_frames,
+    migrate_working_pressure_to_working_state,
 )
 
 
@@ -71,12 +81,12 @@ def _dedupe_ids(values: list[str]) -> list[str]:
     return ordered
 
 
-def _anchor_inventory(anchor_memory: AnchorMemoryState) -> tuple[dict[str, dict[str, object]], dict[str, int]]:
+def _anchor_inventory(anchor_records: list[dict[str, object]]) -> tuple[dict[str, dict[str, object]], dict[str, int]]:
     """Return an anchor lookup plus a simple recency index."""
 
     anchor_lookup: dict[str, dict[str, object]] = {}
     anchor_order: dict[str, int] = {}
-    for index, anchor in enumerate(anchor_memory.get("anchor_records", [])):
+    for index, anchor in enumerate(anchor_records):
         if not isinstance(anchor, dict):
             continue
         anchor_id = clean_text(anchor.get("anchor_id"))
@@ -121,7 +131,7 @@ def _sample_quotes(
 
 
 def _build_working_state_digest(
-    working_pressure: WorkingPressureState,
+    working_state: WorkingState,
     *,
     refs: list[CarryForwardRef],
 ) -> WorkingStateDigest:
@@ -135,7 +145,7 @@ def _build_working_state_digest(
         "local_motifs": [],
     }
     for bucket in ("local_questions", "local_tensions", "local_hypotheses", "local_motifs"):
-        for item in working_pressure.get(bucket, []):
+        for item in working_state.get(bucket, []):
             if not isinstance(item, dict):
                 continue
             item_id = clean_text(item.get("item_id"))
@@ -160,7 +170,7 @@ def _build_working_state_digest(
                 refs,
                 {
                     "ref_id": ref_id,
-                    "kind": "working_pressure",
+                    "kind": "working_state",
                     "item_id": item_id,
                     "summary": clean_text(item.get("statement")) or clean_text(item.get("kind")),
                 },
@@ -168,9 +178,9 @@ def _build_working_state_digest(
             if len(bucket_records[bucket]) >= 3:
                 break
     return {
-        "gate_state": clean_text(working_pressure.get("gate_state")),
-        "pressure_snapshot": dict(working_pressure.get("pressure_snapshot", {}))
-        if isinstance(working_pressure.get("pressure_snapshot"), dict)
+        "gate_state": clean_text(working_state.get("gate_state")),
+        "pressure_snapshot": dict(working_state.get("pressure_snapshot", {}))
+        if isinstance(working_state.get("pressure_snapshot"), dict)
         else {},
         "hot_items": hot_items,
         "open_questions": bucket_records["local_questions"],
@@ -181,7 +191,7 @@ def _build_working_state_digest(
 
 
 def _build_reflective_frame_digest(
-    reflective_summaries: ReflectiveSummariesState,
+    reflective_frames: ReflectiveFramesState,
     *,
     chapter_ref: str,
     refs: list[CarryForwardRef],
@@ -197,7 +207,7 @@ def _build_reflective_frame_digest(
         ("durable_definitions", 1, durable_definitions),
     ):
         selected = matching_chapter_items(
-            [item for item in reflective_summaries.get(bucket, []) if isinstance(item, dict)],
+            [item for item in reflective_frames.get(bucket, []) if isinstance(item, dict)],
             chapter_ref=chapter_ref,
             limit=limit,
         )
@@ -235,14 +245,14 @@ def _build_reflective_frame_digest(
 
 
 def _build_anchor_bank_digest(
-    anchor_memory: AnchorMemoryState,
+    anchor_bank: AnchorBankState,
     *,
     refs: list[CarryForwardRef],
 ) -> AnchorBankDigest:
     """Build the bounded anchor-bank packet from persisted anchor memory."""
 
     active_anchors: list[dict[str, object]] = []
-    for anchor in list(anchor_memory.get("anchor_records", []))[-4:]:
+    for anchor in list(anchor_bank.get("anchor_records", []))[-4:]:
         if not isinstance(anchor, dict):
             continue
         anchor_id = clean_text(anchor.get("anchor_id"))
@@ -275,62 +285,44 @@ def _build_anchor_bank_digest(
 
 
 def _build_concept_digest(
-    anchor_memory: AnchorMemoryState,
+    concept_registry: ConceptRegistryState,
+    anchor_bank: AnchorBankState,
     *,
     refs: list[CarryForwardRef],
 ) -> list[ConceptDigestItem]:
-    """Build a small concept digest from current motif and unresolved-reference indexes."""
+    """Build a small concept digest from the new concept registry."""
 
-    anchor_lookup, anchor_order = _anchor_inventory(anchor_memory)
-    motif_index = {
-        clean_text(key).lower(): _sort_anchor_ids(list(value), anchor_order)
-        for key, value in anchor_memory.get("motif_index", {}).items()
-        if clean_text(key)
-    }
-    unresolved_index = {
-        clean_text(key).lower(): _sort_anchor_ids(list(value), anchor_order)
-        for key, value in anchor_memory.get("unresolved_reference_index", {}).items()
-        if clean_text(key)
-    }
-    keys = sorted(
-        {key for key in [*motif_index.keys(), *unresolved_index.keys()] if key},
-        key=lambda key: (
-            -(2 if key in motif_index and key in unresolved_index else 1 if key in motif_index else 0),
+    anchor_lookup, anchor_order = _anchor_inventory(
+        [dict(anchor) for anchor in anchor_bank.get("anchor_records", []) if isinstance(anchor, dict)]
+    )
+    entries = [
+        dict(entry)
+        for entry in concept_registry.get("entries", [])
+        if isinstance(entry, dict) and clean_text(entry.get("concept_key"))
+    ]
+    entries.sort(
+        key=lambda entry: (
             -max(
-                [_anchor_recency(anchor_id, anchor_order) for anchor_id in [*motif_index.get(key, []), *unresolved_index.get(key, [])]]
+                [_anchor_recency(anchor_id, anchor_order) for anchor_id in entry.get("support_anchor_ids", []) if clean_text(anchor_id)]
                 or [-1]
             ),
-            key,
-        ),
-    )
-
-    digest: list[ConceptDigestItem] = []
-    for concept_key in keys[:_CONCEPT_DIGEST_LIMIT]:
-        linked_anchor_ids = _sort_anchor_ids(
-            [*motif_index.get(concept_key, []), *unresolved_index.get(concept_key, [])],
-            anchor_order,
+            -len([anchor_id for anchor_id in entry.get("support_anchor_ids", []) if clean_text(anchor_id)]),
+            clean_text(entry.get("status")) != "open",
+            clean_text(entry.get("concept_key")),
         )
-        if not linked_anchor_ids:
-            continue
-        in_motif = concept_key in motif_index
-        in_unresolved = concept_key in unresolved_index
-        if in_motif and in_unresolved:
-            concept_type = "motif_and_unresolved_reference"
-            rationale = "This concept recurs in retained anchors and still carries unresolved pressure."
-        elif in_unresolved:
-            concept_type = "unresolved_reference"
-            rationale = "This concept remains unresolved across retained anchors and may need renewed attention."
-        else:
-            concept_type = "motif"
-            rationale = "This concept recurs across retained anchors and remains part of the active local field."
+    )
+    digest: list[ConceptDigestItem] = []
+    for entry in entries[:_CONCEPT_DIGEST_LIMIT]:
+        concept_key = clean_text(entry.get("concept_key"))
+        linked_anchor_ids = _sort_anchor_ids(list(entry.get("support_anchor_ids", [])), anchor_order)
         ref_id = f"concept:{concept_key}"
         item: ConceptDigestItem = {
             "ref_id": ref_id,
             "concept_key": concept_key,
-            "concept_type": concept_type,
+            "concept_type": clean_text(entry.get("concept_type")),
             "linked_anchor_ids": linked_anchor_ids[:4],
             "sample_quotes": _sample_quotes(linked_anchor_ids, anchor_lookup=anchor_lookup),
-            "rationale": rationale,
+            "rationale": clean_text(entry.get("summary")),
         }
         digest.append(item)
         _append_ref(
@@ -339,57 +331,48 @@ def _build_concept_digest(
                 "ref_id": ref_id,
                 "kind": "concept",
                 "item_id": concept_key,
-                "summary": rationale,
-                "anchor_id": linked_anchor_ids[0],
+                "summary": clean_text(entry.get("summary")) or clean_text(entry.get("concept_type")),
+                "anchor_id": linked_anchor_ids[0] if linked_anchor_ids else "",
             },
         )
     return digest
 
 
 def _build_thread_digest(
-    anchor_memory: AnchorMemoryState,
+    thread_trace: ThreadTraceState,
+    anchor_bank: AnchorBankState,
     *,
     refs: list[CarryForwardRef],
 ) -> list[ThreadDigestItem]:
-    """Build a small thread digest from current trace and unresolved-reference indexes."""
+    """Build a small thread digest from the new thread trace."""
 
-    anchor_lookup, anchor_order = _anchor_inventory(anchor_memory)
+    anchor_lookup, anchor_order = _anchor_inventory(
+        [dict(anchor) for anchor in anchor_bank.get("anchor_records", []) if isinstance(anchor, dict)]
+    )
     candidates: list[tuple[int, str, ThreadDigestItem]] = []
 
-    for source_anchor_id, target_anchor_ids in anchor_memory.get("trace_links", {}).items():
-        clean_source = clean_text(source_anchor_id)
-        linked_anchor_ids = _sort_anchor_ids(list(target_anchor_ids), anchor_order)
-        if not clean_source or not linked_anchor_ids:
+    for entry in thread_trace.get("entries", []):
+        if not isinstance(entry, dict):
             continue
-        recency = max([_anchor_recency(clean_source, anchor_order), *[_anchor_recency(anchor_id, anchor_order) for anchor_id in linked_anchor_ids]])
+        thread_key = clean_text(entry.get("thread_key"))
+        linked_anchor_ids = _sort_anchor_ids(list(entry.get("support_anchor_ids", [])), anchor_order)
+        if not thread_key or not linked_anchor_ids:
+            continue
+        source_anchor_id = clean_text(entry.get("source_anchor_id")) or linked_anchor_ids[0]
+        recency = max(
+            [_anchor_recency(anchor_id, anchor_order) for anchor_id in [source_anchor_id, *linked_anchor_ids] if clean_text(anchor_id)]
+            or [-1]
+        )
         item: ThreadDigestItem = {
-            "ref_id": f"thread:trace:{clean_source}",
-            "thread_key": f"trace:{clean_source}",
-            "thread_type": "trace_link",
-            "source_anchor_id": clean_source,
-            "linked_anchor_ids": linked_anchor_ids[:4],
-            "sample_quotes": _sample_quotes([clean_source, *linked_anchor_ids], anchor_lookup=anchor_lookup, limit=3),
-            "rationale": "This thread already has retained trace links across earlier and later anchors.",
-        }
-        candidates.append((recency, clean_source, item))
-
-    for unresolved_key, anchor_ids in anchor_memory.get("unresolved_reference_index", {}).items():
-        clean_key = clean_text(unresolved_key).lower()
-        linked_anchor_ids = _sort_anchor_ids(list(anchor_ids), anchor_order)
-        if not clean_key or not linked_anchor_ids:
-            continue
-        source_anchor_id = linked_anchor_ids[0]
-        recency = max([_anchor_recency(anchor_id, anchor_order) for anchor_id in linked_anchor_ids] or [-1])
-        item = {
-            "ref_id": f"thread:open:{clean_key}",
-            "thread_key": clean_key,
-            "thread_type": "open_reference",
+            "ref_id": f"thread:{thread_key}",
+            "thread_key": thread_key,
+            "thread_type": clean_text(entry.get("thread_type")),
             "source_anchor_id": source_anchor_id,
             "linked_anchor_ids": linked_anchor_ids[:4],
-            "sample_quotes": _sample_quotes(linked_anchor_ids, anchor_lookup=anchor_lookup),
-            "rationale": "This unresolved line is still open across retained anchors and may need explicit follow-through.",
+            "sample_quotes": _sample_quotes([source_anchor_id, *linked_anchor_ids], anchor_lookup=anchor_lookup, limit=3),
+            "rationale": clean_text(entry.get("summary")),
         }
-        candidates.append((recency, clean_key, item))
+        candidates.append((recency, thread_key, item))
 
     candidates.sort(key=lambda item: (-item[0], item[1]))
 
@@ -548,21 +531,46 @@ def build_carry_forward_context(
     chapter_ref: str,
     current_unit_sentence_ids: list[str],
     local_buffer: LocalBufferState,
-    working_pressure: WorkingPressureState,
-    anchor_memory: AnchorMemoryState,
-    reflective_summaries: ReflectiveSummariesState,
+    working_state: WorkingState | None = None,
+    concept_registry: ConceptRegistryState | None = None,
+    thread_trace: ThreadTraceState | None = None,
+    reflective_frames: ReflectiveFramesState | None = None,
+    anchor_bank: AnchorBankState | None = None,
+    working_pressure: WorkingPressureState | None = None,
+    anchor_memory: AnchorMemoryState | None = None,
+    reflective_summaries: ReflectiveSummariesState | None = None,
     move_history: MoveHistoryState,
     reaction_records: ReactionRecordsState,
 ) -> CarryForwardContext:
     """Build the bounded read-context packet from current persisted state."""
 
+    primary_working_state = (
+        dict(working_state)
+        if isinstance(working_state, dict)
+        else migrate_working_pressure_to_working_state(working_pressure)
+    )
+    primary_reflective_frames = (
+        dict(reflective_frames)
+        if isinstance(reflective_frames, dict)
+        else migrate_reflective_summaries_to_frames(reflective_summaries)
+    )
+    if isinstance(anchor_bank, dict) and isinstance(concept_registry, dict) and isinstance(thread_trace, dict):
+        primary_anchor_bank = dict(anchor_bank)
+        primary_concept_registry = dict(concept_registry)
+        primary_thread_trace = dict(thread_trace)
+    else:
+        primary_anchor_bank, primary_concept_registry, primary_thread_trace = migrate_anchor_memory_to_new_layers(
+            anchor_memory,
+            existing_concept_registry=concept_registry,
+            existing_thread_trace=thread_trace,
+        )
     excluded_sentence_ids = {clean_text(item) for item in current_unit_sentence_ids if clean_text(item)}
     refs: list[CarryForwardRef] = []
-    working_state_digest = _build_working_state_digest(working_pressure, refs=refs)
-    chapter_reflective_frame = _build_reflective_frame_digest(reflective_summaries, chapter_ref=chapter_ref, refs=refs)
-    concept_digest = _build_concept_digest(anchor_memory, refs=refs)
-    thread_digest = _build_thread_digest(anchor_memory, refs=refs)
-    anchor_bank_digest = _build_anchor_bank_digest(anchor_memory, refs=refs)
+    working_state_digest = _build_working_state_digest(primary_working_state, refs=refs)
+    chapter_reflective_frame = _build_reflective_frame_digest(primary_reflective_frames, chapter_ref=chapter_ref, refs=refs)
+    concept_digest = _build_concept_digest(primary_concept_registry, primary_anchor_bank, refs=refs)
+    thread_digest = _build_thread_digest(primary_thread_trace, primary_anchor_bank, refs=refs)
+    anchor_bank_digest = _build_anchor_bank_digest(primary_anchor_bank, refs=refs)
     recent_moves = _build_recent_moves(move_history, refs=refs)
     recent_reactions = _build_recent_reactions(reaction_records, refs=refs)
     session_continuity_capsule = _build_session_continuity_capsule(
@@ -609,9 +617,14 @@ def build_navigation_context(
     current_sentence_id: str,
     local_buffer: LocalBufferState,
     trigger_state: TriggerState,
-    working_pressure: WorkingPressureState,
-    anchor_memory: AnchorMemoryState,
-    reflective_summaries: ReflectiveSummariesState,
+    working_state: WorkingState | None = None,
+    concept_registry: ConceptRegistryState | None = None,
+    thread_trace: ThreadTraceState | None = None,
+    reflective_frames: ReflectiveFramesState | None = None,
+    anchor_bank: AnchorBankState | None = None,
+    working_pressure: WorkingPressureState | None = None,
+    anchor_memory: AnchorMemoryState | None = None,
+    reflective_summaries: ReflectiveSummariesState | None = None,
     move_history: MoveHistoryState,
     reaction_records: ReactionRecordsState,
 ) -> NavigationContext:
@@ -621,6 +634,11 @@ def build_navigation_context(
         chapter_ref=chapter_ref,
         current_unit_sentence_ids=[current_sentence_id] if current_sentence_id else [],
         local_buffer=local_buffer,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
         working_pressure=working_pressure,
         anchor_memory=anchor_memory,
         reflective_summaries=reflective_summaries,

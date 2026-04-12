@@ -18,6 +18,11 @@ from src.attentional_v2.schemas import (
     build_empty_reflective_summaries,
     build_empty_working_pressure,
 )
+from src.attentional_v2.state_migration import (
+    migrate_anchor_memory_to_new_layers,
+    migrate_reflective_summaries_to_frames,
+    migrate_working_pressure_to_working_state,
+)
 from src.attentional_v2.storage import read_audit_file
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
 
@@ -207,7 +212,7 @@ def test_read_unit_includes_carry_forward_and_supplemental_context_in_prompt(tmp
     assert "\"sentence_id\": \"c1-s2\"" in captured["prompt"]
     assert "anchor:a-1" in captured["prompt"]
     assert "lookback:sentence:c1-s1" in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.read.v2"
+    assert manifest["prompt_version"] == "attentional_v2.read.v3"
     assert result["move_hint"] == "bridge"
     assert result["continuation_pressure"] is True
     assert result["prior_material_use"]["supporting_ref_ids"] == ["anchor:a-1", "lookback:sentence:c1-s1"]
@@ -226,6 +231,8 @@ def test_resolve_context_request_returns_exact_look_back_excerpt_and_none_when_u
     book_document = _book_document()
     anchor_memory = build_empty_anchor_memory()
     anchor_memory["anchor_records"].append(_anchor_record("a-1", "c1-s1", "Alpha sentence."))
+    anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(anchor_memory)
+    reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
     carry_forward = build_carry_forward_context(
         chapter_ref="Chapter 1",
         current_unit_sentence_ids=["c1-s2"],
@@ -247,8 +254,10 @@ def test_resolve_context_request_returns_exact_look_back_excerpt_and_none_when_u
         carry_forward_context=carry_forward,
         book_document=book_document,
         chapter_ref="Chapter 1",
-        anchor_memory=anchor_memory,
-        reflective_summaries=build_empty_reflective_summaries(),
+        anchor_bank=anchor_bank,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
         move_history=build_empty_move_history(),
         reaction_records=build_empty_reaction_records(),
     )
@@ -268,13 +277,67 @@ def test_resolve_context_request_returns_exact_look_back_excerpt_and_none_when_u
         carry_forward_context=carry_forward,
         book_document=book_document,
         chapter_ref="Chapter 1",
+        anchor_bank=anchor_bank,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        move_history=build_empty_move_history(),
+        reaction_records=build_empty_reaction_records(),
+    )
+
+    assert unresolved is None
+
+
+def test_resolve_context_request_active_recall_surfaces_concepts_and_threads():
+    """active_recall should expose bounded concept/thread material from the new primary layers."""
+
+    anchor_memory = build_empty_anchor_memory()
+    anchor_memory["anchor_records"] = [
+        _anchor_record("a-1", "c1-s1", "Alpha sentence."),
+        _anchor_record("a-2", "c1-s2", "Beta sentence."),
+    ]
+    anchor_memory["motif_index"] = {"promise": ["a-1", "a-2"]}
+    anchor_memory["unresolved_reference_index"] = {"promise": ["a-2"]}
+    anchor_memory["trace_links"] = {"a-1": ["a-2"]}
+    anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(anchor_memory)
+    reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
+
+    carry_forward = build_carry_forward_context(
+        chapter_ref="Chapter 1",
+        current_unit_sentence_ids=["c1-s2"],
+        local_buffer=build_empty_local_buffer(),
+        working_pressure=build_empty_working_pressure(),
         anchor_memory=anchor_memory,
         reflective_summaries=build_empty_reflective_summaries(),
         move_history=build_empty_move_history(),
         reaction_records=build_empty_reaction_records(),
     )
 
-    assert unresolved is None
+    resolved = resolve_context_request(
+        context_request={
+            "kind": "active_recall",
+            "reason": "Need more prior structure.",
+            "anchor_ids": [],
+            "sentence_ids": [],
+        },
+        carry_forward_context=carry_forward,
+        book_document=_book_document(),
+        chapter_ref="Chapter 1",
+        anchor_bank=anchor_bank,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        move_history=build_empty_move_history(),
+        reaction_records=build_empty_reaction_records(),
+        current_unit_sentence_ids=["c1-s2"],
+    )
+
+    assert resolved is not None
+    assert resolved["kind"] == "active_recall"
+    assert resolved["concepts"][0]["concept_key"] == "promise"
+    assert resolved["threads"][0]["thread_key"]
+    assert any(ref["kind"] == "concept" for ref in resolved["refs"])
+    assert any(ref["kind"] == "thread" for ref in resolved["refs"])
 
 
 def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_audit(tmp_path, monkeypatch):
@@ -286,6 +349,8 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
     chapter = book_document["chapters"][0]
     anchor_memory = build_empty_anchor_memory()
     anchor_memory["anchor_records"].append(_anchor_record("a-1", "c1-s1", "Alpha sentence."))
+    anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(anchor_memory)
+    reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
     calls: list[dict[str, object]] = []
 
     def fake_read_unit(**kwargs):
@@ -360,9 +425,11 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
             "continuation_pressure": False,
         },
         local_buffer=build_empty_local_buffer(),
-        working_pressure=build_empty_working_pressure(),
-        anchor_memory=anchor_memory,
-        reflective_summaries=build_empty_reflective_summaries(),
+        working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
         knowledge_activations=build_empty_knowledge_activations(),
         move_history=build_empty_move_history(),
         reaction_records=build_empty_reaction_records(),
@@ -394,6 +461,8 @@ def test_run_read_with_context_loop_keeps_first_read_when_look_back_is_unsatisfi
     book_document = _book_document()
     chapter = book_document["chapters"][0]
     calls: list[dict[str, object]] = []
+    empty_anchor_bank, empty_concept_registry, empty_thread_trace = migrate_anchor_memory_to_new_layers(build_empty_anchor_memory())
+    empty_reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
 
     first_read = {
         "local_understanding": "The unit remains locally readable without the missing excerpt.",
@@ -441,9 +510,11 @@ def test_run_read_with_context_loop_keeps_first_read_when_look_back_is_unsatisfi
             "continuation_pressure": True,
         },
         local_buffer=build_empty_local_buffer(),
-        working_pressure=build_empty_working_pressure(),
-        anchor_memory=build_empty_anchor_memory(),
-        reflective_summaries=build_empty_reflective_summaries(),
+        working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
+        concept_registry=empty_concept_registry,
+        thread_trace=empty_thread_trace,
+        reflective_frames=empty_reflective_frames,
+        anchor_bank=empty_anchor_bank,
         knowledge_activations=build_empty_knowledge_activations(),
         move_history=build_empty_move_history(),
         reaction_records=build_empty_reaction_records(),

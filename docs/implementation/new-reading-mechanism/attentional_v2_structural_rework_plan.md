@@ -32,7 +32,13 @@ Implementation checkpoint:
   - live state packets now derive a bounded `thread_digest` from the current `trace_links + unresolved_reference_index`
   - `navigate.unitize` and `read` now both receive those small concept/thread digests through the packet layer
   - persisted runtime files and public compatibility surfaces remain unchanged
-- next backend slice: `Phase C.3`
+- `Phase C.3` is landed as the direct main-state cutover:
+  - new runs now treat `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` as the primary runtime and checkpoint truth
+  - `working_pressure / anchor_memory / reflective_summaries` are now legacy load-only inputs plus projection targets for still-unmigrated helper code
+  - `active_recall` now surfaces first-class `concepts` and `threads` from the new state layers
+  - newly written checkpoints now use only the new primary state keys, while resume still accepts both old and new runtime/checkpoint shapes
+  - public compatibility surfaces remain unchanged
+- next backend slice: `Phase C.4`
 
 Primary upstream evidence:
 
@@ -524,7 +530,11 @@ Status:
 - `Phase C.1` landed on April 12, 2026 as the first packetization seam
 - `Phase C.2` also landed on April 12, 2026 as the first state-territory slice
   - live packets now include bounded `concept_digest` and `thread_digest` views derived from the current persisted indexes
-- the remaining open work for this phase is `Phase C.3+`, where deeper state-territory migration becomes more explicit
+- `Phase C.3` also landed on April 12, 2026 as the direct main-state cutover
+  - new runs now write and resume against `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` as the primary runtime/checkpoint truth
+  - legacy `working_pressure / anchor_memory / reflective_summaries` are still accepted on load and are still projected for helper compatibility, but they no longer own the live semantic state
+  - `active_recall` now exposes first-class `concepts` and `threads` from the new layers
+- the remaining open work for this phase is now `Phase C.4+`, where legacy helper dependence is retired and the remaining slow-cycle/helper internals move fully onto the new ownership map
 
 #### Concrete design target
 

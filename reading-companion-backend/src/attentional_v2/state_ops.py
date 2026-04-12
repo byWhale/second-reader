@@ -7,9 +7,12 @@ from typing import Literal
 
 from .schemas import (
     AnchoredReactionRecord,
+    AnchorBankState,
     AnchorMemoryState,
     AnchorRecord,
     AnchorRelation,
+    ConceptRegistryEntry,
+    ConceptRegistryState,
     GateState,
     KnowledgeActivation,
     KnowledgeActivationsState,
@@ -23,12 +26,16 @@ from .schemas import (
     ReconsolidationRecord,
     ReconsolidationRecordsState,
     ReflectiveItem,
+    ReflectiveFramesState,
     ReflectiveSummariesState,
+    ThreadTraceEntry,
+    ThreadTraceState,
     TriggerDecision,
     TriggerSignal,
     TriggerState,
     WorkingPressureItem,
     WorkingPressureState,
+    WorkingState,
     StateOperation,
 )
 
@@ -87,7 +94,10 @@ def _remove_by_id(items: list[dict[str, object]], item_id: str, *, id_key: str) 
     return [item for item in items if str(item.get(id_key, "") or "") != selected]
 
 
-def set_gate_state(state: WorkingPressureState, gate_state: GateState) -> WorkingPressureState:
+def set_gate_state(
+    state: WorkingPressureState | WorkingState,
+    gate_state: GateState,
+) -> WorkingPressureState | WorkingState:
     """Set the controller gate state."""
 
     next_state = _touch_state(state)
@@ -96,11 +106,11 @@ def set_gate_state(state: WorkingPressureState, gate_state: GateState) -> Workin
 
 
 def replace_pressure_bucket(
-    state: WorkingPressureState,
+    state: WorkingPressureState | WorkingState,
     *,
     bucket: PressureBucket,
     items: list[WorkingPressureItem],
-) -> WorkingPressureState:
+) -> WorkingPressureState | WorkingState:
     """Replace one local-pressure bucket."""
 
     next_state = _touch_state(state)
@@ -108,7 +118,10 @@ def replace_pressure_bucket(
     return next_state  # type: ignore[return-value]
 
 
-def set_pressure_snapshot(state: WorkingPressureState, snapshot: PressureSnapshot) -> WorkingPressureState:
+def set_pressure_snapshot(
+    state: WorkingPressureState | WorkingState,
+    snapshot: PressureSnapshot,
+) -> WorkingPressureState | WorkingState:
     """Replace the derived pressure snapshot."""
 
     next_state = _touch_state(state)
@@ -116,16 +129,16 @@ def set_pressure_snapshot(state: WorkingPressureState, snapshot: PressureSnapsho
     return next_state  # type: ignore[return-value]
 
 
-def apply_working_pressure_operations(
-    state: WorkingPressureState,
+def _apply_working_state_operations(
+    state: WorkingPressureState | WorkingState,
     operations: list[StateOperation],
-) -> WorkingPressureState:
+) -> WorkingPressureState | WorkingState:
     """Apply explicit working-pressure mutations from node outputs."""
 
     next_state = dict(state)
     touched = False
     for operation in operations:
-        if str(operation.get("target_store", "") or "") != "working_pressure":
+        if str(operation.get("target_store", "") or "") not in {"working_pressure", "working_state"}:
             continue
         payload = operation.get("payload")
         if not isinstance(payload, dict):
@@ -168,6 +181,24 @@ def apply_working_pressure_operations(
 
     next_state["updated_at"] = _timestamp()
     return next_state  # type: ignore[return-value]
+
+
+def apply_working_pressure_operations(
+    state: WorkingPressureState,
+    operations: list[StateOperation],
+) -> WorkingPressureState:
+    """Apply explicit working-pressure mutations from node outputs."""
+
+    return _apply_working_state_operations(state, operations)  # type: ignore[return-value]
+
+
+def apply_working_state_operations(
+    state: WorkingState,
+    operations: list[StateOperation],
+) -> WorkingState:
+    """Apply explicit working-state mutations from read outputs."""
+
+    return _apply_working_state_operations(state, operations)  # type: ignore[return-value]
 
 
 def push_local_buffer_sentence(
@@ -239,7 +270,10 @@ def set_trigger_result(
     return next_state  # type: ignore[return-value]
 
 
-def upsert_anchor_record(state: AnchorMemoryState, anchor: AnchorRecord) -> AnchorMemoryState:
+def upsert_anchor_record(
+    state: AnchorMemoryState | AnchorBankState,
+    anchor: AnchorRecord,
+) -> AnchorMemoryState | AnchorBankState:
     """Upsert one anchor record by anchor id."""
 
     next_state = _touch_state(state)
@@ -248,7 +282,10 @@ def upsert_anchor_record(state: AnchorMemoryState, anchor: AnchorRecord) -> Anch
     return next_state  # type: ignore[return-value]
 
 
-def append_anchor_relation(state: AnchorMemoryState, relation: AnchorRelation) -> AnchorMemoryState:
+def append_anchor_relation(
+    state: AnchorMemoryState | AnchorBankState,
+    relation: AnchorRelation,
+) -> AnchorMemoryState | AnchorBankState:
     """Append or replace one anchor relation by relation id."""
 
     next_state = _touch_state(state)
@@ -257,15 +294,15 @@ def append_anchor_relation(state: AnchorMemoryState, relation: AnchorRelation) -
     return next_state  # type: ignore[return-value]
 
 
-def apply_anchor_memory_operations(
-    state: AnchorMemoryState,
+def _apply_anchor_bank_operations(
+    state: AnchorMemoryState | AnchorBankState,
     operations: list[StateOperation],
-) -> AnchorMemoryState:
+) -> AnchorMemoryState | AnchorBankState:
     """Apply explicit anchor-memory mutations from read/bridge outputs."""
 
     next_state = state
     for operation in operations:
-        if str(operation.get("target_store", "") or "") != "anchor_memory":
+        if str(operation.get("target_store", "") or "") not in {"anchor_memory", "anchor_bank"}:
             continue
         payload = operation.get("payload")
         if not isinstance(payload, dict):
@@ -316,17 +353,177 @@ def apply_anchor_memory_operations(
     return next_state
 
 
+def apply_anchor_memory_operations(
+    state: AnchorMemoryState,
+    operations: list[StateOperation],
+) -> AnchorMemoryState:
+    """Apply explicit anchor-memory mutations from read/bridge outputs."""
+
+    return _apply_anchor_bank_operations(state, operations)  # type: ignore[return-value]
+
+
+def apply_anchor_bank_operations(
+    state: AnchorBankState,
+    operations: list[StateOperation],
+) -> AnchorBankState:
+    """Apply explicit anchor-bank mutations from read outputs."""
+
+    return _apply_anchor_bank_operations(state, operations)  # type: ignore[return-value]
+
+
 def upsert_reflective_item(
-    state: ReflectiveSummariesState,
+    state: ReflectiveSummariesState | ReflectiveFramesState,
     *,
     bucket: ReflectiveBucket,
     item: ReflectiveItem,
-) -> ReflectiveSummariesState:
+) -> ReflectiveSummariesState | ReflectiveFramesState:
     """Upsert one reflective summary item inside the selected bucket."""
 
     next_state = _touch_state(state)
     bucket_items = [dict(existing) for existing in state.get(bucket, [])]
     next_state[bucket] = _upsert_by_id(bucket_items, dict(item), id_key="item_id")
+    return next_state  # type: ignore[return-value]
+
+
+def _merge_linked_ids(existing: dict[str, object], payload: dict[str, object], key: str) -> list[str]:
+    """Merge one linked-id field while preserving a stable order."""
+
+    values = [str(item or "") for item in [*existing.get(key, []), *payload.get(key, [])] if str(item or "")]
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return ordered
+
+
+def _upsert_concept_entry(
+    entries: list[dict[str, object]],
+    *,
+    concept_key: str,
+    operation_type: str,
+    payload: dict[str, object],
+) -> list[dict[str, object]]:
+    """Apply one concept-registry mutation to the current entries."""
+
+    existing = next((dict(entry) for entry in entries if str(entry.get("concept_key", "") or "") == concept_key), {})
+    if operation_type == "drop":
+        return [entry for entry in entries if str(entry.get("concept_key", "") or "") != concept_key]
+
+    merged: ConceptRegistryEntry = {
+        "concept_key": concept_key,
+        "concept_type": str(payload.get("concept_type", "") or existing.get("concept_type", "") or "concept"),
+        "status": str(
+            payload.get("status", "") or existing.get("status", "") or ("resolved" if operation_type == "resolve" else "active")
+        ),
+        "summary": str(payload.get("summary", "") or existing.get("summary", "")),
+        "support_anchor_ids": _merge_linked_ids(existing, payload, "support_anchor_ids"),
+        "linked_thread_ids": _merge_linked_ids(existing, payload, "linked_thread_ids"),
+        "last_touched_sentence_id": str(
+            payload.get("last_touched_sentence_id", "") or existing.get("last_touched_sentence_id", "")
+        ),
+    }
+    if operation_type == "reactivate" and not payload.get("status"):
+        merged["status"] = "active"
+    return _upsert_by_id([dict(entry) for entry in entries], merged, id_key="concept_key")
+
+
+def apply_concept_registry_operations(
+    state: ConceptRegistryState,
+    operations: list[StateOperation],
+) -> ConceptRegistryState:
+    """Apply explicit concept-registry mutations from read outputs."""
+
+    next_state = dict(state)
+    entries = [dict(entry) for entry in state.get("entries", []) if isinstance(entry, dict)]
+    touched = False
+    for operation in operations:
+        if str(operation.get("target_store", "") or "") != "concept_registry":
+            continue
+        payload = operation.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        concept_key = str(operation.get("item_id", "") or payload.get("concept_key", "") or "").strip()
+        if not concept_key:
+            continue
+        entries = _upsert_concept_entry(
+            entries,
+            concept_key=concept_key,
+            operation_type=str(operation.get("operation_type", "") or ""),
+            payload=payload,
+        )
+        touched = True
+    if not touched:
+        return state
+    next_state["entries"] = entries
+    next_state["updated_at"] = _timestamp()
+    return next_state  # type: ignore[return-value]
+
+
+def _upsert_thread_entry(
+    entries: list[dict[str, object]],
+    *,
+    thread_key: str,
+    operation_type: str,
+    payload: dict[str, object],
+) -> list[dict[str, object]]:
+    """Apply one thread-trace mutation to the current entries."""
+
+    existing = next((dict(entry) for entry in entries if str(entry.get("thread_key", "") or "") == thread_key), {})
+    if operation_type == "drop":
+        return [entry for entry in entries if str(entry.get("thread_key", "") or "") != thread_key]
+
+    merged: ThreadTraceEntry = {
+        "thread_key": thread_key,
+        "thread_type": str(payload.get("thread_type", "") or existing.get("thread_type", "") or "thread"),
+        "status": str(
+            payload.get("status", "") or existing.get("status", "") or ("resolved" if operation_type == "resolve" else "active")
+        ),
+        "summary": str(payload.get("summary", "") or existing.get("summary", "")),
+        "support_anchor_ids": _merge_linked_ids(existing, payload, "support_anchor_ids"),
+        "linked_concept_keys": _merge_linked_ids(existing, payload, "linked_concept_keys"),
+        "last_touched_sentence_id": str(
+            payload.get("last_touched_sentence_id", "") or existing.get("last_touched_sentence_id", "")
+        ),
+        "source_anchor_id": str(payload.get("source_anchor_id", "") or existing.get("source_anchor_id", "")),
+        "target_anchor_ids": _merge_linked_ids(existing, payload, "target_anchor_ids"),
+    }
+    if operation_type == "reactivate" and not payload.get("status"):
+        merged["status"] = "active"
+    return _upsert_by_id([dict(entry) for entry in entries], merged, id_key="thread_key")
+
+
+def apply_thread_trace_operations(
+    state: ThreadTraceState,
+    operations: list[StateOperation],
+) -> ThreadTraceState:
+    """Apply explicit thread-trace mutations from read outputs."""
+
+    next_state = dict(state)
+    entries = [dict(entry) for entry in state.get("entries", []) if isinstance(entry, dict)]
+    touched = False
+    for operation in operations:
+        if str(operation.get("target_store", "") or "") != "thread_trace":
+            continue
+        payload = operation.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        thread_key = str(operation.get("item_id", "") or payload.get("thread_key", "") or "").strip()
+        if not thread_key:
+            continue
+        entries = _upsert_thread_entry(
+            entries,
+            thread_key=thread_key,
+            operation_type=str(operation.get("operation_type", "") or ""),
+            payload=payload,
+        )
+        touched = True
+    if not touched:
+        return state
+    next_state["entries"] = entries
+    next_state["updated_at"] = _timestamp()
     return next_state  # type: ignore[return-value]
 
 

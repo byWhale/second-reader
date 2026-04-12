@@ -7,12 +7,16 @@ from pathlib import Path
 from src.reading_core import BookDocument
 
 from .schemas import (
-    AnchorMemoryState,
+    AnchorBankState,
+    CarryForwardContext,
+    CarryForwardRef,
+    ConceptRegistryState,
     ContextRequest,
     MoveHistoryState,
     ReactionRecordsState,
     ReaderPolicy,
-    ReflectiveSummariesState,
+    ReflectiveFramesState,
+    ThreadTraceState,
     UnitizeDecision,
 )
 from .state_projection import build_carry_forward_context, clean_text, context_ref_ids, matching_chapter_items
@@ -66,17 +70,61 @@ def _sentence_span_text(
     return selected_ids, " ".join(text for text in texts if text), chapter_ref
 
 
+def _anchor_records(anchor_bank: AnchorBankState) -> list[dict[str, object]]:
+    """Return normalized anchor records from the primary anchor bank."""
+
+    return [dict(anchor) for anchor in anchor_bank.get("anchor_records", []) if isinstance(anchor, dict)]
+
+
+def _linked_keys_from_digest(
+    carry_forward_context: CarryForwardContext,
+    *,
+    digest_key: str,
+    id_key: str,
+) -> set[str]:
+    """Return ids already present in the carried-forward digest."""
+
+    return {
+        clean_text(item.get(id_key))
+        for item in carry_forward_context.get(digest_key, [])
+        if isinstance(item, dict) and clean_text(item.get(id_key))
+    }
+
+
+def _current_unit_anchor_ids(
+    anchor_bank: AnchorBankState,
+    *,
+    current_unit_sentence_ids: list[str] | None,
+) -> set[str]:
+    """Return anchor ids whose evidence overlaps the current chosen unit."""
+
+    unit_ids = {clean_text(sentence_id) for sentence_id in current_unit_sentence_ids or [] if clean_text(sentence_id)}
+    if not unit_ids:
+        return set()
+    matched: set[str] = set()
+    for anchor in _anchor_records(anchor_bank):
+        anchor_id = clean_text(anchor.get("anchor_id"))
+        start_id = clean_text(anchor.get("sentence_start_id"))
+        end_id = clean_text(anchor.get("sentence_end_id"))
+        if anchor_id and (start_id in unit_ids or end_id in unit_ids):
+            matched.add(anchor_id)
+    return matched
+
+
 def resolve_context_request(
     *,
     context_request: ContextRequest,
     carry_forward_context: CarryForwardContext,
     book_document: BookDocument,
     chapter_ref: str,
-    anchor_memory: AnchorMemoryState,
-    reflective_summaries: ReflectiveSummariesState,
+    anchor_bank: AnchorBankState,
+    concept_registry: ConceptRegistryState,
+    thread_trace: ThreadTraceState,
+    reflective_frames: ReflectiveFramesState,
     move_history: MoveHistoryState,
     reaction_records: ReactionRecordsState,
     reader_policy: ReaderPolicy | None = None,
+    current_unit_sentence_ids: list[str] | None = None,
 ) -> dict[str, object] | None:
     """Resolve one bounded supplemental-context request against persisted state."""
 
@@ -113,21 +161,49 @@ def resolve_context_request(
         for item in continuity_capsule.get("recent_moves", [])
         if isinstance(item, dict) and clean_text(item.get("move_id"))
     }
+    carry_concept_keys = _linked_keys_from_digest(
+        carry_forward_context,
+        digest_key="concept_digest",
+        id_key="concept_key",
+    )
+    carry_thread_keys = _linked_keys_from_digest(
+        carry_forward_context,
+        digest_key="thread_digest",
+        id_key="thread_key",
+    )
+    unit_anchor_ids = _current_unit_anchor_ids(
+        anchor_bank,
+        current_unit_sentence_ids=current_unit_sentence_ids,
+    )
 
     if kind == "active_recall":
         refs: list[CarryForwardRef] = []
         anchors: list[dict[str, object]] = []
+        anchor_records = _anchor_records(anchor_bank)
         selected_anchors = [
             dict(anchor)
-            for anchor in anchor_memory.get("anchor_records", [])
+            for anchor in anchor_records
             if isinstance(anchor, dict)
             and (
                 (clean_text(anchor.get("anchor_id")) in requested_anchor_ids)
-                or (not requested_anchor_ids and clean_text(anchor.get("anchor_id")) not in carry_anchor_ids)
+                or (
+                    not requested_anchor_ids
+                    and (
+                        clean_text(anchor.get("anchor_id")) not in carry_anchor_ids
+                        or clean_text(anchor.get("anchor_id")) in unit_anchor_ids
+                    )
+                )
             )
         ]
         if not requested_anchor_ids:
-            selected_anchors = selected_anchors[-4:]
+            selected_anchors.sort(
+                key=lambda anchor: (
+                    clean_text(anchor.get("anchor_id")) not in unit_anchor_ids,
+                    clean_text(anchor.get("anchor_id")) in carry_anchor_ids,
+                    clean_text(anchor.get("anchor_id")),
+                )
+            )
+            selected_anchors = selected_anchors[:4]
         for anchor in selected_anchors[:4]:
             anchor_id = clean_text(anchor.get("anchor_id"))
             if not anchor_id:
@@ -155,6 +231,110 @@ def resolve_context_request(
                     "sentence_id": clean_text(anchor.get("sentence_end_id") or anchor.get("sentence_start_id")),
                 }
             )
+
+        concepts: list[dict[str, object]] = []
+        concept_candidates = [dict(entry) for entry in concept_registry.get("entries", []) if isinstance(entry, dict)]
+        if not requested_anchor_ids and not requested_sentence_ids:
+            concept_candidates.sort(
+                key=lambda entry: (
+                    clean_text(entry.get("concept_key")) not in carry_concept_keys,
+                    not unit_anchor_ids.intersection(
+                        {clean_text(anchor_id) for anchor_id in entry.get("support_anchor_ids", []) if clean_text(anchor_id)}
+                    ),
+                    clean_text(entry.get("status")) != "open",
+                    clean_text(entry.get("concept_key")),
+                )
+            )
+        for entry in concept_candidates:
+            concept_key = clean_text(entry.get("concept_key"))
+            support_anchor_ids = [
+                clean_text(anchor_id)
+                for anchor_id in entry.get("support_anchor_ids", [])
+                if clean_text(anchor_id)
+            ]
+            if not concept_key or (requested_anchor_ids and not set(support_anchor_ids).intersection(requested_anchor_ids)):
+                continue
+            ref_id = f"concept:{concept_key}"
+            concepts.append(
+                {
+                    "ref_id": ref_id,
+                    "concept_key": concept_key,
+                    "concept_type": clean_text(entry.get("concept_type")),
+                    "status": clean_text(entry.get("status")),
+                    "summary": clean_text(entry.get("summary")),
+                    "support_anchor_ids": support_anchor_ids[:4],
+                    "linked_thread_ids": [
+                        clean_text(thread_id)
+                        for thread_id in entry.get("linked_thread_ids", [])
+                        if clean_text(thread_id)
+                    ][:4],
+                    "last_touched_sentence_id": clean_text(entry.get("last_touched_sentence_id")),
+                }
+            )
+            refs.append(
+                {
+                    "ref_id": ref_id,
+                    "kind": "concept",
+                    "item_id": concept_key,
+                    "summary": clean_text(entry.get("summary")) or clean_text(entry.get("concept_type")),
+                    "anchor_id": support_anchor_ids[0] if support_anchor_ids else "",
+                    "sentence_id": clean_text(entry.get("last_touched_sentence_id")),
+                }
+            )
+            if len(concepts) >= 3:
+                break
+
+        threads: list[dict[str, object]] = []
+        thread_candidates = [dict(entry) for entry in thread_trace.get("entries", []) if isinstance(entry, dict)]
+        if not requested_anchor_ids and not requested_sentence_ids:
+            thread_candidates.sort(
+                key=lambda entry: (
+                    clean_text(entry.get("thread_key")) not in carry_thread_keys,
+                    not unit_anchor_ids.intersection(
+                        {clean_text(anchor_id) for anchor_id in entry.get("support_anchor_ids", []) if clean_text(anchor_id)}
+                    ),
+                    clean_text(entry.get("status")) != "open",
+                    clean_text(entry.get("thread_key")),
+                )
+            )
+        for entry in thread_candidates:
+            thread_key = clean_text(entry.get("thread_key"))
+            support_anchor_ids = [
+                clean_text(anchor_id)
+                for anchor_id in entry.get("support_anchor_ids", [])
+                if clean_text(anchor_id)
+            ]
+            if not thread_key or (requested_anchor_ids and not set(support_anchor_ids).intersection(requested_anchor_ids)):
+                continue
+            ref_id = f"thread:{thread_key}"
+            threads.append(
+                {
+                    "ref_id": ref_id,
+                    "thread_key": thread_key,
+                    "thread_type": clean_text(entry.get("thread_type")),
+                    "status": clean_text(entry.get("status")),
+                    "summary": clean_text(entry.get("summary")),
+                    "support_anchor_ids": support_anchor_ids[:4],
+                    "linked_concept_keys": [
+                        clean_text(concept_key)
+                        for concept_key in entry.get("linked_concept_keys", [])
+                        if clean_text(concept_key)
+                    ][:4],
+                    "last_touched_sentence_id": clean_text(entry.get("last_touched_sentence_id")),
+                }
+            )
+            refs.append(
+                {
+                    "ref_id": ref_id,
+                    "kind": "thread",
+                    "item_id": thread_key,
+                    "summary": clean_text(entry.get("summary")) or clean_text(entry.get("thread_type")),
+                    "anchor_id": support_anchor_ids[0] if support_anchor_ids else "",
+                    "sentence_id": clean_text(entry.get("last_touched_sentence_id")),
+                }
+            )
+            if len(threads) >= 3:
+                break
 
         reactions: list[dict[str, object]] = []
         for record in list(reaction_records.get("records", []))[-6:]:
@@ -241,7 +421,7 @@ def resolve_context_request(
         reflective_items: list[dict[str, object]] = []
         for bucket, limit in (("chapter_understandings", 2), ("book_level_frames", 1)):
             for item in matching_chapter_items(
-                [entry for entry in reflective_summaries.get(bucket, []) if isinstance(entry, dict)],
+                [entry for entry in reflective_frames.get(bucket, []) if isinstance(entry, dict)],
                 chapter_ref=chapter_ref,
                 limit=limit,
             ):
@@ -271,13 +451,15 @@ def resolve_context_request(
                     }
                 )
 
-        if not any((anchors, reactions, moves, reflective_items)):
+        if not any((anchors, concepts, threads, reactions, moves, reflective_items)):
             return None
         return {
             "kind": "active_recall",
             "reason": reason,
             "refs": refs,
             "anchors": anchors,
+            "concepts": concepts,
+            "threads": threads,
             "reactions": reactions,
             "moves": moves,
             "reflective_items": reflective_items,
@@ -290,7 +472,7 @@ def resolve_context_request(
     excerpts: list[dict[str, object]] = []
     refs: list[CarryForwardRef] = []
 
-    for anchor in anchor_memory.get("anchor_records", []):
+    for anchor in _anchor_records(anchor_bank):
         if not isinstance(anchor, dict):
             continue
         anchor_id = clean_text(anchor.get("anchor_id"))

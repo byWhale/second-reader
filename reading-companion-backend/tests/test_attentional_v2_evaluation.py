@@ -10,10 +10,10 @@ from src.attentional_v2.evaluation import normalized_eval_bundle_file
 from src.attentional_v2.schemas import (
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
-    build_empty_reflective_summaries,
+    build_empty_reflective_frames,
 )
 from src.attentional_v2.slow_cycle import build_reaction_record, project_chapter_result_compatibility
-from src.attentional_v2.storage import reaction_records_file, reconsolidation_records_file, reflective_summaries_file, save_json
+from src.attentional_v2.storage import reaction_records_file, reconsolidation_records_file, reflective_frames_file, save_json
 from src.reading_core.storage import save_book_document
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
 from src.reading_runtime.artifacts import activity_file, runtime_shell_file
@@ -168,7 +168,7 @@ def test_attentional_v2_can_build_and_persist_normalized_eval_bundle(tmp_path):
     ]
     save_json(reaction_records_file(output_dir), reaction_records)
 
-    reflective = build_empty_reflective_summaries()
+    reflective = build_empty_reflective_frames()
     reflective["chapter_understandings"] = [
         {
             "item_id": "ru-1",
@@ -180,7 +180,7 @@ def test_attentional_v2_can_build_and_persist_normalized_eval_bundle(tmp_path):
             "chapter_ref": "Chapter 1",
         }
     ]
-    save_json(reflective_summaries_file(output_dir), reflective)
+    save_json(reflective_frames_file(output_dir), reflective)
 
     project_chapter_result_compatibility(
         book_id="demo-book",

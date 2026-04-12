@@ -55,10 +55,17 @@ Update when: status changes, blockers appear, or phases complete.
     - live state packets now derive a bounded `thread_digest` from the current `trace_links + unresolved_reference_index`
     - `navigate.unitize` and `read` now both receive those concept/thread digests through the packet layer
     - persisted runtime files and public compatibility surfaces still remain unchanged
+  - `Phase C.3` is now landed as the direct main-state cutover under the existing `attentional_v2` mechanism key
+  - landed behavior:
+    - new runs now treat `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` as the primary runtime and checkpoint truth
+    - `working_pressure / anchor_memory / reflective_summaries` are now legacy load-only inputs plus projection targets for still-unmigrated helper code
+    - `active_recall` now exposes first-class `concepts` and `threads` from the new state layers
+    - newly written checkpoints now use only the new primary state keys, while resume still accepts both old and new checkpoint/runtime shapes
+    - public/frontend compatibility surfaces still remain unchanged
   - next active backend slice:
-    - `Phase C.3`
-    - continue the deeper state-territory migration so long-distance continuity becomes easier to use
-    - keep public/frontend compatibility surfaces stable while that deeper state work lands
+    - `Phase C.4`
+    - retire remaining legacy helper dependence so sentence-intake / bridge / slow-cycle internals no longer need old-state projections by default
+    - keep public/frontend compatibility surfaces stable while that cleanup lands
 - Naming discipline:
   - the `Phase 0-9` labels in this file are implementation-plan stages
   - they are not the preferred vocabulary for explaining the mechanism's live reading loop

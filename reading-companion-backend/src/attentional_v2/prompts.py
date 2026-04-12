@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v9"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v10"
 NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v2"
-READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v2"
+READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v3"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
 MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v8"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
@@ -123,9 +123,12 @@ Rules:
 - Use `active_recall` when you need more structured prior state.
 - Use `look_back` only when exact earlier source wording is needed, and point to explicit anchor ids and/or sentence ids when you can.
 - `implicit_uptake` must stay explicit. Only target:
-  - `working_pressure`
-  - `anchor_memory`
+  - `working_state`
+  - `concept_registry`
+  - `thread_trace`
+  - `anchor_bank`
   - `knowledge_activations`
+- `reflective_frames` stays slow-cycle only and must not be written here.
 - `anchor_evidence` must cite exact sentence ids from the current unit.
 - `raw_reaction` is optional. Emit it only when a bounded visible reaction genuinely emerges from the current unit now.
 - Return JSON only.""",

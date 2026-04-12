@@ -12,17 +12,22 @@ from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
     ATTENTIONAL_V2_POLICY_VERSION,
     ATTENTIONAL_V2_SCHEMA_VERSION,
+    build_empty_anchor_bank,
     build_default_reader_policy,
     build_empty_anchor_memory,
+    build_empty_concept_registry,
     build_empty_local_buffer,
     build_empty_local_continuity,
     build_empty_knowledge_activations,
     build_empty_move_history,
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
+    build_empty_reflective_frames,
     build_empty_reflective_summaries,
     build_empty_resume_metadata,
+    build_empty_thread_trace,
     build_empty_trigger_state,
+    build_empty_working_state,
     build_empty_working_pressure,
 )
 
@@ -84,6 +89,12 @@ def working_pressure_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "working_pressure.json"
 
 
+def working_state_file(output_dir: Path) -> Path:
+    """Return the new primary working-state path."""
+
+    return runtime_dir(output_dir) / "working_state.json"
+
+
 def local_buffer_file(output_dir: Path) -> Path:
     """Return the rolling local-buffer path."""
 
@@ -108,10 +119,34 @@ def anchor_memory_file(output_dir: Path) -> Path:
     return runtime_dir(output_dir) / "anchor_memory.json"
 
 
+def anchor_bank_file(output_dir: Path) -> Path:
+    """Return the new primary anchor-bank path."""
+
+    return runtime_dir(output_dir) / "anchor_bank.json"
+
+
 def reflective_summaries_file(output_dir: Path) -> Path:
     """Return the reflective-summaries path."""
 
     return runtime_dir(output_dir) / "reflective_summaries.json"
+
+
+def concept_registry_file(output_dir: Path) -> Path:
+    """Return the new primary concept-registry path."""
+
+    return runtime_dir(output_dir) / "concept_registry.json"
+
+
+def thread_trace_file(output_dir: Path) -> Path:
+    """Return the new primary thread-trace path."""
+
+    return runtime_dir(output_dir) / "thread_trace.json"
+
+
+def reflective_frames_file(output_dir: Path) -> Path:
+    """Return the new primary reflective-frames path."""
+
+    return runtime_dir(output_dir) / "reflective_frames.json"
 
 
 def knowledge_activations_file(output_dir: Path) -> Path:
@@ -205,9 +240,11 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "local_buffer": str(local_buffer_file(output_dir).relative_to(output_dir)),
         "trigger_state": str(trigger_state_file(output_dir).relative_to(output_dir)),
         "local_continuity": str(local_continuity_file(output_dir).relative_to(output_dir)),
-        "working_pressure": str(working_pressure_file(output_dir).relative_to(output_dir)),
-        "anchor_memory": str(anchor_memory_file(output_dir).relative_to(output_dir)),
-        "reflective_summaries": str(reflective_summaries_file(output_dir).relative_to(output_dir)),
+        "working_state": str(working_state_file(output_dir).relative_to(output_dir)),
+        "concept_registry": str(concept_registry_file(output_dir).relative_to(output_dir)),
+        "thread_trace": str(thread_trace_file(output_dir).relative_to(output_dir)),
+        "reflective_frames": str(reflective_frames_file(output_dir).relative_to(output_dir)),
+        "anchor_bank": str(anchor_bank_file(output_dir).relative_to(output_dir)),
         "knowledge_activations": str(knowledge_activations_file(output_dir).relative_to(output_dir)),
         "move_history": str(move_history_file(output_dir).relative_to(output_dir)),
         "reaction_records": str(reaction_records_file(output_dir).relative_to(output_dir)),
@@ -308,11 +345,13 @@ def initialize_artifact_tree(
     ensure_json(local_buffer_file(output_dir), build_empty_local_buffer(mechanism_version=mechanism_version))
     ensure_json(trigger_state_file(output_dir), build_empty_trigger_state(mechanism_version=mechanism_version))
     ensure_json(local_continuity_file(output_dir), build_empty_local_continuity(mechanism_version=mechanism_version))
-    ensure_json(working_pressure_file(output_dir), build_empty_working_pressure(mechanism_version=mechanism_version))
-    ensure_json(anchor_memory_file(output_dir), build_empty_anchor_memory(mechanism_version=mechanism_version))
+    ensure_json(working_state_file(output_dir), build_empty_working_state(mechanism_version=mechanism_version))
+    ensure_json(concept_registry_file(output_dir), build_empty_concept_registry(mechanism_version=mechanism_version))
+    ensure_json(thread_trace_file(output_dir), build_empty_thread_trace(mechanism_version=mechanism_version))
+    ensure_json(anchor_bank_file(output_dir), build_empty_anchor_bank(mechanism_version=mechanism_version))
     ensure_json(
-        reflective_summaries_file(output_dir),
-        build_empty_reflective_summaries(mechanism_version=mechanism_version),
+        reflective_frames_file(output_dir),
+        build_empty_reflective_frames(mechanism_version=mechanism_version),
     )
     ensure_json(
         knowledge_activations_file(output_dir),

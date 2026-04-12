@@ -148,7 +148,7 @@ def test_bridge_resolution_writes_manifest_and_keeps_search_rare(tmp_path, monke
     assert result["supporting_bridges"][0]["target_sentence_id"] == "c1-s2"
     assert result["search_policy_mode"] == "defer_search"
     assert manifest["prompt_version"] == "attentional_v2.bridge_resolution.v4"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v9"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v10"
 
 
 def test_bridge_resolution_declines_generic_bridge_without_specific_attribution(monkeypatch):

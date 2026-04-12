@@ -219,11 +219,11 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `current unit`
     - the exact chosen coverage unit
   - `carry-forward context`
-    - bounded `working_pressure` digest
-    - bounded reflective digest
+    - bounded `working_state` digest
+    - bounded reflective-frame digest
     - bounded concept digest
     - bounded thread digest
-    - bounded recent anchor digest
+    - bounded recent anchor-bank digest
     - recent continuity digest from `local_buffer + move_history + reaction_records`
     - declared reference ids so `read` can point back to the exact prior material it materially used
   - packetized read-context view
@@ -231,6 +231,8 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - `working_state_digest`
     - `chapter_reflective_frame`
     - `active_focus_digest`
+    - `concept_digest`
+    - `thread_digest`
     - `anchor_bank_digest`
     - legacy alias fields remain temporarily available so older helper code and audits do not break while deeper state migration is still pending
   - packetized navigation view
@@ -239,6 +241,8 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - `working_state_digest`
     - `chapter_reflective_frame`
     - `active_focus_digest`
+    - `concept_digest`
+    - `thread_digest`
     - `anchor_bank_digest`
   - optional `supplemental_context`
     - one bounded `active_recall` packet from persisted state
@@ -277,8 +281,10 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - The current scaffold now makes several of those claims concrete:
   - `knowledge_activations` tracks separate `recognition_confidence` and `reading_warrant`
   - `knowledge_use_mode` is distinct from `search_policy_mode`
-  - `anchor_memory` keeps first-class typed relations
-  - `motif_index`, `unresolved_reference_index`, and `trace_links` are persisted state rather than prompt-only ideas
+  - `anchor_bank` now holds the primary evidence-bearing anchor records and relations
+  - `concept_registry` now holds the primary object-level semantic memory
+  - `thread_trace` now holds the primary cross-unit line/trace memory
+  - `working_pressure`, `anchor_memory`, and `reflective_summaries` now survive only as legacy load/projection territory for still-unmigrated helper code
   - durable visible thought now persists as mechanism-authored anchored reaction records rather than only as projected current-contract cards
   - reconsolidation now uses append-and-link history instead of mutating earlier persisted reactions
 - Sentence-level trigger detection should happen continuously during intake.
@@ -326,9 +332,11 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/runtime/trigger_state.json`
   - `_mechanisms/attentional_v2/runtime/unitization_audit.jsonl`
   - `_mechanisms/attentional_v2/runtime/read_audit.jsonl`
-  - `_mechanisms/attentional_v2/runtime/working_pressure.json`
-  - `_mechanisms/attentional_v2/runtime/anchor_memory.json`
-  - `_mechanisms/attentional_v2/runtime/reflective_summaries.json`
+  - `_mechanisms/attentional_v2/runtime/working_state.json`
+  - `_mechanisms/attentional_v2/runtime/concept_registry.json`
+  - `_mechanisms/attentional_v2/runtime/thread_trace.json`
+  - `_mechanisms/attentional_v2/runtime/reflective_frames.json`
+  - `_mechanisms/attentional_v2/runtime/anchor_bank.json`
   - `_mechanisms/attentional_v2/runtime/knowledge_activations.json`
   - `_mechanisms/attentional_v2/runtime/move_history.json`
   - `_mechanisms/attentional_v2/runtime/reaction_records.json`
@@ -336,6 +344,11 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/runtime/reader_policy.json`
   - `_mechanisms/attentional_v2/runtime/resume_metadata.json`
   - `_mechanisms/attentional_v2/runtime/checkpoints/*`
+- Legacy load/projection artifacts may still appear in older output trees:
+  - `_mechanisms/attentional_v2/runtime/working_pressure.json`
+  - `_mechanisms/attentional_v2/runtime/anchor_memory.json`
+  - `_mechanisms/attentional_v2/runtime/reflective_summaries.json`
+  - live `Phase C.3` code may still project into those shapes for intake/bridge/slow-cycle helper compatibility, but new runs no longer treat them as primary state truth
 - Current scaffolded shared runtime resume artifacts
   - `_runtime/runtime_shell.json`
     - shared cursor, last-checkpoint pointer, and observability mode

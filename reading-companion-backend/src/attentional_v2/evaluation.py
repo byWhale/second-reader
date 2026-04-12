@@ -30,6 +30,7 @@ from .storage import (
     load_json,
     reaction_records_file,
     reader_policy_file,
+    reflective_frames_file,
     reflective_summaries_file,
     reconsolidation_records_file,
     save_json,
@@ -319,7 +320,16 @@ def _normalized_chapter_outputs(output_dir: Path, document: BookDocument) -> lis
 def _memory_summaries(output_dir: Path) -> list[str]:
     """Extract compact reflective summaries for comparison and audits."""
 
-    payload = _load_json_if_exists(reflective_summaries_file(output_dir))
+    payload = _load_json_if_exists(reflective_frames_file(output_dir))
+    if not payload or not any(isinstance(payload.get(bucket), list) and payload.get(bucket) for bucket in (
+        "chapter_understandings",
+        "book_level_frames",
+        "durable_definitions",
+        "stabilized_motifs",
+        "resolved_questions_of_record",
+        "chapter_end_notes",
+    )):
+        payload = _load_json_if_exists(reflective_summaries_file(output_dir))
     summaries: list[str] = []
     for bucket in (
         "chapter_understandings",

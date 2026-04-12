@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-12T10:59:34Z`
+Last updated: `2026-04-12T13:31:00Z`
 
 ## Status Values
 - `active`
@@ -46,9 +46,14 @@ Last updated: `2026-04-12T10:59:34Z`
     - live state packets now derive a bounded `concept_digest` from the current `motif_index + unresolved_reference_index`
     - live state packets now derive a bounded `thread_digest` from the current `trace_links + unresolved_reference_index`
     - `navigate.unitize` and `read` now both receive those small concept/thread digests without changing persisted runtime files or public surfaces
-  - next implement `Phase C.3`:
-    - continue the deeper state-territory migration toward `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank`
-    - keep `knowledge_activations` narrowed to helper territory while that migration lands
+  - `Phase C.3` is now landed:
+    - new runs now treat `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` as the primary runtime and checkpoint truth
+    - old `working_pressure / anchor_memory / reflective_summaries` are now legacy load-only inputs plus projection targets for still-unmigrated helper code
+    - `active_recall` now exposes first-class `concepts` and `threads` from the new state layers
+    - checkpoint/resume now accept both old and new state territory, but newly written checkpoints use only the new primary keys
+  - next implement `Phase C.4`:
+    - retire remaining legacy helper dependence inside sentence-intake / bridge / slow-cycle internals where it no longer buys real compatibility value
+    - keep `knowledge_activations` narrowed to helper territory while the new primary state ownership is tightened further
 - Jobs: none
 
 ### `TASK-V2-NATIVE-READING-PRESENTATION` — Redesign the routed reading surfaces around chapter text and anchored reactions

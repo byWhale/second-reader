@@ -6,21 +6,33 @@ import json
 from pathlib import Path
 
 from src.attentional_v2.resume import persist_reading_position, resume_from_checkpoint, write_full_checkpoint
-from src.attentional_v2.schemas import build_empty_local_buffer
+from src.attentional_v2.schemas import (
+    build_empty_anchor_memory,
+    build_empty_local_buffer,
+    build_empty_reflective_summaries,
+    build_empty_working_pressure,
+)
 from src.attentional_v2.state_ops import close_local_meaning_unit, push_local_buffer_sentence
 from src.attentional_v2.storage import (
+    anchor_bank_file,
+    concept_registry_file,
     event_stream_file,
     full_checkpoint_file,
     load_json,
     local_buffer_file,
     reaction_records_file,
     reader_policy_file,
+    reflective_frames_file,
     resume_metadata_file,
+    runtime_dir,
     save_json,
+    thread_trace_file,
+    trigger_state_file,
+    working_state_file,
 )
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
 from src.reading_runtime.artifacts import activity_file, checkpoint_summary_file, runtime_shell_file
-from src.reading_runtime.shell_state import load_runtime_shell
+from src.reading_runtime.shell_state import load_runtime_shell, save_runtime_shell
 
 
 def _make_book_document(total_sentences: int) -> dict[str, object]:
@@ -258,6 +270,110 @@ def test_incompatible_checkpoint_falls_back_to_live_warm_resume(tmp_path: Path):
     assert "mechanism_version_mismatch" in resumed["compatibility_issues"]
     assert resumed["effective_resume_kind"] == "warm_resume"
     assert resumed["local_buffer"]["is_reconstructed"] is False
+
+
+def test_resume_migrates_legacy_runtime_and_old_checkpoint_into_new_primary_state_files(tmp_path: Path):
+    """Old-format runtime/checkpoint state should resume cleanly into the new primary files."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    book_document = _make_book_document(6)
+    local_buffer = _build_buffer(total_sentences=6, closed_breaks=[3])
+    persist_reading_position(output_dir, chapter_id=1, chapter_ref="Chapter 1", local_buffer=local_buffer)
+
+    legacy_working_pressure = build_empty_working_pressure()
+    legacy_working_pressure["local_questions"] = [
+        {
+            "item_id": "q-1",
+            "kind": "question",
+            "statement": "What is still unresolved?",
+            "status": "open",
+            "support_anchor_ids": ["a-1"],
+        }
+    ]
+    legacy_anchor_memory = build_empty_anchor_memory()
+    legacy_anchor_memory["anchor_records"] = [
+        {
+            "anchor_id": "a-1",
+            "sentence_start_id": "c1-s1",
+            "sentence_end_id": "c1-s1",
+            "quote": "Sentence 1.",
+            "anchor_kind": "unit_evidence",
+            "why_it_mattered": "legacy checkpoint seed",
+            "status": "active",
+            "locator": {},
+        }
+    ]
+    legacy_anchor_memory["motif_index"] = {"sentence": ["a-1"]}
+    legacy_reflective = build_empty_reflective_summaries()
+    legacy_reflective["chapter_understandings"] = [
+        {
+            "item_id": "frame-1",
+            "statement": "Legacy reflective frame.",
+            "chapter_ref": "Chapter 1",
+            "confidence_band": "working",
+            "support_anchor_ids": ["a-1"],
+        }
+    ]
+
+    for path in (
+        working_state_file(output_dir),
+        concept_registry_file(output_dir),
+        thread_trace_file(output_dir),
+        reflective_frames_file(output_dir),
+        anchor_bank_file(output_dir),
+    ):
+        path.unlink(missing_ok=True)
+
+    save_json(runtime_dir(output_dir) / "working_pressure.json", legacy_working_pressure)
+    save_json(runtime_dir(output_dir) / "anchor_memory.json", legacy_anchor_memory)
+    save_json(runtime_dir(output_dir) / "reflective_summaries.json", legacy_reflective)
+
+    shell = load_runtime_shell(runtime_shell_file(output_dir))
+    legacy_checkpoint = {
+        "schema_version": 1,
+        "mechanism_version": shell.get("mechanism_version"),
+        "policy_version": shell.get("policy_version"),
+        "checkpoint_id": "legacy-cp",
+        "created_at": "2026-04-12T00:00:00Z",
+        "checkpoint_reason": "legacy_test",
+        "resume_kind": "warm_resume",
+        "cursor": dict(shell.get("cursor", {})),
+        "active_artifact_refs": {},
+        "visible_reaction_ids": [],
+        "local_buffer": load_json(local_buffer_file(output_dir)),
+        "local_continuity": load_json(runtime_dir(output_dir) / "local_continuity.json"),
+        "trigger_state": load_json(trigger_state_file(output_dir)),
+        "working_pressure": legacy_working_pressure,
+        "anchor_memory": legacy_anchor_memory,
+        "reflective_summaries": legacy_reflective,
+        "knowledge_activations": load_json(runtime_dir(output_dir) / "knowledge_activations.json"),
+        "move_history": load_json(runtime_dir(output_dir) / "move_history.json"),
+        "reaction_records": load_json(reaction_records_file(output_dir)),
+        "reconsolidation_records": load_json(runtime_dir(output_dir) / "reconsolidation_records.json"),
+        "reader_policy": load_json(reader_policy_file(output_dir)),
+        "resume_metadata": load_json(resume_metadata_file(output_dir)),
+    }
+    save_json(full_checkpoint_file(output_dir, "legacy-cp"), legacy_checkpoint)
+    shell["last_checkpoint_id"] = "legacy-cp"
+    save_runtime_shell(runtime_shell_file(output_dir), shell)
+
+    resumed = resume_from_checkpoint(output_dir, book_document=book_document, requested_resume_kind="warm_resume")
+
+    assert resumed["effective_resume_kind"] == "warm_resume"
+    assert working_state_file(output_dir).exists()
+    assert concept_registry_file(output_dir).exists()
+    assert thread_trace_file(output_dir).exists()
+    assert reflective_frames_file(output_dir).exists()
+    assert anchor_bank_file(output_dir).exists()
+    assert load_json(working_state_file(output_dir))["local_questions"][0]["item_id"] == "q-1"
+    assert load_json(concept_registry_file(output_dir))["entries"][0]["concept_key"] == "sentence"
+    assert load_json(anchor_bank_file(output_dir))["anchor_records"][0]["anchor_id"] == "a-1"
+
+    checkpoint = write_full_checkpoint(output_dir, checkpoint_id="migrated-cp", checkpoint_reason="post_legacy_resume")
+    assert "working_state" in checkpoint
+    assert "anchor_bank" in checkpoint
+    assert "working_pressure" not in checkpoint
 
 
 def test_debug_observability_writes_internal_diagnostics_events(tmp_path: Path):

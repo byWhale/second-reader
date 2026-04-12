@@ -1570,3 +1570,33 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/src/attentional_v2/schemas.py`
 - `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
 - `reading-companion-backend/tests/test_attentional_v2_phase_b.py`
+
+## Entry 56
+**ID**: DEC-059
+**Status**: active
+
+**Decision / Inflection**: Make `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` the canonical runtime and checkpoint state of live `attentional_v2`, and demote the old V2 state stores to legacy load/projection territory.
+
+**Period**: April 12, 2026, after Phase C.1 and Phase C.2 had already proven the packetization seam and the bounded concept/thread digests, and before the remaining helper territories were retired in the next cleanup slice.
+
+**Problem**: The mechanism had already gained a better live control skeleton and packetized continuity path, but runtime truth still sat ambiguously across the older V2 stores. That left two overlapping state stories in the system: the new packet layer was already talking in terms of `working_state`, concept/thread digests, and an `anchor_bank`-style evidence model, while the persisted runtime/checkpoint territory still treated `working_pressure / anchor_memory / reflective_summaries` as canonical. Without a direct cutover, continuity work, active recall, and later slow-cycle cleanup would keep inheriting fuzzy ownership.
+
+**Alternatives considered**: Keep the old state stores canonical and let the new semantic layers remain packet-only projections, rewrite every remaining helper in one large simultaneous migration before changing runtime truth, or split into a fresh parallel `v3` state bundle.
+
+**Why this path won**: A direct main-state cutover creates one honest ownership map without forcing an all-at-once subsystem rewrite. The new state layers already match the mechanism's intended semantics better: `working_state` for hot reading pressure, `concept_registry` for durable object memory, `thread_trace` for argument/plot/relationship lines, `reflective_frames` for slow chapter/book understanding, and `anchor_bank` for source-grounded evidence. By combining that cutover with deterministic legacy migration and legacy projection adapters, the system can move to one real semantic truth now while still preserving resume compatibility and helper continuity during the next cleanup phase.
+
+**What changed in the system**: New runs now initialize and persist `working_state.json`, `concept_registry.json`, `thread_trace.json`, `reflective_frames.json`, and `anchor_bank.json` as the primary mechanism-private runtime artifacts. Newly written checkpoints now store those keys rather than the old V2 state keys. Load/resume accepts both old and new runtime/checkpoint shapes, migrating legacy `working_pressure / anchor_memory / reflective_summaries` forward in memory when needed. Live packet building and `active_recall` now pull first-class `concepts` and `threads` from the new state layers. Remaining sentence-intake, bridge, and chapter slow-cycle helpers may still receive legacy-shaped projections, but those projections are now adapters from the new canonical state rather than the other way around.
+
+**Why it matters later**: Future contributors will otherwise see both old and new state names in code, tests, and runtime trees and may assume the project never actually chose which layer owns semantic truth. This entry records the intended interpretation: Phase C.3 is the point where live `attentional_v2` stopped treating the older V2 stores as canonical memory and committed to the new layered state model, with helper projections retained only as a bounded migration bridge.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `reading-companion-backend/src/attentional_v2/runner.py`
+- `reading-companion-backend/src/attentional_v2/resume.py`
+- `reading-companion-backend/src/attentional_v2/state_migration.py`
+- `reading-companion-backend/src/attentional_v2/state_projection.py`
+- `reading-companion-backend/tests/test_attentional_v2_resume.py`
+- `reading-companion-backend/tests/test_attentional_v2_state_migration.py`

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-12T10:59:34Z",
+  "updated_at": "2026-04-12T13:31:00Z",
   "tasks": [
     {
       "id": "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
@@ -18,7 +18,7 @@
       "decision_refs": [],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue implementation from the new post-Phase-9 structural rework plan: keep the work under attentional_v2 rather than minting attentional_v3, treat the plan as backend-only, keep the existing frontend lane active in parallel under TASK-V2-NATIVE-READING-PRESENTATION, treat Phase A as the landed control-skeleton baseline where trigger output no longer suppresses formal reading and span authority matches the exact chosen unit, treat Phase B as the landed read-context baseline where read owns the authoritative unit packet plus bounded carry-forward and optional active recall/look-back, treat Phase C.1 as the landed packetization seam where live prompts now receive bounded state packets without changing persisted files or public compatibility surfaces, treat Phase C.2 as the landed first state-territory slice where concept/thread digests now enter the live packet path, and next implement Phase C.3 so deeper state-territory migration toward working_state / concept_registry / thread_trace / reflective_frames / anchor_bank continues without changing public surfaces.",
+      "next_action": "Continue implementation from the new post-Phase-9 structural rework plan: keep the work under attentional_v2 rather than minting attentional_v3, treat the plan as backend-only, keep the existing frontend lane active in parallel under TASK-V2-NATIVE-READING-PRESENTATION, treat Phase A as the landed control-skeleton baseline where trigger output no longer suppresses formal reading and span authority matches the exact chosen unit, treat Phase B as the landed read-context baseline where read owns the authoritative unit packet plus bounded carry-forward and optional active recall/look-back, treat Phase C.1 as the landed packetization seam where live prompts now receive bounded state packets without changing persisted files or public compatibility surfaces, treat Phase C.2 as the landed first state-territory slice where concept/thread digests now enter the live packet path, treat Phase C.3 as the landed main-state cutover where working_state / concept_registry / thread_trace / reflective_frames / anchor_bank now own runtime and checkpoint truth while old stores remain legacy load-only adapters, and next implement Phase C.4 so the remaining legacy helper dependence can be retired without changing public surfaces.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
@@ -27,7 +27,7 @@
         "reading-companion-backend/docs/research/claude_code_context_management_research_20260412.md",
         "docs/backend-reading-mechanisms/attentional_v2.md"
       ],
-      "last_updated": "2026-04-12T10:59:34Z",
+      "last_updated": "2026-04-12T13:31:00Z",
       "last_updated_by": "codex"
     },
     {

@@ -94,6 +94,10 @@ class WorkingPressureState(TypedDict, total=False):
     pressure_snapshot: PressureSnapshot
 
 
+class WorkingState(WorkingPressureState, total=False):
+    """Primary hot state after the Phase C.3 direct migration."""
+
+
 class LocalBufferSentence(TypedDict, total=False):
     """One recently seen sentence carried in the rolling local buffer."""
 
@@ -525,6 +529,16 @@ class AnchorRelation(TypedDict, total=False):
     rationale: str
 
 
+class AnchorBankState(TypedDict, total=False):
+    """Primary source-grounded evidence store after the Phase C.3 migration."""
+
+    schema_version: int
+    mechanism_version: str
+    updated_at: str
+    anchor_records: list[AnchorRecord]
+    anchor_relations: list[AnchorRelation]
+
+
 class AnchorMemoryState(TypedDict, total=False):
     """Retrieval-facing earlier state for bridge and callback behavior."""
 
@@ -536,6 +550,50 @@ class AnchorMemoryState(TypedDict, total=False):
     motif_index: dict[str, list[str]]
     unresolved_reference_index: dict[str, list[str]]
     trace_links: dict[str, list[str]]
+
+
+class ConceptRegistryEntry(TypedDict, total=False):
+    """One durable concept/object-memory entry."""
+
+    concept_key: str
+    concept_type: str
+    status: str
+    summary: str
+    support_anchor_ids: list[str]
+    linked_thread_ids: list[str]
+    last_touched_sentence_id: str
+
+
+class ConceptRegistryState(TypedDict, total=False):
+    """Primary durable object-memory layer."""
+
+    schema_version: int
+    mechanism_version: str
+    updated_at: str
+    entries: list[ConceptRegistryEntry]
+
+
+class ThreadTraceEntry(TypedDict, total=False):
+    """One durable trace/line entry."""
+
+    thread_key: str
+    thread_type: str
+    status: str
+    summary: str
+    support_anchor_ids: list[str]
+    linked_concept_keys: list[str]
+    last_touched_sentence_id: str
+    source_anchor_id: str
+    target_anchor_ids: list[str]
+
+
+class ThreadTraceState(TypedDict, total=False):
+    """Primary durable trace/line layer."""
+
+    schema_version: int
+    mechanism_version: str
+    updated_at: str
+    entries: list[ThreadTraceEntry]
 
 
 class ReflectiveItem(TypedDict, total=False):
@@ -586,6 +644,10 @@ class ReflectiveSummariesState(TypedDict, total=False):
     stabilized_motifs: list[ReflectiveItem]
     resolved_questions_of_record: list[ReflectiveItem]
     chapter_end_notes: list[ReflectiveItem]
+
+
+class ReflectiveFramesState(ReflectiveSummariesState, total=False):
+    """Primary slower reflective layer after the Phase C.3 migration."""
 
 
 class KnowledgeActivation(TypedDict, total=False):
@@ -756,6 +818,11 @@ class FullCheckpointState(TypedDict, total=False):
     local_buffer: LocalBufferState
     local_continuity: LocalContinuityState
     trigger_state: TriggerState
+    working_state: WorkingState
+    concept_registry: ConceptRegistryState
+    thread_trace: ThreadTraceState
+    reflective_frames: ReflectiveFramesState
+    anchor_bank: AnchorBankState
     working_pressure: WorkingPressureState
     anchor_memory: AnchorMemoryState
     reflective_summaries: ReflectiveSummariesState
@@ -788,6 +855,12 @@ def build_empty_working_pressure(*, mechanism_version: str = ATTENTIONAL_V2_MECH
             "reframe_pressure_present": False,
         },
     }
+
+
+def build_empty_working_state(*, mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION) -> WorkingState:
+    """Return the default primary hot state."""
+
+    return build_empty_working_pressure(mechanism_version=mechanism_version)
 
 
 def build_empty_local_buffer(*, mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION) -> LocalBufferState:
@@ -865,6 +938,46 @@ def build_empty_anchor_memory(*, mechanism_version: str = ATTENTIONAL_V2_MECHANI
     }
 
 
+def build_empty_anchor_bank(*, mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION) -> AnchorBankState:
+    """Return the default primary anchor-bank state."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "updated_at": _timestamp(),
+        "anchor_records": [],
+        "anchor_relations": [],
+    }
+
+
+def build_empty_concept_registry(
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+) -> ConceptRegistryState:
+    """Return the default concept-registry state."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "updated_at": _timestamp(),
+        "entries": [],
+    }
+
+
+def build_empty_thread_trace(
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+) -> ThreadTraceState:
+    """Return the default thread-trace state."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "updated_at": _timestamp(),
+        "entries": [],
+    }
+
+
 def build_empty_reflective_summaries(
     *,
     mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
@@ -882,6 +995,15 @@ def build_empty_reflective_summaries(
         "resolved_questions_of_record": [],
         "chapter_end_notes": [],
     }
+
+
+def build_empty_reflective_frames(
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+) -> ReflectiveFramesState:
+    """Return the default reflective-frames state."""
+
+    return build_empty_reflective_summaries(mechanism_version=mechanism_version)
 
 
 def build_empty_knowledge_activations(
