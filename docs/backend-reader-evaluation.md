@@ -145,6 +145,40 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - If the reader would have to supply most of the connection by outside inference, the probe should be treated as weak or ambiguous rather than as true accumulation evidence.
 - When a window only yields `1-2` such probes, freeze honestly short instead of forcing a third weaker probe.
 
+## Evidence-Grounded Report Writing Rule
+- Judged interpretation reports must separate at least four things explicitly:
+  - the formal benchmark target
+    - for example the formal `EARLY / MID / LATE` probe text or the formal chapter/question anchor
+  - direct scored evidence
+    - reactions or attention events that actually align to that formal target
+  - supporting evidence
+    - same-section, same-chapter, or nearby material that helps explain the judgment but is not itself the formal hit
+  - negative evidence
+    - the missing hit, dropped late anchor, absent chapter presence, or other failure condition that materially shaped the judgment
+- Reports must not present supporting evidence as though it were the formal hit.
+  - same-chapter or same-section matches may still matter
+  - they must be labeled as supporting evidence rather than written as exact probe-anchor alignment
+- Reports must not let summary counts stand in for interpretation.
+  - `anchor_hit = n/3`, `matched_reactions = n`, chapter coverage, or similar totals are evidence summaries only
+  - they do not by themselves prove that the mechanism completed the probe's required carryforward or closure
+  - when counts are cited, the report should also say whether the relevant support is exact, supporting-only, weak, or absent
+- Reports should show the decisive evidence before leaning on it in explanation.
+  - if the prose says a result turned on one retrospective move, one late closure, or one specific clarifying reaction, that reaction should already be quoted or linked in the evidence section
+  - do not force the reader to infer which hidden reaction the later explanation is pointing at
+- Reports should include negative evidence symmetrically.
+  - when a key late anchor has `0 matched reactions` or `0 matched attention events`, record that absence directly
+  - do not let a few attractive local reactions obscure that the judged requirement was still missed
+- Reports must distinguish `reading value` from `probe fit`.
+  - a reaction may still be globally useful for actor orientation, scene understanding, or general reading value
+  - if it does not serve the probe's actual `judge_focus`, it should not be written as the decisive positive evidence for that probe
+- Raw evidence should not enter the report without provenance checks.
+  - verify the `probe_id`, `window_case_id`, source chapter/window, section ref, and quoted excerpt before treating a raw artifact as report-ready evidence
+  - if provenance is uncertain or mismatched, record the uncertainty instead of upgrading it into interpretation
+- The stable report shape should stay layered:
+  - the main interpretation report should carry the minimum sufficient evidence chain that lets a reader understand the judgment in one pass
+  - the appendix or per-case payload links should carry the fuller decisive reaction inventory for auditability
+  - do not let the main report drift into a half-appendix that still omits the decisive reactions named later in prose
+
 ## Active Benchmark Pointer Rule
 - Stable docs may name one active benchmark pointer while keeping earlier benchmark packages as historical evidence.
 - An active benchmark does not need to maximize breadth if the current project constraint is iteration speed under real token and time pressure.

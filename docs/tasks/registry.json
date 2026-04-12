@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-09T16:23:21Z",
+  "updated_at": "2026-04-10T14:01:16Z",
   "tasks": [
     {
       "id": "TASK-PHASE9-COMPAT-CUTOVER",
@@ -761,7 +761,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
-      "next_action": "Keep iterator_v1 section-first presentation in compatibility-only posture and continue the V2-native frontend lane from the new truth baseline. The first bounded truth/visibility slice is now landed and browser-validated, including overview/source-reader truth fixes plus the stale-runtime status_reason + last-known-stop repair on bookshelf and overview surfaces. Next redesign chapter and marks surfaces around anchors and live thought lineage; do not open a separate cleanup-only wave for V1 display concepts before this lane.",
+      "next_action": "Keep iterator_v1 section-first presentation in compatibility-only posture and continue the V2-native frontend lane from the new truth baseline. The first bounded truth/visibility slice is now landed and browser-validated, including overview/source-reader truth fixes plus the stale-runtime status_reason + last-known-stop repair on bookshelf and overview surfaces. Next redesign the chapter and marks surfaces around anchors and live thought lineage, with /books/:id/chapters/:chapterId as the main chapter reading scene and default return-to-context page while /marks stays a saved-reaction list plus jump-back surface; do not open a separate cleanup-only wave for V1 display concepts before this lane.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
@@ -774,7 +774,7 @@
         "reading-companion-frontend/src/app/components/source-reader-pane.tsx",
         "reading-companion-frontend/src/app/config/controlled-copy.ts"
       ],
-      "last_updated": "2026-04-09T16:23:21Z",
+      "last_updated": "2026-04-10T14:01:16Z",
       "last_updated_by": "codex"
     },
     {

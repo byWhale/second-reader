@@ -1,677 +1,421 @@
-# Long-Span 正式 Judged Eval 详细解读与证据导航报告
+# Long-Span 正式 Judged Eval 解释报告
 
 - Run ID: `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
 - Surface: `bounded long-span accumulation comparison`
 - Compared mechanisms: `attentional_v2` vs `iterator_v1`
-- Machine outputs:
+- 机器摘要：
   - [aggregate.json](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/aggregate.json)
   - [report.md](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md)
   - [case_results.jsonl](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/case_results.jsonl)
-- Detailed probe payloads:
-  - [huochu probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/huochu_shengming_de_yiyi_private_zh__13_16__probe_1.json)
-  - [huochu probe 2](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/huochu_shengming_de_yiyi_private_zh__13_16__probe_2.json)
-  - [steve_jobs probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/steve_jobs_private_en__17__probe_1.json)
-  - [supremacy probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/supremacy_private_en__13__probe_1.json)
-  - [value_of_others probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/value_of_others_private_en__8_10__probe_1.json)
-  - [xidaduo probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/xidaduo_private_zh__13_15__probe_1.json)
-  - [xidaduo probe 2](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/xidaduo_private_zh__13_15__probe_2.json)
+- 关键反应附录：
+  - [attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_score_impact_reaction_appendix.md](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_score_impact_reaction_appendix.md)
 
-## 1. 这份报告是做什么的
+## 1. 文档定位
 
-原始 [report.md](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md) 只给了最终计分结果，适合机器读取和快速检索，但不适合回答下面这些更“人类”的问题：
+这份文档的目标不是重复机器输出，而是把这轮 long-span judged eval 写成一份人能直接读懂的解释报告。
 
-- 这 7 道题到底在问什么？
-- 哪些题真正考的是“跨章串线”，哪些题更像“单章主线不跑偏”？
-- 新旧机制各自到底说了什么？
-- 为什么有些题明明新机制也读到不少东西，最后还是输了？
+它重点回答四个问题：
 
-这份文档就是补上这些解释层内容。它不是新的正式计分文件，而是正式 judged run 的人工可读 companion report。
+- 每道题到底在问什么。
+- 这道题里两套机制分别留下了什么可审计证据。
+- 为什么 judge 会把这一题判给其中一边。
+- 这轮结果整体上说明了什么。
 
-这里的“短引文”是有意为之，但它只适用于这份报告正文，不代表题目本身只有短句版本：
+这份主报告只保留“最小充分证据链”。
 
-- 每个 probe 在评测数据里都保留了完整的 `EARLY / MID / LATE` 题面原文。
-- 这些完整题面原文已经存在本地 [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl) 的 `excerpt_text` 字段里。
-- 这次修订新增了第 `9` 节“逐题证据导航”，把每道题对应的完整题面入口、原书上下文入口、case payload 入口和更完整 raw reaction 摘录放在一起。
-- 为了兼顾可读性与版权边界，报告正文仍然不直接大段重复原书内容，而是给出精确的本地定位路径，方便对照核查。
+- 如果你只想快速理解胜负，读这份主报告就够。
+- 如果你要逐条核对关键 reaction，请看附录。
+- 如果你要看完整 case payload 和本地 runtime 证据，请从附录里的 case payload 链接继续进入。
 
-## 2. 先说结论
+## 2. 这次报告的证据口径
 
-这轮 long-span 正式评测已经完成，而且结果是可用的：
+为了避免前几版里反复出现的混写问题，这一版统一采用四层证据口径：
 
-- `coherent_accumulation`：`iterator_v1 = 5` 胜，`attentional_v2 = 2` 胜，平均分 `3.486 vs 2.457`
-- `insight_and_clarification`：`iterator_v1 = 4` 胜，`attentional_v2 = 2` 胜，`tie = 1`，平均分 `3.086 vs 2.457`
+- `formal benchmark target`
+  - 指这道 probe 在 `probes.jsonl` / case payload 里真正的 `EARLY / MID / LATE` 题面。
+- `direct evidence`
+  - 指真正附着在 formal target 上的 matched reaction 或明确 scored evidence。
+- `supporting evidence`
+  - 指同章、同节或邻近位置的证据，它能帮助解释判分，但不是 formal anchor 本句上的 clean direct hit。
+- `negative evidence`
+  - 指缺失本身，例如关键 `LATE` 锚点没有 matched reaction、没有 matched attention，或者机制明显跑离了本题主线。
+
+因此：
+
+- `anchor_hit = 3/3` 不自动等于三个正式锚点都有 clean direct hit。
+- 有阅读价值，不自动等于对这道 probe 贴题。
+- supporting evidence 可以影响判分，但必须按 supporting evidence 来写，不能伪装成 formal hit。
+
+## 3. 总体结论
+
+这轮 long-span judged eval 已经完成，而且结果可直接使用：
+
+- `coherent_accumulation`
+  - `iterator_v1 = 5` 胜
+  - `attentional_v2 = 2` 胜
+  - 平均分 `3.486 vs 2.457`
+- `insight_and_clarification`
+  - `iterator_v1 = 4` 胜
+  - `attentional_v2 = 2` 胜
+  - `tie = 1`
+  - 平均分 `3.086 vs 2.457`
 - `judge_unavailable_count = 0`
 - `mechanism_failure_count = 0`
 
-因此，这次 run 不是“有参考价值但还不干净”的半成品，而是当前可以直接引用的 long-span 正式证据。
+如果把这轮结果压缩成一句话，就是：
 
-顶层判断也很明确：
+- `iterator_v1` 仍然更擅长 long-span 的 retrospective bridge 和窗口尾部闭合。
+- `attentional_v2` 的真实优势更偏向主线约束、局部精度和少跑偏。
 
-- 老机制 `iterator_v1` 目前仍然更强，尤其强在“回头看”和“把前面内容重新带回后面”。
-- 新机制 `attentional_v2` 的优势不是长跨度累计，而是更聚焦、更不容易跑到错误主线，尤其在单章长线题里更明显。
-- 这次结果不支持“V2 已经全面超过 V1”；它支持的结论是：`attentional_v2` 现在更像一个更干净、更稳的默认阅读器，但它还没有在 long-span retrospective bridging 上赢过 `iterator_v1`。
+所以这轮结果支持的结论不是“V2 不可用”，而是：
 
-## 3. 这次 benchmark 到底在考什么
-
-这次 long-span benchmark 一共包含 `5` 个 window、`7` 道 probe，分别覆盖：
-
-- 《活出生命的意义》：`2` 题
-- 《史蒂夫·乔布斯》：`1` 题
-- 《Supremacy》：`1` 题
-- 《The Value of Others》：`1` 题
-- 《悉达多》：`2` 题
-
-每题都会给两个 target：
-
-- `coherent_accumulation`
-  - 看的是有没有把前面的线索持续带到后面，形成一条可见的阅读轨迹。
-- `insight_and_clarification`
-  - 看的不只是“记住了”，还要看有没有把这条线读得更清楚、更有解释力。
-
-更通俗地说，这不是在考“有没有聪明句子”，而是在考：
-
-1. 你能不能记得前面说过什么。
-2. 你到后面时能不能明确说明“这里是在回答/延伸/反转前面的什么”。
-3. 你能不能让读者感到“这不是几个漂亮段落，而是同一条阅读思路在变深”。
+- `attentional_v2` 更像一个更干净、更稳的阅读器。
+- 但它目前还没有在 bounded long-span accumulation 上超过 `iterator_v1`。
 
 ## 4. 总览表
 
 | Probe | 书 / window | 这题真正要看什么 | `coherent_accumulation` | `insight_and_clarification` |
 | --- | --- | --- | --- | --- |
-| `huochu...probe_1` | 《活出生命的意义》13-16 | 从“意义让人活下去”串到“责任”与“三种发现意义的方式” | `iterator_v1` | `iterator_v1` |
-| `huochu...probe_2` | 《活出生命的意义》13-16 | 从“健康需要张力”串到“存在虚无”与“意义在世界中发现” | `iterator_v1` | `iterator_v1` |
-| `steve_jobs...probe_1` | 《史蒂夫·乔布斯》17 | 把 GUI 突破和大众化愿景串到 Lisa 团队冲突 | `attentional_v2` | `attentional_v2` |
+| `huochu...probe_1` | 《活出生命的意义》13-16 | 把“意义让人活下去”读到后面的“责任 / 三种发现意义的方式” | `iterator_v1` | `iterator_v1` |
+| `huochu...probe_2` | 《活出生命的意义》13-16 | 把“张力 -> 虚无”带到“意义在世界中发现” | `iterator_v1` | `iterator_v1` |
+| `steve_jobs...probe_1` | 《史蒂夫·乔布斯》17 | 把 GUI 突破、大众化愿景和 Lisa 团队冲突串起来 | `attentional_v2` | `attentional_v2` |
 | `supremacy...probe_1` | `Supremacy` 13 | 沿着 DeepMind 自治权主线读到最后的治理妥协 | `attentional_v2` | `attentional_v2` |
-| `value_of_others...probe_1` | 《The Value of Others》8-10 | 把 captain/passenger 框架经过谈判逻辑带到市场原则 | `iterator_v1` | `iterator_v1` |
-| `xidaduo...probe_1` | 《悉达多》13-15 | 把痛苦与创伤带到最后的接受世界 | `iterator_v1` | `tie` |
-| `xidaduo...probe_2` | 《悉达多》13-15 | 把受苦与犯错带到后面的“学会爱世界” | `iterator_v1` | `iterator_v1` |
+| `value_of_others...probe_1` | 《The Value of Others》8-10 | 把 captain/passenger 框架带到谈判逻辑和市场原则 | `iterator_v1` | `iterator_v1` |
+| `xidaduo...probe_1` | 《悉达多》13-15 | 把痛苦与伤口带到最后的接受世界 | `iterator_v1` | `tie` |
+| `xidaduo...probe_2` | 《悉达多》13-15 | 把犯错、受苦和理解世人带到“学会爱世界” | `iterator_v1` | `iterator_v1` |
 
-## 5. 逐题详细解读
+## 5. 逐题解读
 
 ### 5.1 《活出生命的意义》probe 1
 
 - Probe ID: `huochu_shengming_de_yiyi_private_zh__13_16__probe_1`
-- 题目直白版：
+- Case payload：
+  - [huochu probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/huochu_shengming_de_yiyi_private_zh__13_16__probe_1.json)
+- 这题真正要看什么：
   - 这题不是在问“有没有提到意义、责任、三种方式”。
-  - 它真正要问的是：读到后面“三种方式”时，机制有没有把它读成对前面“为什么意义能让人活下去”的一个回答，而不是一份孤立的清单。
-- 锚点短引文：
-  - “知道为什么而活的人，便能生存”
-  - “负责任就是人类存在之本质”
-  - “三种不同的方式来发现生命之意义”
+  - 它真正要看的是：后面的“三种方式”有没有被读成对前面“为什么意义能让人活下去”的回答。
+- 完整 probe 题面：
+  - `EARLY (13)`：世界上再没有别的能比知道自己的生活有意义更能有效地帮助人活下去（哪怕是在最恶劣的环境下）。尼采的一句话很有智慧：“知道为什么而活的人，便能生存。”
+  - `MID (15)`：简单地说，生命对每个人都提出了问题，他必须通过对自己生命的理解来回答生命的提问。对待生命，他只能担当起自己的责任。因此，意义疗法认为，负责任就是人类存在之本质。
+  - `LATE (16)`：按照意义疗法，我们可以用三种不同的方式来发现生命之意义：(1)通过创立某项工作或从事某种事业；(2)通过体验某种事情或面对某个人；(3)在忍受不可避免的苦难时采取某种态度。
 - 结果：
-  - `coherent_accumulation`: `iterator_v1`
-  - `insight_and_clarification`: `iterator_v1`
+  - `coherent_accumulation = iterator_v1`
+  - `insight_and_clarification = iterator_v1`
+- 完整关键反应：
+  - 见附录第 `1` 节。
 
-`attentional_v2` 在这题上的原始反应：
+`attentional_v2`
 
-> 无命中反应。该 probe 下 `anchor_hit = 0/3`，`matched_reactions = 0`。
+- 关键负证据非常直接：
+  - `anchor_hit = 0/3`
+  - `matched_reactions = 0`
+- 这不是“读到了但解释得不够好”，而是 judge 几乎看不到它在这条线上形成可见的跨章阅读轨迹。
 
-> Judge 的核心观察是：V2 在这 4 章里几乎没有形成可见的跨章阅读轨迹，因此很难证明它真的把这条线带到了后面。
+`iterator_v1`
 
-`iterator_v1` 在这题上的原始反应摘录：
+- 它在 `EARLY / MID / LATE` 三个锚点都有可见反应。
+- 最决定胜负的是 `LATE` 的 `retrospect` move：
+  - 它明确把第三种方式读成对前文集中营问题的回答：即使事业未成、使命未竟，人仍然可以靠对苦难采取某种态度活下去。
+- 它同时把 `MID` 的“责任”读成追问者与被追问者位置对调，因此整条线不是“意义清单”，而是“前面的问题 -> 中间的责任结构 -> 后面的回答框架”。
 
-> “这个框架是全书从诊断进入处方的转折点。三种方式恰好回应了三种基本存在层次：行动、体验、态度选择。”
+本题结论：
 
-> “为什么他要特意说第一种‘显而易见’？这几乎是一种轻描淡写，暗示真正的问题不在成就维度。”
-
-> “『面对某个人』这个表述很克制，没有直接说『爱』……体验中的『意义发现』和事业中的『意义创造』是同一种能力，还是两种不同的心理机制？”
-
-解读：
-
-- 老机制这题赢得很扎实。它不是只复述后面的“三种方式”，而是把这部分当作前文问题的回答来读。
-- 新机制这题不是“读偏了”，而是更接近“没形成有效跨章命中”。这类失败很致命，因为题目本身考的就是长距离回桥。
-- 这题说明：`attentional_v2` 当前最大的 long-span 问题之一，不是局部句子读不懂，而是后文出现明确总结或处方时，没有稳定把前文问题重新抬回台面。
+- 这是 `iterator_v1` 赢得最扎实的一题之一。
+- `attentional_v2` 的问题不在局部句子理解，而在后文出现明确处方时，没有把前文问题重新抬回台面。
 
 ### 5.2 《活出生命的意义》probe 2
 
 - Probe ID: `huochu_shengming_de_yiyi_private_zh__13_16__probe_2`
-- 题目直白版：
-  - 这题考的是一条更抽象、也更容易丢的逻辑链：
-  - “人需要张力” -> “失去张力后会进入存在的虚无和厌倦” -> “所以意义不能只在心里找，而要在世界中发现”。
-- 锚点短引文：
-  - “精神健康有赖于一定程度的紧张”
-  - “存在之虚无的主要表现是厌倦”
-  - “真正意义要在世界当中而不是内心去发现”
+- Case payload：
+  - [huochu probe 2](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/huochu_shengming_de_yiyi_private_zh__13_16__probe_2.json)
+- 这题真正要看什么：
+  - 它考的是一条更抽象的逻辑链：
+  - “健康需要张力” -> “失去张力后会进入虚无和厌倦” -> “所以意义不能只在心里找，而要在世界中发现”。
+- 完整 probe 题面：
+  - `EARLY (13)`：因此，我们可以看到，精神健康有赖于一定程度的紧张——即已完成的和有待完成的任务之间的紧张，或者是当下状态与理想状态之间的差距。
+  - `MID (14)`：存在之虚无的主要表现是厌倦。现在我们能够理解叔本华的话了：人注定要徘徊在焦虑和厌倦这两极之间。
+  - `LATE (16)`：我们说人要担负起责任，要实现生命的潜在意义，是想强调生命的真正意义要在世界当中而不是内心去发现，因为它不是一个封闭的系统。
 - 结果：
-  - `coherent_accumulation`: `iterator_v1`
-  - `insight_and_clarification`: `iterator_v1`
+  - `coherent_accumulation = iterator_v1`
+  - `insight_and_clarification = iterator_v1`
+- 完整关键反应：
+  - 见附录第 `2` 节。
 
-`attentional_v2` 在这题上的原始反应：
+`attentional_v2`
 
-> 无命中反应。该 probe 下 `anchor_hit = 1/3`，但 `matched_reactions = 0`，只留下少量 attention event。
+- 这一题不是完全没有经过痕迹：
+  - `anchor_hit = 1/3`
+  - 但 `matched_reactions = 0`
+- 也就是说，它留下了一些结构性经过痕迹，却没有形成可以直接附着在锚点上的 substantive reaction。
 
-> 换句话说，V2 经过了这些章节，但没有把三段逻辑真正缝起来。
+`iterator_v1`
 
-`iterator_v1` 在这题上的原始反应摘录：
+- 它最强的 accumulation 证据主要出现在 `MID`：
+  - 它把“维持张力”明确读成避免跌入“虚无/厌倦”的机制。
+- `LATE` 则说明 reader 仍然在审查“意义为什么要在世界中发现”这条论证。
+- 但这题也要收得克制一点：
+  - 它不是像 `probe 1` 那样非常漂亮的三段闭合。
+  - 更准确地说，这是 `iterator_v1` 的相对胜出，而不是特别强、特别完整的 accumulation showcase。
 
-> “意义治疗的终极目标不是消除这种张力，而恰恰是维护它——让人持续感到被召唤、被拉扯向某个尚未实现的可能性，而不是跌入虚无的厌倦。”
+本题结论：
 
-> “这里的‘知道’暗示了一个隐含前提：人们缺乏的是‘方法’或‘技能’来填充时间。但问题可能更深层——不是不知道做什么，而是做任何事都感觉不到意义。”
-
-> “『因为它不是一个封闭系统』这个因果链隐含了一个前提……弗兰克尔的论证预设了『投入世界』是唯一的通道，但这个排他性可能值得商榷。”
-
-解读：
-
-- 这题特别能体现 `iterator_v1` 的强项：它会在后面明确地“回望前面”。
-- 它不仅知道有“张力”和“厌倦”这两个词，还会把它们解释成一条病理-处方链。
-- `attentional_v2` 在这类题上的弱点很清楚：它对抽象逻辑链的回收不稳定，容易只保留经过痕迹，不保留解释性桥梁。
+- `iterator_v1` 至少留下了真实的跨段承接。
+- `attentional_v2` 则连这种有限但真实的承接都没有外显出来。
 
 ### 5.3 《史蒂夫·乔布斯》probe 1
 
 - Probe ID: `steve_jobs_private_en__17__probe_1`
-- 题目直白版：
-  - 这题看起来在问 GUI、Lisa、团队冲突。
-  - 其实真正要考的是：你有没有看出后面的团队冲突之所以重要，是因为它挡住了前面已经说清楚的那个产品愿景。
-- 锚点短引文：
-  - “bringing computers to the people”
-  - “cheerful but affordable”
-  - “People who are serious about software should make their own hardware”
+- Case payload：
+  - [steve_jobs probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/steve_jobs_private_en__17__probe_1.json)
+- 这题真正要看什么：
+  - 它要看 reader 能不能把 GUI / bitmapping 的技术突破、Jobs 的大众化产品愿景，以及 Lisa 团队后面的冲突放在同一条主线上。
+- 完整 probe 题面：
+  - `EARLY (17)`：This graphical user interface—or GUI, pronounced “gooey”—was facilitated by another concept pioneered at Xerox PARC: bitmapping…
+  - `MID (17)`：“We’ve got to do it!” It was the breakthrough he had been looking for: bringing computers to the people, with the cheerful but affordable design of an Eichler home and the ease of use of a sleek kitchen appliance. “How long would this take to implement?”
+  - `LATE (17)`：Atkinson and Jobs became best friends for a while… But John Couch and the other professional engineers on his Lisa team… resented Jobs’s meddling… There was also a clash of visions.
 - 结果：
-  - `coherent_accumulation`: `attentional_v2`
-  - `insight_and_clarification`: `attentional_v2`
+  - `coherent_accumulation = attentional_v2`
+  - `insight_and_clarification = attentional_v2`
+- 完整关键反应：
+  - 见附录第 `3` 节。
 
-`attentional_v2` 在这题上的原始反应摘录：
+`attentional_v2`
 
-> “‘Cheerful but affordable’—not cold, not luxury. Jobs names the exact aesthetic tension: warmth without exclusivity, democratized modernism for the home computer.”
+- 这题的 strongest direct evidence 在 `MID`：
+  - 它明确抓住了 `cheerful but affordable` 的审美张力。
+  - 也抓住了 `How long would this take to implement?` 里从愿景转入现实约束的动作。
+- 但这一题也不能写得过强：
+  - formal `EARLY` 对应的是 `17.15`，不是之前容易误写成的 `17.14`。
+  - formal `LATE / 17.39` 上也没有 clean emitted matched reaction。
+- 所以这题更准确的理解是：
+  - `attentional_v2` 至少一直留在了正确主线上，留下了比 `iterator_v1` 更可信的 chapter-window continuity。
+  - 但它并没有把这条链讲得非常漂亮，更像是一个 `medium-confidence relative win`。
 
-> “Kay's second maxim is the sharpest local hinge in the span: it names the integrated philosophy that Jobs will carry into the Lisa and Mac projects.”
+`iterator_v1`
 
-> “The direct demand for a timeline answer forces a bounded reckoning between feature ambition and practical feasibility.”
+- 它确实在 `MID` 留下了对 implementation question 的反应。
+- 但它没有把这条线稳定带到 `LATE` 的 Lisa 团队冲突上。
+- 所以它的问题不是完全没读到，而是关键冲突线没有闭合。
 
-`iterator_v1` 在这题上的原始反应摘录：
+本题结论：
 
-> “Did Jobs ask this same question after every demo he witnessed at PARC, or was this specific to the graphics/interface elements that Atkinson would work on?”
-
-> “The pivot is instant. Jobs is electrified by what he sees at PARC, but his next move is the implementation question.”
-
-解读：
-
-- 新机制这里赢得很漂亮。它能把“技术突破”“产品愿景”“实现阻力”读成同一条线。
-- 老机制并不是完全失手，但它更多停在局部问题上，没有稳定把后段 Lisa 冲突重新绑定到前面的民主化愿景上。
-- 这题说明 `attentional_v2` 的一个真实优势：当主线够明确、而且题目主要考的是“别跑到别的话题去”时，V2 更像一个更稳的阅读器。
+- `attentional_v2` 赢在“没有读丢主线”，不是赢在“已经把整条链讲透了”。
+- 这也是为什么这题适合写成相对胜出，而不适合写成 V2 的代表性 showcase。
 
 ### 5.4 `Supremacy` probe 1
 
 - Probe ID: `supremacy_private_en__13__probe_1`
-- 题目直白版：
-  - 这题不是泛泛讨论 AI 竞争，也不是讨论 OpenAI。
-  - 它严格在问一条线：DeepMind 曾被承诺的自治权，后来是怎样一步步被改写、收紧、重新包装的。
-- 锚点短引文：
-  - “autonomous unit”
-  - “Alphabet company”
-  - “Instead of being a financial asset”
+- Case payload：
+  - [supremacy probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/supremacy_private_en__13__probe_1.json)
+- 这题真正要看什么：
+  - 它考的是 DeepMind autonomy / governance 这条线：
+  - 从前面的自治承诺，到中间的 board / trustees 折中，再到最后 licensing arrangement 的重包装。
+- 完整 probe 题面：
+  - `EARLY (13)`：Instead of being an “autonomous unit,” DeepMind could become an “Alphabet company”…
+  - `MID (13)`：DeepMind could do a kind of partial spinout and have its own board of trustees…
+  - `LATE (13)`：Instead of being a financial asset of Google, DeepMind would enter an exclusive licensing agreement with the company instead…
 - 结果：
-  - `coherent_accumulation`: `attentional_v2`
-  - `insight_and_clarification`: `attentional_v2`
+  - `coherent_accumulation = attentional_v2`
+  - `insight_and_clarification = attentional_v2`
+- 完整关键反应：
+  - 见附录第 `4` 节。
 
-`attentional_v2` 在这题上的原始反应摘录：
+`attentional_v2`
 
-> “The pivot ‘Instead of being…could become’ is the hinge: ‘autonomous unit’ was a research designation with soft autonomy, while ‘Alphabet company’ is a corporate subsidiary with hard accountability.”
+- 这题里它最强的地方，是从头到尾守住了 DeepMind autonomy thread。
+- `EARLY` 的 direct reaction 很清楚：
+  - 它把 “autonomous unit” 和 “Alphabet company” 之间的转写读成软自治和硬 accountability 的切换。
+- `LATE` 的 direct reaction 也很扎实：
+  - 它把 licensing arrangement 读成 dependency 的重新包装，而不是独立。
+- `MID` 的 strongest evidence 主要是 supporting evidence：
+  - board 描述里三位 Alphabet 高管与三位匿名独立董事之间的不对称，帮助它把中段治理结构读清楚。
 
-> “The ‘Instead of’ construction performs a specific rhetorical inversion… This is not independence—it's dependency with better branding.”
+`iterator_v1`
 
-> “Three named Alphabet executives versus three unnamed ‘independent directors’—the asymmetry in how the board is described tells the whole story.”
+- 这一题里它并不是完全没有阅读价值。
+- 它对 Nadella、Altman、OpenAI、Microsoft 等 actor/company 的捕捉，确实对整本书理解有帮助。
+- 但对这道 probe 来说，这反而构成负证据：
+  - 因为它把阅读主线带到了 Altman/Nadella/OpenAI 叙事，而不是 DeepMind autonomy thread。
 
-`iterator_v1` 在这题上的原始反应摘录：
+本题结论：
 
-> “The range of topics that Altman talked about with Nadella was ‘off the charts’...”
-
-> “Somasegar asked Nadella what he thought about Sam Altman.”
-
-> “This sentence is doing real narrative work… The parallel structure (‘the crazier... the more...’) creates a direct proportionality...”
-
-解读：
-
-- 老机制这题最大的问题不是“句子不聪明”，而是完全滑到另一条主线去了。
-- 它谈的是 OpenAI、Altman、Nadella，这些内容本身可能不差，但不是这题要考的 DeepMind governance arc。
-- 新机制的胜利因此很有说服力：它抓住的是这题本来的主线，而且能持续沿着同一治理冲突往后读。
-- 这题特别证明：在“题目很容易被旁支吸走”的场景里，`attentional_v2` 的主线约束能力明显更强。
+- 这是一道 `attentional_v2` 赢得比 `5.3` 更干净的题。
+- 它赢在强 thread discipline，而 `iterator_v1` 输在 thread drift。
 
 ### 5.5 《The Value of Others》probe 1
 
 - Probe ID: `value_of_others_private_en__8_10__probe_1`
-- 题目直白版：
-  - 这题表面上在问第 8 章的 captain / passenger、第 9 章的谈判、第 10 章的市场原则。
-  - 但真正难点是：你能不能把第 10 章读成前两章模型的自然延伸，而不是突然换了一个格言。
-- 锚点短引文：
-  - “more passengers than captains”
-  - “best possible outcome for itself”
-  - “principles … remain just as true”
+- Case payload：
+  - [value_of_others probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/value_of_others_private_en__8_10__probe_1.json)
+- 这题真正要看什么：
+  - 它要看前面的 captain/passenger 框架，是否能经过 chapter `9` 的 negotiation logic，一直带到 chapter `10` 的 marketplace-principles claim。
+- 完整 probe 题面：
+  - `EARLY (8)`：there are more passengers than captains…
+  - `MID (9)`：each party… tries to secure the best possible outcome for itself…
+  - `LATE (10)`：the principles that govern the commercial marketplace remain just as true when applied to the sexual marketplace.
 - 结果：
-  - `coherent_accumulation`: `iterator_v1`
-  - `insight_and_clarification`: `iterator_v1`
+  - `coherent_accumulation = iterator_v1`
+  - `insight_and_clarification = iterator_v1`
+- 完整关键反应：
+  - 见附录第 `5` 节。
 
-`attentional_v2` 在这题上的原始反应摘录：
+`attentional_v2`
 
-> “The phrase is a compressed causal claim, not just metaphor: it treats the default preference for inaction as a given and derives a population-level market consequence from it.”
+- 它在 `EARLY` 其实读得不差：
+  - 能把 passenger/captain 对比读成压缩因果和结构性区分。
+- 但这题真正 decisive 的负证据在 `LATE`：
+  - formal `LATE / 10` 是 `0 matched reactions`
+  - formal `LATE / 10` 也是 `0 matched attention events`
+- 这说明它没有把前面的模型带到最后一跳。
 
-> “The enforcement mechanism crystallizes into explicit deterministic form: the conditional consequence is now formally stated rather than implied.”
+`iterator_v1`
 
-> “The interrogative form transforms diagnosis into invitation… marks the hinge from problem acknowledgment to solution-seeking.”
+- 这里要特别注意证据层级：
+  - formal `LATE` 题面本身是 marketplace-principles 那句总结句。
+  - 但 V1 最有力的 late evidence，不是直接附着在 formal `LATE` 本句上的 exact hit，而是同一节 `10.10` 里的 supporting bridge。
+- 这些 supporting reactions 之所以足够有力，是因为它们明确说出了两件事：
+  - `the economic model is being extended here`
+  - `This connects back to the 'adjust your expectations' advice from earlier chapters`
 
-`iterator_v1` 在这题上的原始反应摘录：
+本题结论：
 
-> “The economic model is being extended here in a notable way—the drug becomes a rival ‘relationship partner’ with committed priority.”
-
-> “This connects back to the ‘adjust your expectations’ advice from earlier chapters.”
-
-> “The deterministic language here is striking… if the road only goes where it goes, what exactly remains open to decision?”
-
-解读：
-
-- 这是旧机制赢得最典型的一题。
-- 新机制前两章其实读得不差，尤其 captain / passenger 框架读得很清楚，但它在第 10 章掉线了。
-- 正式 case payload 里，V2 在第 10 章锚点是 `0 matched reactions`、`0 matched attention events`。这说明它不是“解释得不够深”，而是关键的最后一跳没完成。
-- 老机制虽然反应更散、更长，但它确实做到了评测最看重的那件事：明确指出第 10 章不是新话题，而是前面经济模型的延伸。
-- 这题说明：`attentional_v2` 当前的 long-span 失败常常发生在窗口尾部，它不是不知道前面讲了什么，而是没有把前面的线带到最后一个关键锚点。
+- `attentional_v2` 输在 formal `LATE` 完全空白。
+- `iterator_v1` 赢在：虽然它的 late evidence 更像 same-section supporting bridge，而不是 formal `LATE` 的 clean direct hit，但它确实把 chapter `10` 继续读成了前面模型的延伸。
 
 ### 5.6 《悉达多》probe 1
 
 - Probe ID: `xidaduo_private_zh__13_15__probe_1`
-- 题目直白版：
-  - 这题不是泛泛问“悉达多最后有没有接受世界”。
-  - 它真正要看的是：最后的平静之所以重要，是不是因为前面的伤口、痛苦和依恋已经被做得非常具体。
-- 锚点短引文：
-  - “苦恋着，在爱中迷失”
-  - “被灼痛击败”
-  - “接受这个世界，爱它，属于它”
+- Case payload：
+  - [xidaduo probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/xidaduo_private_zh__13_15__probe_1.json)
+- 这题真正要看什么：
+  - 它不是泛泛问“最后有没有接受世界”。
+  - 它要看的是：后面的平静之所以重要，是不是因为前面的伤口、依恋和痛苦已经被读得足够具体。
+- 完整 probe 题面：
+  - `EARLY (13)`：可是自从儿子出现，他悉达多却成了完全的世人。苦恋着，在爱中迷失；因为爱，而成为愚人。
+  - `MID (14)`：他坦白最狼狈的事，无所顾忌地暴露伤口。他说他今天如何被灼痛击败……
+  - `LATE (15)`：我不再将这个世界与我所期待的，塑造的圆满世界比照，而是接受这个世界，爱它，属于它。
 - 结果：
-  - `coherent_accumulation`: `iterator_v1`
-  - `insight_and_clarification`: `tie`
+  - `coherent_accumulation = iterator_v1`
+  - `insight_and_clarification = tie`
+- 完整关键反应：
+  - 见附录第 `6` 节。
 
-`attentional_v2` 在这题上的原始反应摘录：
+`attentional_v2`
 
-> “‘用爱束缚’——此四字点明悖论核心：不施强迫的爱，同样可以是一种无形的约束。”
+- 它这题的 strongest evidence 主要集中在 `EARLY` 周边的 same-chapter supporting evidence。
+- 例如它对“用爱束缚”“过失”“不作为的伦理边界”这些局部压力读得很准。
+- 但 judge 认为它没有把这些 wound-bearing 反应稳定带到 `MID / LATE`。
 
-> “‘过失’一词将道德责任框架从‘不强制’切换到‘不作为’，直接质询非强制性教育的伦理边界。”
+`iterator_v1`
 
-> “从‘爱束缚’到‘善忍缺席’，指控完成了一次降格——由有形的羁绊指向无形的匮乏。”
+- 它的优势不在局部措辞锋利，而在人物弧线闭合。
+- `EARLY` 它明确把“我成了愚人”读成身份翻转。
+- `LATE` 它又把“停止比照、接受世界”读成对 earlier suffering 的 closure。
+- 但为什么 `insight_and_clarification` 只打平：
+  - 因为 judge 认为两边都还差最后一层解释：
+  - 前面的伤口为什么不是单纯 precede，而是后面接受世界的必要条件。
 
-`iterator_v1` 在这题上的原始反应摘录：
+本题结论：
 
-> “这不是策略，是修行，只是修行的形式是每日受尽折磨。”
-
-> “这个句子的力量在于它的双重翻转：不是‘我理解了愚人’，而是‘我成了愚人’。”
-
-> “重读这段反而更觉得……悉达多后来对儿子的爱，恰恰证明他能爱，但那种‘苦恋、在爱中迷失’的状态，也坐实了另一种更高代价的爱。”
-
-解读：
-
-- 这题最能看出两套机制的风格差异。
-- 新机制擅长把局部悖论和措辞压力读得很清楚，比如“用爱束缚”“不作为也是过失”。
-- 老机制擅长把这些局部材料重新折回到人物整体弧线上，比如“我成了愚人”“这不是策略，是修行”。
-- 为什么 `insight_and_clarification` 只打平？
-  - 因为 judge 认为两边都没有彻底说明一件更深的事：前面的“伤口”为什么成为后面接受世界的必要条件。
-  - 也就是说，这题不是谁完全读错了，而是谁都还没把那条最深的因果链读透。
+- `coherent_accumulation` 上，V1 的人物弧线闭合更完整。
+- `insight_and_clarification` 上，两边都没有把最深的因果链彻底说透，所以最后只打成 `tie`。
 
 ### 5.7 《悉达多》probe 2
 
 - Probe ID: `xidaduo_private_zh__13_15__probe_2`
-- 题目直白版：
-  - 这题比上一题更强调道德学习和经验学习：
-  - 前面的“犯错、受苦、蒙污、理解世人”，最后到底有没有真正汇入“我学会爱这个世界”。
-- 锚点短引文：
-  - “人独自行过生命”
-  - “看到可爱和可敬之处”
-  - “我不再将这个世界与我所期待的…比照”
+- Case payload：
+  - [xidaduo probe 2](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/xidaduo_private_zh__13_15__probe_2.json)
+- 这题真正要看什么：
+  - 这题比上一题更强调道德学习和经验学习。
+  - 它要看的是：前面的“独自行过生命、犯错、受苦、理解世人”，有没有真正汇入后面的“接受这个世界，爱它，属于它”。
+- 完整 probe 题面：
+  - `EARLY (13)`：人独自行过生命，蒙受玷污，承担罪过，痛饮苦酒，寻觅出路。
+  - `MID (14)`：他在他们的每种激情、每种作为中看到生命、生机，看到坚不可摧之物和梵天。他在他们盲目的忠诚、盲目的强悍和坚韧中看到可爱和可敬之处。
+  - `LATE (15)`：我不再将这个世界与我所期待的，塑造的圆满世界比照，而是接受这个世界，爱它，属于它。
 - 结果：
-  - `coherent_accumulation`: `iterator_v1`
-  - `insight_and_clarification`: `iterator_v1`
+  - `coherent_accumulation = iterator_v1`
+  - `insight_and_clarification = iterator_v1`
+- 完整关键反应：
+  - 见附录第 `7` 节。
 
-`attentional_v2` 在这题上的原始反应摘录：
+`attentional_v2`
 
-> “反问翻转：从‘如何管教儿子’到‘谁能免于人性弱点’——这是一个哲学性悬置，而非直接回答质问。”
+- 这题的 formal `EARLY` 其实有 direct evidence：
+  - 它明确抓住了“谁能免于罪孽、贪婪和愚昧”这一哲学反问。
+- 但它更强的部分仍主要集中在 `EARLY` 周边。
+- judge 点名它的问题是：
+  - 中段只留下了一个比较简略的 bridge 痕迹。
+  - 到 `LATE` 时，没有把 earlier suffering-and-error arc 明确带进“接受世界”的段落。
 
-> “‘过失’一词将道德责任框架从‘不强制’切换到‘不作为’。”
+`iterator_v1`
 
-> “‘用爱束缚’——此四字点明悖论核心：不施强迫的爱，同样可以是一种无形的约束。”
+- 真正决定胜负的，是它在 `LATE` 的 retrospective move：
+  - 它把“年轻时逃离一切传统”与后来“去经历罪孽”读成同一条 moral-learning arc 的前后两端。
+- 它同时把“停止比照”解释成“比较本身才是苦的根源”，于是 `LATE` 不再是悬空格言，而是 earlier experience 的 closure。
 
-`iterator_v1` 在这题上的原始反应摘录：
+本题结论：
 
-> “这是悉达多道路的最终转向。不是‘我要走向圆满’，而是‘圆满已经在每一个瞬间’。关键在‘比照’二字——比较本身才是苦的根源。”
+- `attentional_v2` 在这题并不缺早段细读。
+- 它缺的是把这些 earlier pressure 收束成一条长线的稳定动作。
+- `iterator_v1` 则明确完成了这一步，所以两个 target 都判给了它。
 
-> “这个‘或许’确实不像是在给真理下定义，更像是一种开放的态度——它松动了‘好路/坏路’的二元对立。”
-
-> “这里有个值得推敲的地方。悉达多说‘在我看来’——这是一个认识论上的退让，还是‘一切皆好’本身就需要一个观察者视角来确认？”
-
-解读：
-
-- 这题里，新机制仍然强在局部问题压力。
-- 老机制则更会在最后做 retrospective closure：把前面的罪过、痛苦和学习，重新解释为后面“停止比照、接受世界”的来源。
-- 因此这题的结果非常说明问题：`attentional_v2` 并不缺细读能力，但它缺“最后把这些细节收束成一条长线”的稳定动作。
-
-## 6. 两套机制分别擅长什么
+## 6. 跨题结论
 
 ### 6.1 `attentional_v2` 的真实长项
 
-这次 run 里，V2 的优势不是“整体更会 long-span”，而是下面几件事：
+这轮结果里，`attentional_v2` 的优势主要集中在三件事：
 
 - 更不容易跑到错误主线
-  - `Supremacy` 是最典型案例。V1 跑到 OpenAI/Microsoft，V2 则稳定留在 DeepMind 自治权这条线上。
-- 更能抓住局部措辞和结构压力
-  - 比如《悉达多》里的“用爱束缚”“过失”，以及《Steve Jobs》里的“cheerful but affordable”。
+  - `Supremacy` 是最明显的例子。
+- 更擅长局部措辞和结构压力
+  - 比如《悉达多》里的“用爱束缚”“过失”，以及《史蒂夫·乔布斯》里的 `cheerful but affordable`。
 - 在单章长线题里更稳
-  - `Steve Jobs` 和 `Supremacy` 都说明，只要题目主要是“别跑题、别换主线”，V2 的表现非常像一个更干净的阅读器。
+  - 只要题目更强调“别跑题、别换主线”，V2 的表现会明显更好。
 
 ### 6.2 `iterator_v1` 的真实长项
 
-这次 run 里，V1 的优势则非常集中：
+这轮结果里，`iterator_v1` 的优势也非常集中：
 
 - 更会 retrospective bridging
-  - 它更常说出“这在回应前面什么”“这和前面形成对称”“这是前文模型的延伸”。
+  - 更常明确说出“这在回应前面的什么”。
 - 更会把窗口尾部重新挂回窗口前部
-  - `value_of_others` 是最明确的例子：它把第 10 章重新挂回第 8-9 章。
-- 更会把人物或概念弧线闭合
-  - 《悉达多》两题里，它都更会在最后把前面的痛苦、错误或逃离，重新读成后面的接纳之所以成立的原因。
-
-## 7. 这次评测说明了什么结论
-
-这次评测支持的结论，不是“V2 不可用”，而是更细一些：
-
-1. `attentional_v2` 目前还没有在 long-span 累积阅读上超过 `iterator_v1`。
-2. `attentional_v2` 的产品价值仍然成立，因为它在主线约束、局部精度、少跑偏上确实更好。
-3. long-span 上它最该补的不是“更会写漂亮句子”，而是：
-   - 窗口尾部保持对前文主线的持续记忆
-   - 在后文显式说出“这一段是在回应/延伸/反转前面的什么”
-   - 不把后段总结读成独立金句
-4. 因此，下一步最合理的机制改进方向不是机械地抄 V1，而是有选择地补上：
-   - `late-anchor persistence`
-   - `retrospective bridge emission`
-   - `window-end closure`
-
-## 8. 面向后续工作的建议
-
-- 不要因为这次结果去回退默认机制。
-  - 这次 long-span 结果说明的是“V2 默认可用，但 long-span 还有明确改进点”，不是“默认切换错误”。
-- 不要再打一轮无差别全量 rerun 来换解释。
-  - 问题已经很清楚了，继续全量跑只会重复证明同一件事。
-- 更值得做的是窄修复和对点复测：
-  - `value_of_others_private_en__8_10`
-  - `huochu_shengming_de_yiyi_private_zh__13_16`
-  - `xidaduo_private_zh__13_15`
-- 修复目标不该写成“让 V2 更像 V1”，而应该写成：
-  - 让 V2 在读到窗口后段时，显式回提窗口前段的核心问题
-  - 让 V2 在最后一个 anchor 处稳定输出“这回答了前面什么”
-  - 让 V2 的局部精读能力，最终转化成可见的跨章闭合能力
-
-## 9. 逐题证据导航
-
-这一节专门回答“题目原文到底在哪、机制原始反应到底在哪”。
-
-如果你要快速核对某一题，建议按下面的顺序走：
-
-1. 先去 [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl) 找对应 `line` / `probe_id`，读 `excerpt_text`，确认完整 `EARLY / MID / LATE` 题面到底在问什么。
-2. 再回到本报告第 `5.x` 节，看这题的人类解读，先建立“这题真正考什么”的阅读框架。
-3. 然后去对应 case payload，读两个 target 的 `judgment.reason`，看正式判定为什么给出这个胜负。
-4. 最后再看 `matched_reactions`、`epub` 锚点和 `raw_export` / `source_case_id`，核对这份判定到底落在哪些本地证据上。
-
-### 9.0 逐题速查表
-
-| Probe ID | 对应正文 | 对应导航 | `probes.jsonl` 行号 | `coherent_accumulation` | `insight_and_clarification` | 最值得先核对什么 |
-| --- | --- | --- | --- | --- | --- | --- |
-| `huochu_shengming_de_yiyi_private_zh__13_16__probe_1` | `5.1` | `9.1` | `1` | `iterator_v1` | `iterator_v1` | `attentional_v2` 为何 `0/3 anchor hits` |
-| `huochu_shengming_de_yiyi_private_zh__13_16__probe_2` | `5.2` | `9.2` | `2` | `iterator_v1` | `iterator_v1` | V2 只有零散 attention event，没形成跨章轨迹 |
-| `steve_jobs_private_en__17__probe_1` | `5.3` | `9.3` | `3` | `attentional_v2` | `attentional_v2` | V2 如何抓住 GUI 愿景到 Lisa 冲突的局部主线 |
-| `supremacy_private_en__13__probe_1` | `5.4` | `9.4` | `4` | `attentional_v2` | `attentional_v2` | V2 如何稳定扣住自治权与治理妥协主线 |
-| `value_of_others_private_en__8_10__probe_1` | `5.5` | `9.5` | `5` | `iterator_v1` | `iterator_v1` | V2 为什么在 late anchor 缺席 |
-| `xidaduo_private_zh__13_15__probe_1` | `5.6` | `9.6` | `6` | `iterator_v1` | `tie` | 两机制怎样把前段痛苦线带到后段接纳 |
-| `xidaduo_private_zh__13_15__probe_2` | `5.7` | `9.7` | `7` | `iterator_v1` | `iterator_v1` | V1 如何把“犯错/受苦”闭合到“学会爱世界” |
-
-- 完整题面文本：
-  - 统一去 [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - 找对应 `line` / `probe_id`
-  - 读 `excerpt_text`
-- 正式判定理由：
-  - 统一去各自的 case payload
-  - 读 `target_results.coherent_accumulation.judgment.reason`
-  - 读 `target_results.insight_and_clarification.judgment.reason`
-- 机制原始反应：
-  - 统一去各自的 case payload
-  - 读 `mechanisms.attentional_v2.local_evidence.matched_reactions`
-  - 读 `mechanisms.iterator_v1.local_evidence.matched_reactions`
-
-### 9.1 `huochu_shengming_de_yiyi_private_zh__13_16__probe_1` 对照导航
-
-- 对应正文：`5.1`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 1`
-  - `probe_id = huochu_shengming_de_yiyi_private_zh__13_16__probe_1`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [huochu_shengming_de_yiyi.epub](../../../state/library_sources/zh/huochu_shengming_de_yiyi.epub)
-  - anchor sentence ids: `c13-s5`, `c15-s12`, `c16-s21`
-- 笔记锚点入口：
-  - [raw_export.md](../../../state/library_notes/raw_exports/huochu_shengming_de_yiyi_private_zh_personal_notes/raw_export.md)
-  - 搜索 `e0045`, `e0053`, `e0056`
-- 正式 case payload：
-  - [huochu probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/huochu_shengming_de_yiyi_private_zh__13_16__probe_1.json)
-- 锚点定位：
-  - `early`: Chapter `13`《心理—动力》, `c13-s5`, `source_ref_id = huochu_shengming_de_yiyi_private_zh_personal_notes__e0045`
-  - `mid`: Chapter `15`《生命之意义》, `c15-s12`, `source_ref_id = huochu_shengming_de_yiyi_private_zh_personal_notes__e0053`
-  - `late`: Chapter `16`《存在之本质》, `c16-s21`, `source_ref_id = huochu_shengming_de_yiyi_private_zh_personal_notes__e0056`
-- `attentional_v2` 原始反应补充：
-  - `anchor_hit_count = 0/3`
-  - `matched_reaction_count = 0`
-  - 这题里没有可引用的 matched reaction，正式证据主要体现在它的缺席本身，以及 judge 对“没有形成可见跨章轨迹”的判定。
-- `iterator_v1` 更完整原始反应摘录：
-
-> “这个框架是全书从诊断进入处方的转折点。三种方式恰好回应了三种基本存在层次：行动、体验、态度选择。值得注意的是，顺序不是任意的——他先说最容易的，再说最难的。”
-
-> “为什么他要特意说第一种‘显而易见’？这几乎是一种轻描淡写，暗示真正的问题不在成就维度。”
-
-> “『面对某个人』这个表述很克制，没有直接说『爱』……体验中的『意义发现』和事业中的『意义创造』是同一种能力，还是两种不同的心理机制？”
-
-### 9.2 `huochu_shengming_de_yiyi_private_zh__13_16__probe_2` 对照导航
-
-- 对应正文：`5.2`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 2`
-  - `probe_id = huochu_shengming_de_yiyi_private_zh__13_16__probe_2`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [huochu_shengming_de_yiyi.epub](../../../state/library_sources/zh/huochu_shengming_de_yiyi.epub)
-  - anchor sentence ids: `c13-s13`, `c14-s1`, `c16-s14`
-- 笔记锚点入口：
-  - [raw_export.md](../../../state/library_notes/raw_exports/huochu_shengming_de_yiyi_private_zh_personal_notes/raw_export.md)
-  - 搜索 `e0046`, `e0049`, `e0054`
-- 正式 case payload：
-  - [huochu probe 2](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/huochu_shengming_de_yiyi_private_zh__13_16__probe_2.json)
-- 锚点定位：
-  - `early`: Chapter `13`《心理—动力》, `c13-s13`, `source_ref_id = huochu_shengming_de_yiyi_private_zh_personal_notes__e0046`
-  - `mid`: Chapter `14`《存在之虚无》, `c14-s1`, `source_ref_id = huochu_shengming_de_yiyi_private_zh_personal_notes__e0049`
-  - `late`: Chapter `16`《存在之本质》, `c16-s14`, `source_ref_id = huochu_shengming_de_yiyi_private_zh_personal_notes__e0054`
-- `attentional_v2` 原始反应补充：
-  - `anchor_hit_count = 1/3`
-  - `matched_reaction_count = 0`
-  - 它只留下少量 attention event，没有形成足够可读的跨章反应。
-- `iterator_v1` 更完整原始反应摘录：
-
-> “意义治疗的终极目标不是消除这种张力，而恰恰是维护它——让人持续感到被召唤、被拉扯向某个尚未实现的可能性，而不是跌入虚无的厌倦。”
-
-> “这里的‘知道’暗示了一个隐含前提：人们缺乏的是‘方法’或‘技能’来填充时间。但问题可能更深层——不是不知道做什么，而是做任何事都感觉不到意义。”
-
-> “『因为它不是一个封闭系统』这个因果链隐含了一个前提……弗兰克尔的论证预设了『投入世界』是唯一的通道，但这个排他性可能值得商榷。”
-
-### 9.3 `steve_jobs_private_en__17__probe_1` 对照导航
-
-- 对应正文：`5.3`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 3`
-  - `probe_id = steve_jobs_private_en__17__probe_1`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [steve_jobs.epub](../../../state/library_sources/en/private/steve_jobs.epub)
-  - anchor sentence ids: `c17-s66..70`, `c17-s124..126`, `c17-s203..205`
-- excerpt seed 入口：
-  - 这题没有 personal notes export
-  - 直接在 case payload 里搜 `source_case_id = steve_jobs_private_en__17__callback_bridge__seed_1`
-  - 搜 `steve_jobs_private_en__17__tension_reversal__seed_9`
-  - 搜 `steve_jobs_private_en__17__tension_reversal__seed_3`
-- 正式 case payload：
-  - [steve_jobs probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/steve_jobs_private_en__17__probe_1.json)
-- 锚点定位：
-  - `early`: Chapter `17`, `c17-s66..70`, `source_case_id = steve_jobs_private_en__17__callback_bridge__seed_1`
-  - `mid`: Chapter `17`, `c17-s124..126`, `source_case_id = steve_jobs_private_en__17__tension_reversal__seed_9`
-  - `late`: Chapter `17`, `c17-s203..205`, `source_case_id = steve_jobs_private_en__17__tension_reversal__seed_3`
-- `attentional_v2` 更完整原始反应摘录：
-
-> “‘Cheerful but affordable’—not cold, not luxury. Jobs names the exact aesthetic tension: warmth without exclusivity, democratized modernism for the home computer.”
-
-> “The direct demand for a timeline answer forces a bounded reckoning between feature ambition and practical feasibility — a compact local hinge that names a concrete constraint rather than inviting open-ended discussion.”
-
-> “Kay's second maxim is the sharpest local hinge in the span: it names the integrated philosophy that Jobs will carry into the Lisa and Mac projects, and it sets up the central irony of the chapter—Xerox invented the GUI but could not ‘make its own hardware’ to capitalize on it, while Apple will do exactly that.”
-
-- `iterator_v1` 更完整原始反应摘录：
-
-> “Did Jobs ask this same question after every demo he witnessed at PARC, or was this specific to the graphics/interface elements that Atkinson would work on? The phrasing suggests he was already mentally mapping demos to team capabilities.”
-
-> “The pivot is instant. Jobs is electrified by what he sees at PARC, but his next move is the implementation question—not ‘how does it work’ or ‘why is it designed this way,’ but ‘can we ship this.’”
-
-### 9.4 `supremacy_private_en__13__probe_1` 对照导航
-
-- 对应正文：`5.4`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 4`
-  - `probe_id = supremacy_private_en__13__probe_1`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [supremacy.epub](../../../state/library_sources/en/private/supremacy.epub)
-  - anchor sentence ids: `c13-s6..8`, `c13-s39..41`, `c13-s171..173`
-- excerpt seed 入口：
-  - 这题没有 personal notes export
-  - 直接在 case payload 里搜 `supremacy_private_en__13__distinction_definition__reserve_1`
-  - 搜 `supremacy_private_en__13__tension_reversal__seed_2`
-  - 搜 `supremacy_private_en__13__tension_reversal__seed_1`
-- 正式 case payload：
-  - [supremacy probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/supremacy_private_en__13__probe_1.json)
-- 锚点定位：
-  - `early`: Chapter `13`《Chapter 7. Playing Games》, `c13-s6..8`
-  - `mid`: Chapter `13`《Chapter 7. Playing Games》, `c13-s39..41`
-  - `late`: Chapter `13`《Chapter 7. Playing Games》, `c13-s171..173`
-- `attentional_v2` 更完整原始反应摘录：
-
-> “The pivot ‘Instead of being…could become’ is the hinge: ‘autonomous unit’ was a research designation with soft autonomy, while ‘Alphabet company’ is a corporate subsidiary with hard accountability. Alphabet upgrades the label but tightens financial control.”
-
-> “The ‘Instead of’ construction performs a specific rhetorical inversion… This is not independence—it's dependency with different legal clothing.”
-
-> “Three named Alphabet executives versus three unnamed ‘independent directors’—the asymmetry in how the board is described tells the whole story of DeepMind's nominal versus actual independence.”
-
-- `iterator_v1` 更完整原始反应摘录：
-
-> “I was curious what specific topics made the range ‘off the charts,’ but the search results I found don't actually pull back the curtain on those early 2022 conversations…”
-
-> “Is there a pattern here—do effective corporate leaders in this era share a tolerance for and attraction to ‘crazy’ ambition…?”
-
-> “Somasegar is the narrator of this scene, and that matters… He's not a neutral observer—he has emotional and financial stakes in how this story gets told.”
-
-### 9.5 `value_of_others_private_en__8_10__probe_1` 对照导航
-
-- 对应正文：`5.5`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 5`
-  - `probe_id = value_of_others_private_en__8_10__probe_1`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [the_value_of_others.epub](../../../state/library_sources/en/private/the_value_of_others.epub)
-  - anchor sentence ids: `c8-s43..45`, `c9-s12..13`, `c10-s47..48`
-- 笔记锚点入口：
-  - [raw_export.md](../../../state/library_notes/raw_exports/value_of_others_private_en_personal_notes/raw_export.md)
-  - 搜索 `e0024`, `e0039`
-- 正式 case payload：
-  - [value_of_others probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/value_of_others_private_en__8_10__probe_1.json)
-- 锚点定位：
-  - `early`: Chapter `8`《Chapter 2》, `c8-s43..45`, `source_case_id = value_of_others_private_en__8__distinction_definition__seed_2`
-  - `mid`: Chapter `9`《Chapter 3》, `c9-s12..13`, `source_ref_id = value_of_others_private_en_personal_notes__e0024`
-  - `late`: Chapter `10`《Chapter 4》, `c10-s47..48`, `source_ref_id = value_of_others_private_en_personal_notes__e0039`
-- `attentional_v2` 更完整原始反应摘录：
-
-> “The phrase is a compressed causal claim, not just metaphor: it treats the default preference for inaction as a given and derives a population-level market consequence from it.”
-
-> “The enforcement mechanism crystallizes into explicit deterministic form: the conditional consequence is now formally stated rather than implied. The binary is absolute—transformation or full market invisibility, with no graduated intermediate states.”
-
-> 这题最关键的证据不是某条漂亮反应，而是它在 Chapter `10` 的缺席：`anchor_hit_count = 2/3`，且 late anchor `0 matched reactions`、`0 matched attention events`。
-
-- `iterator_v1` 更完整原始反应摘录：
-
-> “The economic model is being extended here in a notable way—the drug becomes a rival ‘relationship partner’ with committed priority. This is clever framing, but it quietly sidesteps the question of whether the addict chose that rival partner or had their capacity for choice compromised.”
-
-> “This connects back to the ‘adjust your expectations’ advice from earlier chapters.”
-
-> “The deterministic language here is striking… if the road only goes where it goes, what exactly remains open to decision?”
-
-### 9.6 `xidaduo_private_zh__13_15__probe_1` 对照导航
-
-- 对应正文：`5.6`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 6`
-  - `probe_id = xidaduo_private_zh__13_15__probe_1`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [xidaduo.epub](../../../state/library_sources/zh/xidaduo.epub)
-  - anchor sentence ids: `c13-s1`, `c14-s62`, `c15-s109..111`
-- 笔记锚点入口：
-  - [raw_export.md](../../../state/library_notes/raw_exports/xidaduo_private_zh_personal_notes/raw_export.md)
-  - 搜索 `e0014`, `e0019`
-- 正式 case payload：
-  - [xidaduo probe 1](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/xidaduo_private_zh__13_15__probe_1.json)
-- 锚点定位：
-  - `early`: Chapter `13`《儿子》, `c13-s1`, `source_ref_id = xidaduo_private_zh_personal_notes__e0014`
-  - `mid`: Chapter `14`《唵》, `c14-s62`, `source_ref_id = xidaduo_private_zh_personal_notes__e0019`
-  - `late`: Chapter `15`《乔文达》, `c15-s109..111`, `source_case_id = xidaduo_private_zh__15__tension_reversal__seed_2`
-- `attentional_v2` 更完整原始反应摘录：
-
-> “‘用爱束缚’——此四字点明悖论核心：不施强迫的爱，同样可以是一种无形的约束。”
-
-> “‘过失’一词将道德责任框架从‘不强制’切换到‘不作为’，直接质询非强制性教育的伦理边界。”
-
-> “从‘爱束缚’到‘善忍缺席’，指控完成了一次降格——由有形的羁绊指向无形的匮乏。”
-
-- `iterator_v1` 更完整原始反应摘录：
-
-> “这不是策略，是修行，只是修行的形式是每日受尽折磨。”
-
-> “重读这段反而更觉得……悉达多后来对儿子的爱，恰恰证明他能爱，但那种‘苦恋、在爱中迷失’的状态，也坐实了另一种更高代价的爱。”
-
-> “这里有一个微妙的自欺：悉达多说他在迦摩罗的话中‘听到责备’，却仍然‘赞同她的话’。责备被听见了，却没有进入他的自我认知。”
-
-### 9.7 `xidaduo_private_zh__13_15__probe_2` 对照导航
-
-- 对应正文：`5.7`
-- 完整题面文本入口：
-  - [probes.jsonl](../../../state/eval_local_datasets/accumulation_probes/attentional_v2_accumulation_benchmark_v1_probes_frozen_draft/probes.jsonl)
-  - `line = 7`
-  - `probe_id = xidaduo_private_zh__13_15__probe_2`
-  - 看 `excerpt_text`
-- 原书上下文入口：
-  - [xidaduo.epub](../../../state/library_sources/zh/xidaduo.epub)
-  - anchor sentence ids: `c13-s82`, `c14-s15`, `c15-s110`
-- 笔记锚点入口：
-  - [raw_export.md](../../../state/library_notes/raw_exports/xidaduo_private_zh_personal_notes/raw_export.md)
-  - 搜索 `e0012`, `e0016`, `e0025`
-- 正式 case payload：
-  - [xidaduo probe 2](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/shards/main/cases/xidaduo_private_zh__13_15__probe_2.json)
-- 锚点定位：
-  - `early`: Chapter `13`《儿子》, `c13-s82`, `source_ref_id = xidaduo_private_zh_personal_notes__e0012`
-  - `mid`: Chapter `14`《唵》, `c14-s15`, `source_ref_id = xidaduo_private_zh_personal_notes__e0016`
-  - `late`: Chapter `15`《乔文达》, `c15-s110`, `source_ref_id = xidaduo_private_zh_personal_notes__e0025`
-- `attentional_v2` 更完整原始反应摘录：
-
-> “反问翻转：从‘如何管教儿子’到‘谁能免于人性弱点’——这是一个哲学性悬置，而非直接回答质问。”
-
-> “‘过失’一词将道德责任框架从‘不强制’切换到‘不作为’。”
-
-> “‘用爱束缚’——此四字点明悖论核心：不施强迫的爱，同样可以是一种无形的约束。”
-
-- `iterator_v1` 更完整原始反应摘录：
-
-> “这是悉达多道路的最终转向。不是‘我要走向圆满’，而是‘圆满已经在每一个瞬间’。关键在‘比照’二字——比较本身才是苦的根源。”
-
-> “这个‘或许’确实不像是在给真理下定义，更像是一种开放的态度——它松动了‘好路/坏路’的二元对立。”
-
-> “这里有个值得推敲的地方。悉达多说‘在我看来’——这是一个认识论上的退让，还是‘一切皆好’本身就需要一个观察者视角来确认？”
+  - `The Value of Others` 是最明确的例子。
+- 更会把人物弧线或概念弧线闭合
+  - 《活出生命的意义》和《悉达多》的几道题都体现得很明显。
+
+### 6.3 哪些题最能代表这轮结果
+
+- 最能代表 `iterator_v1` long-span 优势的题：
+  - `5.1《活出生命的意义》probe 1`
+  - `5.5《The Value of Others》probe 1`
+- 最能代表 `attentional_v2` 主线约束优势的题：
+  - `5.4 Supremacy probe 1`
+- 需要克制解读的题：
+  - `5.3《史蒂夫·乔布斯》probe 1`
+  - 它更像一个 `medium-confidence relative win`，不是 probe 对齐非常干净的 showcase。
+
+## 7. 这轮评测支持什么结论
+
+这轮结果支持的不是“V2 不应该继续做”，而是更具体的三条判断：
+
+1. `attentional_v2` 目前还没有在 bounded long-span accumulation 上超过 `iterator_v1`。
+2. `attentional_v2` 的产品价值仍然成立，因为它在主线约束、局部精度和少跑偏上确实更好。
+3. V2 现在最该补的，不是“更会写漂亮句子”，而是：
+   - late-anchor persistence
+   - retrospective bridge emission
+   - window-end closure
+
+## 8. 后续动作建议
+
+- 不要再用旧思路去“补丁式修报告”。
+  - 后续所有评估报告，都应该继续沿用这版的证据分层写法。
+- 不要因为这轮 long-span 结果就回退默认机制。
+  - 这轮结果说明的是“V2 的 long-span 还有明确改进点”，不是“默认切换方向错误”。
+- 机制改进应继续聚焦 long-span 的三类缺口：
+  - 关键后段锚点的持续可见性
+  - 把后文明确读成前文回答 / 延伸 / 反转的稳定外显动作
+  - 不让窗口尾部总结段落变成悬空金句
+
+如果你要继续逐条审计证据，请直接进入：
+
+- [关键反应附录](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_score_impact_reaction_appendix.md)

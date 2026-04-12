@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-09T16:23:21Z`
+Last updated: `2026-04-10T14:01:16Z`
 
 ## Status Values
 - `active`
@@ -42,7 +42,9 @@ Last updated: `2026-04-09T16:23:21Z`
     - routed bookshelf and overview now consume additive `status_reason`
     - paused stale/interrupted books now render last-known reading position honestly
     - resume CTA now stays hidden when `resume_available = false`
-  - next redesign chapter and marks surfaces around anchors and live thought lineage
+  - next redesign the chapter and marks surfaces around anchors and live thought lineage, with these page roles fixed:
+    - `/books/:id/chapters/:chapterId` is the main chapter reading scene and default return-to-context page
+    - `/marks` is the saved-reaction list plus jump-back surface, not the main reading scene
   - do not open a separate cleanup-only wave for V1 display concepts before this lane
 - Jobs: none
 

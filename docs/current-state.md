@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-09T16:23:21Z`
+Last verified: `2026-04-10T14:01:16Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -24,6 +24,12 @@ Last verified: `2026-04-09T16:23:21Z`
   - do not keep the old `iterator_v1` / section-first presentation as a co-equal product model
   - keep that older presentation shape only as a compatibility shell while V2-native surfaces are being built
   - do not spend on a standalone V1-concept cleanup wave first; demote those concepts progressively as V2-native UI lands
+  - the default page-responsibility clarification is now fixed for the V2-native lane:
+    - `/books` is the bookshelf and entry surface
+    - `/books/:id` is the book home for status, progress, and dispatch
+    - `/books/:id/chapters/:chapterId` is the main chapter reading scene and the primary return-to-context surface
+    - `/marks` is the saved-reaction list, not the primary reading scene
+    - `/analysis/*` remains compatibility-only rather than a main design target
   - the first bounded frontend truth/visibility slice is now landed and browser-validated:
     - `/books/:id` no longer falls back to obviously false live labels such as stale `Pending` when a book is actively reading
     - the overview mindstream now consumes more V2 live truth:
@@ -191,7 +197,8 @@ Last verified: `2026-04-09T16:23:21Z`
   - `frontend` is now the next active product lane:
     - begin V2-native routed presentation work without waiting for a separate V1 display cleanup pass
     - keep the new truth/visibility slice on overview and source-reader surfaces as the current baseline
-    - next promote anchor- and locus-native rendering on chapter and marks surfaces
+    - next make `/books/:id/chapters/:chapterId` the explicit anchor- and locus-native return-to-context scene
+    - keep `/marks` focused on saved reactions and jump-back links into chapter context rather than promoting it to the main reading scene
     - only retire section-first compatibility containers after the V2-native surfaces are stable
   - the detailed background below remains useful, but where it conflicts with the April 7 lane update above, the April 7 update wins
 - Evaluation now uses two intentionally different semantic surfaces:
@@ -2373,17 +2380,16 @@ Last verified: `2026-04-09T16:23:21Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-08T13:50:14Z",
+  "updated_at": "2026-04-10T14:01:16Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-ACCUMULATION-BENCHMARK-V1"
+    "TASK-ACCUMULATION-BENCHMARK-V1",
+    "TASK-V2-NATIVE-READING-PRESENTATION"
   ],
   "blocked_task_ids": [
     "TASK-PHASE9-DECISIVE-EVAL"
   ],
-  "active_job_ids": [
-    "bgjob_accumulation_benchmark_v1_value_of_others_iterator_v1_recovery_20260408"
-  ],
+  "active_job_ids": [],
   "open_decision_ids": [],
   "detail_refs": [
     "docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md",
