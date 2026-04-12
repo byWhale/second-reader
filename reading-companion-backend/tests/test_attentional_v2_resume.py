@@ -18,6 +18,7 @@ from src.attentional_v2.state_ops import close_local_meaning_unit, push_local_bu
 from src.attentional_v2.storage import (
     anchor_bank_file,
     concept_registry_file,
+    continuation_capsule_file,
     event_stream_file,
     full_checkpoint_file,
     load_json,
@@ -150,6 +151,8 @@ def test_checkpoint_and_warm_resume_restore_exact_hot_state(tmp_path: Path):
     checkpoint = write_full_checkpoint(output_dir, checkpoint_id="cp-1", checkpoint_reason="unit_test")
     assert full_checkpoint_file(output_dir, "cp-1").exists()
     assert checkpoint["visible_reaction_ids"] == ["rx-1"]
+    assert checkpoint["continuation_capsule"]["chapter_ref"] == "Chapter 1"
+    assert continuation_capsule_file(output_dir).exists()
 
     save_json(local_buffer_file(output_dir), build_empty_local_buffer())
     resumed = resume_from_checkpoint(output_dir, book_document=book_document, requested_resume_kind="warm_resume")
@@ -158,6 +161,7 @@ def test_checkpoint_and_warm_resume_restore_exact_hot_state(tmp_path: Path):
     assert shell["last_checkpoint_id"] == "cp-1"
     assert shell["cursor"]["sentence_id"] == "c1-s6"
     assert resumed["effective_resume_kind"] == "warm_resume"
+    assert resumed["continuation_capsule_status"] == "available"
     assert resumed["resume_window_sentence_ids"] == []
     assert resumed["local_buffer"]["current_sentence_id"] == "c1-s6"
     assert resumed["local_buffer"]["is_reconstructed"] is False

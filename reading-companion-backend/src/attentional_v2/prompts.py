@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v11"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v12"
 NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v2"
-READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v3"
+READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v4"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
 MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v8"
 CONTROLLER_DECISION_PROMPT_VERSION = "attentional_v2.controller_decision.v1"
@@ -119,7 +119,7 @@ Rules:
 - Use the read-context packet naturally when it is genuinely relevant.
 - If prior material is not materially needed, say so plainly instead of forcing a connection.
 - Do not invent earlier text that is not present in carry-forward or supplemental context.
-- If the current unit clearly depends on earlier material but the provided context is insufficient, request exactly one bounded supplemental context step.
+- If the current unit clearly depends on earlier material but the provided context is insufficient, request one bounded supplemental context step at a time.
 - Use `active_recall` when you need more structured prior state.
 - Use `look_back` only when exact earlier source wording is needed, and point to explicit anchor ids and/or sentence ids when you can.
 - `implicit_uptake` must stay explicit. Only target:

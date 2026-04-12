@@ -18,6 +18,7 @@ from .schemas import (
     build_empty_concept_registry,
     build_empty_local_buffer,
     build_empty_local_continuity,
+    build_empty_continuation_capsule,
     build_empty_knowledge_activations,
     build_empty_move_history,
     build_empty_reaction_records,
@@ -111,6 +112,12 @@ def local_continuity_file(output_dir: Path) -> Path:
     """Return the compact continuity-state path used for checkpointing and resume."""
 
     return runtime_dir(output_dir) / "local_continuity.json"
+
+
+def continuation_capsule_file(output_dir: Path) -> Path:
+    """Return the persisted continuation-capsule path."""
+
+    return runtime_dir(output_dir) / "continuation_capsule.json"
 
 
 def anchor_memory_file(output_dir: Path) -> Path:
@@ -240,6 +247,7 @@ def artifact_map(output_dir: Path) -> dict[str, str]:
         "local_buffer": str(local_buffer_file(output_dir).relative_to(output_dir)),
         "trigger_state": str(trigger_state_file(output_dir).relative_to(output_dir)),
         "local_continuity": str(local_continuity_file(output_dir).relative_to(output_dir)),
+        "continuation_capsule": str(continuation_capsule_file(output_dir).relative_to(output_dir)),
         "working_state": str(working_state_file(output_dir).relative_to(output_dir)),
         "concept_registry": str(concept_registry_file(output_dir).relative_to(output_dir)),
         "thread_trace": str(thread_trace_file(output_dir).relative_to(output_dir)),
@@ -345,6 +353,10 @@ def initialize_artifact_tree(
     ensure_json(local_buffer_file(output_dir), build_empty_local_buffer(mechanism_version=mechanism_version))
     ensure_json(trigger_state_file(output_dir), build_empty_trigger_state(mechanism_version=mechanism_version))
     ensure_json(local_continuity_file(output_dir), build_empty_local_continuity(mechanism_version=mechanism_version))
+    ensure_json(
+        continuation_capsule_file(output_dir),
+        build_empty_continuation_capsule(mechanism_version=mechanism_version),
+    )
     ensure_json(working_state_file(output_dir), build_empty_working_state(mechanism_version=mechanism_version))
     ensure_json(concept_registry_file(output_dir), build_empty_concept_registry(mechanism_version=mechanism_version))
     ensure_json(thread_trace_file(output_dir), build_empty_thread_trace(mechanism_version=mechanism_version))

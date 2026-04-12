@@ -49,7 +49,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - Phase B of the post-eval structural rework is now also landed.
   - `read` is now the canonical owner of the current-unit read packet on the live path.
   - Each formal unit read now receives a small `carry-forward context` built from persisted state.
-  - `read` may request at most one bounded supplemental step through `active_recall` or `look_back`.
+  - `read` may request bounded supplemental context through `active_recall` or `look_back`.
   - `raw reaction` truth now comes directly from `read`, and private `read_audit` records capture context use.
 - Phase C.1 of the post-eval structural rework is now landed.
   - Live prompt inputs now flow through a bounded internal `state_packet.v1` seam.
@@ -69,6 +69,11 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - Sentence-intake, bridge, and chapter slow-cycle now execute directly on the new primary state layers.
   - The live runner no longer projects into `working_pressure / anchor_memory / reflective_summaries` in order to execute helpers.
   - Live runtime loading and resume now reject pre-`Phase C.3` runtime/checkpoint shapes instead of migrating them on the live path.
+- Phase D of the post-eval structural rework is now landed as the continuity / recall / resume polish slice.
+  - `read` now runs under a budget-bounded multi-step supplemental loop instead of a single extra pass.
+  - Runtime state and full checkpoints now persist a lightweight `continuation capsule` with explicit `rehydration entrypoints`.
+  - Warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state.
+  - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity plus stop reasons.
 
 ## Naming Note
 - `Phase 3`, `Phase 4`, `Phase 5`, and `Phase 6` in this document refer to historical implementation-stage groupings, not to a user-facing or mechanism-intrinsic sequence of named runtime phases.
@@ -76,7 +81,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - sentence intake and watch-state update
   - `navigate.unitize`
   - mandatory formal unit read with bounded carry-forward context
-  - optional one bounded supplemental recall / look-back pass when `read` asks for it
+  - optional budget-bounded supplemental recall / look-back looping when `read` asks for it
   - `navigate.route`
   - optional `bridge_resolution`
   - chapter-end slow-cycle work such as `chapter_consolidation`, `reflective_promotion`, and `reconsolidation`
@@ -118,13 +123,13 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `no_zoom`, `monitor`, and `zoom_now` are still persisted as watch metadata.
   - They no longer decide whether正文 gets a formal read.
   - Their Phase A role is observability, cheap salience evidence, and later audit/debug support.
-- The live Phase A/B control loop is now:
+- The live Phase A-D control loop is now:
   - ingest the next unread sentence
   - persist watch-state / trigger metadata
   - `navigate.unitize` over a fixed preview window
   - build a small `carry-forward context` from persisted state
   - formally read the chosen coverage unit through `read`
-  - when `read` explicitly asks for more context, resolve at most one bounded `active_recall` or `look_back` supplement and rerun `read` once
+  - when `read` explicitly asks for more context, resolve one bounded `active_recall` or `look_back` supplement at a time and continue rerunning `read` while budget remains and more context is still explicitly requested
   - `navigate.route` over that exact unit
 - `navigate.unitize` is now the sole selector of the next coverage unit.
   - Boundary choice is prompt-led and semantic.
@@ -181,7 +186,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - The live node bundle is now:
   - `navigate_unitize`
   - `read_unit`
-  - optional second `read_unit` after one bounded `active_recall` or `look_back` supplement
+  - optional additional `read_unit` turns inside a budget-bounded supplemental `active_recall` / `look_back` loop
   - `bridge_resolution`
   - `reflective_promotion`
   - `reconsolidation`
@@ -192,7 +197,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `navigate_unitize` decides the next coverage unit before formal reading begins
   - trigger/watch outputs still exist, but they no longer suppress formal reading
   - `read_unit` owns local understanding, prior-material use, `implicit_uptake`, optional `raw_reaction`, and optional `context_request`
-  - at most one supplemental context step is allowed per chosen unit
+  - supplemental context now runs as a budget-bounded loop rather than a single extra pass
   - `navigate.route` is deterministic in Phase B and does not make another LLM call
   - deterministic bridge retrieval is only paid when `navigate.route` actually chooses `bridge_back`
 - Default call types are:
@@ -226,6 +231,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `current unit`
     - the exact chosen coverage unit
   - `carry-forward context`
+    - persisted `continuation_capsule`
     - bounded `working_state` digest
     - bounded reflective-frame digest
     - bounded concept digest
@@ -234,6 +240,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - recent continuity digest from `local_buffer + move_history + reaction_records`
     - declared reference ids so `read` can point back to the exact prior material it materially used
   - packetized read-context view
+    - `continuation_capsule`
     - `session_continuity_capsule`
     - `working_state_digest`
     - `chapter_reflective_frame`
@@ -243,6 +250,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - `anchor_bank_digest`
     - legacy alias fields may still remain temporarily available for bounded audit/test compatibility, but live helper execution no longer depends on them
   - packetized navigation view
+    - `continuation_capsule`
     - `watch_state`
     - `session_continuity_capsule`
     - `working_state_digest`
@@ -252,14 +260,15 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - `thread_digest`
     - `anchor_bank_digest`
   - optional `supplemental_context`
-    - one bounded `active_recall` packet from persisted state
-    - or one exact `look_back` packet with earlier source text by explicit refs
+    - one or more bounded `active_recall` packets from persisted state
+    - and/or one exact bounded `look_back` earlier source span by explicit refs
 - Default carried context is intentionally small.
   - It should be enough for ordinary continuity without silently turning into a giant memory blob.
   - It does not inject full `knowledge_activations`, full reaction history, or long raw source excerpts by default.
 - `look_back` is explicit and exact.
   - It requires resolvable `anchor_id` and/or `sentence_id` refs.
-  - If the earlier source text cannot be resolved, the runner keeps the first `read` result rather than recursing further.
+  - It now returns at most one bounded earlier span per request.
+  - If the earlier source text cannot be resolved, the runner keeps the current `read` result rather than recursing further.
 - Phase A unitization preview is intentionally narrow and deterministic.
   - It previews only the current paragraph remainder and the next paragraph in the same section.
   - The semantic choice of where to stop inside that preview is prompt-led.
@@ -286,6 +295,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - important anchor lines
   - revisit links
 - The current scaffold now makes several of those claims concrete:
+  - `continuation_capsule` now persists a lightweight continuity seed plus explicit `rehydration entrypoints` for later recall/resume
   - `knowledge_activations` tracks separate `recognition_confidence` and `reading_warrant`
   - `knowledge_use_mode` is distinct from `search_policy_mode`
   - `anchor_bank` now holds the primary evidence-bearing anchor records and relations
@@ -336,6 +346,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - Current scaffolded mechanism-private runtime artifacts
   - `_mechanisms/attentional_v2/runtime/local_buffer.json`
   - `_mechanisms/attentional_v2/runtime/local_continuity.json`
+  - `_mechanisms/attentional_v2/runtime/continuation_capsule.json`
   - `_mechanisms/attentional_v2/runtime/trigger_state.json`
   - `_mechanisms/attentional_v2/runtime/unitization_audit.jsonl`
   - `_mechanisms/attentional_v2/runtime/read_audit.jsonl`
@@ -388,6 +399,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - Live parse/read integration now means those surfaces can be populated by `attentional_v2` through the same upload/start/resume flows as other mechanisms, without requiring `_mechanisms/iterator_v1/derived/structure.json`.
 - Phase 6 now adds a mechanism-private compatibility projector that can shape durable anchored reactions into the current chapter-result envelope while keeping the anchored reaction record as the source of truth.
 - Phase 7 now adds bounded resume helpers that keep non-warm rereads chapter-local, preserve durable state, and explicitly mark reconstructed hot state instead of presenting it as warm continuity.
+- Phase D now adds persisted continuation capsules so warm resume can restore a bounded continuity seed instead of reconstructing context only from raw state files.
 - Phase 8 now lands the first additive public-surface projection layer:
   - `current_reading_activity.reading_locus`
   - `current_reading_activity.move_type`

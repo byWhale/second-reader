@@ -212,7 +212,7 @@ def test_read_unit_includes_carry_forward_and_supplemental_context_in_prompt(tmp
     assert "\"sentence_id\": \"c1-s2\"" in captured["prompt"]
     assert "anchor:a-1" in captured["prompt"]
     assert "lookback:sentence:c1-s1" in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.read.v3"
+    assert manifest["prompt_version"] == "attentional_v2.read.v4"
     assert result["move_hint"] == "bridge"
     assert result["continuation_pressure"] is True
     assert result["prior_material_use"]["supporting_ref_ids"] == ["anchor:a-1", "lookback:sentence:c1-s1"]
@@ -264,8 +264,8 @@ def test_resolve_context_request_returns_exact_look_back_excerpt_and_none_when_u
 
     assert resolved is not None
     assert resolved["kind"] == "look_back"
+    assert len(resolved["excerpts"]) == 1
     assert resolved["excerpts"][0]["excerpt_text"] == "Alpha sentence."
-    assert resolved["excerpts"][1]["excerpt_text"] == "Alpha sentence."
 
     unresolved = resolve_context_request(
         context_request={
@@ -425,6 +425,7 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
             "continuation_pressure": False,
         },
         local_buffer=build_empty_local_buffer(),
+        continuation_capsule={},
         working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
         concept_registry=concept_registry,
         thread_trace=thread_trace,
@@ -450,6 +451,8 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
     assert calls[1]["supplemental_context"]["kind"] == "active_recall"
     assert read_result["prior_material_use"]["materially_used"] is True
     assert audit_line["supplemental_satisfied"] is True
+    assert audit_line["stop_reason"] == "read_complete"
+    assert len(audit_line["supplemental_steps"]) == 1
     assert audit_line["prior_material_use"]["materially_used"] is True
 
 
@@ -510,6 +513,7 @@ def test_run_read_with_context_loop_keeps_first_read_when_look_back_is_unsatisfi
             "continuation_pressure": True,
         },
         local_buffer=build_empty_local_buffer(),
+        continuation_capsule={},
         working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
         concept_registry=empty_concept_registry,
         thread_trace=empty_thread_trace,
@@ -534,3 +538,124 @@ def test_run_read_with_context_loop_keeps_first_read_when_look_back_is_unsatisfi
     assert read_result is first_read
     assert audit_line["supplemental_satisfied"] is False
     assert audit_line["context_request"]["kind"] == "look_back"
+    assert audit_line["stop_reason"] == "supplemental_unsatisfied"
+
+
+def test_run_read_with_context_loop_supports_multiple_supplemental_rounds(tmp_path, monkeypatch):
+    """The runner should allow multiple bounded supplemental rounds before finalizing the read."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    book_document = _book_document()
+    chapter = book_document["chapters"][0]
+    anchor_memory = build_empty_anchor_memory()
+    anchor_memory["anchor_records"].append(_anchor_record("a-1", "c1-s1", "Alpha sentence."))
+    anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(anchor_memory)
+    reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
+    calls: list[dict[str, object]] = []
+
+    def fake_read_unit(**kwargs):
+        calls.append({"supplemental_context": kwargs.get("supplemental_context")})
+        if len(calls) == 1:
+            return {
+                "local_understanding": "Need structured recall first.",
+                "move_hint": "advance",
+                "continuation_pressure": True,
+                "implicit_uptake": [],
+                "anchor_evidence": [],
+                "prior_material_use": {
+                    "materially_used": False,
+                    "explanation": "",
+                    "supporting_ref_ids": [],
+                },
+                "raw_reaction": None,
+                "context_request": {
+                    "kind": "active_recall",
+                    "reason": "Need prior state first.",
+                    "anchor_ids": ["a-1"],
+                    "sentence_ids": [],
+                },
+            }
+        if len(calls) == 2:
+            return {
+                "local_understanding": "Structured recall helped, but exact earlier wording is still needed.",
+                "move_hint": "bridge",
+                "continuation_pressure": True,
+                "implicit_uptake": [],
+                "anchor_evidence": [],
+                "prior_material_use": {
+                    "materially_used": True,
+                    "explanation": "The recalled anchor set the line.",
+                    "supporting_ref_ids": ["anchor:a-1"],
+                },
+                "raw_reaction": None,
+                "context_request": {
+                    "kind": "look_back",
+                    "reason": "Need the exact earlier wording.",
+                    "anchor_ids": ["a-1"],
+                    "sentence_ids": [],
+                },
+            }
+        return {
+            "local_understanding": "The exact wording completes the bridge.",
+            "move_hint": "bridge",
+            "continuation_pressure": False,
+            "implicit_uptake": [],
+            "anchor_evidence": [
+                {
+                    "sentence_id": "c1-s2",
+                    "quote": "Beta sentence.",
+                    "why_it_matters": "It lands once the earlier wording is visible.",
+                }
+            ],
+            "prior_material_use": {
+                "materially_used": True,
+                "explanation": "Both recall and look-back materially informed the read.",
+                "supporting_ref_ids": ["anchor:a-1", "lookback:anchor:a-1"],
+            },
+            "raw_reaction": None,
+            "context_request": None,
+        }
+
+    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
+
+    read_result, llm_fallbacks = runner_module._run_read_with_context_loop(
+        chapter=chapter,
+        book_document=book_document,
+        chosen_unit_sentences=[chapter["sentences"][1]],
+        unitize_decision={
+            "start_sentence_id": "c1-s2",
+            "end_sentence_id": "c1-s2",
+            "preview_range": {"start_sentence_id": "c1-s2", "end_sentence_id": "c1-s2"},
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": ["c1-s2"],
+            "reason": "phase-d-test",
+            "continuation_pressure": True,
+        },
+        local_buffer=build_empty_local_buffer(),
+        continuation_capsule={},
+        working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        knowledge_activations=build_empty_knowledge_activations(),
+        move_history=build_empty_move_history(),
+        reaction_records=build_empty_reaction_records(),
+        reader_policy=build_default_reader_policy(),
+        output_language="en",
+        output_dir=output_dir,
+        book_title="Demo Book",
+        author="Tester",
+        chapter_id=1,
+        chapter_ref="Chapter 1",
+    )
+
+    audit_line = json.loads(read_audit_file(output_dir).read_text(encoding="utf-8").strip())
+
+    assert llm_fallbacks == []
+    assert len(calls) == 3
+    assert read_result["prior_material_use"]["materially_used"] is True
+    assert audit_line["supplemental_satisfied"] is True
+    assert audit_line["stop_reason"] == "read_complete"
+    assert [step["kind"] for step in audit_line["supplemental_steps"]] == ["active_recall", "look_back"]

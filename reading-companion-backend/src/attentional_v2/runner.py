@@ -37,7 +37,12 @@ from .nodes import (
     persist_unitization_audit,
     read_unit,
 )
-from .read_context import build_carry_forward_context, persist_read_audit, resolve_context_request
+from .read_context import (
+    build_carry_forward_context,
+    merge_supplemental_contexts,
+    persist_read_audit,
+    resolve_context_request,
+)
 from .resume import persist_reading_position, resume_from_checkpoint, write_full_checkpoint
 from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
@@ -58,6 +63,7 @@ from .schemas import (
     ReadUnitResult,
     WorkingState,
     build_empty_anchor_bank,
+    build_empty_continuation_capsule,
     build_empty_concept_registry,
     build_default_reader_policy,
     build_empty_knowledge_activations,
@@ -87,13 +93,14 @@ from .state_ops import (
     apply_working_state_operations,
     upsert_anchor_record,
 )
-from .state_projection import build_navigation_context
+from .state_projection import build_navigation_context, context_ref_ids
 from .storage import (
     ATTENTIONAL_V2_MECHANISM_KEY,
     anchor_bank_file,
     chapter_result_compatibility_file,
     checkpoints_dir,
     concept_registry_file,
+    continuation_capsule_file,
     derived_dir,
     initialize_artifact_tree,
     knowledge_activations_file,
@@ -237,6 +244,9 @@ def _default_builder(name: str) -> Callable[[], dict[str, object]]:
     builders: dict[str, Callable[[], dict[str, object]]] = {
         "local_buffer": lambda: build_empty_local_buffer(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "trigger_state": lambda: build_empty_trigger_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "continuation_capsule": lambda: build_empty_continuation_capsule(
+            mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION,
+        ),
         "working_state": lambda: build_empty_working_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "concept_registry": lambda: build_empty_concept_registry(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "thread_trace": lambda: build_empty_thread_trace(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
@@ -272,6 +282,7 @@ def _load_runtime_bundle(output_dir: Path) -> dict[str, dict[str, object]]:
     bundle = {
         "local_buffer": _load_or_default(local_buffer_file(output_dir), _default_builder("local_buffer")),
         "trigger_state": _load_or_default(trigger_state_file(output_dir), _default_builder("trigger_state")),
+        "continuation_capsule": _load_or_default(continuation_capsule_file(output_dir), _default_builder("continuation_capsule")),
         "knowledge_activations": _load_or_default(
             knowledge_activations_file(output_dir),
             _default_builder("knowledge_activations"),
@@ -312,6 +323,7 @@ def _save_runtime_bundle(output_dir: Path, bundle: dict[str, dict[str, object]])
 
     save_json(local_buffer_file(output_dir), bundle["local_buffer"])
     save_json(trigger_state_file(output_dir), bundle["trigger_state"])
+    save_json(continuation_capsule_file(output_dir), bundle["continuation_capsule"])
     save_json(working_state_file(output_dir), bundle["working_state"])
     save_json(concept_registry_file(output_dir), bundle["concept_registry"])
     save_json(thread_trace_file(output_dir), bundle["thread_trace"])
@@ -413,6 +425,7 @@ def _reset_live_runtime(output_dir: Path) -> None:
         thread_trace_file(output_dir),
         local_buffer_file(output_dir),
         trigger_state_file(output_dir),
+        continuation_capsule_file(output_dir),
         anchor_bank_file(output_dir),
         reflective_frames_file(output_dir),
         knowledge_activations_file(output_dir),
@@ -551,6 +564,36 @@ def _build_current_anchor_from_read_result(
     )
 
 
+def _build_runtime_continuation_capsule(
+    *,
+    chapter_ref: str,
+    local_buffer: LocalBufferState,
+    working_state: WorkingState,
+    concept_registry: ConceptRegistryState,
+    thread_trace: ThreadTraceState,
+    reflective_frames: ReflectiveFramesState,
+    anchor_bank: AnchorBankState,
+    move_history: MoveHistoryState,
+    reaction_records: ReactionRecordsState,
+) -> dict[str, object]:
+    """Build the persisted continuation capsule from the current live primary state."""
+
+    carry_forward_context = build_carry_forward_context(
+        chapter_ref=chapter_ref,
+        current_unit_sentence_ids=[],
+        local_buffer=local_buffer,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        move_history=move_history,
+        reaction_records=reaction_records,
+    )
+    capsule = carry_forward_context.get("continuation_capsule", {})
+    return dict(capsule) if isinstance(capsule, dict) else {}
+
+
 def _run_read_with_context_loop(
     *,
     chapter: dict[str, object],
@@ -558,6 +601,7 @@ def _run_read_with_context_loop(
     chosen_unit_sentences: list[dict[str, object]],
     unitize_decision: UnitizeDecision,
     local_buffer: LocalBufferState,
+    continuation_capsule: dict[str, object],
     working_state: WorkingState,
     concept_registry: ConceptRegistryState,
     thread_trace: ThreadTraceState,
@@ -574,7 +618,7 @@ def _run_read_with_context_loop(
     chapter_id: int,
     chapter_ref: str,
 ) -> tuple[ReadUnitResult, list[dict[str, str]]]:
-    """Run one or two authoritative read calls with at most one supplemental-context step."""
+    """Run the authoritative read with budget-bounded supplemental-context looping."""
 
     carry_forward_context = build_carry_forward_context(
         chapter_ref=chapter_ref,
@@ -591,8 +635,17 @@ def _run_read_with_context_loop(
         anchor_bank=anchor_bank,
         move_history=move_history,
         reaction_records=reaction_records,
+        continuation_capsule=continuation_capsule,
     )
     llm_fallbacks: list[dict[str, str]] = []
+    read_policy = dict(reader_policy.get("read", {})) if isinstance(reader_policy, dict) else {}
+    recall_budget = max(0, int(read_policy.get("supplemental_context_budget", 4) or 4))
+    emergency_cap = max(1, int(read_policy.get("supplemental_context_emergency_cap", 4) or 4))
+    current_unit_sentence_ids = [
+        _clean_text(sentence.get("sentence_id"))
+        for sentence in chosen_unit_sentences
+        if _clean_text(sentence.get("sentence_id"))
+    ]
     try:
         first_read = read_unit(
             current_unit_sentences=chosen_unit_sentences,
@@ -624,11 +677,16 @@ def _run_read_with_context_loop(
 
     final_read = first_read
     context_request = dict(first_read.get("context_request", {})) if isinstance(first_read.get("context_request"), dict) else None
-    supplemental_context: dict[str, object] | None = None
+    accumulated_supplemental_context: dict[str, object] | None = None
+    supplemental_steps: list[dict[str, object]] = []
     supplemental_satisfied = False
+    stop_reason = "no_supplemental_requested" if context_request is None else "supplemental_requested"
+    budget_exhausted = False
+    supplemental_rounds = 0
 
-    if context_request is not None:
-        supplemental_context = resolve_context_request(
+    while context_request is not None and supplemental_rounds < recall_budget and supplemental_rounds < emergency_cap:
+        supplemental_rounds += 1
+        resolved_context = resolve_context_request(
             context_request=context_request,
             carry_forward_context=carry_forward_context,
             book_document=book_document,
@@ -640,30 +698,63 @@ def _run_read_with_context_loop(
             move_history=move_history,
             reaction_records=reaction_records,
             reader_policy=reader_policy,
-            current_unit_sentence_ids=[
-                _clean_text(sentence.get("sentence_id"))
-                for sentence in chosen_unit_sentences
-                if _clean_text(sentence.get("sentence_id"))
-            ],
+            current_unit_sentence_ids=current_unit_sentence_ids,
         )
-        supplemental_satisfied = supplemental_context is not None
-        if supplemental_context is not None:
-            try:
-                final_read = read_unit(
-                    current_unit_sentences=chosen_unit_sentences,
-                    carry_forward_context=carry_forward_context,
-                    reader_policy=reader_policy,
-                    output_language=output_language,
-                    supplemental_context=supplemental_context,
-                    output_dir=output_dir,
-                    book_title=book_title,
-                    author=author,
-                    chapter_title=_clean_text(chapter.get("title")),
-                )
-            except ReaderLLMError as exc:
-                llm_fallbacks.append({"node": "read_unit_supplemental", "problem_code": exc.problem_code})
-                final_read = first_read
-                supplemental_satisfied = False
+        step: dict[str, object] = {
+            "step_index": supplemental_rounds,
+            "kind": _clean_text(context_request.get("kind")),
+            "reason": _clean_text(context_request.get("reason")),
+            "requested_anchor_ids": [
+                _clean_text(item)
+                for item in context_request.get("anchor_ids", [])
+                if _clean_text(item)
+            ],
+            "requested_sentence_ids": [
+                _clean_text(item)
+                for item in context_request.get("sentence_ids", [])
+                if _clean_text(item)
+            ],
+            "resolved_ref_ids": sorted(context_ref_ids(resolved_context)),
+            "satisfied": resolved_context is not None,
+        }
+        supplemental_steps.append(step)
+        if resolved_context is None:
+            stop_reason = "supplemental_unsatisfied"
+            break
+
+        accumulated_supplemental_context = merge_supplemental_contexts(
+            accumulated_supplemental_context,
+            resolved_context,
+        )
+        supplemental_satisfied = True
+        try:
+            final_read = read_unit(
+                current_unit_sentences=chosen_unit_sentences,
+                carry_forward_context=carry_forward_context,
+                reader_policy=reader_policy,
+                output_language=output_language,
+                supplemental_context=accumulated_supplemental_context,
+                output_dir=output_dir,
+                book_title=book_title,
+                author=author,
+                chapter_title=_clean_text(chapter.get("title")),
+            )
+        except ReaderLLMError as exc:
+            llm_fallbacks.append({"node": "read_unit_supplemental", "problem_code": exc.problem_code})
+            stop_reason = "supplemental_read_fallback"
+            break
+
+        context_request = (
+            dict(final_read.get("context_request", {}))
+            if isinstance(final_read.get("context_request"), dict)
+            else None
+        )
+        if context_request is None:
+            stop_reason = "read_complete"
+
+    if context_request is not None and supplemental_rounds >= min(recall_budget, emergency_cap):
+        budget_exhausted = True
+        stop_reason = "budget_exhausted"
 
     persist_read_audit(
         output_dir,
@@ -672,8 +763,11 @@ def _run_read_with_context_loop(
         unitize_decision=unitize_decision,
         carry_forward_context=carry_forward_context,
         context_request=context_request,
-        supplemental_context=supplemental_context,
+        supplemental_context=accumulated_supplemental_context,
         supplemental_satisfied=supplemental_satisfied,
+        supplemental_steps=supplemental_steps,
+        stop_reason=stop_reason,
+        budget_exhausted=budget_exhausted,
         read_result=final_read,
         llm_fallbacks=llm_fallbacks,
     )
@@ -969,6 +1063,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     chosen_unit_sentences=chosen_unit_sentences,
                     unitize_decision=unitize_decision,
                     local_buffer=local_buffer,
+                    continuation_capsule=dict(bundle.get("continuation_capsule", {})),
                     working_state=working_state,
                     concept_registry=concept_registry,
                     thread_trace=thread_trace,
@@ -1156,6 +1251,17 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     {
                         "local_buffer": local_buffer,
                         "trigger_state": trigger_state,
+                        "continuation_capsule": _build_runtime_continuation_capsule(
+                            chapter_ref=chapter_ref,
+                            local_buffer=local_buffer,
+                            working_state=working_state,
+                            concept_registry=concept_registry,
+                            thread_trace=thread_trace,
+                            reflective_frames=reflective_frames,
+                            anchor_bank=anchor_bank,
+                            move_history=move_history,
+                            reaction_records=reaction_records,
+                        ),
                         "working_state": working_state,
                         "concept_registry": concept_registry,
                         "thread_trace": thread_trace,
@@ -1220,6 +1326,35 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
             anchor_bank = phase6["anchor_bank"]  # type: ignore[assignment]
             knowledge_activations = phase6["knowledge_activations"]  # type: ignore[assignment]
             reaction_records = phase6["reaction_records"]  # type: ignore[assignment]
+            bundle.update(
+                {
+                    "local_buffer": local_buffer,
+                    "trigger_state": trigger_state,
+                    "continuation_capsule": _build_runtime_continuation_capsule(
+                        chapter_ref=chapter_ref,
+                        local_buffer=local_buffer,
+                        working_state=working_state,
+                        concept_registry=concept_registry,
+                        thread_trace=thread_trace,
+                        reflective_frames=reflective_frames,
+                        anchor_bank=anchor_bank,
+                        move_history=move_history,
+                        reaction_records=reaction_records,
+                    ),
+                    "working_state": working_state,
+                    "concept_registry": concept_registry,
+                    "thread_trace": thread_trace,
+                    "reflective_frames": reflective_frames,
+                    "anchor_bank": anchor_bank,
+                    "knowledge_activations": knowledge_activations,
+                    "move_history": move_history,
+                    "reaction_records": reaction_records,
+                    "reconsolidation_records": reconsolidation_records,
+                    "reader_policy": reader_policy,
+                    "resume_metadata": resume_metadata,
+                }
+            )
+            _save_runtime_bundle(output_dir, bundle)
             chapter_statuses[chapter_id] = "done"
             completed_chapters += 1
             _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
@@ -1251,25 +1386,6 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     last_checkpoint_at=checkpoint.get("created_at"),
                 ),
             )
-            bundle.update(
-                {
-                    "local_buffer": local_buffer,
-                    "trigger_state": trigger_state,
-                    "working_state": working_state,
-                    "concept_registry": concept_registry,
-                    "thread_trace": thread_trace,
-                    "reflective_frames": reflective_frames,
-                    "anchor_bank": anchor_bank,
-                    "knowledge_activations": knowledge_activations,
-                    "move_history": move_history,
-                    "reaction_records": reaction_records,
-                    "reconsolidation_records": reconsolidation_records,
-                    "reader_policy": reader_policy,
-                    "resume_metadata": resume_metadata,
-                }
-            )
-            _save_runtime_bundle(output_dir, bundle)
-
         _write_manifest(output_dir, provisioned.book_document, chapter_statuses=chapter_statuses)
         _update_shell_phase(output_dir, status="completed", phase="idle")
         write_run_state(

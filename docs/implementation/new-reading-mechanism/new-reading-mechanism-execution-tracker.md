@@ -35,7 +35,7 @@ Update when: status changes, blockers appear, or phases complete.
   - landed behavior:
     - `read` now owns the authoritative current-unit packet on the live path
     - the live runner now builds a bounded `carry-forward context` before each formal unit read
-    - `read` may request one bounded supplemental step through `active recall` or `look-back`
+    - `read` may request bounded supplemental context through `active recall` or `look-back`
     - `raw reaction` truth now comes directly from `read`
     - mechanism-private `read_audit` records now capture carry-forward refs, supplemental-context satisfaction, and prior-material use
   - `Phase C.1` is now landed in code under the existing `attentional_v2` mechanism key
@@ -68,10 +68,16 @@ Update when: status changes, blockers appear, or phases complete.
     - the live runner no longer projects new state into `working_pressure / anchor_memory / reflective_summaries` in order to execute helpers
     - live runtime loading and resume now reject pre-`Phase C.3` runtime/checkpoint shapes
     - public/frontend compatibility surfaces still remain unchanged
+  - `Phase D` is now landed as the continuity / recall / resume polish slice
+  - landed behavior:
+    - `read` now runs under a budget-bounded multi-step supplemental loop instead of a single extra pass
+    - runtime state and full checkpoints now persist a lightweight `continuation capsule` with explicit rehydration entrypoints
+    - warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state
+    - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity, stop reasons, and budget exhaustion
+    - public/frontend compatibility surfaces still remain unchanged
   - next active backend slice:
-    - `Phase D`
-    - polish recall / persistence / resume now that helper execution and primary ownership are fully aligned
-    - keep public/frontend compatibility surfaces stable while that polish lands
+    - `post-Phase-D follow-up` to be defined from observed continuity / slow-cycle needs
+    - do not reopen old helper contracts or pre-`Phase C.3` compatibility
 - Naming discipline:
   - the `Phase 0-9` labels in this file are implementation-plan stages
   - they are not the preferred vocabulary for explaining the mechanism's live reading loop

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-12T14:25:00Z`
+Last updated: `2026-04-12T16:40:00Z`
 
 ## Status Values
 - `active`
@@ -35,7 +35,7 @@ Last updated: `2026-04-12T14:25:00Z`
     - span authority now matches the exact chosen unit
   - `Phase B` is now landed:
     - `read` now owns the authoritative current-unit packet on the live path
-    - the live runner now builds bounded carry-forward context and allows one bounded `active recall / look-back` supplement
+    - the live runner now builds bounded carry-forward context and allows bounded `active recall / look-back` supplementation
     - raw reaction truth now comes directly from `read`, with mechanism-private `read_audit` records for context use
   - `Phase C.1` is now landed:
     - live prompt inputs now flow through a bounded internal `state_packet.v1` layer
@@ -56,9 +56,14 @@ Last updated: `2026-04-12T14:25:00Z`
     - the live runner no longer projects new state back into `working_pressure / anchor_memory / reflective_summaries` to execute helpers
     - live runtime loading and resume now reject pre-`Phase C.3` runtime directories and checkpoints
     - public/frontend compatibility surfaces remain unchanged
-  - next implement `Phase D`:
-    - polish recall / persistence / resume now that helper execution and primary ownership are fully aligned
-    - keep `knowledge_activations` narrowed to helper territory while the post-C state model is tightened further
+  - `Phase D` is now landed:
+    - `read` now supports a budget-bounded multi-step supplemental recall loop instead of a single extra pass
+    - runtime state and full checkpoints now persist a lightweight `continuation capsule` with rehydration entrypoints
+    - warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state
+    - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity plus stop reasons
+  - next define the post-Phase-D follow-up:
+    - review whether slower compaction, reflective promotion, or other continuity polish should become the next bounded slice
+    - keep `knowledge_activations` narrowed to helper territory unless a later explicit design pass changes that rule
 - Jobs: none
 
 ### `TASK-V2-NATIVE-READING-PRESENTATION` — Redesign the routed reading surfaces around chapter text and anchored reactions

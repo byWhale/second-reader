@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from .schemas import (
+    ATTENTIONAL_V2_SCHEMA_VERSION,
     ActiveFocusDigest,
     AnchorBankState,
     AnchorBankDigest,
     AnchorMemoryState,
     CarryForwardContext,
     CarryForwardRef,
+    ContinuationCapsule,
     ConceptRegistryState,
     ConceptDigestItem,
     LocalBufferState,
@@ -19,6 +21,7 @@ from .schemas import (
     ReflectiveFramesState,
     ReflectiveItem,
     ReflectiveSummariesState,
+    RehydrationEntry,
     ThreadTraceState,
     ThreadDigestItem,
     TriggerState,
@@ -526,6 +529,113 @@ def _build_active_focus_digest(
     }
 
 
+def _build_rehydration_entrypoints(
+    *,
+    anchor_bank_digest: AnchorBankDigest,
+    concept_digest: list[ConceptDigestItem],
+    thread_digest: list[ThreadDigestItem],
+) -> list[RehydrationEntry]:
+    """Build bounded rehydration entrypoints from current continuity-bearing digests."""
+
+    entrypoints: list[RehydrationEntry] = []
+
+    for anchor in anchor_bank_digest.get("active_anchors", [])[:2]:
+        if not isinstance(anchor, dict):
+            continue
+        anchor_id = clean_text(anchor.get("anchor_id"))
+        if not anchor_id:
+            continue
+        entrypoints.append(
+            {
+                "entry_id": f"anchor:{anchor_id}",
+                "anchor_id": anchor_id,
+                "sentence_start_id": clean_text(anchor.get("sentence_start_id")),
+                "sentence_end_id": clean_text(anchor.get("sentence_end_id")),
+                "why_rehydrate": clean_text(anchor.get("why_it_mattered")) or clean_text(anchor.get("quote")),
+            }
+        )
+
+    for concept in concept_digest[:2]:
+        if not isinstance(concept, dict):
+            continue
+        concept_key = clean_text(concept.get("concept_key"))
+        if not concept_key:
+            continue
+        linked_anchor_ids = [
+            clean_text(anchor_id)
+            for anchor_id in concept.get("linked_anchor_ids", [])
+            if clean_text(anchor_id)
+        ]
+        entrypoints.append(
+            {
+                "entry_id": f"concept:{concept_key}",
+                "concept_key": concept_key,
+                "anchor_id": linked_anchor_ids[0] if linked_anchor_ids else "",
+                "why_rehydrate": clean_text(concept.get("rationale")) or concept_key,
+            }
+        )
+
+    for thread in thread_digest[:2]:
+        if not isinstance(thread, dict):
+            continue
+        thread_key = clean_text(thread.get("thread_key"))
+        if not thread_key:
+            continue
+        linked_anchor_ids = [
+            clean_text(anchor_id)
+            for anchor_id in thread.get("linked_anchor_ids", [])
+            if clean_text(anchor_id)
+        ]
+        entrypoints.append(
+            {
+                "entry_id": f"thread:{thread_key}",
+                "thread_key": thread_key,
+                "anchor_id": clean_text(thread.get("source_anchor_id")) or (linked_anchor_ids[0] if linked_anchor_ids else ""),
+                "why_rehydrate": clean_text(thread.get("rationale")) or thread_key,
+            }
+        )
+
+    return entrypoints[:6]
+
+
+def build_continuation_capsule(
+    *,
+    chapter_ref: str,
+    local_buffer: LocalBufferState,
+    working_state_digest: WorkingStateDigest,
+    chapter_reflective_frame: ReflectiveFrameDigest,
+    active_focus_digest: ActiveFocusDigest,
+    concept_digest: list[ConceptDigestItem],
+    thread_digest: list[ThreadDigestItem],
+    anchor_bank_digest: AnchorBankDigest,
+    session_continuity_capsule: dict[str, object],
+    refs: list[CarryForwardRef],
+    mechanism_version: str,
+) -> ContinuationCapsule:
+    """Build one persisted continuity capsule from the current live digests."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "updated_at": clean_text(local_buffer.get("updated_at")),
+        "chapter_ref": clean_text(chapter_ref),
+        "current_sentence_id": clean_text(local_buffer.get("current_sentence_id")),
+        "session_continuity_capsule": dict(session_continuity_capsule),
+        "working_state_digest": dict(working_state_digest),
+        "chapter_reflective_frame": dict(chapter_reflective_frame),
+        "active_focus_digest": dict(active_focus_digest),
+        "concept_digest": [dict(item) for item in concept_digest if isinstance(item, dict)],
+        "thread_digest": [dict(item) for item in thread_digest if isinstance(item, dict)],
+        "anchor_bank_digest": dict(anchor_bank_digest),
+        "refs": [dict(ref) for ref in refs if isinstance(ref, dict)],
+        "rehydration_entrypoints": _build_rehydration_entrypoints(
+            anchor_bank_digest=anchor_bank_digest,
+            concept_digest=concept_digest,
+            thread_digest=thread_digest,
+        ),
+    }
+
+
 def build_carry_forward_context(
     *,
     chapter_ref: str,
@@ -541,6 +651,7 @@ def build_carry_forward_context(
     reflective_summaries: ReflectiveSummariesState | None = None,
     move_history: MoveHistoryState,
     reaction_records: ReactionRecordsState,
+    continuation_capsule: ContinuationCapsule | None = None,
 ) -> CarryForwardContext:
     """Build the bounded read-context packet from current persisted state."""
 
@@ -584,6 +695,23 @@ def build_carry_forward_context(
         recent_moves=recent_moves,
         recent_reactions=recent_reactions,
     )
+    primary_continuation_capsule = (
+        dict(continuation_capsule)
+        if isinstance(continuation_capsule, dict) and continuation_capsule
+        else build_continuation_capsule(
+            chapter_ref=chapter_ref,
+            local_buffer=local_buffer,
+            working_state_digest=working_state_digest,
+            chapter_reflective_frame=chapter_reflective_frame,
+            active_focus_digest=active_focus_digest,
+            concept_digest=concept_digest,
+            thread_digest=thread_digest,
+            anchor_bank_digest=anchor_bank_digest,
+            session_continuity_capsule=session_continuity_capsule,
+            refs=refs,
+            mechanism_version=clean_text(primary_working_state.get("mechanism_version")),
+        )
+    )
     reflective_digest = [
         *chapter_reflective_frame.get("chapter_frames", []),
         *chapter_reflective_frame.get("book_frames", []),
@@ -592,6 +720,7 @@ def build_carry_forward_context(
     anchor_digest = list(anchor_bank_digest.get("active_anchors", []))
     return {
         "packet_version": STATE_PACKET_VERSION,
+        "continuation_capsule": primary_continuation_capsule,
         "session_continuity_capsule": session_continuity_capsule,
         "working_state_digest": working_state_digest,
         "chapter_reflective_frame": chapter_reflective_frame,
@@ -626,7 +755,8 @@ def build_navigation_context(
     anchor_memory: AnchorMemoryState | None = None,
     reflective_summaries: ReflectiveSummariesState | None = None,
     move_history: MoveHistoryState,
-    reaction_records: ReactionRecordsState,
+        reaction_records: ReactionRecordsState,
+    continuation_capsule: ContinuationCapsule | None = None,
 ) -> NavigationContext:
     """Build the bounded navigation packet used by navigate.unitize."""
 
@@ -644,6 +774,7 @@ def build_navigation_context(
         reflective_summaries=reflective_summaries,
         move_history=move_history,
         reaction_records=reaction_records,
+        continuation_capsule=continuation_capsule,
     )
     watch_state = {
         "current_sentence_id": clean_text(trigger_state.get("current_sentence_id")),
@@ -673,6 +804,7 @@ def build_navigation_context(
     }
     return {
         "packet_version": STATE_PACKET_VERSION,
+        "continuation_capsule": dict(carry_forward_context.get("continuation_capsule", {})),
         "watch_state": watch_state,
         "session_continuity_capsule": dict(carry_forward_context.get("session_continuity_capsule", {})),
         "working_state_digest": dict(carry_forward_context.get("working_state_digest", {})),

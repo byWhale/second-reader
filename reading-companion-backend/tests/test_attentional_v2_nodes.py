@@ -157,7 +157,7 @@ def test_zoom_read_writes_prompt_manifest_and_normalizes_payload(tmp_path, monke
     assert result["bridge_candidate"]["target_anchor_id"] == "a-1"
     assert result["consider_reaction_emission"] is True
     assert manifest["prompt_version"] == "attentional_v2.zoom_read.v5"
-    assert manifest["promptset_version"] == "attentional_v2-phase6-v11"
+    assert manifest["promptset_version"] == "attentional_v2-phase6-v12"
 
 
 def test_zoom_read_prompt_includes_micro_selectivity_cues(tmp_path, monkeypatch):

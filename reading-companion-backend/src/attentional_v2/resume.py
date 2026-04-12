@@ -23,6 +23,7 @@ from .schemas import (
     ATTENTIONAL_V2_MECHANISM_VERSION,
     ATTENTIONAL_V2_POLICY_VERSION,
     ATTENTIONAL_V2_SCHEMA_VERSION,
+    ContinuationCapsule,
     FullCheckpointState,
     LocalBufferSentence,
     LocalBufferState,
@@ -32,6 +33,7 @@ from .schemas import (
     TriggerState,
     build_empty_anchor_bank,
     build_empty_concept_registry,
+    build_empty_continuation_capsule,
     build_empty_knowledge_activations,
     build_empty_local_buffer,
     build_empty_local_continuity,
@@ -45,10 +47,12 @@ from .schemas import (
     build_empty_working_state,
     build_default_reader_policy,
 )
+from .state_projection import build_carry_forward_context
 from .storage import (
     ATTENTIONAL_V2_MECHANISM_KEY,
     anchor_bank_file,
     concept_registry_file,
+    continuation_capsule_file,
     full_checkpoint_file,
     knowledge_activations_file,
     load_json,
@@ -94,6 +98,7 @@ def _state_builders() -> dict[str, Callable[[], dict[str, object]]]:
     return {
         "local_buffer": lambda: build_empty_local_buffer(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "local_continuity": lambda: build_empty_local_continuity(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "continuation_capsule": lambda: build_empty_continuation_capsule(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "trigger_state": lambda: build_empty_trigger_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "working_state": lambda: build_empty_working_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "concept_registry": lambda: build_empty_concept_registry(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
@@ -121,6 +126,7 @@ def _state_paths(output_dir: Path) -> dict[str, Path]:
     return {
         "local_buffer": local_buffer_file(output_dir),
         "local_continuity": local_continuity_file(output_dir),
+        "continuation_capsule": continuation_capsule_file(output_dir),
         "trigger_state": trigger_state_file(output_dir),
         "working_state": working_state_file(output_dir),
         "concept_registry": concept_registry_file(output_dir),
@@ -248,6 +254,52 @@ def persist_reading_position(
     return {"cursor": shell["cursor"], "local_continuity": continuity, "runtime_shell": shell}
 
 
+def _build_runtime_continuation_capsule(
+    *,
+    local_buffer: LocalBufferState,
+    local_continuity: LocalContinuityState,
+    working_state: dict[str, object],
+    concept_registry: dict[str, object],
+    thread_trace: dict[str, object],
+    reflective_frames: dict[str, object],
+    anchor_bank: dict[str, object],
+    move_history: dict[str, object],
+    reaction_records: dict[str, object],
+) -> ContinuationCapsule:
+    """Build one persisted continuation capsule from the current new-format runtime state."""
+
+    carry_forward_context = build_carry_forward_context(
+        chapter_ref=_clean_text(local_continuity.get("chapter_ref")),
+        current_unit_sentence_ids=[],
+        local_buffer=local_buffer,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        move_history=move_history,
+        reaction_records=reaction_records,
+    )
+    capsule = carry_forward_context.get("continuation_capsule", {})
+    return dict(capsule) if isinstance(capsule, dict) else build_empty_continuation_capsule()
+
+
+def _usable_continuation_capsule(
+    capsule: dict[str, object] | None,
+    *,
+    local_continuity: LocalContinuityState,
+) -> tuple[ContinuationCapsule | None, str]:
+    """Return a usable continuation capsule plus a simple status label."""
+
+    if not isinstance(capsule, dict) or not capsule:
+        return None, "missing"
+    capsule_chapter_ref = _clean_text(capsule.get("chapter_ref"))
+    continuity_chapter_ref = _clean_text(local_continuity.get("chapter_ref"))
+    if capsule_chapter_ref and continuity_chapter_ref and capsule_chapter_ref != continuity_chapter_ref:
+        return None, "stale"
+    return dict(capsule), "available"
+
+
 def _load_runtime_bundle(output_dir: Path) -> dict[str, dict[str, object]]:
     """Load all Phase 7 runtime files with defaults for absent artifacts."""
 
@@ -366,6 +418,17 @@ def write_full_checkpoint(
         "visible_reaction_ids": visible_reaction_ids,
         "local_buffer": bundle["local_buffer"],  # type: ignore[typeddict-item]
         "local_continuity": continuity,  # type: ignore[typeddict-item]
+        "continuation_capsule": _build_runtime_continuation_capsule(
+            local_buffer=bundle["local_buffer"],  # type: ignore[arg-type]
+            local_continuity=continuity,  # type: ignore[arg-type]
+            working_state=bundle["working_state"],
+            concept_registry=bundle["concept_registry"],
+            thread_trace=bundle["thread_trace"],
+            reflective_frames=bundle["reflective_frames"],
+            anchor_bank=bundle["anchor_bank"],
+            move_history=bundle["move_history"],
+            reaction_records=bundle["reaction_records"],
+        ),  # type: ignore[typeddict-item]
         "trigger_state": bundle["trigger_state"],  # type: ignore[typeddict-item]
         "working_state": bundle["working_state"],  # type: ignore[typeddict-item]
         "concept_registry": bundle["concept_registry"],  # type: ignore[typeddict-item]
@@ -380,6 +443,7 @@ def write_full_checkpoint(
         "resume_metadata": bundle["resume_metadata"],  # type: ignore[typeddict-item]
     }
     save_json(full_checkpoint_file(output_dir, checkpoint_id), checkpoint)
+    save_json(continuation_capsule_file(output_dir), checkpoint["continuation_capsule"])
 
     shell["cursor"] = cursor
     shell["observability_mode"] = observability_mode(bundle["reader_policy"])
@@ -686,6 +750,7 @@ def resume_from_checkpoint(
         "cursor": shell.get("cursor", empty_cursor()),
         "local_buffer": live_bundle["local_buffer"],
         "local_continuity": live_bundle["local_continuity"],
+        "continuation_capsule": live_bundle["continuation_capsule"],
         "trigger_state": live_bundle["trigger_state"],
         "working_state": live_bundle["working_state"],
         "concept_registry": live_bundle["concept_registry"],
@@ -702,6 +767,7 @@ def resume_from_checkpoint(
     }
     checkpoint_source = {
         **fallback_checkpoint_source,
+        "continuation_capsule": dict((checkpoint or {}).get("continuation_capsule", live_bundle["continuation_capsule"])),
         "working_state": dict((checkpoint or {}).get("working_state", live_bundle["working_state"])),
         "concept_registry": dict((checkpoint or {}).get("concept_registry", live_bundle["concept_registry"])),
         "thread_trace": dict((checkpoint or {}).get("thread_trace", live_bundle["thread_trace"])),
@@ -718,6 +784,22 @@ def resume_from_checkpoint(
     trigger_state = dict(checkpoint_source.get("trigger_state", {})) or build_empty_trigger_state(
         mechanism_version=str(policy.get("mechanism_version", "") or ATTENTIONAL_V2_MECHANISM_VERSION)
     )
+    continuation_capsule, continuation_capsule_status = _usable_continuation_capsule(
+        dict(checkpoint_source.get("continuation_capsule", {})),
+        local_continuity=continuity,  # type: ignore[arg-type]
+    )
+    if continuation_capsule is None:
+        continuation_capsule = _build_runtime_continuation_capsule(
+            local_buffer=local_buffer,  # type: ignore[arg-type]
+            local_continuity=continuity,  # type: ignore[arg-type]
+            working_state=dict(checkpoint_source.get("working_state", live_bundle["working_state"])),
+            concept_registry=dict(checkpoint_source.get("concept_registry", live_bundle["concept_registry"])),
+            thread_trace=dict(checkpoint_source.get("thread_trace", live_bundle["thread_trace"])),
+            reflective_frames=dict(checkpoint_source.get("reflective_frames", live_bundle["reflective_frames"])),
+            anchor_bank=dict(checkpoint_source.get("anchor_bank", live_bundle["anchor_bank"])),
+            move_history=dict(checkpoint_source.get("move_history", live_bundle["move_history"])),
+            reaction_records=dict(checkpoint_source.get("reaction_records", live_bundle["reaction_records"])),
+        )
 
     resume_window_sentence_ids: list[str] = []
     reconstructed = False
@@ -767,9 +849,23 @@ def resume_from_checkpoint(
             current_sentence_id=_clean_text(local_buffer.get("current_sentence_id")),
         )
 
+    if reconstructed or continuation_capsule_status != "available":
+        continuation_capsule = _build_runtime_continuation_capsule(
+            local_buffer=local_buffer,  # type: ignore[arg-type]
+            local_continuity=continuity,  # type: ignore[arg-type]
+            working_state=dict(checkpoint_source.get("working_state", live_bundle["working_state"])),
+            concept_registry=dict(checkpoint_source.get("concept_registry", live_bundle["concept_registry"])),
+            thread_trace=dict(checkpoint_source.get("thread_trace", live_bundle["thread_trace"])),
+            reflective_frames=dict(checkpoint_source.get("reflective_frames", live_bundle["reflective_frames"])),
+            anchor_bank=dict(checkpoint_source.get("anchor_bank", live_bundle["anchor_bank"])),
+            move_history=dict(checkpoint_source.get("move_history", live_bundle["move_history"])),
+            reaction_records=dict(checkpoint_source.get("reaction_records", live_bundle["reaction_records"])),
+        )
+
     bundle = {
         "local_buffer": local_buffer,
         "local_continuity": continuity,
+        "continuation_capsule": continuation_capsule,
         "trigger_state": trigger_state,
         "working_state": dict(checkpoint_source.get("working_state", live_bundle["working_state"])),
         "concept_registry": dict(checkpoint_source.get("concept_registry", live_bundle["concept_registry"])),
@@ -822,6 +918,7 @@ def resume_from_checkpoint(
         "compatibility_issues": compatibility_issues,
         "checkpoint_id": checkpoint_source.get("checkpoint_id"),
         "resume_window_sentence_ids": resume_window_sentence_ids,
+        "continuation_capsule_status": continuation_capsule_status,
         "cursor": cursor,
         "local_buffer": local_buffer,
         "local_continuity": continuity,

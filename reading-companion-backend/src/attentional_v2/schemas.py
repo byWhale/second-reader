@@ -211,6 +211,37 @@ class SessionContinuityCapsule(TypedDict, total=False):
     recent_reactions: list[dict[str, object]]
 
 
+class RehydrationEntry(TypedDict, total=False):
+    """One explicit rehydration entrypoint retained for later continuity recovery."""
+
+    entry_id: str
+    anchor_id: str
+    sentence_start_id: str
+    sentence_end_id: str
+    concept_key: str
+    thread_key: str
+    why_rehydrate: str
+
+
+class ContinuationCapsule(TypedDict, total=False):
+    """Persisted continuity seed used to restart carried context after pauses or resume."""
+
+    schema_version: int
+    mechanism_version: str
+    updated_at: str
+    chapter_ref: str
+    current_sentence_id: str
+    session_continuity_capsule: SessionContinuityCapsule
+    working_state_digest: "WorkingStateDigest"
+    chapter_reflective_frame: "ReflectiveFrameDigest"
+    active_focus_digest: "ActiveFocusDigest"
+    concept_digest: list["ConceptDigestItem"]
+    thread_digest: list["ThreadDigestItem"]
+    anchor_bank_digest: "AnchorBankDigest"
+    refs: list["CarryForwardRef"]
+    rehydration_entrypoints: list[RehydrationEntry]
+
+
 class WorkingStateDigest(TypedDict, total=False):
     """Prompt-facing digest of the current hot working state."""
 
@@ -274,6 +305,7 @@ class CarryForwardContext(TypedDict, total=False):
     """Small stable continuity packet passed into every formal read."""
 
     packet_version: str
+    continuation_capsule: ContinuationCapsule
     session_continuity_capsule: SessionContinuityCapsule
     working_state_digest: WorkingStateDigest
     chapter_reflective_frame: ReflectiveFrameDigest
@@ -292,6 +324,7 @@ class NavigationContext(TypedDict, total=False):
     """Small navigation packet used by navigate.unitize before the unit is chosen."""
 
     packet_version: str
+    continuation_capsule: ContinuationCapsule
     watch_state: dict[str, object]
     session_continuity_capsule: SessionContinuityCapsule
     working_state_digest: WorkingStateDigest
@@ -775,6 +808,7 @@ class ReaderPolicy(TypedDict, total=False):
     unitize: dict[str, object]
     gate: dict[str, object]
     controller: dict[str, object]
+    read: dict[str, object]
     knowledge: dict[str, object]
     search: dict[str, object]
     bridge: dict[str, object]
@@ -817,6 +851,7 @@ class FullCheckpointState(TypedDict, total=False):
     visible_reaction_ids: list[str]
     local_buffer: LocalBufferState
     local_continuity: LocalContinuityState
+    continuation_capsule: ContinuationCapsule
     trigger_state: TriggerState
     working_state: WorkingState
     concept_registry: ConceptRegistryState
@@ -904,6 +939,53 @@ def build_empty_local_continuity(
         "is_reconstructed": False,
         "reconstructed_from_checkpoint_id": None,
         "last_resume_kind": None,
+    }
+
+
+def build_empty_continuation_capsule(
+    *,
+    mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
+) -> ContinuationCapsule:
+    """Return the default persisted continuation capsule."""
+
+    return {
+        "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+        "mechanism_version": mechanism_version,
+        "updated_at": _timestamp(),
+        "chapter_ref": "",
+        "current_sentence_id": "",
+        "session_continuity_capsule": {
+            "recent_sentence_ids": [],
+            "recent_meaning_units": [],
+            "recent_moves": [],
+            "recent_reactions": [],
+        },
+        "working_state_digest": {
+            "gate_state": "",
+            "pressure_snapshot": {},
+            "hot_items": [],
+            "open_questions": [],
+            "live_tensions": [],
+            "live_hypotheses": [],
+            "live_motifs": [],
+        },
+        "chapter_reflective_frame": {
+            "chapter_frames": [],
+            "book_frames": [],
+            "durable_definitions": [],
+        },
+        "active_focus_digest": {
+            "open_questions": [],
+            "live_tensions": [],
+            "live_hypotheses": [],
+            "recent_moves": [],
+            "recent_reactions": [],
+        },
+        "concept_digest": [],
+        "thread_digest": [],
+        "anchor_bank_digest": {"active_anchors": []},
+        "refs": [],
+        "rehydration_entrypoints": [],
     }
 
 
@@ -1078,6 +1160,11 @@ def build_default_reader_policy(
         },
         "gate": {"default_state": "quiet"},
         "controller": {"default_move": "advance", "allow_bridge_without_anchor": False},
+        "read": {
+            "supplemental_context_budget": 4,
+            "supplemental_context_emergency_cap": 4,
+            "look_back_max_sentences": 8,
+        },
         "knowledge": {
             "default_mode": "book_grounded_only",
             "allow_prior_knowledge_when_warranted": True,

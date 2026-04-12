@@ -43,7 +43,13 @@ Implementation checkpoint:
   - the live runner no longer projects new state into `working_pressure / anchor_memory / reflective_summaries` to execute helpers
   - live runtime loading and resume now reject pre-`Phase C.3` runtime directories and checkpoints instead of migrating them on the live path
   - public compatibility surfaces remain unchanged
-- next backend slice: `Phase D`
+- `Phase D` is now landed as the continuity / recall / resume polish slice:
+  - `read` now supports a budget-bounded multi-step supplemental loop
+  - runtime state and full checkpoints now persist a lightweight `continuation capsule` with rehydration entrypoints
+  - warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state
+  - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity plus stop reasons
+  - public compatibility surfaces remain unchanged
+- next backend slice: `post-Phase-D follow-up` to be defined from observed continuity / slow-cycle needs
 
 Primary upstream evidence:
 
@@ -506,8 +512,8 @@ Deterministic code should not hard-code a semantic taxonomy of "allowed reuse ty
 - the authoritative live read path is now:
   - build carry-forward context
   - `read`
-  - optional one bounded supplemental pass through `active recall` or `look-back`
-  - `read` once more if that supplement was satisfied
+  - optional budget-bounded supplemental looping through `active recall` or `look-back`
+  - rerun `read` while supplemental budget remains and the current unit still explicitly asks for more context
   - deterministic `navigate.route`
 - `read` now owns:
   - current-unit reading
@@ -709,28 +715,21 @@ This phase is intentionally later.
 
 It should only happen after the earlier phases prove stable enough to justify additional complexity.
 
-#### Candidate scope
+#### Landed scope
 
-- optional refinement of `active recall / look-back`
-- optional reduction or retirement of legacy `reaction_emission`
-- continuation capsule design
-- compaction / rehydration boundary work
-- resume alignment against the new state model
+- `read` now requests supplemental context one bounded step at a time, while the runner may continue resolving those requests inside a budget-bounded multi-step loop rather than stopping after one extra pass
+- runtime state and full checkpoints now persist a lightweight `continuation capsule`
+  - the capsule carries bounded continuity digests plus explicit `rehydration entrypoints`
+  - it is not a replacement summary for the full primary state layers
+- warm resume remains `new-format only`, but it now restores the latest usable continuation capsule together with the new-format runtime/checkpoint state
+- `look_back` remains exact-source only and now resolves at most one bounded earlier span
+- private `read_audit` now records per-step supplemental activity, stop reasons, and budget exhaustion
 
-Compaction should remain later because the first-order problem is still state shape and continuity usability, not the absence of a central compactor.
+#### Resulting posture
 
-If explicit compaction enters scope later, its first acceptable triggers should be:
-
-- chapter boundary
-- pause / resume
-- hard budget breach
-
-Its job should be to produce a continuation capsule plus rehydration entrypoints, not to flatten all durable state and source evidence into one replacement summary.
-
-#### Validation target
-
-- polish should clarify and strengthen the new mechanism
-- it must not become a substitute for landing the earlier structural work
+- Phase D strengthened continuity and resume without reopening the main control skeleton
+- compaction still remains intentionally lighter than a full central compactor
+- the next follow-up should be chosen from observed post-Phase-D behavior rather than assumed in advance
 
 ## 8. Backend Compatibility Guardrails During Rework
 

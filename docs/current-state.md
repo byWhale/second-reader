@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-12T14:25:00Z`
+Last verified: `2026-04-12T16:40:00Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -37,11 +37,8 @@ Last verified: `2026-04-12T14:25:00Z`
   - `Phase B` is now also landed:
     - `read` now owns the authoritative current-unit read packet on the live path
     - the live runner now builds a bounded `carry-forward context` before each unit read
-    - `read` may request one bounded supplemental step through `active recall` or `look-back`
+    - `read` may request bounded supplemental context through `active recall` or `look-back`
     - `raw reaction` truth now comes directly from `read`, and private `read_audit` records now capture carried refs plus supplemental-context use
-  - the next backend slice is `Phase C`:
-    - restructure state and prompt packetization so long-distance continuity is easier to use, without collapsing back into one large memory blob
-    - keep public/frontend compatibility surfaces stable while that deeper state work lands
   - `Phase C.1` is now landed as the first packetization seam:
     - live prompt inputs are now built through a bounded internal state packet layer instead of ad hoc per-node context assembly
     - `navigate.unitize` now receives a small `navigation_context`
@@ -76,9 +73,15 @@ Last verified: `2026-04-12T14:25:00Z`
     - the live runner no longer projects new state into `working_pressure / anchor_memory / reflective_summaries` for helper execution
     - live runtime loading and resume now reject pre-`Phase C.3` runtime directories and checkpoints with explicit unsupported-format errors
     - public/frontend compatibility surfaces remain unchanged
-  - the next backend slice is `Phase D`:
-    - polish recall / persistence / resume around the now-complete new state ownership map
-    - decide what should be tightened next in compaction, continuity carry, and post-read slow-cycle refinement without reopening the old helper contracts
+  - `Phase D` is now landed as the continuity / recall / resume polish slice:
+    - `read` now runs under a budget-bounded multi-step supplemental loop instead of a single extra pass
+    - runtime and full checkpoints now persist a lightweight `continuation capsule` with explicit `rehydration entrypoints`
+    - warm resume now restores new-format state together with the latest usable continuation capsule instead of relying only on raw runtime/checkpoint state
+    - `look_back` now returns one bounded earlier source span, and `read_audit` now records per-step supplemental activity, stop reason, and budget exhaustion
+    - public/frontend compatibility surfaces remain unchanged
+  - the next backend slice is not yet opened as code:
+    - review the now-landed Phase D behavior and define the next bounded follow-up around slower continuity compaction, reflective promotion, or other post-read polish
+    - do not reopen trigger authority, helper-contract retirement, or old-state compatibility in that next slice
 - Frontend direction is now fixed for the next product lane:
   - do not keep the old `iterator_v1` / section-first presentation as a co-equal product model
   - keep that older presentation shape only as a compatibility shell while V2-native surfaces are being built
@@ -253,7 +256,11 @@ Last verified: `2026-04-12T14:25:00Z`
     - keep `Phase C.2` as the landed first state-territory slice where concept/thread digests now enter the live packet path
     - keep `Phase C.3` as the landed main-state cutover where the new semantic layers now own runtime/checkpoint truth
     - keep `Phase C.4` as the landed helper-contract cutover where sentence-intake / bridge / slow-cycle now execute directly on new-state ownership and live runtime/resume reject old-format state
-    - the next backend slice is `Phase D`, focused on recall / persistence / resume polish rather than on reopening old helper contracts
+    - keep `Phase D` as the landed continuity / recall / resume polish slice:
+      - budget-bounded multi-step supplemental recall is now on the live path
+      - continuation capsule persistence now supports checkpoint/runtime continuity
+      - warm resume now restores the latest usable continuation capsule together with new-format runtime state
+    - the next backend slice should be defined from post-Phase-D observations rather than by reopening old helper contracts
     - treat prior-material use as something that naturally happens inside `read`, not as a separate mechanism action
   - `excerpt` is currently in a hold posture:
     - keep the completed formal excerpt run as the main product/demo evidence bundle

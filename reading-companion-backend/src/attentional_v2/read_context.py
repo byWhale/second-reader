@@ -11,6 +11,7 @@ from .schemas import (
     CarryForwardContext,
     CarryForwardRef,
     ConceptRegistryState,
+    ContinuationCapsule,
     ContextRequest,
     MoveHistoryState,
     ReactionRecordsState,
@@ -49,6 +50,7 @@ def _sentence_span_text(
     *,
     start_sentence_id: str,
     end_sentence_id: str,
+    max_sentences: int | None = None,
 ) -> tuple[list[str], str, str]:
     """Return one bounded sentence span from the global sentence inventory."""
 
@@ -64,6 +66,8 @@ def _sentence_span_text(
         return [], "", ""
     if end_index < start_index:
         start_index, end_index = end_index, start_index
+    if max_sentences is not None and max_sentences > 0:
+        end_index = min(end_index, start_index + max_sentences - 1)
     selected_ids = ordered[start_index : end_index + 1]
     texts = [clean_text(sentence_inventory[sentence_id].get("text")) for sentence_id in selected_ids]
     chapter_ref = clean_text(sentence_inventory[selected_ids[0]].get("_chapter_ref"))
@@ -91,6 +95,65 @@ def _linked_keys_from_digest(
     }
 
 
+def _dedupe_ref_items(items: list[dict[str, object]], *, id_key: str) -> list[dict[str, object]]:
+    """Return one order-preserving deduplicated list of dict items."""
+
+    seen: set[str] = set()
+    deduped: list[dict[str, object]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        item_id = clean_text(item.get(id_key))
+        if not item_id or item_id in seen:
+            continue
+        seen.add(item_id)
+        deduped.append(dict(item))
+    return deduped
+
+
+def merge_supplemental_contexts(
+    existing: dict[str, object] | None,
+    addition: dict[str, object] | None,
+) -> dict[str, object] | None:
+    """Merge one newly resolved supplemental context into the accumulated bundle."""
+
+    if not isinstance(existing, dict) or not existing:
+        return dict(addition or {}) if isinstance(addition, dict) else None
+    if not isinstance(addition, dict) or not addition:
+        return dict(existing)
+
+    merged: dict[str, object] = {
+        "kind": "supplemental_bundle",
+        "reason": " | ".join(
+            reason
+            for reason in (clean_text(existing.get("reason")), clean_text(addition.get("reason")))
+            if reason
+        ),
+        "refs": _dedupe_ref_items(
+            [dict(item) for item in existing.get("refs", []) if isinstance(item, dict)]
+            + [dict(item) for item in addition.get("refs", []) if isinstance(item, dict)],
+            id_key="ref_id",
+        ),
+    }
+    for key, id_key in (
+        ("anchors", "anchor_id"),
+        ("concepts", "concept_key"),
+        ("threads", "thread_key"),
+        ("reactions", "reaction_id"),
+        ("moves", "move_id"),
+        ("reflective_items", "item_id"),
+        ("excerpts", "ref_id"),
+    ):
+        merged_items = _dedupe_ref_items(
+            [dict(item) for item in existing.get(key, []) if isinstance(item, dict)]
+            + [dict(item) for item in addition.get(key, []) if isinstance(item, dict)],
+            id_key=id_key,
+        )
+        if merged_items:
+            merged[key] = merged_items
+    return merged
+
+
 def _current_unit_anchor_ids(
     anchor_bank: AnchorBankState,
     *,
@@ -109,6 +172,15 @@ def _current_unit_anchor_ids(
         if anchor_id and (start_id in unit_ids or end_id in unit_ids):
             matched.add(anchor_id)
     return matched
+
+
+def _continuation_capsule(
+    carry_forward_context: CarryForwardContext,
+) -> ContinuationCapsule:
+    """Return the carried continuation capsule when present."""
+
+    capsule = carry_forward_context.get("continuation_capsule", {})
+    return dict(capsule) if isinstance(capsule, dict) else {}
 
 
 def resolve_context_request(
@@ -171,6 +243,22 @@ def resolve_context_request(
         digest_key="thread_digest",
         id_key="thread_key",
     )
+    continuation_capsule = _continuation_capsule(carry_forward_context)
+    capsule_anchor_ids = {
+        clean_text(item.get("anchor_id"))
+        for item in continuation_capsule.get("rehydration_entrypoints", [])
+        if isinstance(item, dict) and clean_text(item.get("anchor_id"))
+    }
+    capsule_concept_keys = {
+        clean_text(item.get("concept_key"))
+        for item in continuation_capsule.get("concept_digest", [])
+        if isinstance(item, dict) and clean_text(item.get("concept_key"))
+    }
+    capsule_thread_keys = {
+        clean_text(item.get("thread_key"))
+        for item in continuation_capsule.get("thread_digest", [])
+        if isinstance(item, dict) and clean_text(item.get("thread_key"))
+    }
     unit_anchor_ids = _current_unit_anchor_ids(
         anchor_bank,
         current_unit_sentence_ids=current_unit_sentence_ids,
@@ -199,6 +287,7 @@ def resolve_context_request(
             selected_anchors.sort(
                 key=lambda anchor: (
                     clean_text(anchor.get("anchor_id")) not in unit_anchor_ids,
+                    clean_text(anchor.get("anchor_id")) not in capsule_anchor_ids,
                     clean_text(anchor.get("anchor_id")) in carry_anchor_ids,
                     clean_text(anchor.get("anchor_id")),
                 )
@@ -238,6 +327,7 @@ def resolve_context_request(
             concept_candidates.sort(
                 key=lambda entry: (
                     clean_text(entry.get("concept_key")) not in carry_concept_keys,
+                    clean_text(entry.get("concept_key")) not in capsule_concept_keys,
                     not unit_anchor_ids.intersection(
                         {clean_text(anchor_id) for anchor_id in entry.get("support_anchor_ids", []) if clean_text(anchor_id)}
                     ),
@@ -290,6 +380,7 @@ def resolve_context_request(
             thread_candidates.sort(
                 key=lambda entry: (
                     clean_text(entry.get("thread_key")) not in carry_thread_keys,
+                    clean_text(entry.get("thread_key")) not in capsule_thread_keys,
                     not unit_anchor_ids.intersection(
                         {clean_text(anchor_id) for anchor_id in entry.get("support_anchor_ids", []) if clean_text(anchor_id)}
                     ),
@@ -469,6 +560,8 @@ def resolve_context_request(
         return None
 
     sentence_inventory = _sentence_inventory(book_document)
+    read_policy = dict(reader_policy.get("read", {})) if isinstance(reader_policy, dict) else {}
+    look_back_max_sentences = max(1, int(read_policy.get("look_back_max_sentences", 8) or 8))
     excerpts: list[dict[str, object]] = []
     refs: list[CarryForwardRef] = []
 
@@ -482,6 +575,7 @@ def resolve_context_request(
             sentence_inventory,
             start_sentence_id=clean_text(anchor.get("sentence_start_id")),
             end_sentence_id=clean_text(anchor.get("sentence_end_id")),
+            max_sentences=look_back_max_sentences,
         )
         if not sentence_ids or not excerpt_text:
             continue
@@ -506,8 +600,11 @@ def resolve_context_request(
                 "sentence_id": sentence_ids[-1],
             }
         )
+        break
 
     for sentence_id in requested_sentence_ids:
+        if excerpts:
+            break
         sentence = sentence_inventory.get(sentence_id)
         if not isinstance(sentence, dict):
             continue
@@ -552,6 +649,9 @@ def persist_read_audit(
     context_request: ContextRequest | None,
     supplemental_context: dict[str, object] | None,
     supplemental_satisfied: bool,
+    supplemental_steps: list[dict[str, object]] | None = None,
+    stop_reason: str = "",
+    budget_exhausted: bool = False,
     read_result: dict[str, object],
     llm_fallbacks: list[dict[str, str]] | None = None,
 ) -> None:
@@ -569,6 +669,9 @@ def persist_read_audit(
             "context_request": dict(context_request or {}),
             "supplemental_ref_ids": sorted(context_ref_ids(supplemental_context)),
             "supplemental_satisfied": supplemental_satisfied,
+            "supplemental_steps": [dict(step) for step in (supplemental_steps or []) if isinstance(step, dict)],
+            "stop_reason": clean_text(stop_reason),
+            "budget_exhausted": bool(budget_exhausted),
             "prior_material_use": dict(read_result.get("prior_material_use") or {}),
             "raw_reaction_present": bool(read_result.get("raw_reaction")),
             "move_hint": clean_text(read_result.get("move_hint")),

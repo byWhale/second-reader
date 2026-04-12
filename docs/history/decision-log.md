@@ -1635,3 +1635,37 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/tests/test_attentional_v2_bridge.py`
 - `reading-companion-backend/tests/test_attentional_v2_slow_cycle.py`
 - `reading-companion-backend/tests/test_attentional_v2_resume.py`
+
+## Entry 58
+**ID**: DEC-061
+**Status**: active
+
+**Decision / Inflection**: Polish live `attentional_v2` continuity around a lightweight persisted `continuation capsule` plus a budget-bounded multi-step supplemental recall loop, instead of keeping the old “one extra pass only” posture or introducing a heavy central compactor first.
+
+**Period**: April 12, 2026, immediately after `Phase C.4` had already finished the new-state/helper cutover and the next mechanism problem became how live reading should carry continuity, request more prior material, and resume honestly under the new state model.
+
+**Problem**: After `Phase C.4`, the live mechanism finally had one clean control skeleton and one clean primary state model, but the continuity path was still thinner than intended. `read` could only ask for one extra supplemental step, runtime/checkpoint continuity still relied mostly on raw persisted state rather than on an explicit lightweight continuity seed, and warm resume had no dedicated bounded artifact that said “this is what should be easy to rehydrate first.” That left long-distance reuse, recall traceability, and resume clarity better than before but still less explicit than the new design direction required.
+
+**Alternatives considered**: Keep the single supplemental pass as the permanent live rule, jump straight to a heavier compaction/rehydration subsystem that tries to compress broad state into one replacement summary, or let warm resume continue reconstructing continuity only from full runtime/checkpoint state without a dedicated continuity artifact.
+
+**Why this path won**: The project’s first-principles goal is still a reader that naturally carries continuity forward, not a system that hides continuity behind an oversized compactor. A lightweight persisted `continuation capsule` gives the runner and resume path one bounded continuity seed without flattening the primary state layers into a fake replacement memory. At the same time, a budget-bounded multi-step supplemental loop lets `read` ask for more context one step at a time when the current unit truly needs it, while still keeping runtime cost and runaway risk under deterministic control.
+
+**What changed in the system**: The live runner now lets `read` request supplemental context through a budget-bounded multi-step loop rather than stopping after one extra pass. Supplemental context can accumulate across multiple `active_recall` / exact `look_back` steps, `look_back` now resolves one bounded earlier span per request, and private `read_audit` records now capture each supplemental step, stop reason, and budget exhaustion. Runtime state and full checkpoints now persist `continuation_capsule.json` / checkpoint-embedded continuation capsules carrying bounded continuity digests plus explicit `rehydration entrypoints`. Warm resume remains `new-format only`, but it now restores the latest usable continuation capsule together with new-format runtime/checkpoint state instead of depending only on raw state files.
+
+**Why it matters later**: Future contributors will otherwise see the new state layers and helper contracts, but miss the next crucial continuity decision: the project explicitly chose a light persisted continuity seed plus bounded iterative recall over either a one-shot recall limit or an early heavy compaction subsystem. This entry records that `Phase D` was not “small cleanup.” It was the point where continuity, recall, and warm resume were made to match the new post-`Phase C` mechanism shape.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
+- `reading-companion-backend/src/attentional_v2/runner.py`
+- `reading-companion-backend/src/attentional_v2/read_context.py`
+- `reading-companion-backend/src/attentional_v2/resume.py`
+- `reading-companion-backend/src/attentional_v2/state_projection.py`
+- `reading-companion-backend/src/attentional_v2/storage.py`
+- `reading-companion-backend/src/attentional_v2/schemas.py`
+- `reading-companion-backend/tests/test_attentional_v2_phase_b.py`
+- `reading-companion-backend/tests/test_attentional_v2_resume.py`
