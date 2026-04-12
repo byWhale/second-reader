@@ -326,8 +326,8 @@ flowchart TD
 也就是说：
 
 - 所有正文都必须进入 mandatory `coverage read`
-- 显式 reaction 不是阅读发生的前提
-- 没有显式 reaction，不等于该段没被读到
+- `raw reaction` 不是阅读发生的前提
+- 没有 `raw reaction`，不等于该段没被读到
 
 `read` 负责输出：
 
@@ -337,7 +337,7 @@ flowchart TD
 - 哪些句子是这次阅读真正抓到的 focal text
 - 是否存在 unresolved pressure
 - 是否出现 callback / bridge suspicion
-- 原始 `reaction_candidate`
+- 原始 `raw_reaction`
   - 这是可选项，不是每次必有
 - 边界证据
   - 比如为什么这段像是还没收完，或者为什么它看起来已经形成一个可收口的局部单元
@@ -349,7 +349,7 @@ flowchart TD
 - 读完之后是继续还是收口
 - 是否桥接前文
 - 是否需要 reframe
-- 是否 surface 当前 reaction
+- 若存在 `raw_reaction`，如何如实持久化与展示
 - 需要哪些状态更新
 
 ### 6.2 为什么这里用动作命名，而不用 `Reader / Controller / Thinker`
@@ -401,7 +401,7 @@ flowchart TD
 - 消费 `read` 的阅读结果包
 - 决定：
   - `commit_silent`
-  - `surface_reaction`
+  - `persist_raw_reaction`
   - `extend_unit`
   - `bridge_back`
   - `reframe`
@@ -416,7 +416,7 @@ flowchart TD
 | `zoom_read` | 吸收进 `read`，不再保留为一个单独拥有结构权力的节点 |
 | `meaning_unit_closure` | `read` 提供边界证据，`navigate.route` 决定是否真正收口 |
 | `controller_decision` | 吸收进 `navigate.route` |
-| `reaction_emission` | 由 `navigate.route` 决定是否外显，deterministic 层只负责落盘与格式化 |
+| `reaction_emission` | 若保留，只应退化为轻量 persistence / formatter 层；原始 reaction 的语义来源与存在性回到 `read` |
 | bridge retrieval / resolution | 可以保留为执行器或子流程，但是否需要桥接应由 `navigate.route` 决定 |
 
 这样改完之后，语义层就不再是散落的多个半控制节点，而是清楚地变成：
@@ -505,7 +505,7 @@ flowchart TD
 
 - `read` 读的应该是一个局部可理解的阅读单元
 - coverage unit 太大，会冲淡 `implicit uptake`
-- coverage unit 太大，会让显式 reaction 更难锚定到具体文本
+- coverage unit 太大，会让 `raw reaction` 更难锚定到具体文本
 - coverage unit 太大，会把我们重新带回“大 span 吞小 hinge”的老问题
 
 当前建议的 coverage unit 约束如下：
@@ -560,7 +560,7 @@ flowchart TD
 
 - 以后如果切错了，我们知道错在 preview window、结构判断、语义收口判断，还是 cap 截断
 
-### 6.9 总方向：`implicit uptake` 应由 `read` 统一负责，现有 memory territory 可部分复用
+### 6.9 总方向：`implicit uptake` 应由 `read` 统一负责，Context / State Management 在 V2 的 typed spine 上重组
 
 当前讨论里已经明确：
 
@@ -570,31 +570,320 @@ flowchart TD
 这意味着未来设计里：
 
 - `read` 每次都必须产出 `implicit uptake`
-- `explicit reaction` 只是可选产物
+- `raw reaction` 只是可选产物
 
-关于与当前机制 memory 的关系，当前判断不是“全部推倒重来”，而是：
+但这还不够。为了真正解决 long-span 中“前文记不住、记住了也不容易调出来”的问题，Context / State Management 不能只停留在“把现有 memory territory 继续保留”。
 
-- 存储 territory 有相当一部分可以复用
-- 但语义写入契约需要重组
+当前更合适的方向是：
 
-较容易复用的 territory 包括：
+- 保留 `V2` 的 typed-state 骨架
+- 吸收 `V1` 已经证明有用的可复用记忆组织方式
+- 把状态主架构收敛成少数几个语义清楚、职责稳定的层，而不是继续让多个并列 store 竞争“谁才是主记忆”
 
-- hypotheses
-- unresolved tensions / questions
-- motif / recurrence 相关结构
-- anchor memory
-- trace links
+这里要先记一条高置信观察：
 
-不应原样保留为未来核心语义入口的，则主要是：
+- `V1` 当前的优势，不是它的状态类型更先进
+- 而是它会把前文整理成后续 prompt 真能直接继续使用的记忆包
 
-- `trigger_state`
-- `gate_state`
-- `local_buffer`
-- 一切强绑定在 `no_zoom / monitor / zoom_now` 和旧 `closure / controller` 栈上的语义写入逻辑
+`V1` 当前已经证明有用的部分包括：
+
+- `book_arc_summary`
+- `chapter_memory_summaries`
+- `open_threads`
+- `salience_ledger`
+- `recent_segment_flow`
+- query-aware 的 `memory packet assembly`
+
+`V2` 当前更强的则是：
+
+- hot / retrieval / reflective 的分层意识
+- typed object 和 source-linked relation
+- 对 motif、unresolved reference、callback、bridge 的显式建模
+
+因此，当前不建议：
+
+- 原样把 `V1` 的 memory blob 搬到 `V2`
+- 也不建议继续让 `V2` 保持现在这种“store 很多，但没有一个足够清楚的主记忆界面”的状态
+
+更合理的方向是：
+
+- 用 `V2` 的 typed spine 做底层状态
+- 用吸收了 `V1` 长处的派生 memory packet 做 prompt 输入层
+
+### 6.9.1 建议的主状态结构：四层状态 + 一个证据底座
+
+当前建议把未来的 Context / State Management 收敛成下面这个结构：
+
+1. `working_state`
+   - 当前热状态
+   - 只放下一步动作真正需要的活信息
+   - 例如：
+     - 当前 focus
+     - active hypotheses
+     - open questions
+     - active tensions
+     - bridge pull
+     - local unresolved items
+
+2. `concept_registry`
+   - 重要对象的工作词典
+   - 统一承载：
+     - 人物
+     - 地点
+     - 机构
+     - 术语
+     - 抽象概念
+     - 关键物件
+   - 它回答的是：
+     - “这个东西是谁/是什么”
+     - “在这本书里为什么重要”
+     - “它和哪些 thread 有关”
+
+3. `thread_trace`
+   - 故事线 / 论证线 / 关系线 / 问题线的统一轨迹层
+   - 不再人为分成“叙事类 memory”和“论证类 memory”两套系统
+   - 它回答的是：
+     - “这条线现在发展到哪了”
+     - “之前提出了什么”
+     - “后面是延伸、转折、回答、反证，还是收束”
+
+4. `reflective_frames`
+   - 较慢、较稳定的章级 / 书级理解
+   - 对应当前 `V2` 里已经存在的：
+     - `chapter_understandings`
+     - `book_level_frames`
+     - `durable_definitions`
+   - 但语义上统一视为“慢状态”，而不是多个并列主入口
+
+5. `anchor_bank`
+   - source-grounded 的证据底座
+   - 保存：
+     - retained source anchors
+     - typed relations
+     - callback / motif / trace 相关索引
+   - 它回答的是：
+     - “之前哪句话、哪段话值得保留”
+     - “如果要回桥，应该回到哪几个原文锚点”
+
+这里特别要强调：
+
+- `concept_registry` 是“词条层”
+- `thread_trace` 是“脉络层”
+- `reflective_frames` 是“慢总结层”
+- `anchor_bank` 是“证据底座”
+
+它们彼此链接，但不应互相复制。
+
+### 6.9.2 两个直接来自阅读体验的设计约束
+
+这次讨论里形成了两个非常值得保留的直觉，而且它们和真实阅读过程高度一致：
+
+1. 重要概念会被慢慢记住
+   - 阅读不是只记“漂亮句子”
+   - 人物、地名、机构、术语、抽象概念、关键物件，都会逐步形成稳定的对象记忆
+   - 这正是 `concept_registry` 的职责
+
+2. 故事线或论证线会被慢慢记住
+   - 阅读时，我们会逐步形成一种“这条线是怎么发展过来的”的脉络感
+   - 不需要极细，但需要可回溯、可检索
+   - 这正是 `thread_trace` 的职责
+
+因此，当前建议的 memory 结构不是单纯从现有代码拼出来的，而是：
+
+- 同时尊重人类阅读体验
+- 同时吸收 `V1` 的实用性
+- 同时保留 `V2` 的 typed-state 长处
+
+### 6.9.3 现有 V2 状态的处置原则
+
+当前不建议“全部推倒重来”，而建议按下面的原则重组：
+
+- 保留，并改名或收紧职责：
+  - `working_pressure` -> `working_state`
+  - `anchor_memory` -> `anchor_bank`
+  - `reflective_summaries` -> `reflective_frames`
+
+- 保留，但降为辅助职责而不是主记忆层：
+  - retrieval helper / index-like 结构
+  - 它们仍然可以存在，但不应该再和主状态层并列争夺语义地位
+
+- 合并或吸收：
+  - `motif_index`
+    - 更适合并入 `concept_registry` 与 `anchor_bank` 的连接结构
+  - `trace_links`
+    - 更适合并入 `thread_trace`
+  - `unresolved_reference_index`
+    - 热的部分放进 `working_state`
+    - 需要跨段持续的部分放进 `thread_trace`
+
+- 不应原样保留为未来核心语义入口的：
+  - `trigger_state`
+  - `gate_state`
+  - `local_buffer`
+  - 一切强绑定在 `no_zoom / monitor / zoom_now` 和旧 `closure / controller` 栈上的语义写入逻辑
+
+### 6.9.4 `knowledge_activations` 的角色应明显收窄
+
+这次讨论后，当前不再建议把 `knowledge_activations` 继续当成主记忆层。
+
+更合适的理解是：
+
+- 它原本的职责，是记录“当前文本是否触发了某种外部知识、典故、思想背景、文学回声或结构回声”
+- 它关心的是：
+  - `recognition_confidence`
+  - `reading_warrant`
+- 它并不是为了记“书里前面出现过什么人物、概念、事件”
+
+因此，当前建议是：
+
+- 默认让外部知识激活留在 `read` 的即时认知事件里
+- 不再默认把它维护成一个重的 durable memory store
+- 只有当某个 activation 真的变成后续 thread 理解所必需的背景，或者已经影响 durable frame 时，才把其结果沉淀到：
+  - `concept_registry`
+  - `thread_trace`
+  - 或 `reflective_frames`
+
+也就是说：
+
+- 外部知识可以在 `read` 里直接想起、直接使用
+- 不必因为“想起了一次”就强制写成长期状态
+
+### 6.9.5 `anchor_bank` 不应承担泛化记忆职责
+
+这里还需要明确一条边界：
+
+- `anchor_bank` 不是“什么都往里塞的大记忆桶”
+
+它不应该负责直接存下面这些语义对象本身：
+
+- 人物是谁
+- 某个概念是什么意思
+- 某条故事线整体发展到了哪里
+- 某条论证线目前的阶段判断
+
+这些应分别落在：
+
+- `concept_registry`
+- `thread_trace`
+- `reflective_frames`
+
+`anchor_bank` 真正负责的是：
+
+- 保留 source-linked evidence
+- 支持 callback / bridge / revisit
+- 作为其他状态层的证据底座
+
+因此更准确的关系是：
+
+- `concept_registry` 是词条
+- `thread_trace` 是脉络
+- `reflective_frames` 是稳定理解
+- `anchor_bank` 是这些层背后的原文证据
+
+### 6.9.6 Prompt 输入层应是派生视图，而不是底层状态原样直出
+
+这里还需要保留 `V1` 一个非常重要的经验：
+
+- 状态本身如何存是一回事
+- prompt 最终拿到的输入长什么样，是另一回事
+
+当前建议是：
+
+- 底层状态保持 `V2` 风格的 typed spine
+- 但每次 `navigate.unitize / read / navigate.route` 真正收到的 memory packet，应是从这些状态派生出来的 query-aware 视图
+
+也就是说：
+
+- `V1` 的 `book_arc_summary / open_threads / salience_ledger / recent_segment_flow / chapter summaries` 这种“易用记忆包”经验应保留
+- 但它应是派生层，而不是把底层 durable state 重新做成一个大 blob
 
 因此，真正要改的重点不是“memory 文件全部重做”，而是：
 
 - 由 `read` 重新成为 `implicit uptake` 的统一生产者
+- 让底层状态结构更清楚
+- 让 prompt 输入层重新拥有 `V1` 那种已被证明有用的可用性
+
+### 6.9.7 压缩不是主目标；先解决状态维护，再决定何时需要 compaction
+
+当前讨论里已经进一步明确：
+
+- “压缩”本身不是目的
+- 真正目的，是让阅读状态长期保持可用、可检索、可恢复，而不是无限膨胀
+
+因此，当前不建议一上来就把未来机制设计成“必须有一个中心 compactor”的系统。
+
+更合理的次序应当是：
+
+1. 先把状态分层和职责边界定清楚
+2. 先让 `read` 成为 `implicit uptake` 的统一生产者
+3. 先让 prompt 输入转成 index-first 的派生视图
+4. 再判断是否真的需要显式 compaction
+
+当前更接近真实需要的判断是：
+
+- 现在已经有一些“压缩前置件”
+  - `working_pressure` cooling
+  - `reflective_promotion`
+  - chapter-end `chapter_consolidation`
+  - checkpoint / resume
+- 但这些还不是一个完整的“压缩 + 重注入”系统
+
+未来真正需要显式 compaction 的时机，应该至少满足下面之一：
+
+- active packet 已经无法在预算内保持清晰，除非开始丢失仍然活着的语义材料
+- 发生 pause / resume，需要生成一个可恢复的 session continuity capsule
+- 发生 chapter boundary，需要把本章的活状态压缩成下一章可继续携带的有界表示
+
+如果未来引入 compaction，当前建议它遵守三条边界：
+
+- 它优先发生在边界时刻，而不是每一步都偷偷运行
+  - 例如：
+    - chapter end
+    - pause / resume
+    - 明确的 hard budget breach
+- 它产出的不是“替代一切的大摘要”，而是可回水化的 continuation capsule
+- 它不能把 durable state 和 source evidence 一起压扁
+  - `concept_registry / thread_trace / reflective_frames / anchor_bank` 仍应作为独立层存在
+
+### 6.9.8 `always reload`、`on-demand retrieval` 与 side context 的当前边界
+
+围绕上下文载入策略，当前已经可以先定出一版高置信边界。
+
+`always reload` 当前更适合只保留：
+
+- 当前 `session continuity capsule`
+- 当前 `working_state`
+- 当前 chapter 的短 `reflective frame`
+- 极短的 active `concept / thread digest`
+
+`on-demand retrieval` 当前更适合承载：
+
+- 详细 `concept_registry` 词条
+- 详细 `thread_trace` milestones
+- `anchor_bank` 中的原文锚点与 anchor bundles
+- 历史 raw reactions / evidence bundles
+- 大段原文 excerpt
+
+也就是说，真正应该始终背在 prompt 里的，只能是“继续读下去立刻需要的极少量状态”；详细历史应当默认留在可检索层，而不是常驻层。
+
+同时，当前也进一步明确：
+
+- 不应为了“可能有帮助”就引入多 `sub-agent`
+- Reading Agent 的主体性和连续性必须优先
+
+因此，当前不建议：
+
+- 把主阅读循环改造成多 agent orchestration
+- 让外部搜索、回看、核对默认都变成 sub-agent 任务
+
+如果后面真的引入 side context，它更适合承担的是：
+
+- 高体积回看
+- 搜证
+- 低频外部核查
+- bridge verification
+
+而不是接管主阅读循环本身。
 
 ### 6.10 总方向：当前基线仍可使用同一模型，但 `unitize / read / route` 应分成不同 prompt family
 
@@ -611,7 +900,7 @@ flowchart TD
 - `navigate.unitize`
   - 只负责边界裁决
 - `read`
-  - 负责 `implicit uptake` 与可选 `explicit reaction`
+  - 负责 `implicit uptake`、`continuity / reuse result` 与可选 `raw reaction`
 - `navigate.route`
   - 负责 `commit / extend / bridge / reframe / surface`
 
@@ -672,8 +961,8 @@ flowchart TD
     E --> F["Reading packet"]
     F --> G["Reading Agent: navigate.route"]
 
-    G -->|"commit_silent"| H["Persist implicit uptake"]
-    G -->|"surface reaction"| I["Persist anchored reaction"]
+    G -->|"commit"| H["Persist implicit uptake"]
+    G -->|"persist raw reaction"| I["Persist anchored reaction"]
     G -->|"bridge_back"| J["Bridge executor"]
     G -->|"reframe"| K["Update durable frame / memory"]
     G -->|"extend_unit / continue"| L["Advance reading position"]
@@ -692,12 +981,27 @@ flowchart TD
 2. 顶层语义结构不再写成两个主体，而是一个 Reading Agent 的两个动作
 3. `navigate` 先做 `unitize`，在作者结构骨架内决定下一次 coverage read 到哪里结束
 4. 所有正文都必须经过一次 mandatory `read`
-5. `read` 每次都必须产出 `implicit uptake`，显式 reaction 只是可选产物
+5. `read` 每次都必须产出 `implicit uptake`，`raw reaction` 只是可选产物
 6. `read` 只负责把当前单元读明白，不直接接管状态机
 7. `navigate.unitize` 的 preview window 有硬上限，coverage unit 本身也有长度上限
 8. span 的积累、可见性、收口权必须对齐
-9. reaction 的语义来源回到阅读层，但 surface 决策归 `navigate.route`
+9. 原始 reaction 的语义来源回到阅读层，并且如果真实产生，就应如实保留和展示
 10. 真实状态维护重新收回到 deterministic executor
+
+这个顶层循环下，Context / State Management 也要同步收敛成：
+
+- `working_state`
+- `concept_registry`
+- `thread_trace`
+- `reflective_frames`
+- `anchor_bank`
+
+其中：
+
+- `concept_registry` 与 `thread_trace` 是新的主语义层
+- `reflective_frames` 保留较慢的章级 / 书级理解
+- `anchor_bank` 作为所有 durable 语义层的 source-grounded evidence base
+- prompt 输入使用这些状态派生出来的 query-aware memory packet，而不是把底层 store 原样塞给模型
 
 ## 8. 目标结构下的最小运行单元
 
@@ -714,18 +1018,37 @@ flowchart TD
    - preview window 不跨 chapter，默认不跨 section
 4. 调用 `read`
    - 输入是刚才确定的 coverage unit 正文
+   - 同时带入：
+     - `carry-forward context`
+       - 这是默认随阅读带入的小量已有上下文
+       - 它不是一次额外 retrieval 动作
+     - 在确有必要时，才追加：
+       - `active recall / look-back`
+       - 这才是真正意义上的具体回看
    - coverage unit 默认以单段为目标，但仍受长度 cap 约束
 5. `read` 返回 `reading packet`
    - `implicit uptake`
      - 这是每次必有的结果
-   - 可选 `explicit reaction`
+      - 这里的 uptake 负责更新：
+        - `working_state`
+        - 必要时的 `concept_registry`
+        - 必要时的 `thread_trace`
+        - 以及后续可 promotion 的 `reflective_frames` 候选
+   - `continuity / reuse result`
+     - 这里回答的不是“状态怎么写”，而是：
+       - 当前这段如何利用了前文
+       - 它是在延续、澄清、回答、对照、反转，还是并行展开
+       - 它关联了哪些 concept / thread / earlier anchor
+   - 可选 `raw reaction`
+     - 这是阅读时自然产生的原始反应
+     - 不是二次加工后的展示文案
    - 可选 `bridge pull / revisit pull`
    - 边界证据
    - focal text
    - unresolved pressure
 6. `navigate.route` 再消费这份 `reading packet`，决定：
-   - `commit_silent`
-   - `surface_reaction`
+   - `commit`
+   - `persist raw reaction`
    - `extend_unit`
    - `bridge_back`
    - `reframe`
@@ -739,8 +1062,13 @@ flowchart TD
 - `navigate.unitize` 负责定界，不负责偷偷替代 `read`
 - 状态真实维护不再混进阅读语义调用里
 - `read` 不再承担“读完顺手接管整个状态机”的职责
-- 没有显式 reaction 的段落，也会留下 `implicit uptake`
+- 没有 `raw reaction` 的段落，也会留下 `implicit uptake`
+- `read` 不是只回答“这段讲了什么”，还必须回答“这段如何利用了前文”
+- 默认 continuity 应由 `carry-forward context` 支撑，而不是把“回想前文”全部等同于一次额外 retrieval
+- 只有当默认上下文不够时，才进入 `active recall / look-back`
 - 未来 memory 的统一上游将转到 `read`，而不是散落在多个 trigger / gate / closure 旁支中
+- `concept_registry` 和 `thread_trace` 将承担“读过之后留下什么”的主职责，而不是让 `anchor_memory` 或 `knowledge_activations` 混合承担
+- 原始 reaction 如果真实产生，就应如实保留和展示，而不是再由独立语义节点把它改写成“更适合展示的版本”
 
 ## 9. 当前先行决策
 
@@ -758,7 +1086,8 @@ flowchart TD
 - `read` 负责一次正式阅读，不再用 `think` 这种更泛的词
 - 所有正文都必须经过 mandatory coverage read
 - `read` 每次都必须产出 `implicit uptake`
-- `explicit reaction` 只是 `read` 的可选产物，不是阅读发生的前提
+- `raw reaction` 只是 `read` 的可选产物，不是阅读发生的前提
+- `read` 还必须产出 `continuity / reuse result`，明确当前阅读如何利用了前文
 - coverage unit 的边界必须以作者结构为骨架，再由 bounded forward semantic unitization 细化
 - `navigate.unitize` 的 preview window 不跨 chapter，默认不跨 section
 - `navigate.unitize` 的默认前瞻基线是“当前段落剩余部分 + 下一段”
@@ -766,6 +1095,40 @@ flowchart TD
 - coverage unit 本身必须受长度 cap 约束；若被 cap 截断，则必须显式保留 continuation pressure
 - `navigate.unitize / read / navigate.route` 可以继续使用同一模型目标，但应拆成不同 prompt family
 - 现有 memory territory 可部分复用，但 `implicit uptake` 的统一生产权要回到 `read`
+- continuity 的默认实现应依赖 `carry-forward context`
+- 只有当默认上下文不足以支撑当前阅读时，才触发 `active recall / look-back`
+- Context / State Management 应收敛成：
+  - `working_state`
+  - `concept_registry`
+  - `thread_trace`
+  - `reflective_frames`
+  - `anchor_bank`
+- `concept_registry` 承担人物、地点、机构、术语、抽象概念等“对象级记忆”
+- `thread_trace` 承担故事线 / 论证线 / 关系线 / 问题线等“脉络级记忆”
+- `reflective_frames` 承担较慢的章级 / 书级稳定理解
+- `anchor_bank` 只作为 source-grounded evidence base，不承担泛化记忆职责
+- `knowledge_activations` 的角色应明显收窄：
+  - 默认留在 `read` 的即时外部知识激活里
+  - 不再默认作为重的 durable memory store
+- 底层状态继续采用 V2 风格的 typed spine，但 prompt 输入层应重新吸收 V1 的 query-aware memory packet 长处
+- 当前不把“显式上下文压缩器”当作先行实现目标
+- 未来若需要 compaction，它应发生在 chapter boundary、pause / resume、或 hard budget breach 这类边界时刻
+- compaction 的目标应是 continuation capsule 与可回水化入口，而不是把 durable state 统统替换成一段总摘要
+- `always reload` 只保留：
+  - `session continuity capsule`
+  - 当前 `working_state`
+  - 当前 chapter 的短 `reflective frame`
+  - 极短的 active `concept / thread digest`
+- `on-demand retrieval` 承载：
+  - 详细 concept entries
+  - 详细 thread milestones
+  - `anchor_bank` 中的原文证据
+  - 历史 reactions / evidence bundles
+  - 大段原文 excerpt
+- 如果 `raw reaction` 在 `read` 中真实产生，应如实持久化并展示
+- 不再把“是否显示原始反应”设成独立的语义审美 gate
+- 当前不引入多 `sub-agent` 作为主阅读骨架
+- 若未来引入 side context，它只应用于高体积回看、搜证、外部核查、bridge verification 等辅助动作
 - 后续改造优先讨论 `navigate + read` 的重设计，而不是在当前 trigger 上补更多规则
 
 ### 9.2 暂缓决定
@@ -773,11 +1136,20 @@ flowchart TD
 - 不同文体下 preview window 的放宽策略要不要进一步分型
 - coverage unit 的 soft cap / hard cap 最终定在哪个数值最稳
 - `navigate.unitize` 输出的审计信息最终落成怎样的 artifact 形态
-- `implicit uptake` 最终落成怎样的 memory 结构最合适
+- `working_state / concept_registry / thread_trace / reflective_frames / anchor_bank` 的精确字段最小集
+- `read` 每次更新这五层状态的操作粒度与节奏
+- `knowledge_activations` 是否保留轻量 audit/debug 痕迹，以及若保留应如何约束
+- `session continuity capsule` 的精确字段最小集
+- compaction 的 soft budget / hard budget 触发阈值最终定在哪个量级
+- `always reload` 中 active `concept / thread digest` 的目标尺寸与裁剪策略
+- `continuity / reuse result` 的精确输出契约如何定义
+- `carry-forward context` 默认应包含哪些最小字段
+- 在什么条件下才允许升级为 `active recall / look-back`
 - 是否需要在后续实现中把 `unitize / read / route` 分到不同模型目标
 - current `zoom_read` / `closure` contract 在新设计里是吸收、重写，还是部分保留
-- `reaction_emission` 是否完全移除，还是退化为轻量 surface formatter
+- `reaction_emission` 是否完全移除，还是退化为轻量 persistence / formatter layer
 - bridge executor 在新结构里是否仍保留单独节点
+- 若以后真的引入 side context，其调用阈值、返回契约、以及与主阅读线程的边界如何定义
 
 这些问题不适合只基于 `probe 1` 就完全定案，后面继续看其余 probes 时应一并判断。
 
