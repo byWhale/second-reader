@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -414,7 +415,11 @@ def launch_registered_job(task: ShardTask) -> None:
     record = get_job_record(task.job_id, root=BACKEND_ROOT)
     if record is not None:
         status = str(record.get("status", "")).strip().lower()
-        if status in TERMINAL_JOB_STATUSES and status not in SUCCESS_TERMINAL_STATUSES:
+        if status in SUCCESS_TERMINAL_STATUSES:
+            missing = [str(path) for path in task.expected_outputs if not path.exists()]
+            if missing:
+                raise RuntimeError(f"Job {task.job_id} is marked {status} but expected outputs are missing: {missing}")
+        elif status in TERMINAL_JOB_STATUSES and not _pid_alive(record):
             raise RuntimeError(f"Job {task.job_id} already exists with non-success terminal status {status}.")
         log(f"Job already exists, not relaunching: {task.job_id} status={status or 'unknown'}")
         return
@@ -467,6 +472,7 @@ def launch_registered_job(task: ShardTask) -> None:
     args.extend(["--", *wrapped_command])
     log(f"Launching {task.job_id}: {' '.join(shlex.quote(part) for part in wrapped_command)}")
     subprocess.run(args, cwd=BACKEND_ROOT, check=True)
+    _wait_for_job_to_start(task.job_id)
 
 
 def build_check_command(task: ShardTask) -> str:
@@ -484,10 +490,42 @@ def build_check_command(task: ShardTask) -> str:
 
 
 def _status_for(job_id: str, *, run_check_commands: bool = True) -> str:
+    existing = get_job_record(job_id, root=BACKEND_ROOT)
+    if existing is not None and _pid_alive(existing):
+        return "running"
     refreshed = refresh_background_jobs(root=BACKEND_ROOT, job_ids=[job_id], run_check_commands=run_check_commands)
     if not refreshed:
         return "missing"
     return str(refreshed[0].get("status", "")).strip().lower()
+
+
+def _pid_alive(record: dict[str, object]) -> bool:
+    try:
+        pid = int(record.get("pid") or 0)
+    except (TypeError, ValueError):
+        return False
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _wait_for_job_to_start(job_id: str, *, timeout_seconds: float = 10.0) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    last_status = "missing"
+    while time.monotonic() <= deadline:
+        record = get_job_record(job_id, root=BACKEND_ROOT)
+        if record is None:
+            time.sleep(0.1)
+            continue
+        last_status = str(record.get("status", "")).strip().lower()
+        if _pid_alive(record) or last_status in TERMINAL_JOB_STATUSES:
+            return
+        time.sleep(0.1)
+    log(f"Job {job_id} did not publish a live PID within {timeout_seconds:.1f}s; last_status={last_status}")
 
 
 def _wait_for_jobs(job_ids: list[str], *, poll_seconds: int, label: str) -> None:
@@ -495,8 +533,7 @@ def _wait_for_jobs(job_ids: list[str], *, poll_seconds: int, label: str) -> None
         return
     last_seen: dict[str, str] = {}
     while True:
-        refreshed = refresh_background_jobs(root=BACKEND_ROOT, job_ids=job_ids, run_check_commands=True)
-        statuses = {str(item.get("job_id", "")): str(item.get("status", "")).strip().lower() for item in refreshed}
+        statuses = {job_id: _status_for(job_id) for job_id in job_ids}
         if statuses != last_seen:
             log(f"{label} statuses: {statuses}")
             last_seen = dict(statuses)
