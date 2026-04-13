@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-13T05:26:00Z`
+Last verified: `2026-04-13T12:59:13Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -92,6 +92,20 @@ Last verified: `2026-04-13T05:26:00Z`
       - the run root still surfaced two harness issues that made the overall comparison job look failed:
         - `iterator_v1` exhausted the current one-shot mechanism auto-recovery budget after an earlier `llm_timeout`, then later died on a second recoverable transient (`network_blocked` at `value_of_others_private_en__8_10` / `9.24`)
         - `run_accumulation_comparison.py --stage all` did not materialize top-level merge outputs, so the job registry marked the smoke run failed even though the main V2 path had completed
+    - the next evaluation step is now the Post-Phase-D targeted judged validation rather than another smoke:
+      - launcher:
+        - `reading-companion-backend/scripts/orchestrate_post_phase_d_parallel_eval.py`
+      - parent job id:
+        - `bgjob_post_phase_d_parallel_judged_eval_20260413`
+      - long-span run id:
+        - `attentional_v2_post_phase_d_longspan_judged_20260413`
+      - excerpt run id:
+        - `attentional_v2_post_phase_d_excerpt_regression_20260413`
+      - execution posture:
+        - reuse existing `iterator_v1` baseline bundles instead of rerunning V1
+        - reuse the three completed smoke V2 long-span bundles and only newly read the two missing V2 long-span windows
+        - run current V2 excerpt units against the reusable `excerpt surface v1.1` V1 baseline
+        - keep exactly two runtime/judge target slots pinned to `MiniMax-M2.7-personal` and `MiniMax-M2.7-personal-2`
     - the isolated debug-replay lane is now diagnosed but not currently active:
       - first attempt:
         - `bgjob_value_of_others_ch8_debug_trace_20260413`
@@ -104,7 +118,7 @@ Last verified: `2026-04-13T05:26:00Z`
       - current consequence:
         - no active isolated replay is running now
         - a full prompt/response replay without touching the active eval pool requires another spare key with `MiniMax-M2.7` access, or must wait until using the main eval pool is acceptable
-  - the next backend slice is not yet opened as code:
+  - the next backend code slice is not yet opened:
     - review the now-landed Phase D behavior and define the next bounded follow-up around slower continuity compaction, reflective promotion, or other post-read polish
     - do not reopen trigger authority, helper-contract retirement, or old-state compatibility in that next slice
 - Frontend direction is now fixed for the next product lane:

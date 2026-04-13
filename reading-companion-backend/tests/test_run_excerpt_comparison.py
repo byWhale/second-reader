@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from eval.attentional_v2 import run_excerpt_comparison as excerpt_comparison
+from src.iterator_reader.llm_utils import ReaderLLMError
 
 
 def _write_json(path: Path, payload: object) -> None:
@@ -380,8 +381,11 @@ def test_run_benchmark_reuses_one_unit_run_for_cases_in_same_chapter(monkeypatch
 
     assert run_calls == [("source_a", 1)]
     run_root = Path(summary["run_root"])
+    assert summary["aggregate"]["case_count"] == 2
     assert (run_root / "shards" / "default" / "cases" / "case_a.json").exists()
     assert (run_root / "shards" / "default" / "cases" / "case_b.json").exists()
+    assert (run_root / "summary" / "aggregate.json").exists()
+    assert (run_root / "summary" / "case_results.jsonl").exists()
 
 
 def test_extract_case_local_evidence_records_explicit_match_method() -> None:
@@ -733,6 +737,24 @@ def test_existing_bundle_payload_recovers_from_export_when_sidecar_is_missing(tm
     assert payload["mechanism_key"] == "attentional_v2"
 
 
+def test_existing_bundle_payload_does_not_promote_raw_output_dir_without_completed_unit(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "no_raw_output_recover"
+    output_dir = run_root / "shards" / "alpha" / "outputs" / "source_a__chapter_1" / "attentional_v2"
+    bundle_payload = _unit_result("source_a", 1)["mechanisms"]["attentional_v2"]
+    _write_json(
+        output_dir / "_mechanisms" / "attentional_v2" / "exports" / "normalized_eval_bundle.json",
+        bundle_payload["normalized_eval_bundle"],
+    )
+
+    recovered = excerpt_comparison._existing_bundle_payload(
+        run_root,
+        unit_key="source_a__chapter_1",
+        mechanism_key="attentional_v2",
+    )
+
+    assert recovered is None
+
+
 def test_excerpt_unit_is_ready_for_judging_recovers_missing_sidecars(tmp_path: Path) -> None:
     run_root = tmp_path / "runs" / "ready_recover_sidecars"
     unit_payload = _unit_result("source_a", 1)
@@ -947,6 +969,69 @@ def test_skip_existing_ignores_unavailable_case_placeholders_for_llm_judge(monke
     assert summary["case_count"] == 1
     assert evaluate_calls == ["case_a"]
     assert case_payload["target_results"]["selective_legibility"]["judgment"]["reason"] == "fresh_rejudge"
+
+
+def test_run_mechanism_for_unit_allows_two_bounded_recoveries(monkeypatch, tmp_path: Path) -> None:
+    unit = excerpt_comparison.ChapterUnit(
+        source_id="source_a",
+        chapter_id=1,
+        output_language="en",
+        book_title="Book",
+        author="Author",
+    )
+    source = {"relative_local_path": "state/library_sources/source_a.epub"}
+    shard_root = tmp_path / "runs" / "excerpt_two_recoveries" / "shards" / "main"
+    output_dir = shard_root / "outputs" / "source_a__chapter_1" / "attentional_v2"
+    calls: list[bool] = []
+
+    def fake_attempt(
+        inner_unit,
+        inner_source,
+        *,
+        mechanism_key: str,
+        shard_root: Path,
+        resume_from_existing: bool,
+    ) -> dict[str, Any]:
+        assert inner_unit == unit
+        assert inner_source == source
+        assert mechanism_key == "attentional_v2"
+        calls.append(resume_from_existing)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        _write_json(
+            output_dir / "_runtime" / "run_state.json",
+            {
+                "stage": "error",
+                "resume_available": True,
+                "last_checkpoint_at": "2026-04-13T05:30:27Z",
+                "current_reading_activity": {"problem_code": "network_blocked"},
+            },
+        )
+        if len(calls) == 1:
+            raise ReaderLLMError("first transient", problem_code="llm_timeout")
+        if len(calls) == 2:
+            raise ReaderLLMError("second transient", problem_code="network_blocked")
+        assert resume_from_existing is True
+        return {
+            "status": "completed",
+            "mechanism_key": mechanism_key,
+            "mechanism_label": "Attentional V2",
+            "output_dir": str(output_dir),
+            "normalized_eval_bundle": {"reactions": [{"content": "Recovered after two restarts"}]},
+            "bundle_summary": {"reaction_count": 1},
+            "error": "",
+        }
+
+    monkeypatch.setattr(excerpt_comparison, "_run_mechanism_attempt", fake_attempt)
+
+    payload = excerpt_comparison._run_mechanism_for_unit(
+        unit,
+        source,
+        mechanism_key="attentional_v2",
+        shard_root=shard_root,
+    )
+
+    assert calls == [False, True, True]
+    assert payload["status"] == "completed"
 
 
 def test_judge_target_retries_once_after_schema_invalid_payload(monkeypatch, tmp_path: Path) -> None:

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-13T05:26:00Z`
+Last updated: `2026-04-13T12:59:13Z`
 
 ## Status Values
 - `active`
@@ -70,7 +70,18 @@ Last updated: `2026-04-13T05:26:00Z`
   - the overall comparison job still closed as failed because:
     - `iterator_v1` consumed its one bounded auto-recovery on an earlier `llm_timeout`, then later hit a second recoverable transient (`network_blocked`) in `value_of_others_private_en__8_10`
     - `run_accumulation_comparison.py --stage all` did not materialize top-level merge outputs
-  - next fix the comparison harness resilience/merge behavior before launching any new judged follow-up jobs
+  - the comparison harness resilience/merge follow-up is now being implemented for the next judged validation:
+    - excerpt `stage=all` should produce top-level merge outputs like accumulation
+    - raw output directories must not be promoted to completed bundles unless a completed unit/window payload points at them
+    - the new Post-Phase-D orchestrator should run:
+      - `attentional_v2_post_phase_d_longspan_judged_20260413`
+      - `attentional_v2_post_phase_d_excerpt_regression_20260413`
+    - parent job id:
+      - `bgjob_post_phase_d_parallel_judged_eval_20260413`
+    - execution posture:
+      - reuse V1 baseline bundles, avoid V1 reruns
+      - split independent windows/chapters into shard jobs
+      - keep two pinned LLM target slots for balanced calls
 - Archived diagnostic attempts:
   - `bgjob_value_of_others_ch8_debug_trace_20260413` (`failed`, archived after fixing registry-isolation bug in the launcher)
   - `bgjob_value_of_others_ch8_debug_trace_retry1_20260413` (`failed`, archived after verifying isolated registry load but hitting separate-key `MiniMax-M2.7` plan rejection)

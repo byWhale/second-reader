@@ -61,6 +61,15 @@ MECHANISM_KEYS = ("attentional_v2", "iterator_v1")
 MECHANISM_FILTER_VALUES = ("attentional_v2", "iterator_v1", "both")
 TARGET_SLICE_VALUES = ("selective_legibility", "insight_and_clarification", "both")
 STAGE_VALUES = ("all", "bundle", "judge", "merge")
+RECOVERABLE_MECHANISM_PROBLEM_CODES = {
+    "network_blocked",
+    "llm_timeout",
+    "llm_quota",
+    "search_timeout",
+    "search_quota",
+}
+# Match the accumulation harness: allow one later transient after an earlier timeout.
+MAX_MECHANISM_AUTO_RECOVERIES = 2
 JUDGE_SCHEMA_RETRY_INSTRUCTION = (
     "\n\nReminder: return exactly one JSON object matching the requested schema. "
     "Do not wrap it in markdown fences or nest it under another key. "
@@ -875,15 +884,6 @@ def _recover_bundle_payload(run_root: Path, *, unit_key: str, mechanism_key: str
             if recovered is not None:
                 _json_dump(destination, recovered)
                 return destination, recovered
-    output_candidates = [path for path in run_root.glob(f"shards/*/outputs/{unit_key}/{mechanism_key}") if path.is_dir()]
-    for output_dir in sorted(output_candidates, key=lambda item: (item.stat().st_mtime_ns, str(item)), reverse=True):
-        recovered = _load_exported_bundle_payload(output_dir=output_dir, mechanism_key=mechanism_key)
-        if recovered is None:
-            continue
-        shard_id = _path_shard_id(output_dir)
-        destination = _bundle_payload_path(run_root, shard_id, mechanism_key, unit_key)
-        _json_dump(destination, recovered)
-        return destination, recovered
     return None
 
 
@@ -1059,12 +1059,43 @@ def _mechanism_failure_payload(mechanism_key: str, *, error: str, status: str = 
     }
 
 
-def _run_mechanism_for_unit(
+def _run_state_path(output_dir: Path) -> Path:
+    return output_dir / "_runtime" / "run_state.json"
+
+
+def _recoverable_resume_context(output_dir: Path, *, error: Exception | None = None) -> dict[str, str] | None:
+    payload = _load_json_if_exists(_run_state_path(output_dir))
+    if not isinstance(payload, dict):
+        payload = {}
+    current_activity = payload.get("current_reading_activity")
+    if not isinstance(current_activity, dict):
+        current_activity = {}
+    problem_code = _clean_text(getattr(error, "problem_code", "")).lower()
+    if not problem_code:
+        problem_code = _clean_text(current_activity.get("problem_code")).lower()
+    if not problem_code:
+        problem_code = _clean_text(payload.get("problem_code")).lower()
+    if problem_code not in RECOVERABLE_MECHANISM_PROBLEM_CODES:
+        return None
+    if not bool(payload.get("resume_available")):
+        return None
+    stage = _clean_text(payload.get("stage")).lower()
+    if stage == "completed":
+        return None
+    return {
+        "problem_code": problem_code,
+        "last_checkpoint_at": _clean_text(payload.get("last_checkpoint_at")),
+        "stage": stage,
+    }
+
+
+def _run_mechanism_attempt(
     unit: ChapterUnit,
     source: dict[str, Any],
     *,
     mechanism_key: str,
     shard_root: Path,
+    resume_from_existing: bool,
 ) -> dict[str, Any]:
     if mechanism_key == "attentional_v2":
         mechanism = AttentionalV2Mechanism()
@@ -1076,8 +1107,13 @@ def _run_mechanism_for_unit(
     book_path = ROOT / str(source["relative_local_path"])
     isolated_output_dir = shard_root / "outputs" / _chapter_unit_key(unit.source_id, unit.chapter_id) / mechanism_key
     runtime_dir = isolated_output_dir / "_runtime"
-    _log_unit_progress(unit, f"[mechanism-start] {mechanism_key}")
-    shutil.rmtree(isolated_output_dir, ignore_errors=True)
+    _log_unit_progress(
+        unit,
+        f"[mechanism-start] {mechanism_key}"
+        + (" resume=true" if resume_from_existing else ""),
+    )
+    if not resume_from_existing:
+        shutil.rmtree(isolated_output_dir, ignore_errors=True)
     isolated_output_dir.parent.mkdir(parents=True, exist_ok=True)
     with runtime_progress_heartbeat(
         runtime_dir=runtime_dir,
@@ -1108,6 +1144,58 @@ def _run_mechanism_for_unit(
         "bundle_summary": _summarize_bundle(bundle),
         "error": "",
     }
+
+
+def _run_mechanism_for_unit(
+    unit: ChapterUnit,
+    source: dict[str, Any],
+    *,
+    mechanism_key: str,
+    shard_root: Path,
+) -> dict[str, Any]:
+    isolated_output_dir = shard_root / "outputs" / _chapter_unit_key(unit.source_id, unit.chapter_id) / mechanism_key
+    recovery_context = _recoverable_resume_context(isolated_output_dir)
+    resume_from_existing = recovery_context is not None
+    recovery_count = 1 if recovery_context is not None else 0
+    if recovery_context is not None:
+        checkpoint_note = (
+            f" last_checkpoint_at={recovery_context['last_checkpoint_at']}"
+            if recovery_context.get("last_checkpoint_at")
+            else ""
+        )
+        stage_note = f" stage={recovery_context['stage']}" if recovery_context.get("stage") else ""
+        _log_unit_progress(
+            unit,
+            f"[mechanism-resume-existing] {mechanism_key} problem_code={recovery_context['problem_code']}"
+            f"{checkpoint_note}{stage_note} recovery={recovery_count}/{MAX_MECHANISM_AUTO_RECOVERIES}",
+        )
+
+    while True:
+        try:
+            return _run_mechanism_attempt(
+                unit,
+                source,
+                mechanism_key=mechanism_key,
+                shard_root=shard_root,
+                resume_from_existing=resume_from_existing,
+            )
+        except Exception as exc:
+            recovery_context = _recoverable_resume_context(isolated_output_dir, error=exc)
+            if recovery_context is None or recovery_count >= MAX_MECHANISM_AUTO_RECOVERIES:
+                raise
+            checkpoint_note = (
+                f" last_checkpoint_at={recovery_context['last_checkpoint_at']}"
+                if recovery_context.get("last_checkpoint_at")
+                else ""
+            )
+            next_recovery_count = recovery_count + 1
+            _log_unit_progress(
+                unit,
+                f"[mechanism-auto-recover] {mechanism_key} problem_code={recovery_context['problem_code']}"
+                f"{checkpoint_note} recovery={next_recovery_count}/{MAX_MECHANISM_AUTO_RECOVERIES}",
+            )
+            resume_from_existing = True
+            recovery_count = next_recovery_count
 
 
 def _run_mechanism_worker(payload_path: Path, result_path: Path) -> int:
@@ -2207,6 +2295,20 @@ def run_benchmark(
     summary["unit_count"] = len(unit_results)
     summary["case_count"] = len(results_by_case_id)
     summary["llm_usage"] = _write_shard_usage_summary(run_root, shard_id=shard_id)
+    case_results = _merge_case_results(
+        run_root=run_root,
+        selection=selection,
+        judge_mode=judge_mode,
+        unit_keys=target_unit_keys if unit_keys else None,
+    )
+    aggregate, report_path = _write_merge_outputs(
+        run_root=run_root,
+        run_name=run_name,
+        selection=selection,
+        case_results=case_results,
+    )
+    summary["aggregate"] = aggregate
+    summary["report_path"] = str(report_path)
     return summary
 
 
