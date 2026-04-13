@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-13T04:31:00Z`
+Last updated: `2026-04-13T05:26:00Z`
 
 ## Status Values
 - `active`
@@ -64,9 +64,13 @@ Last updated: `2026-04-13T04:31:00Z`
   - next define the post-Phase-D follow-up:
     - review whether slower compaction, reflective promotion, or other continuity polish should become the next bounded slice
     - keep `knowledge_activations` narrowed to helper territory unless a later explicit design pass changes that rule
-- Active diagnosis/eval jobs:
-  - `bgjob_post_phase_d_longspan_smoke_20260412` (`running`)
-  - `bgjob_post_phase_d_followup_launcher_retry1_20260412` (`running`)
+- Post-smoke evaluation posture:
+  - the April 12 post-Phase-D smoke is now finished
+  - `attentional_v2` completed all three representative smoke windows, so the new mechanism's basic long-span run-through gate is provisionally satisfied
+  - the overall comparison job still closed as failed because:
+    - `iterator_v1` consumed its one bounded auto-recovery on an earlier `llm_timeout`, then later hit a second recoverable transient (`network_blocked`) in `value_of_others_private_en__8_10`
+    - `run_accumulation_comparison.py --stage all` did not materialize top-level merge outputs
+  - next fix the comparison harness resilience/merge behavior before launching any new judged follow-up jobs
 - Archived diagnostic attempts:
   - `bgjob_value_of_others_ch8_debug_trace_20260413` (`failed`, archived after fixing registry-isolation bug in the launcher)
   - `bgjob_value_of_others_ch8_debug_trace_retry1_20260413` (`failed`, archived after verifying isolated registry load but hitting separate-key `MiniMax-M2.7` plan rejection)

@@ -363,6 +363,46 @@ def test_stage_judge_and_merge_use_existing_bundles(monkeypatch, tmp_path: Path)
     assert (run_root / "summary" / "aggregate.json").exists()
 
 
+def test_stage_all_writes_merge_outputs(monkeypatch, tmp_path: Path) -> None:
+    window_dataset = _bootstrap_window_dataset(tmp_path)
+    probe_dataset = _bootstrap_probe_dataset(tmp_path)
+    source_manifest = _bootstrap_source_manifest(tmp_path)
+    formal_manifest = _bootstrap_formal_manifest(
+        tmp_path,
+        window_dataset=window_dataset,
+        probe_dataset=probe_dataset,
+        source_manifest=source_manifest,
+        probe_ids=["probe_a"],
+    )
+    monkeypatch.setattr(accumulation_comparison, "resolve_worker_policy", lambda **_kwargs: SimpleNamespace(worker_count=1))
+    monkeypatch.setattr(
+        accumulation_comparison,
+        "_run_window_bundle",
+        lambda window, *, source, run_root, shard_id, mechanism_execution_mode, mechanism_filter, skip_existing: _window_result(window.window_case_id),
+    )
+    monkeypatch.setattr(
+        accumulation_comparison,
+        "ensure_canonical_parse",
+        lambda _book_path, language_mode: SimpleNamespace(book_document=_book_document()),
+    )
+
+    summary = accumulation_comparison.run_benchmark(
+        formal_manifest_path=formal_manifest,
+        runs_root=tmp_path / "runs",
+        run_id="acc_all_demo",
+        stage="all",
+        target_slice="both",
+        judge_mode="none",
+        mechanism_execution_mode="parallel",
+        case_workers=1,
+    )
+
+    run_root = Path(summary["run_root"])
+    assert summary["aggregate"]["case_count"] == 1
+    assert (run_root / "summary" / "aggregate.json").exists()
+    assert (run_root / "summary" / "case_results.jsonl").exists()
+
+
 def test_existing_bundle_payload_recovers_from_completed_unit_payload(tmp_path: Path) -> None:
     run_root = tmp_path / "runs" / "acc_recover_demo"
     _write_json(
@@ -380,6 +420,30 @@ def test_existing_bundle_payload_recovers_from_completed_unit_payload(tmp_path: 
     assert (run_root / "shards" / "seed" / "bundles" / "attentional_v2" / "window_a.json").exists()
     assert recovered[1]["status"] == "completed"
     assert recovered[1]["normalized_eval_bundle"]["reactions"]
+
+
+def test_existing_bundle_payload_does_not_promote_raw_output_dir_without_completed_window(tmp_path: Path) -> None:
+    run_root = tmp_path / "runs" / "acc_no_raw_output_recover_demo"
+    output_dir = run_root / "shards" / "seed" / "outputs" / "window_a" / "iterator_v1"
+    _write_json(
+        output_dir / "_mechanisms" / "iterator_v1" / "exports" / "normalized_eval_bundle.json",
+        {
+            "mechanism_key": "iterator_v1",
+            "mechanism_label": "Iterator V1",
+            "reactions": [{"content": "Partial chapter export only"}],
+            "attention_events": [],
+            "chapters": [{"chapter_id": 1, "chapter_ref": "Chapter 1"}],
+            "memory_summaries": [],
+        },
+    )
+
+    recovered = accumulation_comparison._existing_bundle_payload(
+        run_root,
+        window_case_id="window_a",
+        mechanism_key="iterator_v1",
+    )
+
+    assert recovered is None
 
 
 def test_skip_existing_reuses_prior_probe_result(monkeypatch, tmp_path: Path) -> None:
@@ -682,6 +746,64 @@ def test_run_mechanism_for_window_auto_recovers_with_resume(monkeypatch, tmp_pat
     assert calls == [False, True]
     assert payload["status"] == "completed"
     assert payload["normalized_eval_bundle"]["reactions"][0]["content"] == "Recovered"
+
+
+def test_run_mechanism_for_window_allows_two_bounded_recoveries(monkeypatch, tmp_path: Path) -> None:
+    window = _window_case()
+    source = {"relative_local_path": "state/library_sources/source_a.epub"}
+    shard_root = tmp_path / "runs" / "acc_two_recoveries" / "shards" / "main"
+    output_dir = shard_root / "outputs" / window.window_case_id / "iterator_v1"
+    calls: list[bool] = []
+
+    def fake_attempt(
+        inner_window,
+        inner_source,
+        *,
+        mechanism_key: str,
+        shard_root: Path,
+        resume_from_existing: bool,
+    ) -> dict[str, Any]:
+        assert inner_window.window_case_id == window.window_case_id
+        assert inner_source == source
+        assert mechanism_key == "iterator_v1"
+        calls.append(resume_from_existing)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        _write_json(
+            output_dir / "_runtime" / "run_state.json",
+            {
+                "stage": "error",
+                "resume_available": True,
+                "last_checkpoint_at": "2026-04-08T05:30:27Z",
+                "current_reading_activity": {"problem_code": "network_blocked"},
+            },
+        )
+        if len(calls) == 1:
+            raise ReaderLLMError("first transient", problem_code="llm_timeout")
+        if len(calls) == 2:
+            raise ReaderLLMError("second transient", problem_code="network_blocked")
+        assert resume_from_existing is True
+        return {
+            "status": "completed",
+            "mechanism_key": mechanism_key,
+            "mechanism_label": "Iterator V1",
+            "output_dir": str(output_dir),
+            "normalized_eval_bundle": {"reactions": [{"content": "Recovered after two restarts"}]},
+            "bundle_summary": {"reaction_count": 1},
+            "error": "",
+        }
+
+    monkeypatch.setattr(accumulation_comparison, "_run_mechanism_attempt", fake_attempt)
+
+    payload = accumulation_comparison._run_mechanism_for_window(
+        window,
+        source,
+        mechanism_key="iterator_v1",
+        shard_root=shard_root,
+    )
+
+    assert calls == [False, True, True]
+    assert payload["status"] == "completed"
+    assert payload["normalized_eval_bundle"]["reactions"][0]["content"] == "Recovered after two restarts"
 
 
 def test_run_mechanism_for_window_resumes_existing_checkpoint_first(monkeypatch, tmp_path: Path) -> None:

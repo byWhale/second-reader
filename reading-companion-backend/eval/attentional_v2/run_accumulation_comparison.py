@@ -70,6 +70,8 @@ RECOVERABLE_MECHANISM_PROBLEM_CODES = {
     "search_timeout",
     "search_quota",
 }
+# Keep recovery bounded, but allow one later transient after an earlier timeout.
+MAX_MECHANISM_AUTO_RECOVERIES = 2
 TARGET_FIELD_BY_SLICE = {
     "coherent_accumulation": ("accumulation_probes_frozen_draft", "accumulation_probe_core_draft"),
     "insight_and_clarification": (
@@ -544,20 +546,11 @@ def _recover_bundle_payload(run_root: Path, *, window_case_id: str, mechanism_ke
             _json_dump(destination, mechanism_payload)
             return destination, mechanism_payload
         output_dir_text = _clean_text(mechanism_payload.get("output_dir"))
-        if output_dir_text:
+        if output_dir_text and mechanism_payload.get("status") == "completed":
             recovered = _load_exported_bundle_payload(output_dir=Path(output_dir_text), mechanism_key=mechanism_key)
             if recovered is not None:
                 _json_dump(destination, recovered)
                 return destination, recovered
-    output_candidates = [path for path in run_root.glob(f"shards/*/outputs/{window_case_id}/{mechanism_key}") if path.is_dir()]
-    for output_dir in sorted(output_candidates, key=lambda item: (item.stat().st_mtime_ns, str(item)), reverse=True):
-        recovered = _load_exported_bundle_payload(output_dir=output_dir, mechanism_key=mechanism_key)
-        if recovered is None:
-            continue
-        shard_id = _path_shard_id(output_dir)
-        destination = _bundle_payload_path(run_root, shard_id, mechanism_key, window_case_id)
-        _json_dump(destination, recovered)
-        return destination, recovered
     return None
 
 
@@ -802,7 +795,7 @@ def _run_mechanism_for_window(
     isolated_output_dir = shard_root / "outputs" / window.window_case_id / mechanism_key
     recovery_context = _recoverable_resume_context(isolated_output_dir)
     resume_from_existing = recovery_context is not None
-    recovery_already_used = resume_from_existing
+    recovery_count = 1 if resume_from_existing else 0
     if recovery_context is not None:
         checkpoint_note = (
             f" last_checkpoint_at={recovery_context['last_checkpoint_at']}"
@@ -813,7 +806,7 @@ def _run_mechanism_for_window(
         _log_window_progress(
             window,
             f"[mechanism-resume-existing] {mechanism_key} problem_code={recovery_context['problem_code']}"
-            f"{checkpoint_note}{stage_note}",
+            f"{checkpoint_note}{stage_note} recovery={recovery_count}/{MAX_MECHANISM_AUTO_RECOVERIES}",
         )
 
     while True:
@@ -827,20 +820,21 @@ def _run_mechanism_for_window(
             )
         except Exception as exc:
             recovery_context = _recoverable_resume_context(isolated_output_dir, error=exc)
-            if recovery_already_used or recovery_context is None:
+            if recovery_context is None or recovery_count >= MAX_MECHANISM_AUTO_RECOVERIES:
                 raise
             checkpoint_note = (
                 f" last_checkpoint_at={recovery_context['last_checkpoint_at']}"
                 if recovery_context.get("last_checkpoint_at")
                 else ""
             )
+            next_recovery_count = recovery_count + 1
             _log_window_progress(
                 window,
                 f"[mechanism-auto-recover] {mechanism_key} problem_code={recovery_context['problem_code']}"
-                f"{checkpoint_note}",
+                f"{checkpoint_note} recovery={next_recovery_count}/{MAX_MECHANISM_AUTO_RECOVERIES}",
             )
             resume_from_existing = True
-            recovery_already_used = True
+            recovery_count = next_recovery_count
 
 
 def _run_mechanism_worker(payload_path: Path, result_path: Path) -> int:
@@ -2102,6 +2096,19 @@ def run_benchmark(
     summary["window_count"] = len(window_results)
     summary["probe_count"] = len(results_by_probe_id)
     summary["llm_usage"] = _write_shard_usage_summary(run_root, shard_id=shard_id)
+    probe_results = _merge_probe_results(
+        run_root=run_root,
+        selection=selection,
+        window_case_ids=[window.window_case_id for window in windows] if window_case_ids else None,
+    )
+    aggregate, report_path = _write_merge_outputs(
+        run_root=run_root,
+        run_name=run_name,
+        selection=selection,
+        probe_results=probe_results,
+    )
+    summary["aggregate"] = aggregate
+    summary["report_path"] = str(report_path)
     return summary
 
 

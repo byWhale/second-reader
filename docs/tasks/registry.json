@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T04:31:00Z",
+  "updated_at": "2026-04-13T05:26:00Z",
   "tasks": [
     {
       "id": "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
@@ -29,7 +29,7 @@
         "bgjob_value_of_others_ch8_debug_trace_retry1_20260413"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key: keep the work backend-only, keep the existing frontend lane active in parallel under TASK-V2-NATIVE-READING-PRESENTATION, treat Phase A as the landed control-skeleton baseline where trigger output no longer suppresses formal reading and span authority matches the exact chosen unit, treat Phase B as the landed read-context baseline where read owns the authoritative unit packet plus bounded carry-forward and optional active recall/look-back, treat Phase C.1 as the landed packetization seam where live prompts now receive bounded state packets without changing persisted files or public compatibility surfaces, treat Phase C.2 as the landed first state-territory slice where concept/thread digests now enter the live packet path, treat Phase C.3 as the landed main-state cutover where working_state / concept_registry / thread_trace / reflective_frames / anchor_bank own runtime and checkpoint truth, treat Phase C.4 as the landed helper-contract cutover where sentence-intake / bridge / slow-cycle now execute directly on the new state layers and live runtime/resume reject old-format state, treat Phase D as the landed continuity / recall / resume polish slice where read now runs under a budget-bounded multi-step supplemental loop and runtime/checkpoint continuity now persists through continuation capsules, keep the post-Phase-D smoke plus followup launcher active, and if a fully isolated prompt/response replay is still needed for anomalous-call diagnosis, use another spare MiniMax-M2.7-capable key because the separate legacy key failed plan entitlement during the archived retry1 replay.",
+      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key: keep the work backend-only, keep the existing frontend lane active in parallel under TASK-V2-NATIVE-READING-PRESENTATION, treat Phase A as the landed control-skeleton baseline where trigger output no longer suppresses formal reading and span authority matches the exact chosen unit, treat Phase B as the landed read-context baseline where read owns the authoritative unit packet plus bounded carry-forward and optional active recall/look-back, treat Phase C.1 as the landed packetization seam where live prompts now receive bounded state packets without changing persisted files or public compatibility surfaces, treat Phase C.2 as the landed first state-territory slice where concept/thread digests now enter the live packet path, treat Phase C.3 as the landed main-state cutover where working_state / concept_registry / thread_trace / reflective_frames / anchor_bank own runtime and checkpoint truth, treat Phase C.4 as the landed helper-contract cutover where sentence-intake / bridge / slow-cycle now execute directly on the new state layers and live runtime/resume reject old-format state, treat Phase D as the landed continuity / recall / resume polish slice where read now runs under a budget-bounded multi-step supplemental loop and runtime/checkpoint continuity now persists through continuation capsules, treat the April 12 post-Phase-D smoke as finished evidence that attentional_v2 can run through the three representative long-span windows, repair the comparison harness before any new judged follow-up by allowing a second bounded mechanism auto-recovery and restoring stage=all merge outputs, and only reopen isolated prompt/response replay if another spare MiniMax-M2.7-capable key becomes available.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
@@ -41,7 +41,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_progress_and_latency_check_20260413.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_value_of_others_ch8_debug_legacykey_20260413/analysis/registry_snapshot.json"
       ],
-      "last_updated": "2026-04-13T04:31:00Z",
+      "last_updated": "2026-04-13T05:26:00Z",
       "last_updated_by": "codex"
     },
     {

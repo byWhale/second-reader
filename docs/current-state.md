@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-13T00:58:00Z`
+Last verified: `2026-04-13T05:26:00Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -79,14 +79,19 @@ Last verified: `2026-04-13T00:58:00Z`
     - warm resume now restores new-format state together with the latest usable continuation capsule instead of relying only on raw runtime/checkpoint state
     - `look_back` now returns one bounded earlier source span, and `read_audit` now records per-step supplemental activity, stop reason, and budget exhaustion
     - public/frontend compatibility surfaces remain unchanged
-  - active diagnostic follow-up is now also running against the post-Phase-D smoke:
+  - the April 12 post-Phase-D smoke has now finished and is interpreted as follows:
     - `value_of_others_private_en__8_10` produced repeated anomalous long-tail calls during the April 12 smoke
     - a static size/content snapshot now lives at:
       - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_abnormal_call_snapshot_20260413.md`
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_progress_and_latency_check_20260413.md`
     - the current diagnosis is:
       - the slowest `read_unit` and `navigate_unitize` calls were not driven by abnormally large local正文 spans
       - full prompt baselines remain heavy because of carried context
       - the most extreme wall-clock outliers still look primarily like provider long-tail plus timeout/retry accumulation rather than simple local-span inflation
+      - `attentional_v2` nevertheless completed all three representative smoke windows, so the core post-Phase-D question "`attentional_v2` can it run through representative long-span windows?" is now provisionally answered `yes`
+      - the run root still surfaced two harness issues that made the overall comparison job look failed:
+        - `iterator_v1` exhausted the current one-shot mechanism auto-recovery budget after an earlier `llm_timeout`, then later died on a second recoverable transient (`network_blocked` at `value_of_others_private_en__8_10` / `9.24`)
+        - `run_accumulation_comparison.py --stage all` did not materialize top-level merge outputs, so the job registry marked the smoke run failed even though the main V2 path had completed
     - the isolated debug-replay lane is now diagnosed but not currently active:
       - first attempt:
         - `bgjob_value_of_others_ch8_debug_trace_20260413`
