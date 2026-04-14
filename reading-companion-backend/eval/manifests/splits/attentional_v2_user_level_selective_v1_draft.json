@@ -11,10 +11,10 @@
   "benchmark_shape": {
     "kind": "user_level_selective_v1",
     "surface_role": "user_level_note_aligned",
-    "reading_segments": 4,
+    "reading_segments": 5,
     "target_note_count": 20,
     "hard_sentence_cap": 350,
-    "note_case_count": 179
+    "note_case_count": 203
   },
   "source_refs": {
     "source_manifests": [
@@ -43,6 +43,14 @@
       "termination_reason": "chapter_end_after_target_notes"
     },
     {
+      "segment_id": "nawaer_baodian_private_zh__segment_1",
+      "source_id": "nawaer_baodian_private_zh",
+      "book_title": "纳瓦尔宝典（硅谷投资人纳瓦尔十年人生智慧，教你如何获得财富与幸福。新时代创业者的《穷查理宝典》）",
+      "language_track": "zh",
+      "covered_note_count": 24,
+      "termination_reason": "chapter_end_after_target_notes"
+    },
+    {
       "segment_id": "value_of_others_private_en__segment_1",
       "source_id": "value_of_others_private_en",
       "book_title": "The Value of Others: Understanding the Economic Model of Relationships to Get (and Keep) More of What You Want in the Sexual Marketplace",
@@ -59,20 +67,15 @@
       "termination_reason": "chapter_end_after_target_notes"
     }
   ],
-  "skipped_sources": [
-    {
-      "source_id": "nawaer_baodian_private_zh",
-      "reason": "no_aligned_notes"
-    }
-  ],
+  "skipped_sources": [],
   "quota_status": {
     "reading_segments": {
       "registered_sources": 5,
-      "ready_now": 4,
-      "skipped": 1
+      "ready_now": 5,
+      "skipped": 0
     },
     "note_cases": {
-      "ready_now": 179
+      "ready_now": 203
     }
   },
   "splits": {
@@ -146,6 +149,32 @@
           "mangge_zhi_dao_private_zh__mangge_zhi_dao_private_zh_personal_notes__e0023",
           "mangge_zhi_dao_private_zh__mangge_zhi_dao_private_zh_personal_notes__e0024",
           "mangge_zhi_dao_private_zh__mangge_zhi_dao_private_zh_personal_notes__e0025"
+        ],
+        "nawaer_baodian_private_zh__segment_1": [
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0056",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0001",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0002",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0003",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0004",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0005",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0006",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0007",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0008",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0009",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0010",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0011",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0012",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0013",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0014",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0015",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0016",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0017",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0018",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0019",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0020",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0021",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0022",
+          "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0023"
         ],
         "value_of_others_private_en__segment_1": [
           "value_of_others_private_en__value_of_others_private_en_personal_notes__e0001",
@@ -332,6 +361,30 @@
         "mangge_zhi_dao_private_zh__mangge_zhi_dao_private_zh_personal_notes__e0023",
         "mangge_zhi_dao_private_zh__mangge_zhi_dao_private_zh_personal_notes__e0024",
         "mangge_zhi_dao_private_zh__mangge_zhi_dao_private_zh_personal_notes__e0025",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0056",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0001",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0002",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0003",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0004",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0005",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0006",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0007",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0008",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0009",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0010",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0011",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0012",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0013",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0014",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0015",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0016",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0017",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0018",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0019",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0020",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0021",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0022",
+        "nawaer_baodian_private_zh__nawaer_baodian_private_zh_personal_notes__e0023",
         "value_of_others_private_en__value_of_others_private_en_personal_notes__e0001",
         "value_of_others_private_en__value_of_others_private_en_personal_notes__e0126",
         "value_of_others_private_en__value_of_others_private_en_personal_notes__e0439",

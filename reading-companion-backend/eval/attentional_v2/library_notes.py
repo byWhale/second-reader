@@ -631,6 +631,34 @@ def _rank_candidate_chapters(
     return ranked[:3]
 
 
+def _chapter_search_passes(
+    *,
+    entry: dict[str, Any],
+    book_document: dict[str, Any],
+    prepared_index: dict[str, dict[str, Any]],
+    normalized_quote: str,
+) -> list[list[dict[str, Any]]]:
+    candidate_chapters = _chapter_candidates_for_entry(entry, book_document)
+    ranked_candidates = _rank_candidate_chapters(
+        candidate_chapters,
+        prepared_index,
+        normalized_quote=normalized_quote,
+    )
+    all_chapters = [chapter for chapter in book_document.get("chapters", []) if isinstance(chapter, dict)]
+    if not all_chapters:
+        return [ranked_candidates]
+    ranked_global = _rank_candidate_chapters(
+        all_chapters,
+        prepared_index,
+        normalized_quote=normalized_quote,
+    )
+    if {str(chapter.get("id", "") or "") for chapter in ranked_candidates} == {
+        str(chapter.get("id", "") or "") for chapter in ranked_global
+    }:
+        return [ranked_candidates]
+    return [ranked_candidates, ranked_global]
+
+
 def _should_compare_sentence(
     *,
     quote_tokens: set[str],
@@ -710,61 +738,83 @@ def align_entry_to_book_document(
     normalized_quote = normalize_text(quote_text)
     best_alignment: dict[str, Any] | None = None
     quote_tokens = set(_normalized_tokens(normalized_quote))
-    candidate_chapters = _chapter_candidates_for_entry(entry, book_document)
     prepared_index = prepared_sentences_by_chapter or _alignment_index(book_document)
-    ranked_chapters = _rank_candidate_chapters(
-        candidate_chapters,
-        prepared_index,
+    search_passes = _chapter_search_passes(
+        entry=entry,
+        book_document=book_document,
+        prepared_index=prepared_index,
         normalized_quote=normalized_quote,
     )
-    for chapter in ranked_chapters:
-        chapter_id = str(chapter.get("id", "") or "")
-        chapter_title = _clean_text(chapter.get("title"))
-        chapter_payload = prepared_index.get(chapter_id) or {}
-        exact_alignment = _exact_quote_alignment(
-            normalized_quote=normalized_quote,
-            chapter_payload=chapter_payload,
-        )
-        if exact_alignment is not None:
-            return exact_alignment
-        sentences = chapter_payload.get("sentences", [])
-        for sentence in sentences:
-            sentence_text = str(sentence["text"])
-            if not sentence_text:
-                continue
-            if not _should_compare_sentence(
-                quote_tokens=quote_tokens,
-                sentence_tokens=set(sentence.get("token_set") or ()),
-                quote_length=len(normalized_quote),
-            ) and not _should_compare_sentence(
-                quote_tokens=quote_tokens,
-                sentence_tokens=set(sentence.get("span_token_set") or ()),
-                quote_length=len(normalized_quote),
-            ):
-                continue
-            exact_match = normalized_quote in str(sentence["normalized_text"])
-            score = (
-                100.0
-                if exact_match
-                else fuzzy_ratio_normalized(normalized_quote, str(sentence["normalized_text"]))
+    for ranked_chapters in search_passes:
+        exact_alignments: list[dict[str, Any]] = []
+        for chapter in ranked_chapters:
+            chapter_id = str(chapter.get("id", "") or "")
+            chapter_payload = prepared_index.get(chapter_id) or {}
+            exact_alignment = _exact_quote_alignment(
+                normalized_quote=normalized_quote,
+                chapter_payload=chapter_payload,
             )
-            if not exact_match and sentence["span_text"]:
-                span_text = str(sentence["span_text"])
-                span_score = fuzzy_ratio_normalized(normalized_quote, str(sentence["span_normalized_text"]))
-                if span_score > score:
-                    score = span_score
-                    alignment = {
-                        "status": "aligned" if span_score >= 55.0 else "unresolved",
-                        "match_type": "fuzzy_span",
-                        "score": round(span_score, 3),
-                        "chapter_id": chapter_id,
-                        "chapter_title": chapter_title,
-                        "sentence_start_id": str(sentence["sentence_id"]),
-                        "sentence_end_id": str(sentence["next_sentence_id"]),
-                        "paragraph_start": int(sentence["paragraph_index"]),
-                        "paragraph_end": int(sentence["paragraph_end"]),
-                        "aligned_text": span_text,
-                    }
+            if exact_alignment is not None:
+                exact_alignments.append(exact_alignment)
+        if exact_alignments:
+            return exact_alignments[0]
+
+    for ranked_chapters in search_passes:
+        for chapter in ranked_chapters:
+            chapter_id = str(chapter.get("id", "") or "")
+            chapter_title = _clean_text(chapter.get("title"))
+            chapter_payload = prepared_index.get(chapter_id) or {}
+            sentences = chapter_payload.get("sentences", [])
+            for sentence in sentences:
+                sentence_text = str(sentence["text"])
+                if not sentence_text:
+                    continue
+                if not _should_compare_sentence(
+                    quote_tokens=quote_tokens,
+                    sentence_tokens=set(sentence.get("token_set") or ()),
+                    quote_length=len(normalized_quote),
+                ) and not _should_compare_sentence(
+                    quote_tokens=quote_tokens,
+                    sentence_tokens=set(sentence.get("span_token_set") or ()),
+                    quote_length=len(normalized_quote),
+                ):
+                    continue
+                exact_match = normalized_quote in str(sentence["normalized_text"])
+                score = (
+                    100.0
+                    if exact_match
+                    else fuzzy_ratio_normalized(normalized_quote, str(sentence["normalized_text"]))
+                )
+                if not exact_match and sentence["span_text"]:
+                    span_text = str(sentence["span_text"])
+                    span_score = fuzzy_ratio_normalized(normalized_quote, str(sentence["span_normalized_text"]))
+                    if span_score > score:
+                        score = span_score
+                        alignment = {
+                            "status": "aligned" if span_score >= 55.0 else "unresolved",
+                            "match_type": "fuzzy_span",
+                            "score": round(span_score, 3),
+                            "chapter_id": chapter_id,
+                            "chapter_title": chapter_title,
+                            "sentence_start_id": str(sentence["sentence_id"]),
+                            "sentence_end_id": str(sentence["next_sentence_id"]),
+                            "paragraph_start": int(sentence["paragraph_index"]),
+                            "paragraph_end": int(sentence["paragraph_end"]),
+                            "aligned_text": span_text,
+                        }
+                    else:
+                        alignment = {
+                            "status": "aligned" if score >= 55.0 else "unresolved",
+                            "match_type": "exact_sentence" if exact_match else "fuzzy_sentence",
+                            "score": round(score, 3),
+                            "chapter_id": chapter_id,
+                            "chapter_title": chapter_title,
+                            "sentence_start_id": str(sentence["sentence_id"]),
+                            "sentence_end_id": str(sentence["sentence_id"]),
+                            "paragraph_start": int(sentence["paragraph_index"]),
+                            "paragraph_end": int(sentence["paragraph_index"]),
+                            "aligned_text": sentence_text,
+                        }
                 else:
                     alignment = {
                         "status": "aligned" if score >= 55.0 else "unresolved",
@@ -791,10 +841,10 @@ def align_entry_to_book_document(
                     "paragraph_end": int(sentence["paragraph_index"]),
                     "aligned_text": sentence_text,
                 }
-            if best_alignment is None or float(alignment["score"]) > float(best_alignment["score"]):
-                best_alignment = alignment
-            if exact_match:
-                return alignment
+                if best_alignment is None or float(alignment["score"]) > float(best_alignment["score"]):
+                    best_alignment = alignment
+                if exact_match:
+                    return alignment
     return best_alignment or {
         "status": "unresolved",
         "match_type": "no_candidate",
@@ -966,7 +1016,8 @@ def register_notes_asset(
     normalized_notes_id = _sanitize_slug(notes_id)
     managed_raw_path = _managed_raw_export_path(paths, asset_id=normalized_notes_id, raw_export_path=origin_path)
     managed_raw_path.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(origin_path, managed_raw_path)
+    if origin_path.resolve() != managed_raw_path.resolve():
+        shutil.copy2(origin_path, managed_raw_path)
 
     entries = _normalize_entries(
         normalized_notes_id,

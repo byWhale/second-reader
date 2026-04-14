@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-14T12:40:00Z",
+  "updated_at": "2026-04-14T13:50:00Z",
   "tasks": [
     {
       "id": "TASK-USER-LEVEL-SELECTIVE-V1",
@@ -18,9 +18,11 @@
       "decision_refs": [
         "DEC-062"
       ],
-      "job_refs": [],
+      "job_refs": [
+        "bgjob_user_level_selective_v1_judged_20260414"
+      ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 4 reading segments, 179 note cases, and one currently skipped source (nawaer_baodian_private_zh) because the notes catalog reports aligned_entry_count = 0. The next evaluation move is the first judged run on this new surface, not another rerun of the older chapter-scoped excerpt surface.",
+      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. The next evaluation move is the first judged run on this new surface under bgjob_user_level_selective_v1_judged_20260414, using reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py rather than reopening the older chapter-scoped excerpt surface.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -35,7 +37,7 @@
         "reading-companion-backend/docs/evaluation/excerpt/README.md",
         "docs/history/decision-log.md"
       ],
-      "last_updated": "2026-04-14T12:40:00Z",
+      "last_updated": "2026-04-14T13:50:00Z",
       "last_updated_by": "codex"
     },
     {

@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-14T12:40:00Z`
+Last verified: `2026-04-14T13:47:00Z`
 
 ## Current Objective
 - Replace the old active `excerpt` benchmark pointer with the new note-aligned `user-level selective v1` package.
@@ -21,9 +21,16 @@ Last verified: `2026-04-14T12:40:00Z`
     - `reader_character.selective_legibility` only
     - score by note recall over aligned human notes
   - current dataset truth:
-    - `4 / 5` registered note-linked books are currently eligible
-    - `nawaer_baodian_private_zh` is excluded because the current notes catalog reports `aligned_entry_count = 0`
+    - `5 / 5` registered note-linked books are currently eligible
+    - `nawaer_baodian_private_zh` was repaired on April 14 after fixing the note-alignment fallback so title-page chapter hints no longer block later exact正文 matches
+    - active package now contains:
+      - `5` reading segments
+      - `203` note cases
   - `excerpt surface v1.1` remains preserved as historical / superseded evidence, not as the active local/user-level benchmark pointer
+  - current evaluation move:
+    - launch the first judged `user-level selective v1` run with both `attentional_v2` and `iterator_v1`
+    - active background job:
+      - `bgjob_user_level_selective_v1_judged_20260414`
 - Treat the cleaned `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` full formal rerun as the current durable long-span evidence bundle.
   - the April 8 same-run recovery removed the lingering `mechanism_failure`
   - the April 9 targeted re-judge cleared the last surviving `insight_and_clarification` `judge_unavailable` on `value_of_others_private_en__8_10__probe_1` without relaunching the whole surface

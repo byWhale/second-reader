@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WRAPPER = ROOT / "scripts" / "run_registered_job.py"
+PYTHON = (ROOT / ".venv" / "bin" / "python") if (ROOT / ".venv" / "bin" / "python").exists() else Path(sys.executable)
 
 
 def _timestamp_slug() -> str:
@@ -63,7 +64,7 @@ def main() -> int:
     )
     launcher_log.parent.mkdir(parents=True, exist_ok=True)
 
-    command = [sys.executable, str(WRAPPER), *wrapper_args]
+    command = [str(PYTHON), str(WRAPPER), *wrapper_args]
     with launcher_log.open("ab") as handle:
         process = subprocess.Popen(
             command,

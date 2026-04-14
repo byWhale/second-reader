@@ -25,12 +25,20 @@ The current active benchmark is `user-level selective v1`:
   - only `focused_hit` also counts toward recall
   - `incidental_cover` stays supporting-only
 - current eligible source count:
-  - `4 / 5`
-  - `nawaer_baodian_private_zh` is currently excluded because the registered notes catalog has `aligned_entry_count = 0`
+  - `5 / 5`
+  - `nawaer_baodian_private_zh` is now included after repairing the library-notes alignment fallback and re-registering its managed notes asset
+  - current package size:
+    - `5` reading segments
+    - `203` note cases
 
 ## Formal Runs
 
-No formal judged run has been checked in for this surface yet.
+The first judged run for this surface is now being launched:
+
+- background job:
+  - `bgjob_user_level_selective_v1_judged_20260414`
+- orchestrator:
+  - [orchestrate_user_level_selective_eval.py](../../../scripts/orchestrate_user_level_selective_eval.py)
 
 When the first judged run lands, add it here with:
 

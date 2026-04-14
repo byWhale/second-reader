@@ -123,6 +123,59 @@ def test_align_entry_to_book_document_returns_sentence_span() -> None:
     assert alignment["sentence_end_id"] == "c3-s2"
 
 
+def test_align_entry_to_book_document_falls_back_beyond_title_page_candidate() -> None:
+    book_document = {
+        "chapters": [
+            {
+                "id": 12,
+                "chapter_number": 0,
+                "title": "第一章 积累财富",
+                "sentences": [
+                    {
+                        "sentence_id": "c12-s1",
+                        "paragraph_index": 1,
+                        "text": "第一章 积累财富",
+                    },
+                    {
+                        "sentence_id": "c12-s2",
+                        "paragraph_index": 2,
+                        "text": "赚钱不是一件想做就能做的事情，而是一门需要学习的技能。",
+                    },
+                ],
+            },
+            {
+                "id": 13,
+                "chapter_number": 0,
+                "title": "认识财富创造的原理",
+                "sentences": [
+                    {
+                        "sentence_id": "c13-s1",
+                        "paragraph_index": 1,
+                        "text": "认识财富创造的原理",
+                    },
+                    {
+                        "sentence_id": "c13-s2",
+                        "paragraph_index": 2,
+                        "text": "赚钱跟工作的努力程度没什么必然联系。",
+                    },
+                ],
+            },
+        ]
+    }
+    entry = {
+        "chapter_hint_title": "第一章 积累财富",
+        "quote": "赚钱跟工作的努力程度没什么必然联系。",
+    }
+
+    alignment = align_entry_to_book_document(entry, book_document)
+
+    assert alignment["status"] == "aligned"
+    assert alignment["match_type"] == "exact_sentence"
+    assert alignment["chapter_id"] == "13"
+    assert alignment["sentence_start_id"] == "c13-s2"
+    assert alignment["sentence_end_id"] == "c13-s2"
+
+
 def test_register_notes_export_preserves_unresolved_and_aligns_linked_entries(tmp_path: Path) -> None:
     paths = LibraryNotesPaths.from_root(tmp_path)
     source_catalog_path = tmp_path / "state" / "dataset_build" / "source_catalog.json"

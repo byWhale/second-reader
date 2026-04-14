@@ -35,16 +35,20 @@ Last updated: `2026-04-14T12:40:00Z`
   - active dataset package:
     - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1`
   - current package truth:
-    - `4` reading segments
-    - `179` note cases
-    - `nawaer_baodian_private_zh` is currently skipped because the notes catalog reports `aligned_entry_count = 0`
+    - `5` reading segments
+    - `203` note cases
+    - `nawaer_baodian_private_zh` is now included after repairing the library-notes alignment fallback and re-registering its managed notes asset
   - active metric:
     - `Selective Legibility` only
     - count `exact_match + focused_hit` as note recall
     - keep `incidental_cover` supporting-only
   - next evaluation move:
-    - launch the first judged run on this new surface instead of reopening the old chapter-scoped excerpt surface
-- Jobs: none
+    - the first judged run on this new surface is now launching under:
+      - `bgjob_user_level_selective_v1_judged_20260414`
+    - use the new parallel orchestrator:
+      - `reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py`
+- Jobs:
+  - `bgjob_user_level_selective_v1_judged_20260414`
 
 ### `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK` — Execute the post-Phase-9 structural rework of `attentional_v2`
 - Status: `active`
