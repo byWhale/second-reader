@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-13T14:16:45Z",
+  "updated_at": "2026-04-14T00:47:03Z",
   "tasks": [
     {
       "id": "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
@@ -32,19 +32,22 @@
         "bgjob_post_phase_d_parallel_judged_eval_retry2_20260413"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed. Treat the April 12 post-Phase-D smoke as finished evidence that attentional_v2 can run through the three representative long-span windows. The next mechanism-eval action is the Post-Phase-D targeted judged validation: use scripts/orchestrate_post_phase_d_parallel_eval.py to reuse V1 baseline bundles, reuse the three completed smoke V2 long-span bundles, run only the missing current V2 long-span windows plus the current V2 excerpt surface v1.1 units, split independent windows/chapters into registered shard jobs, pin every runtime/judge shard to MiniMax-M2.7-personal or MiniMax-M2.7-personal-2, and launch all independent runtime shards immediately rather than queueing one active shard per target. Only reopen isolated prompt/response replay if another spare MiniMax-M2.7-capable key becomes available.",
+      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed. Treat the April 12 post-Phase-D smoke and the April 13 targeted judged validation as completed evidence. The current mechanism-eval action is comparative audit and diagnosis: use the new cross-run audit set to compare attentional_v2_post_phase_d_excerpt_regression_20260413 against attentional_v2_excerpt_surface_v1_1_judged_20260406, and attentional_v2_post_phase_d_longspan_judged_20260413 against attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407, with iterator_v1 kept as the reused formal baseline. Read winner movement together with the hard evidence-density signal that post-Phase-D attentional_v2 matched reactions collapsed from 7.0 to 1.0 on excerpt and from 19.71 to 2.29 on long-span. Only reopen isolated prompt/response replay if another spare MiniMax-M2.7-capable key becomes available.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
         "reading-companion-backend/docs/evaluation/long_span/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_followup_reflection_and_decisions.md",
         "reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md",
         "reading-companion-backend/docs/research/claude_code_context_management_research_20260412.md",
+        "reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414.md",
+        "reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414_longspan_appendix.md",
+        "reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414_excerpt_appendix.md",
         "docs/backend-reading-mechanisms/attentional_v2.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_abnormal_call_snapshot_20260413.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_progress_and_latency_check_20260413.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_value_of_others_ch8_debug_legacykey_20260413/analysis/registry_snapshot.json"
       ],
-      "last_updated": "2026-04-13T14:16:45Z",
+      "last_updated": "2026-04-14T00:47:03Z",
       "last_updated_by": "codex"
     },
     {

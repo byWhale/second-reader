@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-13T14:16:45Z`
+Last verified: `2026-04-14T00:47:03Z`
 
 ## Current Objective
 - Hold further `excerpt` mechanism polishing for now and treat the completed `excerpt surface v1.1` formal judged run as the current good-enough evidence bundle for product/storytelling decisions.
@@ -92,7 +92,7 @@ Last verified: `2026-04-13T14:16:45Z`
       - the run root still surfaced two harness issues that made the overall comparison job look failed:
         - `iterator_v1` exhausted the current one-shot mechanism auto-recovery budget after an earlier `llm_timeout`, then later died on a second recoverable transient (`network_blocked` at `value_of_others_private_en__8_10` / `9.24`)
         - `run_accumulation_comparison.py --stage all` did not materialize top-level merge outputs, so the job registry marked the smoke run failed even though the main V2 path had completed
-    - the next evaluation step is now the Post-Phase-D targeted judged validation rather than another smoke:
+    - the Post-Phase-D targeted judged validation is now complete:
       - launcher:
         - `reading-companion-backend/scripts/orchestrate_post_phase_d_parallel_eval.py`
       - parent job id:
@@ -101,16 +101,48 @@ Last verified: `2026-04-13T14:16:45Z`
         - `attentional_v2_post_phase_d_longspan_judged_20260413`
       - excerpt run id:
         - `attentional_v2_post_phase_d_excerpt_regression_20260413`
-      - execution posture:
-        - reuse existing `iterator_v1` baseline bundles instead of rerunning V1
-        - reuse the three completed smoke V2 long-span bundles and only newly read the two missing V2 long-span windows
-        - run current V2 excerpt units against the reusable `excerpt surface v1.1` V1 baseline
-        - pin every runtime/judge shard to one of the two shared targets:
+      - execution posture that landed:
+        - reused existing `iterator_v1` baseline bundles instead of rerunning V1
+        - reused the three completed smoke V2 long-span bundles and only newly read the two missing V2 long-span windows
+        - ran current V2 excerpt units against the reusable `excerpt surface v1.1` V1 baseline
+        - pinned every runtime/judge shard to one of the two shared targets:
           - `MiniMax-M2.7-personal`
           - `MiniMax-M2.7-personal-2`
-        - launch all independent runtime shards immediately rather than queueing one active shard per target
-        - keep shard-internal reading serial, but allow full all-case fan-out across independent chapters/windows
-        - `retry1` was archived after the startup-race repair because the two-slot parent remained too conservative once we confirmed resumable checkpoints and wanted immediate full-case parallelism
+        - launched independent runtime shards in parallel while keeping shard-internal reading serial
+      - final judged outcome:
+        - `excerpt` (`59` frozen cases):
+          - prior formal run:
+            - `attentional_v2_excerpt_surface_v1_1_judged_20260406`
+          - current post-Phase-D run:
+            - `attentional_v2_post_phase_d_excerpt_regression_20260413`
+          - `selective_legibility` moved from:
+            - `attentional_v2 = 27`, `iterator_v1 = 21`, `tie = 11`
+            - to `attentional_v2 = 24`, `iterator_v1 = 24`, `tie = 11`
+          - `insight_and_clarification` moved from:
+            - `attentional_v2 = 19`, `iterator_v1 = 16`, `tie = 8`
+            - to `attentional_v2 = 15`, `iterator_v1 = 21`, `tie = 7`
+        - `long-span` (`7` frozen probes):
+          - prior formal run:
+            - `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
+          - current post-Phase-D run:
+            - `attentional_v2_post_phase_d_longspan_judged_20260413`
+          - `coherent_accumulation` moved from:
+            - `iterator_v1 = 5`, `attentional_v2 = 2`
+            - to `iterator_v1 = 4`, `attentional_v2 = 3`
+          - `insight_and_clarification` moved from:
+            - `iterator_v1 = 4`, `attentional_v2 = 2`, `tie = 1`
+            - to `iterator_v1 = 5`, `attentional_v2 = 1`, `tie = 1`
+        - current hard signal:
+          - post-Phase-D `attentional_v2` matched-reaction density collapsed relative to the previous formal runs
+          - excerpt average matched reactions:
+            - `7.0 -> 1.0`
+          - long-span average matched reactions:
+            - `19.71 -> 2.29`
+      - current reporting task:
+        - the next durable output is now the cross-run comparative audit set:
+          - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414.md`
+          - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414_longspan_appendix.md`
+          - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414_excerpt_appendix.md`
     - the isolated debug-replay lane is now diagnosed but not currently active:
       - first attempt:
         - `bgjob_value_of_others_ch8_debug_trace_20260413`
@@ -122,6 +154,7 @@ Last verified: `2026-04-13T14:16:45Z`
         - but the separate legacy key failed fast with `MiniMax-M2.7` plan/entitlement rejection rather than reproducing the slow-call path
       - current consequence:
         - no active isolated replay is running now
+        - no active background eval jobs remain in the registry
         - a full prompt/response replay without touching the active eval pool requires another spare key with `MiniMax-M2.7` access, or must wait until using the main eval pool is acceptable
   - the next backend code slice is not yet opened:
     - review the now-landed Phase D behavior and define the next bounded follow-up around slower continuity compaction, reflective promotion, or other post-read polish

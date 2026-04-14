@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-13T14:16:45Z`
+Last updated: `2026-04-14T00:47:03Z`
 
 ## Status Values
 - `active`
@@ -64,26 +64,35 @@ Last updated: `2026-04-13T14:16:45Z`
   - next define the post-Phase-D follow-up:
     - review whether slower compaction, reflective promotion, or other continuity polish should become the next bounded slice
     - keep `knowledge_activations` narrowed to helper territory unless a later explicit design pass changes that rule
-- Post-smoke evaluation posture:
-  - the April 12 post-Phase-D smoke is now finished
-  - `attentional_v2` completed all three representative smoke windows, so the new mechanism's basic long-span run-through gate is provisionally satisfied
-  - the overall comparison job still closed as failed because:
-    - `iterator_v1` consumed its one bounded auto-recovery on an earlier `llm_timeout`, then later hit a second recoverable transient (`network_blocked`) in `value_of_others_private_en__8_10`
-    - `run_accumulation_comparison.py --stage all` did not materialize top-level merge outputs
-  - the comparison harness resilience/merge follow-up is now being implemented for the next judged validation:
-    - excerpt `stage=all` should produce top-level merge outputs like accumulation
-    - raw output directories must not be promoted to completed bundles unless a completed unit/window payload points at them
-    - the new Post-Phase-D orchestrator should run:
-      - `attentional_v2_post_phase_d_longspan_judged_20260413`
-      - `attentional_v2_post_phase_d_excerpt_regression_20260413`
-    - parent job id:
-      - `bgjob_post_phase_d_parallel_judged_eval_retry2_20260413`
-    - execution posture:
-      - reuse V1 baseline bundles, avoid V1 reruns
-      - split independent windows/chapters into shard jobs
-      - pin every shard to one of the two shared MiniMax targets
-      - launch all independent runtime shards immediately instead of queueing one active shard per target
-      - keep each shard's internal reading loop serial
+- Post-Phase-D evaluation posture:
+  - the April 12 post-Phase-D smoke is finished and the April 13 targeted judged validation is also finished
+  - completed judged runs:
+    - `attentional_v2_post_phase_d_longspan_judged_20260413`
+    - `attentional_v2_post_phase_d_excerpt_regression_20260413`
+  - parent job id:
+    - `bgjob_post_phase_d_parallel_judged_eval_retry2_20260413`
+  - top-line comparative outcome:
+    - `excerpt`:
+      - prior formal `attentional_v2_excerpt_surface_v1_1_judged_20260406`
+      - current `attentional_v2_post_phase_d_excerpt_regression_20260413`
+      - `selective_legibility` changed from `27 / 21 / 11` to `24 / 24 / 11`
+      - `insight_and_clarification` changed from `19 / 16 / 8` to `15 / 21 / 7`
+    - `long-span`:
+      - prior formal `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
+      - current `attentional_v2_post_phase_d_longspan_judged_20260413`
+      - `coherent_accumulation` changed from `2 / 5` to `3 / 4` (`attentional_v2 / iterator_v1`)
+      - `insight_and_clarification` changed from `2 / 4 / 1` to `1 / 5 / 1` (`attentional_v2 / iterator_v1 / tie`)
+  - current audit direction:
+    - treat the next durable output as the cross-run comparative audit set rather than another rerun
+    - use these new evidence docs as the audit entrypoint:
+      - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414.md`
+      - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414_longspan_appendix.md`
+      - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414_excerpt_appendix.md`
+  - current interpretation constraint:
+    - the key hard signal is not only winner movement but `attentional_v2` evidence-density collapse
+    - excerpt average matched reactions dropped from `7.0` to `1.0`
+    - long-span average matched reactions dropped from `19.71` to `2.29`
+  - no active background eval jobs remain in the registry
 - Archived diagnostic attempts:
   - `bgjob_value_of_others_ch8_debug_trace_20260413` (`failed`, archived after fixing registry-isolation bug in the launcher)
   - `bgjob_value_of_others_ch8_debug_trace_retry1_20260413` (`failed`, archived after verifying isolated registry load but hitting separate-key `MiniMax-M2.7` plan rejection)
