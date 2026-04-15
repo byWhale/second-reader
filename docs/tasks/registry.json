@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-15T11:34:00Z",
+  "updated_at": "2026-04-15T11:50:00Z",
   "tasks": [
     {
       "id": "TASK-USER-LEVEL-SELECTIVE-V1",
@@ -16,7 +16,8 @@
         "reading-companion-backend/docs/evaluation/user_level/README.md"
       ],
       "decision_refs": [
-        "DEC-062"
+        "DEC-062",
+        "DEC-063"
       ],
       "job_refs": [
         "bgjob_user_level_selective_v1_judged_parallel_20260414",
@@ -24,7 +25,7 @@
         "bgjob_user_level_selective_v1_failed_shards_retry2_20260415"
       ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. The first mechanism-parallel judged attempt (bgjob_user_level_selective_v1_judged_parallel_20260414) is preserved as failed evidence after shard-scoped runs exposed a note-case segment-filtering bug that produced KeyError during note-case evaluation. The next retry (bgjob_user_level_selective_v1_judged_parallel_retry1_20260415) fixed that code bug but still failed after provider-side timeout / quota-cooldown / 520 / 529 instability killed 7 of 10 shards. The active rerun is now bgjob_user_level_selective_v1_failed_shards_retry2_20260415: it reruns only those 7 failed shards, reuses the 3 successful retry1 shard outputs during final merge, and uses the upgraded orchestrator auto-retry path with max_shard_attempts=3 and retry_backoff_seconds=30.",
+      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. The first mechanism-parallel judged attempt (bgjob_user_level_selective_v1_judged_parallel_20260414) is preserved as failed evidence after shard-scoped runs exposed a note-case segment-filtering bug that produced KeyError during note-case evaluation. The next retry (bgjob_user_level_selective_v1_judged_parallel_retry1_20260415) fixed that code bug but still failed after provider-side timeout / quota-cooldown / 520 / 529 instability killed 7 of 10 shards. The active rerun is now bgjob_user_level_selective_v1_failed_shards_retry2_20260415: it reruns only those 7 failed shards, reuses the 3 successful retry1 shard outputs during final merge, keeps orchestrator-local auto-retry at max_shard_attempts=3 and retry_backoff_seconds=30, and is now also covered by registry-level long-horizon auto-recovery with auto_recovery_mode=recoverable, auto_recovery_interval_seconds=300, auto_recovery_max_relaunches=0 plus a live watchdog loop at reading-companion-backend/scripts/check_background_jobs.py --watch --auto-recover.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -39,7 +40,7 @@
         "reading-companion-backend/docs/evaluation/excerpt/README.md",
         "docs/history/decision-log.md"
       ],
-      "last_updated": "2026-04-15T11:34:00Z",
+      "last_updated": "2026-04-15T11:50:00Z",
       "last_updated_by": "codex"
     },
     {

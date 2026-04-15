@@ -54,6 +54,17 @@ The first judged run for this surface is now being launched:
   - enable automatic shard retry inside the orchestrator for recoverable provider failures
     - `max_shard_attempts = 3`
     - `retry_backoff_seconds = 30`
+  - enable registry-level long-horizon auto-recovery for the parent job itself
+    - `auto_recovery_mode = recoverable`
+    - `auto_recovery_interval_seconds = 300`
+    - `auto_recovery_max_relaunches = 0` (`0` means unlimited)
+  - live watchdog entrypoint:
+    - [check_background_jobs.py](../../../scripts/check_background_jobs.py)
+    - run shape:
+      - `--watch --auto-recover --interval-seconds 300`
+    - live artifacts:
+      - `state/job_registry/background_job_watchdog.pid`
+      - `state/job_registry/logs/background_job_watchdog.log`
 
 When the first judged run lands, add it here with:
 

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-15T11:34:00Z`
+Last updated: `2026-04-15T11:50:00Z`
 
 ## Status Values
 - `active`
@@ -60,6 +60,19 @@ Last updated: `2026-04-15T11:34:00Z`
       - current defaults:
         - `max_shard_attempts = 3`
         - `retry_backoff_seconds = 30`
+    - registry behavior is now also more automatic:
+      - `bgjob_user_level_selective_v1_failed_shards_retry2_20260415` now has long-horizon auto-recovery enabled at the registry layer
+      - current policy:
+        - `auto_recovery_mode = recoverable`
+        - `auto_recovery_interval_seconds = 300`
+        - `auto_recovery_max_relaunches = 0` (`0` means unlimited)
+      - checker/watchdog entrypoint:
+        - `reading-companion-backend/scripts/check_background_jobs.py --watch --auto-recover`
+      - live watchdog artifacts:
+        - pid file:
+          - `reading-companion-backend/state/job_registry/background_job_watchdog.pid`
+        - log:
+          - `reading-companion-backend/state/job_registry/logs/background_job_watchdog.log`
     - use the new parallel orchestrator:
       - `reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py`
 - Jobs:

@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-15T11:34:00Z`
+Last verified: `2026-04-15T11:50:00Z`
 
 ## Current Objective
 - Replace the old active `excerpt` benchmark pointer with the new note-aligned `user-level selective v1` package.
@@ -37,6 +37,18 @@ Last verified: `2026-04-15T11:34:00Z`
         - current defaults:
           - `max_shard_attempts = 3`
           - `retry_backoff_seconds = 30`
+      - registry-level long-horizon auto-recovery is now also enabled for this job
+        - current policy:
+          - `auto_recovery_mode = recoverable`
+          - `auto_recovery_interval_seconds = 300`
+          - `auto_recovery_max_relaunches = 0` (`0` means unlimited)
+        - the checker script now supports watchdog mode:
+          - `reading-companion-backend/scripts/check_background_jobs.py --watch --auto-recover`
+        - the currently running watchdog writes:
+          - pid file:
+            - `reading-companion-backend/state/job_registry/background_job_watchdog.pid`
+          - log:
+            - `reading-companion-backend/state/job_registry/logs/background_job_watchdog.log`
     - failed first mechanism-parallel attempt retained as failed evidence:
       - `bgjob_user_level_selective_v1_judged_parallel_20260414`
       - failure cause:

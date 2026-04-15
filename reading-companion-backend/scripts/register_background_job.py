@@ -53,6 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Explicit job status. Defaults to registered for new jobs and preserves the old status for updates.",
     )
     parser.add_argument("--notes", default=None, help="Optional free-text notes tied to this job.")
+    parser.add_argument("--auto-recovery-mode", choices=["off", "recoverable", "always"], default=None)
+    parser.add_argument("--auto-recovery-interval-seconds", type=int, default=None)
+    parser.add_argument("--auto-recovery-max-relaunches", type=int, default=None)
+    parser.add_argument("--auto-recovery-relaunch-count", type=int, default=None)
+    parser.add_argument("--auto-recovery-last-relaunch-at", default=None)
+    parser.add_argument("--auto-recovery-last-relaunch-reason", default=None)
     return parser
 
 
@@ -106,6 +112,12 @@ def main() -> int:
         decision_if_failure=args.decision_if_failure,
         status=args.status,
         notes=args.notes,
+        auto_recovery_mode=args.auto_recovery_mode,
+        auto_recovery_interval_seconds=args.auto_recovery_interval_seconds,
+        auto_recovery_max_relaunches=args.auto_recovery_max_relaunches,
+        auto_recovery_relaunch_count=args.auto_recovery_relaunch_count,
+        auto_recovery_last_relaunch_at=args.auto_recovery_last_relaunch_at,
+        auto_recovery_last_relaunch_reason=args.auto_recovery_last_relaunch_reason,
     )
     print(json.dumps({"created": create_mode, "job": record}, ensure_ascii=False, indent=2))
     return 0

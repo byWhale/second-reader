@@ -1700,3 +1700,33 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/docs/evaluation/user_level/README.md`
 - `reading-companion-backend/docs/evaluation/excerpt/README.md`
 - `reading-companion-backend/docs/research/attentional_v2_post_phase_d_eval_comparative_audit_20260414.md`
+
+## Entry 60
+**ID**: DEC-063
+**Status**: active
+
+**Decision / Inflection**: Add registry-level long-horizon auto-recovery for offline background jobs instead of relying only on per-call retries or one-off orchestrator-local retry loops.
+
+**Period**: April 15, 2026, after the first judged `user-level selective v1` run showed that short-horizon retry inside individual scripts was not enough when provider instability lasted longer than one local retry budget.
+
+**Problem**: The project already had transient LLM retry inside the gateway and some local retry inside specific orchestrators, but it still lacked a durable “wait and try again later” layer. When provider-side timeout, quota cooldown, `520`, or `529` instability outlasted those short retry windows, the parent background job still landed in a terminal state and then disappeared from active follow-up posture unless a human explicitly re-launched it. That was exactly the gap between “brief retry” and “long-horizon recovery.”
+
+**Alternatives considered**: Keep all retry behavior inside individual eval/orchestrator scripts, require humans to re-launch failed jobs manually after checking the registry, or build a separate new queueing system outside the existing background-job registry.
+
+**Why this path won**: The project already had one canonical ledger for long-running offline work. Extending that ledger with recovery policy was lighter and more legible than inventing another queue. A registry-level watchdog can keep using the same job record, command, log, check command, and decision context while adding the one missing behavior: if a recoverable failure persists longer than local retry budgets, wait a longer interval and relaunch from the registered command.
+
+**What changed in the system**: Background job records now carry explicit long-horizon auto-recovery fields such as `auto_recovery_mode`, `auto_recovery_interval_seconds`, and relaunch counters. `check_background_jobs.py` now supports watchdog mode through `--watch --auto-recover`, so one long-running checker can periodically refresh the registry and relaunch eligible terminal jobs after the configured interval. Terminal jobs that are still pending auto-recovery remain visible in the derived active views instead of disappearing immediately. `run_registered_job.py` now also supports relaunch-safe `--shell-command` handling so the original registered command text can be preserved across repeated delayed relaunches.
+
+**Why it matters later**: Future contributors will otherwise see both orchestrator-local retry logic and the new watchdog flags and assume they solve the same problem. This entry records the boundary clearly: gateway/orchestrator retries cover short transient failure inside one active run; registry-level auto-recovery covers longer provider outages by re-checking and relaunching the whole registered job after a longer wait.
+
+**Primary evidence**:
+- `reading-companion-backend/src/reading_runtime/background_job_registry.py`
+- `reading-companion-backend/scripts/check_background_jobs.py`
+- `reading-companion-backend/scripts/run_registered_job.py`
+- `reading-companion-backend/scripts/register_background_job.py`
+- `reading-companion-backend/tests/test_background_job_watchdog.py`
+- `docs/source-of-truth-map.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `reading-companion-backend/docs/evaluation/user_level/README.md`

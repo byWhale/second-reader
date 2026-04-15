@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import sys
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -35,6 +36,21 @@ VALID_JOB_STATUSES = {
     "abandoned",
 }
 TERMINAL_JOB_STATUSES = {"ready", "completed", "failed", "error", "abandoned"}
+AUTO_RECOVERY_MODES = {"off", "recoverable", "always"}
+AUTO_RECOVERY_TERMINAL_STATUSES = {"failed", "error", "abandoned"}
+AUTO_RECOVERY_RETRYABLE_MARKERS = (
+    "readerllmerror",
+    "timed out or interrupted",
+    "timeout",
+    "quota cooldown remains active",
+    "quota",
+    "overloaded_error",
+    "unknown error, 520",
+    "error code: 529",
+    "network_blocked",
+    "connection reset",
+    "temporarily unavailable",
+)
 
 
 def _timestamp() -> str:
@@ -134,6 +150,32 @@ def _normalize_status(value: str | None, *, default: str) -> str:
     return candidate
 
 
+def _normalize_auto_recovery_mode(value: str | None) -> str:
+    candidate = str(value or "off").strip().lower()
+    if candidate not in AUTO_RECOVERY_MODES:
+        raise ValueError(f"Unsupported auto recovery mode: {candidate}")
+    return candidate
+
+
+def _normalize_non_negative_int(value: object, *, default: int) -> int:
+    if value in {"", None}:
+        return max(0, int(default))
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return max(0, int(default))
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
 def _normalize_bool(value: object, *, default: bool) -> bool:
     if value is None:
         return default
@@ -189,6 +231,7 @@ def _normalize_job_record(record: dict[str, Any], *, create: bool = False) -> di
     normalized["latest_observation"] = (
         dict(normalized.get("latest_observation", {})) if isinstance(normalized.get("latest_observation"), dict) else {}
     )
+    normalized["last_checked_at"] = _normalize_optional_text(normalized.get("last_checked_at"))
     normalized["show_in_active_views"] = _normalize_bool(
         normalized.get("show_in_active_views"),
         default=normalized["domain"] != PRODUCT_RUNTIME_DOMAIN,
@@ -199,6 +242,25 @@ def _normalize_job_record(record: dict[str, Any], *, create: bool = False) -> di
     normalized["decision_if_success"] = _normalize_optional_text(normalized.get("decision_if_success"))
     normalized["decision_if_failure"] = _normalize_optional_text(normalized.get("decision_if_failure"))
     normalized["notes"] = _normalize_optional_text(normalized.get("notes"))
+    normalized["auto_recovery_mode"] = _normalize_auto_recovery_mode(normalized.get("auto_recovery_mode"))
+    normalized["auto_recovery_interval_seconds"] = _normalize_non_negative_int(
+        normalized.get("auto_recovery_interval_seconds"),
+        default=300,
+    )
+    normalized["auto_recovery_max_relaunches"] = _normalize_non_negative_int(
+        normalized.get("auto_recovery_max_relaunches"),
+        default=0,
+    )
+    normalized["auto_recovery_relaunch_count"] = _normalize_non_negative_int(
+        normalized.get("auto_recovery_relaunch_count"),
+        default=0,
+    )
+    normalized["auto_recovery_last_relaunch_at"] = _normalize_optional_text(
+        normalized.get("auto_recovery_last_relaunch_at")
+    )
+    normalized["auto_recovery_last_relaunch_reason"] = _normalize_optional_text(
+        normalized.get("auto_recovery_last_relaunch_reason")
+    )
     normalized["archived_at"] = _normalize_optional_text(normalized.get("archived_at"))
     normalized["archive_reason"] = _normalize_optional_text(normalized.get("archive_reason"))
     normalized["created_at"] = _normalize_optional_text(normalized.get("created_at")) or (now if create else now)
@@ -312,13 +374,111 @@ def list_job_records(root: Path | None = None, *, include_archived: bool = False
     return records
 
 
+def _python_executable(root: Path | None = None) -> Path:
+    backend_root = (root or Path.cwd()).resolve()
+    venv_python = backend_root / ".venv" / "bin" / "python"
+    return venv_python if venv_python.exists() else Path(sys.executable)
+
+
+def _job_log_tail(record: dict[str, Any], *, lines: int = 40) -> str:
+    log_file = str(record.get("log_file", "") or "").strip()
+    if not log_file:
+        return ""
+    path = Path(log_file)
+    if not path.exists():
+        return ""
+    try:
+        content = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError:
+        return ""
+    return "\n".join(content[-max(1, int(lines)):])
+
+
+def _job_failure_blob(record: dict[str, Any]) -> str:
+    observation = record.get("latest_observation", {}) if isinstance(record.get("latest_observation"), dict) else {}
+    check_result = observation.get("check_result", {}) if isinstance(observation.get("check_result"), dict) else {}
+    parts = [
+        str(record.get("error", "") or ""),
+        str(check_result.get("stderr", "") or ""),
+        str(check_result.get("stdout", "") or ""),
+        _job_log_tail(record),
+    ]
+    return "\n".join(part for part in parts if part).lower()
+
+
+def _job_failure_is_recoverable(record: dict[str, Any]) -> bool:
+    blob = _job_failure_blob(record)
+    if not blob:
+        return False
+    return any(marker in blob for marker in AUTO_RECOVERY_RETRYABLE_MARKERS)
+
+
+def _job_auto_recovery_budget_remaining(record: dict[str, Any]) -> bool:
+    max_relaunches = int(record.get("auto_recovery_max_relaunches", 0) or 0)
+    if max_relaunches <= 0:
+        return True
+    relaunch_count = int(record.get("auto_recovery_relaunch_count", 0) or 0)
+    return relaunch_count < max_relaunches
+
+
+def _job_auto_recovery_due_at(record: dict[str, Any]) -> datetime | None:
+    interval_seconds = int(record.get("auto_recovery_interval_seconds", 0) or 0)
+    anchor = (
+        _parse_timestamp(str(record.get("ended_at", "") or ""))
+        or _parse_timestamp(str(record.get("last_checked_at", "") or ""))
+        or _parse_timestamp(str(record.get("updated_at", "") or ""))
+        or _parse_timestamp(str(record.get("created_at", "") or ""))
+    )
+    if anchor is None:
+        return None
+    return anchor + timedelta(seconds=max(0, interval_seconds))
+
+
+def describe_auto_recovery_state(
+    record: dict[str, Any],
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    status = str(record.get("status", "") or "").strip().lower()
+    mode = str(record.get("auto_recovery_mode", "off") or "off").strip().lower()
+    pending = False
+    due = False
+    reason = ""
+    due_at = _job_auto_recovery_due_at(record)
+    if mode != "off" and status in AUTO_RECOVERY_TERMINAL_STATUSES and _job_auto_recovery_budget_remaining(record):
+        if mode == "always":
+            pending = True
+            reason = "always"
+        elif _job_failure_is_recoverable(record):
+            pending = True
+            reason = "recoverable_failure"
+        else:
+            reason = "not_recoverable"
+    if pending:
+        current = now or datetime.now(timezone.utc)
+        due = due_at is None or current >= due_at
+    return {
+        "enabled": mode != "off",
+        "mode": mode,
+        "pending": pending,
+        "due": due,
+        "due_at": due_at.isoformat().replace("+00:00", "Z") if due_at is not None else "",
+        "reason": reason,
+        "relaunch_count": int(record.get("auto_recovery_relaunch_count", 0) or 0),
+        "max_relaunches": int(record.get("auto_recovery_max_relaunches", 0) or 0),
+    }
+
+
 def _should_show_in_active_views(record: dict[str, Any]) -> bool:
     if str(record.get("archived_at", "")).strip():
         return False
     if not bool(record.get("show_in_active_views", False)):
         return False
     status = str(record.get("status", "registered") or "registered").strip().lower()
-    return status not in TERMINAL_JOB_STATUSES
+    if status not in TERMINAL_JOB_STATUSES:
+        return True
+    auto_recovery = describe_auto_recovery_state(record)
+    return bool(auto_recovery.get("pending"))
 
 
 def sync_registry_views(root: Path | None = None) -> dict[str, Any]:
@@ -413,6 +573,12 @@ def upsert_background_job(
     started_at: str | None = None,
     ended_at: str | None = None,
     error: str | None = None,
+    auto_recovery_mode: str | None = None,
+    auto_recovery_interval_seconds: int | None = None,
+    auto_recovery_max_relaunches: int | None = None,
+    auto_recovery_relaunch_count: int | None = None,
+    auto_recovery_last_relaunch_at: str | None = None,
+    auto_recovery_last_relaunch_reason: str | None = None,
 ) -> dict[str, Any]:
     target_id = str(job_id).strip() if job_id else generate_job_id()
     existing = get_job_record(target_id, root=root)
@@ -441,10 +607,154 @@ def upsert_background_job(
         "started_at": started_at if started_at is not None else (existing or {}).get("started_at"),
         "ended_at": ended_at if ended_at is not None else (existing or {}).get("ended_at"),
         "error": error if error is not None else (existing or {}).get("error"),
+        "auto_recovery_mode": (
+            auto_recovery_mode if auto_recovery_mode is not None else (existing or {}).get("auto_recovery_mode", "off")
+        ),
+        "auto_recovery_interval_seconds": (
+            auto_recovery_interval_seconds
+            if auto_recovery_interval_seconds is not None
+            else (existing or {}).get("auto_recovery_interval_seconds", 300)
+        ),
+        "auto_recovery_max_relaunches": (
+            auto_recovery_max_relaunches
+            if auto_recovery_max_relaunches is not None
+            else (existing or {}).get("auto_recovery_max_relaunches", 0)
+        ),
+        "auto_recovery_relaunch_count": (
+            auto_recovery_relaunch_count
+            if auto_recovery_relaunch_count is not None
+            else (existing or {}).get("auto_recovery_relaunch_count", 0)
+        ),
+        "auto_recovery_last_relaunch_at": (
+            auto_recovery_last_relaunch_at
+            if auto_recovery_last_relaunch_at is not None
+            else (existing or {}).get("auto_recovery_last_relaunch_at", "")
+        ),
+        "auto_recovery_last_relaunch_reason": (
+            auto_recovery_last_relaunch_reason
+            if auto_recovery_last_relaunch_reason is not None
+            else (existing or {}).get("auto_recovery_last_relaunch_reason", "")
+        ),
         "latest_observation": (existing or {}).get("latest_observation", {}),
     }
     merged = _merge_background_job_fields(existing, updates, create=existing is None)
     return save_job_record(merged, root=root)
+
+
+def relaunch_background_job(
+    job_id: str,
+    *,
+    root: Path | None = None,
+    reason: str = "auto_recovery",
+) -> dict[str, Any]:
+    backend_root = (root or Path.cwd()).resolve()
+    record = load_job_record(job_id, root=backend_root)
+    command_text = str(record.get("command", "") or "").strip()
+    cwd_text = str(record.get("cwd", "") or "").strip()
+    task_ref = str(record.get("task_ref", "") or "").strip()
+    lane = str(record.get("lane", "") or "").strip()
+    purpose = str(record.get("purpose", "") or "").strip()
+    if not all((command_text, cwd_text, task_ref, lane, purpose)):
+        raise ValueError(f"Job {job_id} is missing relaunch metadata.")
+
+    now = _timestamp()
+    relaunch_count = int(record.get("auto_recovery_relaunch_count", 0) or 0) + 1
+    prepared = {
+        **record,
+        "status": "registered",
+        "pid": None,
+        "exit_code": None,
+        "started_at": "",
+        "ended_at": "",
+        "error": None,
+        "latest_observation": {},
+        "last_checked_at": "",
+        "auto_recovery_relaunch_count": relaunch_count,
+        "auto_recovery_last_relaunch_at": now,
+        "auto_recovery_last_relaunch_reason": reason,
+    }
+    save_job_record(prepared, root=backend_root, sync_views=False)
+
+    wrapper = backend_root / "scripts" / "run_registered_job.py"
+    launcher_log = (
+        Path(str(record.get("log_file", "") or "")).with_suffix(".launcher.log")
+        if str(record.get("log_file", "") or "").strip()
+        else job_registry_dir(backend_root) / "logs" / f"{job_id}.launcher.log"
+    )
+    launcher_log.parent.mkdir(parents=True, exist_ok=True)
+
+    command: list[str] = [
+        str(_python_executable(backend_root)),
+        str(wrapper),
+        "--root",
+        str(backend_root),
+        "--job-id",
+        job_id,
+        "--task-ref",
+        task_ref,
+        "--lane",
+        lane,
+        "--purpose",
+        purpose,
+        "--cwd",
+        cwd_text,
+    ]
+    if str(record.get("run_dir", "") or "").strip():
+        command.extend(["--run-dir", str(record["run_dir"])])
+    if str(record.get("status_file", "") or "").strip():
+        command.extend(["--status-file", str(record["status_file"])])
+    if str(record.get("log_file", "") or "").strip():
+        command.extend(["--log-file", str(record["log_file"])])
+    for output_path in record.get("expected_outputs", []) or []:
+        command.extend(["--expected-output", str(output_path)])
+    if str(record.get("check_command", "") or "").strip():
+        command.extend(["--check-command", str(record["check_command"])])
+    if str(record.get("next_check_hint", "") or "").strip():
+        command.extend(["--next-check-hint", str(record["next_check_hint"])])
+    if str(record.get("decision_if_success", "") or "").strip():
+        command.extend(["--decision-if-success", str(record["decision_if_success"])])
+    if str(record.get("decision_if_failure", "") or "").strip():
+        command.extend(["--decision-if-failure", str(record["decision_if_failure"])])
+    if str(record.get("notes", "") or "").strip():
+        command.extend(["--notes", str(record["notes"])])
+    command.extend(
+        [
+            "--auto-recovery-mode",
+            str(record.get("auto_recovery_mode", "off") or "off"),
+            "--auto-recovery-interval-seconds",
+            str(int(record.get("auto_recovery_interval_seconds", 300) or 300)),
+            "--auto-recovery-max-relaunches",
+            str(int(record.get("auto_recovery_max_relaunches", 0) or 0)),
+            "--auto-recovery-relaunch-count",
+            str(relaunch_count),
+            "--auto-recovery-last-relaunch-at",
+            now,
+            "--auto-recovery-last-relaunch-reason",
+            reason,
+            "--shell-command",
+            command_text,
+        ]
+    )
+
+    with launcher_log.open("ab") as handle:
+        process = subprocess.Popen(
+            command,
+            cwd=str(backend_root),
+            stdin=subprocess.DEVNULL,
+            stdout=handle,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+            close_fds=True,
+        )
+
+    refreshed = refresh_background_jobs(root=backend_root, job_ids=[job_id], run_check_commands=False)
+    return {
+        "job_id": job_id,
+        "launcher_pid": process.pid,
+        "launcher_log_file": str(launcher_log),
+        "relaunch_count": relaunch_count,
+        "refreshed": refreshed,
+    }
 
 
 def append_history_entry(record: dict[str, Any], root: Path | None = None) -> None:
@@ -642,11 +952,74 @@ def refresh_background_jobs(
             check_result = observation.get("check_result", {})
             updated["error"] = str(check_result.get("stderr", "") or "") or "Job failed."
         refreshed.append(save_job_record(updated, root=root, sync_views=False))
-        if archive_terminal and observation["status"] in TERMINAL_JOB_STATUSES:
+        auto_recovery = describe_auto_recovery_state(updated)
+        if archive_terminal and observation["status"] in TERMINAL_JOB_STATUSES and not bool(auto_recovery.get("pending")):
             archive_background_job(str(updated.get("job_id", "")), root=root, archive_reason="archived_by_checker")
 
     sync_registry_views(root)
     return refreshed
+
+
+def recover_background_jobs(
+    *,
+    root: Path | None = None,
+    job_ids: Iterable[str] | None = None,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    current = now or datetime.now(timezone.utc)
+    selected_ids = {str(job_id) for job_id in job_ids} if job_ids else None
+    records = (
+        [record for record in (get_job_record(job_id, root=root) for job_id in selected_ids) if record is not None]
+        if selected_ids is not None
+        else list_job_records(root, include_archived=False)
+    )
+
+    actions: list[dict[str, Any]] = []
+    for record in records:
+        auto_recovery = describe_auto_recovery_state(record, now=current)
+        if not bool(auto_recovery.get("pending")):
+            continue
+        job_id = str(record.get("job_id", "") or "")
+        if not bool(auto_recovery.get("due")):
+            actions.append(
+                {
+                    "job_id": job_id,
+                    "action": "waiting",
+                    "mode": auto_recovery.get("mode"),
+                    "due_at": auto_recovery.get("due_at", ""),
+                    "reason": auto_recovery.get("reason", ""),
+                }
+            )
+            continue
+        try:
+            relaunched = relaunch_background_job(
+                job_id,
+                root=root,
+                reason=f"watchdog:{auto_recovery.get('reason', 'auto_recovery')}",
+            )
+        except Exception as exc:
+            actions.append(
+                {
+                    "job_id": job_id,
+                    "action": "relaunch_failed",
+                    "mode": auto_recovery.get("mode"),
+                    "reason": str(exc),
+                }
+            )
+            continue
+        actions.append(
+            {
+                "job_id": job_id,
+                "action": "relaunched",
+                "mode": auto_recovery.get("mode"),
+                "reason": auto_recovery.get("reason", ""),
+                "launcher_pid": relaunched.get("launcher_pid"),
+                "relaunch_count": relaunched.get("relaunch_count"),
+            }
+        )
+
+    sync_registry_views(root)
+    return actions
 
 
 def render_active_jobs_markdown(jobs: list[dict[str, Any]]) -> str:
@@ -695,6 +1068,27 @@ def render_active_jobs_markdown(jobs: list[dict[str, Any]]) -> str:
             lines.append(f"- If success: {job.get('decision_if_success', '')}")
         if str(job.get("decision_if_failure", "")).strip():
             lines.append(f"- If failure: {job.get('decision_if_failure', '')}")
+        auto_recovery = describe_auto_recovery_state(job)
+        if auto_recovery.get("enabled"):
+            interval_seconds = int(job.get("auto_recovery_interval_seconds", 0) or 0)
+            lines.append(
+                "- Auto recovery: "
+                f"`{job.get('auto_recovery_mode', 'off')}` every `{interval_seconds}`s "
+                f"(relaunches `{job.get('auto_recovery_relaunch_count', 0)}`"
+                + (
+                    f"/{job.get('auto_recovery_max_relaunches')}`)"
+                    if int(job.get("auto_recovery_max_relaunches", 0) or 0) > 0
+                    else "/unlimited`)"
+                )
+            )
+            if auto_recovery.get("pending") and auto_recovery.get("due_at"):
+                lines.append(f"- Next auto-recovery check due at: `{auto_recovery.get('due_at', '')}`")
+            if str(job.get("auto_recovery_last_relaunch_at", "")).strip():
+                lines.append(
+                    "- Last auto relaunch: "
+                    f"`{job.get('auto_recovery_last_relaunch_at', '')}` "
+                    f"({job.get('auto_recovery_last_relaunch_reason', '') or 'unspecified'})"
+                )
         if observation:
             lines.append("- Latest observation:")
             lines.append(f"  - checked_at: `{observation.get('checked_at', '')}`")
