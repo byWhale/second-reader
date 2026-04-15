@@ -36,12 +36,15 @@ The current active benchmark is `user-level selective v1`:
 The first judged run for this surface is now being launched:
 
 - background job:
-  - `bgjob_user_level_selective_v1_judged_parallel_20260414`
+  - `bgjob_user_level_selective_v1_judged_parallel_retry1_20260415`
 - orchestrator:
   - [orchestrate_user_level_selective_eval.py](../../../scripts/orchestrate_user_level_selective_eval.py)
 - execution shape:
   - split by `segment x mechanism`
   - `attentional_v2` and `iterator_v1` now run as independent shards rather than serializing inside one per-book shard
+- preserved failed attempt:
+  - `bgjob_user_level_selective_v1_judged_parallel_20260414`
+  - retained as failed evidence because shard-scoped runs were still evaluating note cases from other segments, which produced `KeyError` during note-case evaluation
 
 When the first judged run lands, add it here with:
 

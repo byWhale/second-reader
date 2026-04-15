@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-14T14:26:00Z`
+Last verified: `2026-04-15T00:23:00Z`
 
 ## Current Objective
 - Replace the old active `excerpt` benchmark pointer with the new note-aligned `user-level selective v1` package.
@@ -31,7 +31,11 @@ Last verified: `2026-04-14T14:26:00Z`
     - launch the first judged `user-level selective v1` run with both `attentional_v2` and `iterator_v1`
     - execution is now split by `segment x mechanism`, so V1 and V2 run as independent shards instead of serializing inside one per-book shard
     - active background job:
+      - `bgjob_user_level_selective_v1_judged_parallel_retry1_20260415`
+    - failed first mechanism-parallel attempt retained as failed evidence:
       - `bgjob_user_level_selective_v1_judged_parallel_20260414`
+      - failure cause:
+        - shard-scoped runs did not filter `note_cases` down to the selected `segment_id`, which caused `KeyError` during note-case evaluation/merge
 - Treat the cleaned `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` full formal rerun as the current durable long-span evidence bundle.
   - the April 8 same-run recovery removed the lingering `mechanism_failure`
   - the April 9 targeted re-judge cleared the last surviving `insight_and_clarification` `judge_unavailable` on `value_of_others_private_en__8_10__probe_1` without relaunching the whole surface

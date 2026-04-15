@@ -644,6 +644,7 @@ def run_user_level_selective_comparison(
     if segment_ids:
         wanted_segments = set(segment_ids)
         segments = [segment for segment in segments if segment.segment_id in wanted_segments]
+        note_cases = [note_case for note_case in note_cases if note_case.segment_id in wanted_segments]
     if note_case_ids:
         wanted_note_cases = set(note_case_ids)
         note_cases = [note_case for note_case in note_cases if note_case.note_case_id in wanted_note_cases]

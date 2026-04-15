@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-14T14:26:00Z",
+  "updated_at": "2026-04-15T00:23:00Z",
   "tasks": [
     {
       "id": "TASK-USER-LEVEL-SELECTIVE-V1",
@@ -19,10 +19,11 @@
         "DEC-062"
       ],
       "job_refs": [
-        "bgjob_user_level_selective_v1_judged_parallel_20260414"
+        "bgjob_user_level_selective_v1_judged_parallel_20260414",
+        "bgjob_user_level_selective_v1_judged_parallel_retry1_20260415"
       ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. The next evaluation move is the first judged run on this new surface under bgjob_user_level_selective_v1_judged_parallel_20260414, using reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py with segment x mechanism shards so attentional_v2 and iterator_v1 run independently rather than serializing inside each per-book shard.",
+      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. The first mechanism-parallel judged attempt (bgjob_user_level_selective_v1_judged_parallel_20260414) is preserved as failed evidence after shard-scoped runs exposed a note-case segment-filtering bug that produced KeyError during note-case evaluation. The active retry is now bgjob_user_level_selective_v1_judged_parallel_retry1_20260415, still using reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py with segment x mechanism shards so attentional_v2 and iterator_v1 run independently rather than serializing inside each per-book shard.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -37,7 +38,7 @@
         "reading-companion-backend/docs/evaluation/excerpt/README.md",
         "docs/history/decision-log.md"
       ],
-      "last_updated": "2026-04-14T14:26:00Z",
+      "last_updated": "2026-04-15T00:23:00Z",
       "last_updated_by": "codex"
     },
     {
