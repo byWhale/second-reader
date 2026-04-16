@@ -151,11 +151,18 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - larger-span coverage
   - partial overlap
   - candidate span contained by the note span
+- Broad source spans may be used only as judge candidates, never as automatic hits.
+  - if a completed mechanism output can only be located back to an enclosing semantic segment, the normalized export should mark that resolution explicitly
+  - a broad enclosing span is allowed to enter the `focused_hit / incidental_cover / miss` judge when it really overlaps the note span
+  - it must not auto-count as `exact_match`, even if the broad span happens to contain the exact note text
 - A user-visible reaction without a usable source locator is a benchmark contract failure for this surface.
   - the runner should fail rather than silently falling back to quote/content string matching
 - Repeated reactions on the same source span do not strengthen the main note-recall score.
   - deduplicate candidate spans before judging
   - keep duplicate reaction counts only as a diagnostic signal
+- Completed reading outputs may be reused for re-scoring only after their normalized locator contract is brought up to the current source-span standard.
+  - rejudge-only runs must not call `read_book` or clear old reading outputs
+  - incomplete reading shards must be re-read rather than scored from partial artifacts
 - The active judge labels are:
   - `focused_hit`
   - `incidental_cover`

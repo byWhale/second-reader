@@ -149,6 +149,7 @@ def _launch_shard(
     manifest_path: Path,
     judge_mode: str,
     run_root: Path,
+    reuse_output_dir: Path | None = None,
 ) -> subprocess.Popen[bytes]:
     shard_root = RUNS_ROOT / plan.shard_run_id
     shard_root.mkdir(parents=True, exist_ok=True)
@@ -168,6 +169,8 @@ def _launch_shard(
         "--segment-id",
         plan.segment_id,
     ]
+    if reuse_output_dir is not None:
+        command.extend(["--reuse-output-dir", str(reuse_output_dir)])
     env = os.environ.copy()
     env["LLM_FORCE_TARGET_ID"] = plan.target_id
     handle = log_path.open("ab")
@@ -190,6 +193,26 @@ def _log_path_for_plan(*, run_root: Path, plan: ShardPlan) -> Path:
 
 def _shard_root_for_plan(plan: ShardPlan) -> Path:
     return RUNS_ROOT / plan.shard_run_id
+
+
+def _source_output_dir(*, seed_run_id: str, plan: ShardPlan) -> Path:
+    return RUNS_ROOT / seed_run_id / "shards" / Path(plan.shard_run_id).name / "outputs" / plan.segment_id / plan.mechanism_key
+
+
+def _completed_output_dir_from_seed_runs(*, plan: ShardPlan, seed_run_ids: tuple[str, ...]) -> Path | None:
+    for seed_run_id in seed_run_ids:
+        output_dir = _source_output_dir(seed_run_id=seed_run_id, plan=plan)
+        run_state_path = output_dir / "_runtime" / "run_state.json"
+        if not run_state_path.exists():
+            continue
+        try:
+            payload = json.loads(run_state_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        status = str(payload.get("status") or payload.get("stage") or "")
+        if output_dir.exists() and status == "completed":
+            return output_dir
+    return None
 
 
 def _reset_failed_shard_outputs(plan: ShardPlan) -> None:
@@ -217,6 +240,7 @@ def _wait_for_shards(
     run_root: Path,
     max_attempts: int,
     retry_backoff_seconds: int,
+    reuse_output_dirs: dict[str, Path] | None = None,
 ) -> dict[str, int]:
     exit_codes: dict[str, int] = {}
     attempts = {key: 1 for key in processes}
@@ -258,6 +282,7 @@ def _wait_for_shards(
                     manifest_path=manifest_path,
                     judge_mode=judge_mode,
                     run_root=run_root,
+                    reuse_output_dir=(reuse_output_dirs or {}).get(shard_key),
                 )
                 attempts[shard_key] = attempt + 1
                 continue
@@ -366,6 +391,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--segment-id", action="append", dest="segment_ids", default=[])
     parser.add_argument("--shard-key", action="append", dest="shard_keys", default=[])
     parser.add_argument("--seed-run-id", action="append", dest="seed_run_ids", default=[])
+    parser.add_argument("--reuse-output-run-id", action="append", dest="reuse_output_run_ids", default=[])
     parser.add_argument("--max-shard-attempts", type=int, default=3)
     parser.add_argument("--retry-backoff-seconds", type=int, default=20)
     parser.add_argument("--dry-run", action="store_true")
@@ -396,6 +422,12 @@ def main() -> int:
         raise SystemExit("no shard plans selected")
     run_root = RUNS_ROOT / str(args.run_id)
     run_root.mkdir(parents=True, exist_ok=True)
+    reuse_output_run_ids = tuple(str(item) for item in args.reuse_output_run_ids)
+    reuse_output_dirs = {
+        plan.shard_key: output_dir
+        for plan in plans
+        if (output_dir := _completed_output_dir_from_seed_runs(plan=plan, seed_run_ids=reuse_output_run_ids)) is not None
+    }
     _json_dump(
         run_root / "meta" / "shard_plan.json",
         {
@@ -404,6 +436,7 @@ def main() -> int:
             "manifest_path": str(manifest_path),
             "target_ids": list(target_ids),
             "seed_run_ids": [str(item) for item in args.seed_run_ids],
+            "reuse_output_run_ids": list(reuse_output_run_ids),
             "max_shard_attempts": int(args.max_shard_attempts),
             "retry_backoff_seconds": int(args.retry_backoff_seconds),
             "plans": [
@@ -415,6 +448,7 @@ def main() -> int:
                     "mechanism_key": plan.mechanism_key,
                     "target_id": plan.target_id,
                     "shard_run_id": plan.shard_run_id,
+                    "reuse_output_dir": str(reuse_output_dirs.get(plan.shard_key, "")),
                 }
                 for plan in plans
             ],
@@ -422,16 +456,31 @@ def main() -> int:
     )
 
     if args.dry_run:
-        print(json.dumps({"run_id": args.run_id, "plans": [plan.__dict__ for plan in plans]}, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                {
+                    "run_id": args.run_id,
+                    "plans": [
+                        {**plan.__dict__, "reuse_output_dir": str(reuse_output_dirs.get(plan.shard_key, ""))}
+                        for plan in plans
+                    ],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
 
     log(f"Launching {len(plans)} user-level selective shard(s) under run {args.run_id}")
+    if reuse_output_dirs:
+        log(f"Rejudging {len(reuse_output_dirs)} shard(s) from existing completed reading outputs.")
     processes = {
         plan.shard_key: _launch_shard(
             plan=plan,
             manifest_path=manifest_path,
             judge_mode=str(args.judge_mode),
             run_root=run_root,
+            reuse_output_dir=reuse_output_dirs.get(plan.shard_key),
         )
         for plan in plans
     }
@@ -444,6 +493,7 @@ def main() -> int:
         run_root=run_root,
         max_attempts=max(1, int(args.max_shard_attempts)),
         retry_backoff_seconds=max(0, int(args.retry_backoff_seconds)),
+        reuse_output_dirs=reuse_output_dirs,
     )
     _json_dump(run_root / "meta" / "shard_exit_codes.json", exit_codes)
     failures = {source_id: code for source_id, code in exit_codes.items() if int(code) != 0}

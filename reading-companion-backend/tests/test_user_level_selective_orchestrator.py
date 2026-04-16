@@ -83,7 +83,50 @@ def test_wait_for_shards_retries_retryable_failure_once(monkeypatch, tmp_path: P
         run_root=run_root,
         max_attempts=2,
         retry_backoff_seconds=0,
+        reuse_output_dirs={},
     )
 
     assert exit_codes == {plan.shard_key: 0}
     assert relaunched == [plan.shard_key]
+
+
+def test_completed_output_dir_from_seed_runs_only_reuses_completed_outputs(tmp_path: Path, monkeypatch) -> None:
+    plan = orchestrator.ShardPlan(
+        segment_id="seg_a",
+        source_id="source_a",
+        book_title="Book A",
+        covered_note_count=2,
+        mechanism_key="iterator_v1",
+        target_id="target_a",
+        shard_run_id="target_run/shards/source_a__iterator_v1",
+    )
+    monkeypatch.setattr(orchestrator, "RUNS_ROOT", tmp_path)
+    incomplete = (
+        tmp_path
+        / "seed_incomplete"
+        / "shards"
+        / "source_a__iterator_v1"
+        / "outputs"
+        / "seg_a"
+        / "iterator_v1"
+    )
+    incomplete.joinpath("_runtime").mkdir(parents=True)
+    incomplete.joinpath("_runtime", "run_state.json").write_text('{"status":"deep_reading"}\n', encoding="utf-8")
+    completed = (
+        tmp_path
+        / "seed_completed"
+        / "shards"
+        / "source_a__iterator_v1"
+        / "outputs"
+        / "seg_a"
+        / "iterator_v1"
+    )
+    completed.joinpath("_runtime").mkdir(parents=True)
+    completed.joinpath("_runtime", "run_state.json").write_text('{"status":"completed"}\n', encoding="utf-8")
+
+    selected = orchestrator._completed_output_dir_from_seed_runs(
+        plan=plan,
+        seed_run_ids=("seed_incomplete", "seed_completed"),
+    )
+
+    assert selected == completed

@@ -127,6 +127,50 @@ def test_focused_hit_counts_for_recall_when_judge_says_yes(tmp_path: Path, monke
     assert result["best_reaction"]["reaction_id"] == "r1"
 
 
+def test_target_locator_source_span_slices_take_priority(tmp_path: Path) -> None:
+    note_case = _note_case(source_span_text="Alpha hinge line.")
+    result = module.evaluate_note_case_for_mechanism(
+        note_case=note_case,
+        mechanism_payload=_mechanism_payload(
+            "different visible quote",
+            locator={
+                "match_text": "different visible quote",
+                "match_mode": "exact",
+                "source_span_resolution": "exact",
+                "source_span_slices": [_slice(text="Alpha hinge line.", end=len("Alpha hinge line."))],
+            },
+        ),
+        mechanism_key="iterator_v1",
+        run_root=tmp_path,
+        judge_mode="none",
+    )
+
+    assert result["label"] == "exact_match"
+
+
+def test_segment_fallback_span_never_auto_counts_as_exact(tmp_path: Path) -> None:
+    note_case = _note_case(source_span_text="Alpha hinge line.")
+    result = module.evaluate_note_case_for_mechanism(
+        note_case=note_case,
+        mechanism_payload=_mechanism_payload(
+            "Alpha hinge line.",
+            locator={
+                "match_text": "Alpha hinge line.",
+                "match_mode": "segment_fallback",
+                "source_span_resolution": "segment_fallback",
+                "source_span_slices": [_slice(text="Alpha hinge line.", end=len("Alpha hinge line."))],
+            },
+        ),
+        mechanism_key="iterator_v1",
+        run_root=tmp_path,
+        judge_mode="none",
+    )
+
+    assert result["label"] == "miss"
+    assert result["judgment"]["reason"] == "judge_disabled"
+    assert result["candidate_reactions"][0]["source_span_resolution"] == "segment_fallback"
+
+
 def test_textually_similar_reaction_without_source_overlap_is_not_a_candidate(tmp_path: Path) -> None:
     note_case = _note_case(source_span_text="Alpha hinge line.")
     result = module.evaluate_note_case_for_mechanism(
@@ -368,3 +412,55 @@ def test_run_user_level_selective_comparison_filters_note_cases_to_selected_segm
     assert aggregate["segment_count"] == 1
     assert aggregate["note_case_count"] == 1
     assert aggregate["mechanisms"]["attentional_v2"]["note_case_count"] == 1
+
+
+def test_run_user_level_selective_comparison_reuses_existing_output_without_reading(
+    tmp_path: Path, monkeypatch
+) -> None:
+    segment = module.ReadingSegment(
+        segment_id="source_a__segment_1",
+        source_id="source_a",
+        book_title="Book A",
+        author="Author",
+        language_track="en",
+        start_sentence_id="a1",
+        end_sentence_id="a9",
+        chapter_ids=[1],
+        chapter_titles=["Chapter 1"],
+        target_note_count=1,
+        covered_note_count=1,
+        termination_reason="chapter_end_after_target_notes",
+        segment_source_path="segment_a.md",
+    )
+    note_case = _note_case(source_span_text="Alpha hinge line.")
+    reuse_output_dir = tmp_path / "old-output"
+
+    monkeypatch.setattr(module, "_resolve_dataset_dir", lambda _manifest_path: tmp_path)
+    monkeypatch.setattr(module, "_load_segments", lambda _dataset_dir: [segment])
+    monkeypatch.setattr(module, "_load_note_cases", lambda _dataset_dir: [note_case])
+    monkeypatch.setattr(
+        module,
+        "_run_mechanism_for_segment",
+        lambda **_kwargs: (_ for _ in ()).throw(AssertionError("read_book should not be called")),
+    )
+
+    rebuilt_calls: list[Path] = []
+
+    def _fake_rebuild(**kwargs):
+        rebuilt_calls.append(kwargs["source_output_dir"])
+        return {"status": "completed", "normalized_eval_bundle": {"reactions": []}}
+
+    monkeypatch.setattr(module, "_rebuild_mechanism_payload_from_output", _fake_rebuild)
+    monkeypatch.setattr(module, "write_llm_usage_summary", lambda *args, **kwargs: None)
+
+    aggregate = module.run_user_level_selective_comparison(
+        run_id="unit_test_reuse_output",
+        manifest_path=tmp_path / "manifest.json",
+        mechanism_filter="attentional_v2",
+        judge_mode="none",
+        segment_ids=["source_a__segment_1"],
+        reuse_output_dir=reuse_output_dir,
+    )
+
+    assert aggregate["segment_count"] == 1
+    assert rebuilt_calls == [reuse_output_dir]

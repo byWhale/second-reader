@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-15T14:35:00Z",
+  "updated_at": "2026-04-16T00:22:45Z",
   "tasks": [
     {
       "id": "TASK-USER-LEVEL-SELECTIVE-V1",
@@ -23,10 +23,12 @@
       "job_refs": [
         "bgjob_user_level_selective_v1_judged_parallel_20260414",
         "bgjob_user_level_selective_v1_judged_parallel_retry1_20260415",
-        "bgjob_user_level_selective_v1_failed_shards_retry2_20260415"
+        "bgjob_user_level_selective_v1_failed_shards_retry2_20260415",
+        "bgjob_user_level_selective_v1_rejudge_reuse_20260416",
+        "bgjob_job_registry_auto_recovery_watchdog_20260416"
       ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. Every active note case now carries segment_source_v1 char-span slices, and Selective Legibility candidate retrieval must use strict source-span overlap rather than string or semantic similarity. The first mechanism-parallel judged attempt (bgjob_user_level_selective_v1_judged_parallel_20260414) is preserved as failed evidence after shard-scoped runs exposed a note-case segment-filtering bug that produced KeyError during note-case evaluation. The next retry (bgjob_user_level_selective_v1_judged_parallel_retry1_20260415) fixed that code bug but still failed after provider-side timeout / quota-cooldown / 520 / 529 instability killed 7 of 10 shards. The retry2 job bgjob_user_level_selective_v1_failed_shards_retry2_20260415 is now invalidated and stopped after discovering that the runner admitted candidates by text similarity instead of strict source-span overlap; do not use retry2 results as mechanism evidence. Relaunch the first judged run only after the strict source-span retrieval fix lands.",
+      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The current package truth is 5 reading segments and 203 note cases, with nawaer_baodian_private_zh restored after repairing the library-notes alignment fallback and re-registering its managed notes asset. Every active note case now carries segment_source_v1 char-span slices, and Selective Legibility candidate retrieval must use strict source-span overlap rather than string or semantic similarity. Broad semantic-segment fallback spans are judge-only candidates and never auto-count as exact note recall. The first mechanism-parallel judged attempt (bgjob_user_level_selective_v1_judged_parallel_20260414) is preserved as failed evidence after shard-scoped runs exposed a note-case segment-filtering bug that produced KeyError during note-case evaluation. The next retry (bgjob_user_level_selective_v1_judged_parallel_retry1_20260415) fixed that code bug but still failed after provider-side timeout / quota-cooldown / 520 / 529 instability killed 7 of 10 shards. The retry2 job bgjob_user_level_selective_v1_failed_shards_retry2_20260415 is now invalidated and stopped after discovering that the runner admitted candidates by text similarity instead of strict source-span overlap; do not use retry2 results as mechanism evidence. The first valid strict source-span judged run is now active as bgjob_user_level_selective_v1_rejudge_reuse_20260416 / attentional_v2_user_level_selective_v1_rejudge_reuse_20260416, with bgjob_job_registry_auto_recovery_watchdog_20260416 watching every 5 minutes. It reuses completed reading outputs where possible, re-scores all reusable shards under the strict contract, and reruns only the incomplete attentional_v2 shards for mangge_zhi_dao_private_zh and xidaduo_private_zh.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -41,7 +43,7 @@
         "reading-companion-backend/docs/evaluation/excerpt/README.md",
         "docs/history/decision-log.md"
       ],
-      "last_updated": "2026-04-15T14:35:00Z",
+      "last_updated": "2026-04-16T00:22:45Z",
       "last_updated_by": "codex"
     },
     {

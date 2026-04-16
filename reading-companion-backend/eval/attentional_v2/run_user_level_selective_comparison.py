@@ -14,10 +14,12 @@ from typing import Any
 
 from eval.attentional_v2.llm_usage_summary import write_llm_usage_summary
 from eval.attentional_v2.user_level_selective_v1 import DATASET_DIR, MANIFEST_PATH
+from src.attentional_v2.evaluation import build_normalized_eval_bundle as build_attentional_v2_normalized_eval_bundle
 from src.iterator_reader.llm_utils import ReaderLLMError, invoke_json, llm_invocation_scope
+from src.iterator_reader.storage import existing_structure_file, load_json as load_iterator_json, load_structure
 from src.reading_core.runtime_contracts import ReadRequest
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
-from src.reading_mechanisms.iterator_v1 import IteratorV1Mechanism
+from src.reading_mechanisms.iterator_v1 import IteratorV1Mechanism, _normalized_eval_bundle as build_iterator_v1_normalized_eval_bundle
 from src.reading_runtime.llm_gateway import eval_trace_context
 from src.reading_runtime.llm_registry import DEFAULT_EVAL_JUDGE_PROFILE_ID
 from src.reading_runtime.output_dir_overrides import override_output_dir
@@ -252,6 +254,58 @@ def _run_mechanism_for_segment(
     }
 
 
+def _run_state_status(output_dir: Path) -> str:
+    run_state_path = output_dir / "_runtime" / "run_state.json"
+    if not run_state_path.exists():
+        return ""
+    payload = load_iterator_json(run_state_path)
+    return str(payload.get("status") or payload.get("stage") or "")
+
+
+def _rebuild_mechanism_payload_from_output(
+    *,
+    segment: ReadingSegment,
+    mechanism_key: str,
+    source_output_dir: Path,
+    run_root: Path,
+) -> dict[str, Any]:
+    """Rebuild one normalized eval bundle from an existing completed reading output."""
+
+    if not source_output_dir.exists():
+        raise FileNotFoundError(f"reuse output dir does not exist: {source_output_dir}")
+    status = _run_state_status(source_output_dir)
+    if status != "completed":
+        raise RuntimeError(f"reuse output dir is not completed: {source_output_dir} status={status or 'missing'}")
+
+    if mechanism_key == "attentional_v2":
+        bundle = build_attentional_v2_normalized_eval_bundle(source_output_dir)
+        mechanism_label = "Attentional V2 scaffold (Phase 1-8)"
+    elif mechanism_key == "iterator_v1":
+        structure = load_structure(existing_structure_file(source_output_dir))
+        bundle = build_iterator_v1_normalized_eval_bundle(
+            output_dir=source_output_dir,
+            structure=structure,
+            config_payload={"reuse_output_dir": str(source_output_dir), "segment_id": segment.segment_id},
+        )
+        mechanism_label = "Current Iterator-Reader implementation"
+    else:
+        raise ValueError(f"unsupported mechanism for reuse output: {mechanism_key}")
+
+    rebuilt_path = run_root / "rebuilt_bundles" / segment.segment_id / mechanism_key / "normalized_eval_bundle.json"
+    _json_dump(rebuilt_path, bundle)
+    return {
+        "status": "completed",
+        "mechanism_key": mechanism_key,
+        "mechanism_label": mechanism_label,
+        "output_dir": str(source_output_dir),
+        "source_output_dir": str(source_output_dir),
+        "rebuilt_bundle_path": str(rebuilt_path),
+        "normalized_eval_bundle": bundle,
+        "bundle_summary": _bundle_summary(bundle),
+        "error": "",
+    }
+
+
 def _visible_reaction_text(reaction: dict[str, Any]) -> str:
     return _clean_text(reaction.get("anchor_quote")) or _clean_text(reaction.get("content"))
 
@@ -288,15 +342,58 @@ def _locator_to_slice(
     }
 
 
-def _reaction_source_slices(
-    reaction: dict[str, Any],
+def _locator_source_span_slices(
+    locator: dict[str, Any],
     *,
     segment_id: str,
     source_id: str,
 ) -> list[dict[str, Any]]:
+    raw_slices = locator.get("source_span_slices")
+    if not isinstance(raw_slices, list):
+        return []
+    slices: list[dict[str, Any]] = []
+    for item in raw_slices:
+        if not isinstance(item, dict):
+            continue
+        paragraph_index = _int_or_none(item.get("paragraph_index"))
+        char_start = _int_or_none(item.get("char_start"))
+        char_end = _int_or_none(item.get("char_end"))
+        if paragraph_index is None or char_start is None or char_end is None:
+            continue
+        if paragraph_index <= 0 or char_start < 0 or char_end <= char_start:
+            continue
+        slices.append(
+            {
+                "coordinate_system": "segment_source_v1",
+                "segment_id": _clean_text(item.get("segment_id")) or segment_id,
+                "source_id": _clean_text(item.get("source_id")) or source_id,
+                "paragraph_index": paragraph_index,
+                "char_start": char_start,
+                "char_end": char_end,
+                "text": _clean_text(item.get("text")),
+            }
+        )
+    return slices
+
+
+def _reaction_source_span(
+    reaction: dict[str, Any],
+    *,
+    segment_id: str,
+    source_id: str,
+) -> tuple[list[dict[str, Any]], str]:
     visible_text = _visible_reaction_text(reaction)
     direct_locator = reaction.get("target_locator")
     if isinstance(direct_locator, dict):
+        direct_source_slices = _locator_source_span_slices(
+            direct_locator,
+            segment_id=segment_id,
+            source_id=source_id,
+        )
+        if direct_source_slices:
+            return direct_source_slices, _clean_text(direct_locator.get("source_span_resolution")) or _clean_text(
+                direct_locator.get("match_mode")
+            ) or "source_span_slices"
         direct_slice = _locator_to_slice(
             direct_locator,
             segment_id=segment_id,
@@ -304,7 +401,7 @@ def _reaction_source_slices(
             text=visible_text,
         )
         if direct_slice is not None:
-            return [direct_slice]
+            return [direct_slice], _clean_text(direct_locator.get("match_mode")) or "char_locator"
     primary_anchor = reaction.get("primary_anchor")
     if isinstance(primary_anchor, dict):
         anchor_locator = primary_anchor.get("locator")
@@ -316,8 +413,8 @@ def _reaction_source_slices(
                 text=_clean_text(primary_anchor.get("quote")) or visible_text,
             )
             if anchor_slice is not None:
-                return [anchor_slice]
-    return []
+                return [anchor_slice], "primary_anchor"
+    return [], ""
 
 
 def _slice_key(slice_payload: dict[str, Any]) -> tuple[str, int, int, int]:
@@ -337,7 +434,7 @@ def _reaction_candidates(bundle: dict[str, Any], *, note_case: NoteCase) -> list
         visible_text = _visible_reaction_text(item)
         if not visible_text:
             continue
-        source_slices = _reaction_source_slices(
+        source_slices, source_span_resolution = _reaction_source_span(
             item,
             segment_id=note_case.segment_id,
             source_id=note_case.source_id,
@@ -359,6 +456,7 @@ def _reaction_candidates(bundle: dict[str, Any], *, note_case: NoteCase) -> list
                 "content": _clean_text(item.get("content")),
                 "visible_text": visible_text,
                 "source_span_slices": source_slices,
+                "source_span_resolution": source_span_resolution,
                 "duplicate_reaction_ids": [reaction_id],
                 "duplicate_reaction_count": 1,
             }
@@ -480,6 +578,7 @@ Use:
         "anchor_quote": reaction["anchor_quote"],
         "content": reaction["content"],
         "source_span_slices": reaction.get("source_span_slices", []),
+        "source_span_resolution": reaction.get("source_span_resolution", ""),
         "overlap_relation": reaction.get("overlap_relation", ""),
         "overlap_coverage": reaction.get("overlap_coverage", 0.0),
         "duplicate_reaction_count": reaction.get("duplicate_reaction_count", 1),
@@ -550,7 +649,12 @@ def evaluate_note_case_for_mechanism(
         raise ValueError(f"Note case {note_case.note_case_id} is missing segment-source span slices")
     reactions = _reaction_candidates(bundle, note_case=note_case)
 
-    exact_hits = [reaction for reaction in reactions if _slices_equal(note_case.source_span_slices, reaction["source_span_slices"])]
+    exact_hits = [
+        reaction
+        for reaction in reactions
+        if reaction.get("source_span_resolution") != "segment_fallback"
+        and _slices_equal(note_case.source_span_slices, reaction["source_span_slices"])
+    ]
     if exact_hits:
         exact_reaction = min(exact_hits, key=lambda item: (int(item.get("duplicate_reaction_count", 1) or 1), item["reaction_id"]))
         exact_reaction = dict(exact_reaction)
@@ -623,6 +727,7 @@ def evaluate_note_case_for_mechanism(
             "anchor_quote": best["anchor_quote"],
             "content": best["content"],
             "source_span_slices": best["source_span_slices"],
+            "source_span_resolution": best.get("source_span_resolution", ""),
             "overlap_relation": best["overlap_relation"],
             "overlap_coverage": best["overlap_coverage"],
             "duplicate_reaction_count": best.get("duplicate_reaction_count", 1),
@@ -772,6 +877,7 @@ def run_user_level_selective_comparison(
     judge_mode: str = "llm",
     segment_ids: list[str] | None = None,
     note_case_ids: list[str] | None = None,
+    reuse_output_dir: Path | None = None,
 ) -> dict[str, Any]:
     dataset_dir = _resolve_dataset_dir(manifest_path)
     segments = _load_segments(dataset_dir)
@@ -795,6 +901,11 @@ def run_user_level_selective_comparison(
     run_root = DEFAULT_RUNS_ROOT / run_id
     run_root.mkdir(parents=True, exist_ok=True)
     mechanism_keys = _mechanism_keys_for_filter(mechanism_filter)
+    reuse_output_dirs: dict[tuple[str, str], Path] = {}
+    if reuse_output_dir is not None:
+        if len(segments) != 1 or len(mechanism_keys) != 1:
+            raise ValueError("--reuse-output-dir requires exactly one selected segment and one mechanism")
+        reuse_output_dirs[(segments[0].segment_id, mechanism_keys[0])] = Path(reuse_output_dir)
 
     _json_dump(
         run_root / "meta" / "selection.json",
@@ -806,6 +917,7 @@ def run_user_level_selective_comparison(
             "judge_mode": judge_mode,
             "segment_ids": [segment.segment_id for segment in segments],
             "note_case_ids": [note_case.note_case_id for note_case in note_cases],
+            "reuse_output_dir": str(reuse_output_dir) if reuse_output_dir is not None else "",
         },
     )
 
@@ -813,12 +925,21 @@ def run_user_level_selective_comparison(
     for segment in segments:
         mechanism_payloads: dict[str, Any] = {}
         for mechanism_key in mechanism_keys:
-            mechanism_payloads[mechanism_key] = _run_mechanism_for_segment(
-                segment=segment,
-                dataset_dir=dataset_dir,
-                mechanism_key=mechanism_key,
-                run_root=run_root,
-            )
+            source_output_dir = reuse_output_dirs.get((segment.segment_id, mechanism_key))
+            if source_output_dir is not None:
+                mechanism_payloads[mechanism_key] = _rebuild_mechanism_payload_from_output(
+                    segment=segment,
+                    mechanism_key=mechanism_key,
+                    source_output_dir=source_output_dir,
+                    run_root=run_root,
+                )
+            else:
+                mechanism_payloads[mechanism_key] = _run_mechanism_for_segment(
+                    segment=segment,
+                    dataset_dir=dataset_dir,
+                    mechanism_key=mechanism_key,
+                    run_root=run_root,
+                )
         payload = {
             "segment": asdict(segment),
             "mechanisms": mechanism_payloads,
@@ -880,6 +1001,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--judge-mode", choices=JUDGE_MODE_VALUES, default="llm")
     parser.add_argument("--segment-id", action="append", dest="segment_ids", default=[])
     parser.add_argument("--note-case-id", action="append", dest="note_case_ids", default=[])
+    parser.add_argument("--reuse-output-dir", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -892,6 +1014,7 @@ def main() -> int:
         judge_mode=str(args.judge_mode),
         segment_ids=[str(item) for item in args.segment_ids],
         note_case_ids=[str(item) for item in args.note_case_ids],
+        reuse_output_dir=Path(args.reuse_output_dir).resolve() if args.reuse_output_dir else None,
     )
     return 0
 

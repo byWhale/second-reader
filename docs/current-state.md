@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-15T14:35:00Z`
+Last verified: `2026-04-16T00:22:45Z`
 
 ## Current Objective
 - Replace the old active `excerpt` benchmark pointer with the new note-aligned `user-level selective v1` package.
@@ -31,8 +31,22 @@ Last verified: `2026-04-15T14:35:00Z`
       - original parsed-book sentence ids remain as provenance for audit, not as the primary matching coordinate
   - `excerpt surface v1.1` remains preserved as historical / superseded evidence, not as the active local/user-level benchmark pointer
   - current evaluation move:
-    - the first judged `user-level selective v1` run must be relaunched only after the strict source-span retrieval contract is in place
-    - no active background eval job is currently valid
+    - strict source-span retrieval, V1 locator reconstruction, and rejudge-only reuse tooling are now in place
+    - broad semantic-segment fallback spans are judge-only candidates and never auto-count as exact note recall
+    - the first valid strict source-span judged run is now active:
+      - job id:
+        - `bgjob_user_level_selective_v1_rejudge_reuse_20260416`
+      - run id:
+        - `attentional_v2_user_level_selective_v1_rejudge_reuse_20260416`
+      - auto-recovery watchdog:
+        - `bgjob_job_registry_auto_recovery_watchdog_20260416`
+      - execution posture:
+        - reuse completed reading outputs from the current run if a watchdog relaunch occurs
+        - then reuse completed seed outputs from `retry2` and `retry1`
+        - re-score all reusable shards under the strict source-span contract
+        - rerun only the two incomplete `attentional_v2` reading shards:
+          - `mangge_zhi_dao_private_zh`
+          - `xidaduo_private_zh`
     - failed first mechanism-parallel attempt retained as failed evidence:
       - `bgjob_user_level_selective_v1_judged_parallel_20260414`
       - failure cause:

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+import unicodedata
 
 from src.iterator_reader.iterator import read_book as iterator_read_book
 from src.iterator_reader.parse import parse_book as iterator_parse_book
@@ -135,6 +137,274 @@ def _load_jsonl(path: Path) -> list[dict[str, object]]:
     return items
 
 
+def _normalize_with_offsets(value: str, offsets: list[object] | None = None) -> tuple[str, list[object]]:
+    """Normalize text while preserving raw-position offsets for source-span recovery."""
+
+    raw_offsets = offsets if offsets is not None else [None] * len(value)
+    chars: list[tuple[str, object]] = []
+    for character, offset in zip(value, raw_offsets, strict=False):
+        normalized = unicodedata.normalize("NFKC", character)
+        normalized = normalized.replace("“", '"').replace("”", '"')
+        normalized = normalized.replace("’", "'").replace("–", "-").replace("—", "-")
+        normalized = normalized.replace("…", "...")
+        normalized = normalized.lower()
+        for item in normalized:
+            chars.append((" " if item.isspace() else item, offset))
+
+    collapsed: list[tuple[str, object]] = []
+    for character, offset in chars:
+        if character == " " and (not collapsed or collapsed[-1][0] == " "):
+            continue
+        collapsed.append((character, offset))
+    while collapsed and collapsed[0][0] == " ":
+        collapsed.pop(0)
+    while collapsed and collapsed[-1][0] == " ":
+        collapsed.pop()
+
+    punctuation = set(",.;:!?()\"'")
+    filtered: list[tuple[str, object]] = []
+    for index, (character, offset) in enumerate(collapsed):
+        if character == " ":
+            previous_character = collapsed[index - 1][0] if index > 0 else ""
+            next_character = collapsed[index + 1][0] if index + 1 < len(collapsed) else ""
+            if previous_character in punctuation or next_character in punctuation:
+                continue
+        filtered.append((character, offset))
+    return "".join(character for character, _offset in filtered), [offset for _character, offset in filtered]
+
+
+def _chapter_paragraph_texts(document: dict[str, object]) -> dict[int, dict[int, str]]:
+    """Index public book-document paragraph text by chapter and paragraph index."""
+
+    by_chapter: dict[int, dict[int, str]] = {}
+    for chapter in document.get("chapters", []):
+        if not isinstance(chapter, dict):
+            continue
+        chapter_id = int(chapter.get("id", 0) or 0)
+        paragraphs: dict[int, str] = {}
+        for paragraph in chapter.get("paragraphs", []):
+            if not isinstance(paragraph, dict):
+                continue
+            paragraph_index = int(paragraph.get("paragraph_index", 0) or 0)
+            text = str(paragraph.get("text", "") or "")
+            if paragraph_index > 0 and text:
+                paragraphs[paragraph_index] = text
+        by_chapter[chapter_id] = paragraphs
+    return by_chapter
+
+
+def _chapter_text_with_offsets(paragraphs: dict[int, str]) -> tuple[str, list[tuple[int, int] | None]]:
+    """Render chapter paragraph text with offsets back to paragraph-local coordinates."""
+
+    text_parts: list[str] = []
+    offsets: list[tuple[int, int] | None] = []
+    for paragraph_index, paragraph_text in sorted(paragraphs.items()):
+        if text_parts:
+            text_parts.append("\n\n")
+            offsets.extend([None, None])
+        text_parts.append(paragraph_text)
+        offsets.extend((paragraph_index, char_index) for char_index in range(len(paragraph_text)))
+    return "".join(text_parts), offsets
+
+
+def _slices_from_offsets(
+    offsets: list[tuple[int, int] | None],
+    *,
+    paragraphs: dict[int, str],
+    resolution: str,
+) -> list[dict[str, object]]:
+    """Collapse raw offsets into one or more segment-source slices."""
+
+    by_paragraph: dict[int, list[int]] = defaultdict(list)
+    for offset in offsets:
+        if offset is None:
+            continue
+        paragraph_index, char_offset = offset
+        by_paragraph[int(paragraph_index)].append(int(char_offset))
+
+    slices: list[dict[str, object]] = []
+    for paragraph_index in sorted(by_paragraph):
+        values = by_paragraph[paragraph_index]
+        char_start = min(values)
+        char_end = max(values) + 1
+        paragraph_text = paragraphs.get(paragraph_index, "")
+        slices.append(
+            {
+                "coordinate_system": "segment_source_v1",
+                "paragraph_index": paragraph_index,
+                "char_start": char_start,
+                "char_end": char_end,
+                "text": paragraph_text[char_start:char_end],
+                "source_span_resolution": resolution,
+            }
+        )
+    return slices
+
+
+def _unique_raw_source_slices(
+    *,
+    paragraphs: dict[int, str],
+    match_text: str,
+) -> list[dict[str, object]] | None:
+    """Return exact raw source slices only when the match is unique."""
+
+    if not match_text:
+        return None
+    chapter_text, offsets = _chapter_text_with_offsets(paragraphs)
+    hits: list[list[tuple[int, int] | None]] = []
+    start = 0
+    while True:
+        index = chapter_text.find(match_text, start)
+        if index < 0:
+            break
+        hits.append(offsets[index : index + len(match_text)])
+        start = index + 1
+    if len(hits) != 1:
+        return None
+    return _slices_from_offsets(hits[0], paragraphs=paragraphs, resolution="exact")
+
+
+def _unique_normalized_source_slices(
+    *,
+    paragraphs: dict[int, str],
+    match_text: str,
+) -> list[dict[str, object]] | None:
+    """Return normalized source slices only when the normalized match is unique."""
+
+    if not match_text:
+        return None
+    chapter_text, offsets = _chapter_text_with_offsets(paragraphs)
+    normalized_text, normalized_offsets = _normalize_with_offsets(chapter_text, list(offsets))
+    normalized_match, _match_offsets = _normalize_with_offsets(match_text)
+    if not normalized_match:
+        return None
+
+    hits: list[list[object]] = []
+    start = 0
+    while True:
+        index = normalized_text.find(normalized_match, start)
+        if index < 0:
+            break
+        hits.append(normalized_offsets[index : index + len(normalized_match)])
+        start = index + 1
+    if len(hits) != 1:
+        return None
+    typed_offsets = [offset if isinstance(offset, tuple) else None for offset in hits[0]]
+    return _slices_from_offsets(typed_offsets, paragraphs=paragraphs, resolution="normalized")
+
+
+def _segment_fallback_source_slices(
+    *,
+    segment_meta: dict[str, object],
+    chapter_paragraphs: dict[int, str],
+) -> list[dict[str, object]]:
+    """Build broad source slices for one semantic segment when exact anchoring fails."""
+
+    paragraph_locators = [
+        item
+        for item in segment_meta.get("paragraph_locators", [])
+        if isinstance(item, dict)
+    ]
+    slices: list[dict[str, object]] = []
+    for paragraph in paragraph_locators:
+        paragraph_index = int(paragraph.get("paragraph_index", 0) or 0)
+        text = str(paragraph.get("text", "") or "") or chapter_paragraphs.get(paragraph_index, "")
+        if paragraph_index > 0 and text:
+            slices.append(
+                {
+                    "coordinate_system": "segment_source_v1",
+                    "paragraph_index": paragraph_index,
+                    "char_start": 0,
+                    "char_end": len(text),
+                    "text": text,
+                    "source_span_resolution": "segment_fallback",
+                }
+            )
+    if slices:
+        return slices
+
+    locator = segment_meta.get("locator")
+    if not isinstance(locator, dict):
+        return []
+    paragraph_start = int(locator.get("paragraph_start", 0) or 0)
+    paragraph_end = int(locator.get("paragraph_end", 0) or 0)
+    for paragraph_index in range(paragraph_start, paragraph_end + 1):
+        text = chapter_paragraphs.get(paragraph_index, "")
+        if text:
+            slices.append(
+                {
+                    "coordinate_system": "segment_source_v1",
+                    "paragraph_index": paragraph_index,
+                    "char_start": 0,
+                    "char_end": len(text),
+                    "text": text,
+                    "source_span_resolution": "segment_fallback",
+                }
+            )
+    return slices
+
+
+def _section_segment_meta(
+    *,
+    section: dict[str, object],
+    section_index: int,
+    segments: list[object],
+) -> dict[str, object]:
+    """Map one public section back to the same-order semantic segment metadata."""
+
+    segment_ref = str(section.get("segment_ref", "") or "")
+    suffix = segment_ref.rsplit(".", 1)[-1]
+    if suffix.isdigit():
+        index = int(suffix) - 1
+        if 0 <= index < len(segments) and isinstance(segments[index], dict):
+            return segments[index]
+    if 0 <= section_index < len(segments) and isinstance(segments[section_index], dict):
+        return segments[section_index]
+    return {}
+
+
+def _target_locator_with_source_span(
+    *,
+    target_locator: object,
+    anchor_quote: str,
+    chapter_paragraphs: dict[int, str],
+    segment_meta: dict[str, object],
+) -> dict[str, object] | None:
+    """Attach eval-only segment-source slices to a reaction target locator."""
+
+    locator = dict(target_locator) if isinstance(target_locator, dict) else {}
+    if isinstance(locator.get("source_span_slices"), list):
+        return locator
+
+    match_text = str(locator.get("match_text", "") or anchor_quote or "").strip()
+    source_slices = _unique_raw_source_slices(paragraphs=chapter_paragraphs, match_text=match_text)
+    resolution = "exact"
+    if source_slices is None:
+        source_slices = _unique_normalized_source_slices(paragraphs=chapter_paragraphs, match_text=match_text)
+        resolution = "normalized"
+    if source_slices is None:
+        source_slices = _segment_fallback_source_slices(
+            segment_meta=segment_meta,
+            chapter_paragraphs=chapter_paragraphs,
+        )
+        resolution = "segment_fallback"
+    if not source_slices:
+        return locator or None
+
+    if not locator:
+        locator = {
+            "href": "",
+            "start_cfi": None,
+            "end_cfi": None,
+            "match_text": match_text,
+            "match_mode": resolution if resolution in {"exact", "normalized"} else "segment_fallback",
+        }
+    locator["source_span_coordinate_system"] = "segment_source_v1"
+    locator["source_span_resolution"] = resolution
+    locator["source_span_slices"] = source_slices
+    return locator
+
+
 def _normalized_run_snapshot(output_dir: Path) -> NormalizedRunSnapshot | None:
     """Build the normalized run snapshot when runtime artifacts exist."""
 
@@ -183,6 +453,8 @@ def _normalized_attention_events(output_dir: Path) -> list[NormalizedAttentionEv
 def _normalized_reactions(output_dir: Path, structure: dict[str, object]) -> list[NormalizedReaction]:
     """Normalize chapter result reactions into one cross-mechanism list."""
 
+    document = load_book_document(existing_book_document_file(output_dir))
+    paragraph_texts_by_chapter = _chapter_paragraph_texts(document)
     reactions: list[NormalizedReaction] = []
     for chapter in structure.get("chapters", []):
         if not isinstance(chapter, dict):
@@ -191,14 +463,24 @@ def _normalized_reactions(output_dir: Path, structure: dict[str, object]) -> lis
         if not result_path.exists():
             continue
         payload = load_json(result_path)
+        chapter_id = int(chapter.get("id", 0) or 0)
         chapter_ref = str(payload.get("chapter", {}).get("reference", chapter.get("title", "")) or "")
-        for section in payload.get("sections", []):
+        segments = list(chapter.get("segments", [])) if isinstance(chapter.get("segments", []), list) else []
+        chapter_paragraphs = paragraph_texts_by_chapter.get(chapter_id, {})
+        for section_index, section in enumerate(payload.get("sections", [])):
             if not isinstance(section, dict):
                 continue
             section_ref = str(section.get("segment_ref", "") or "")
+            segment_meta = _section_segment_meta(section=section, section_index=section_index, segments=segments)
             for reaction in section.get("reactions", []):
                 if not isinstance(reaction, dict):
                     continue
+                target_locator = _target_locator_with_source_span(
+                    target_locator=reaction.get("target_locator"),
+                    anchor_quote=str(reaction.get("anchor_quote", "") or ""),
+                    chapter_paragraphs=chapter_paragraphs,
+                    segment_meta=segment_meta,
+                )
                 reactions.append(
                     {
                         "reaction_id": str(reaction.get("reaction_id", "") or ""),
@@ -209,9 +491,7 @@ def _normalized_reactions(output_dir: Path, structure: dict[str, object]) -> lis
                         "content": str(reaction.get("content", "") or ""),
                         "search_query": str(reaction.get("search_query", "") or ""),
                         "search_results": list(reaction.get("search_results", [])),
-                        "target_locator": dict(reaction.get("target_locator") or {})
-                        if isinstance(reaction.get("target_locator"), dict)
-                        else None,
+                        "target_locator": target_locator,
                     }
                 )
     return reactions

@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-15T14:35:00Z`
+Last updated: `2026-04-16T00:22:45Z`
 
 ## Status Values
 - `active`
@@ -44,8 +44,19 @@ Last updated: `2026-04-15T14:35:00Z`
     - count `exact_match + focused_hit` as note recall
     - keep `incidental_cover` supporting-only
     - candidate retrieval must use source-span overlap, not string similarity or semantic similarity
+    - broad semantic-segment fallback spans are judge-only candidates and never auto-count as exact note recall
   - next evaluation move:
-    - relaunch the first judged run only after the strict source-span retrieval fix lands
+    - the first valid strict source-span judged run is now active:
+      - job id:
+        - `bgjob_user_level_selective_v1_rejudge_reuse_20260416`
+      - run id:
+        - `attentional_v2_user_level_selective_v1_rejudge_reuse_20260416`
+      - auto-recovery watchdog:
+        - `bgjob_job_registry_auto_recovery_watchdog_20260416`
+      - execution posture:
+        - reuse completed reading outputs from the current run on relaunch, then from `retry2` and `retry1`
+        - re-score all reusable shards under the strict source-span contract
+        - rerun only the incomplete `attentional_v2` reading shards for `mangge_zhi_dao_private_zh` and `xidaduo_private_zh`
     - execution is now split by `segment x mechanism`, so `attentional_v2` and `iterator_v1` run as independent shards instead of serializing inside one per-book shard
     - the first mechanism-parallel attempt is preserved as failed evidence rather than overwritten:
       - `bgjob_user_level_selective_v1_judged_parallel_20260414`
@@ -59,7 +70,9 @@ Last updated: `2026-04-15T14:35:00Z`
       - do not use retry2 results as mechanism evidence
     - use the new parallel orchestrator:
       - `reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py`
-- Jobs: none
+- Jobs:
+  - `bgjob_user_level_selective_v1_rejudge_reuse_20260416` (`running`)
+  - `bgjob_job_registry_auto_recovery_watchdog_20260416` (`running`)
 
 ### `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK` — Execute the post-Phase-9 structural rework of `attentional_v2`
 - Status: `active`
