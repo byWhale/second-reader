@@ -1612,7 +1612,7 @@ function currentChapterId(detail: BookDetailResponse, analysis: AnalysisStateRes
     liveActivity?.reading_locus?.chapter_id ??
     analysis?.current_state_panel.current_chapter_id ??
     analysis?.current_chapter_id ??
-    detail.chapters.find((chapter) => chapter.status === "in_progress")?.chapter_id ??
+    analysis?.chapters.find((chapter) => chapter.status === "in_progress")?.chapter_id ??
     null
   );
 }

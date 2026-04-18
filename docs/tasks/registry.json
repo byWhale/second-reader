@@ -855,7 +855,7 @@
       ],
       "decision_refs": [
         "DEC-055",
-        "DEC-056"
+        "DEC-066"
       ],
       "job_refs": [],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
@@ -872,7 +872,7 @@
         "reading-companion-frontend/src/app/components/source-reader-pane.tsx",
         "reading-companion-frontend/src/app/config/controlled-copy.ts"
       ],
-      "last_updated": "2026-04-10T14:01:16Z",
+      "last_updated": "2026-04-18T02:14:14Z",
       "last_updated_by": "codex"
     },
     {

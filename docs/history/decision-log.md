@@ -1489,7 +1489,7 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `docs/tasks/registry.json`
 
 ## Entry 53
-**ID**: DEC-056
+**ID**: DEC-066
 **Status**: active
 
 **Decision / Inflection**: Stop treating the old `iterator_v1` / section-first frontend presentation as a co-equal product UI direction, and make V2-native reading presentation the next active product-facing lane.

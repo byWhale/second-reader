@@ -179,7 +179,11 @@ def test_parse_book_bootstraps_outline_without_semantic_segments(tmp_path, monke
     manifest = _load_json(book_manifest_file(output_dir))
     run_state = _load_json(run_state_file(output_dir))
 
-    assert captured_kwargs == [{"language_mode": "auto", "continue_mode": False, "include_segments": False}]
+    assert len(captured_kwargs) == 1
+    assert captured_kwargs[0]["language_mode"] == "auto"
+    assert captured_kwargs[0]["continue_mode"] is False
+    assert captured_kwargs[0]["include_segments"] is False
+    assert captured_kwargs[0]["prompt_set"] is parse_module.ITERATOR_V1_PROMPTS
     assert manifest["chapters"][0]["segment_count"] == 0
     assert run_state["stage"] == "ready"
     assert run_state["completed_chapters"] == 0

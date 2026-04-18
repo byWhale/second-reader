@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-16T13:18:16Z`
+Last verified: `2026-04-18T02:14:14Z`
 
 ## Current Objective
 - Replace the old active `excerpt` benchmark pointer with the new note-aligned `user-level selective v1` package.
@@ -2583,11 +2583,12 @@ Last verified: `2026-04-16T13:18:16Z`
 - Benchmark confidence can look stronger than it really is if corpus growth, promotion, and reviewed-slice confidence gates drift apart.
 
 ## Active Task IDs
-- `TASK-ACCUMULATION-BENCHMARK-V1`
+- `TASK-USER-LEVEL-SELECTIVE-V1`
+- `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK`
 - `TASK-V2-NATIVE-READING-PRESENTATION`
 
 ## Blocked Task IDs
-- `TASK-PHASE9-DECISIVE-EVAL`
+- none
 
 ## Active Job IDs
 - none
@@ -2620,15 +2621,14 @@ Last verified: `2026-04-16T13:18:16Z`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-10T14:01:16Z",
+  "updated_at": "2026-04-18T02:14:14Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-ACCUMULATION-BENCHMARK-V1",
+    "TASK-USER-LEVEL-SELECTIVE-V1",
+    "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
     "TASK-V2-NATIVE-READING-PRESENTATION"
   ],
-  "blocked_task_ids": [
-    "TASK-PHASE9-DECISIVE-EVAL"
-  ],
+  "blocked_task_ids": [],
   "active_job_ids": [],
   "open_decision_ids": [],
   "detail_refs": [
