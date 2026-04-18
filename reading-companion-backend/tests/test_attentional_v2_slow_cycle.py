@@ -18,6 +18,9 @@ from src.attentional_v2.schemas import (
 from src.attentional_v2.slow_cycle import (
     apply_reconsolidation,
     build_reaction_record,
+    build_reaction_record_from_express_result,
+    compat_reaction_family,
+    compat_search_query,
     project_chapter_result_compatibility,
     reconsolidation,
     run_phase6_chapter_cycle,
@@ -141,6 +144,78 @@ def test_project_chapter_result_compatibility_groups_reactions_by_paragraph(tmp_
     assert payload["featured_reactions"][0]["reaction_id"]
     assert payload["featured_reactions"][0]["primary_anchor"]["sentence_start_id"] == "c1-s1"
     assert compatibility_path.exists()
+
+
+def test_build_reaction_record_from_express_result_persists_native_surface_fields():
+    """Express-owned reactions should persist native surfaced fields before compat projection."""
+
+    record = build_reaction_record_from_express_result(
+        express_result={
+            "decision": "emit",
+            "anchor_quote": "Markets begin as relations among people.",
+            "content": "The social framing matters because it sets the book's scale.",
+            "prior_link": {
+                "ref_ids": ["anchor:a-0"],
+                "relation": "callback",
+                "note": "This turns back toward the earlier social claim.",
+            },
+            "outside_link": None,
+            "search_intent": {
+                "query": "social marketplace framing",
+                "rationale": "Useful follow-up for later comparison.",
+            },
+        },
+        primary_anchor=_anchor("a-1", "c1-s1", "Markets begin as relations among people.", 1),
+        chapter_id=1,
+        chapter_ref="Chapter 1",
+        emitted_at_sentence_id="c1-s1",
+    )
+
+    assert record is not None
+    assert record["record_source"] == "express"
+    assert record["thought"] == "The social framing matters because it sets the book's scale."
+    assert record["prior_link"]["ref_ids"] == ["anchor:a-0"]
+    assert record["search_intent"]["query"] == "social marketplace framing"
+    assert record["compat_family"] == "curious"
+    assert compat_reaction_family(record) == "curious"
+    assert compat_search_query(record) == "social marketplace framing"
+
+
+def test_project_chapter_result_compatibility_prefers_native_surface_fields_over_legacy_type():
+    """Compatibility projection should derive family labels from native surfaced semantics, not stale legacy type."""
+
+    records = build_empty_reaction_records()
+    legacy_shaped = build_reaction_record(
+        reaction={
+            "type": "highlight",
+            "anchor_quote": "Markets begin as relations among people.",
+            "content": "The social framing matters because it sets the book's scale.",
+            "related_anchor_quotes": [],
+            "search_query": "",
+            "search_results": [],
+        },
+        primary_anchor=_anchor("a-1", "c1-s1", "Markets begin as relations among people.", 1),
+        chapter_id=1,
+        chapter_ref="Chapter 1",
+        emitted_at_sentence_id="c1-s1",
+    )
+    legacy_shaped["search_intent"] = {
+        "query": "social marketplace framing",
+        "rationale": "Useful follow-up for later comparison.",
+    }
+    legacy_shaped["type"] = "highlight"
+    records["records"] = [legacy_shaped]
+
+    payload = project_chapter_result_compatibility(
+        book_id="demo-book",
+        chapter=_chapter(),
+        reaction_records=records,
+        output_language="en",
+    )
+
+    assert payload["featured_reactions"][0]["type"] == "curious"
+    assert payload["featured_reactions"][0]["content"] == "The social framing matters because it sets the book's scale."
+    assert payload["sections"][0]["reactions"][0]["search_query"] == "social marketplace framing"
 
 
 def test_reconsolidation_appends_later_reaction_without_mutating_earlier_one(monkeypatch):

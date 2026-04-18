@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Mapping
 
 from src.iterator_reader.language import language_name
 from src.iterator_reader.llm_utils import LLMTraceContext, invoke_json, llm_invocation_scope
@@ -27,7 +28,10 @@ from .schemas import (
     AnchoredReactionRecord,
     ChapterConsolidationResult,
     ConceptRegistryState,
+    ExpressResult,
     KnowledgeActivationsState,
+    OutsideLink,
+    PriorLink,
     ReactionAnchor,
     ReactionCandidate,
     ReactionRecordsState,
@@ -39,6 +43,7 @@ from .schemas import (
     ReflectivePromotionCandidate,
     ReflectivePromotionResult,
     ReflectiveFramesState,
+    SearchIntent,
     ThreadTraceState,
     WorkingPressureItem,
     WorkingState,
@@ -77,6 +82,7 @@ _PRESSURE_BUCKETS = {
     "local_tensions",
     "local_motifs",
 }
+_COMPAT_FAMILIES = {"highlight", "discern", "association", "retrospect", "curious", "silent"}
 
 
 def _timestamp() -> str:
@@ -95,6 +101,115 @@ def build_reaction_anchor(anchor: AnchorRecord | dict[str, object]) -> ReactionA
         "sentence_end_id": _clean_text(anchor.get("sentence_end_id") or anchor.get("sentence_start_id")),
         "quote": _clean_text(anchor.get("quote")),
         "locator": dict(locator) if isinstance(locator, dict) else {},
+    }
+
+
+def _copy_prior_link(value: object) -> PriorLink | None:
+    """Normalize one surfaced prior-link payload when present."""
+
+    if not isinstance(value, Mapping):
+        return None
+    ref_ids = [_clean_text(item) for item in value.get("ref_ids", []) if _clean_text(item)]
+    relation = _clean_text(value.get("relation"))
+    note = _clean_text(value.get("note"))
+    if not (ref_ids or relation or note):
+        return None
+    payload: PriorLink = {}
+    if ref_ids:
+        payload["ref_ids"] = ref_ids
+    if relation:
+        payload["relation"] = relation
+    if note:
+        payload["note"] = note
+    return payload
+
+
+def _copy_outside_link(value: object) -> OutsideLink | None:
+    """Normalize one surfaced outside-link payload when present."""
+
+    if not isinstance(value, Mapping):
+        return None
+    kind = _clean_text(value.get("kind"))
+    label = _clean_text(value.get("label"))
+    note = _clean_text(value.get("note"))
+    if not (kind or label or note):
+        return None
+    payload: OutsideLink = {}
+    if kind:
+        payload["kind"] = kind
+    if label:
+        payload["label"] = label
+    if note:
+        payload["note"] = note
+    return payload
+
+
+def _copy_search_intent(value: object) -> SearchIntent | None:
+    """Normalize one surfaced search-intent payload when present."""
+
+    if not isinstance(value, Mapping):
+        return None
+    query = _clean_text(value.get("query"))
+    rationale = _clean_text(value.get("rationale"))
+    if not (query or rationale):
+        return None
+    payload: SearchIntent = {}
+    if query:
+        payload["query"] = query
+    if rationale:
+        payload["rationale"] = rationale
+    return payload
+
+
+def compat_reaction_family(payload: Mapping[str, object]) -> str:
+    """Derive the legacy family label from one native persisted reaction shape."""
+
+    if _copy_search_intent(payload.get("search_intent")) is not None:
+        return "curious"
+    if _copy_prior_link(payload.get("prior_link")) is not None:
+        return "retrospect"
+    if _copy_outside_link(payload.get("outside_link")) is not None:
+        return "association"
+
+    compat_family = _clean_text(payload.get("compat_family"))
+    if compat_family == "silent":
+        return "silent"
+    if compat_family in _COMPAT_FAMILIES and compat_family != "silent":
+        return compat_family
+
+    explicit_type = _clean_text(payload.get("type"))
+    if explicit_type == "silent":
+        return "silent"
+    if explicit_type in _COMPAT_FAMILIES and explicit_type != "silent":
+        return explicit_type
+
+    thought = _clean_text(payload.get("thought")) or _clean_text(payload.get("content"))
+    anchor_quote = _clean_text(payload.get("anchor_quote"))
+    if thought and len(thought) <= max(120, len(anchor_quote) + 60):
+        return "highlight"
+    if thought:
+        return "discern"
+    return "highlight"
+
+
+def compat_search_query(payload: Mapping[str, object]) -> str:
+    """Project the legacy search-query sidecar from native surfaced fields."""
+
+    search_intent = _copy_search_intent(payload.get("search_intent"))
+    if search_intent is not None:
+        return _clean_text(search_intent.get("query"))
+    return _clean_text(payload.get("search_query"))
+
+
+def _legacy_search_intent_from_candidate(reaction: ReactionCandidate) -> SearchIntent | None:
+    """Project a legacy curious payload into the native surfaced search-intent shape."""
+
+    query = _clean_text(reaction.get("search_query"))
+    if not query:
+        return None
+    return {
+        "query": query,
+        "rationale": "",
     }
 
 
@@ -142,31 +257,45 @@ def build_reaction_record(
     compatibility_section_ref: str | None = None,
     created_at: str | None = None,
     ordinal: int | None = None,
+    record_source: str = "legacy_builder",
 ) -> AnchoredReactionRecord:
     """Build one mechanism-authored durable reaction record."""
 
     normalized_primary_anchor = build_reaction_anchor(primary_anchor)
     normalized_related = [build_reaction_anchor(anchor) for anchor in related_anchors or [] if isinstance(anchor, dict)]
-    reaction_type = _clean_text(reaction.get("type")) or "association"
+    search_intent = _legacy_search_intent_from_candidate(reaction)
+    compat_family = compat_reaction_family(
+        {
+            "type": _clean_text(reaction.get("type")),
+            "content": _clean_text(reaction.get("content")),
+            "anchor_quote": _clean_text(reaction.get("anchor_quote")),
+            "search_intent": search_intent,
+        }
+    )
     return {
         "reaction_id": reaction_id
         or derive_reaction_id(
             chapter_ref=chapter_ref,
             emitted_at_sentence_id=emitted_at_sentence_id,
-            reaction_type=reaction_type,
+            reaction_type=compat_family,
             ordinal=ordinal,
         ),
         "chapter_id": int(chapter_id),
         "chapter_ref": _clean_text(chapter_ref),
         "emitted_at_sentence_id": _clean_text(emitted_at_sentence_id),
-        "type": reaction_type,  # type: ignore[typeddict-item]
+        "record_source": _clean_text(record_source) or "legacy_builder",
+        "type": compat_family,  # type: ignore[typeddict-item]
+        "compat_family": compat_family,  # type: ignore[typeddict-item]
         "thought": _clean_text(reaction.get("content")),
         "primary_anchor": normalized_primary_anchor,
         "related_anchors": normalized_related,
         "reconsolidation_record_id": _clean_text(reconsolidation_record_id),
         "supersedes_reaction_id": _clean_text(supersedes_reaction_id),
         "compatibility_section_ref": _clean_text(compatibility_section_ref),
-        "search_query": _clean_text(reaction.get("search_query")),
+        "prior_link": None,
+        "outside_link": None,
+        "search_intent": search_intent,
+        "search_query": compat_search_query({"search_intent": search_intent, "search_query": reaction.get("search_query")}),
         "search_results": [
             dict(item)
             for item in reaction.get("search_results", [])
@@ -174,6 +303,73 @@ def build_reaction_record(
         ]
         if isinstance(reaction.get("search_results"), list)
         else [],
+        "created_at": created_at or _timestamp(),
+    }
+
+
+def build_reaction_record_from_express_result(
+    *,
+    express_result: ExpressResult,
+    primary_anchor: AnchorRecord | dict[str, object],
+    related_anchors: list[AnchorRecord | dict[str, object]] | None = None,
+    chapter_id: int,
+    chapter_ref: str,
+    emitted_at_sentence_id: str,
+    reaction_id: str | None = None,
+    reconsolidation_record_id: str | None = None,
+    supersedes_reaction_id: str | None = None,
+    compatibility_section_ref: str | None = None,
+    created_at: str | None = None,
+    ordinal: int | None = None,
+) -> AnchoredReactionRecord | None:
+    """Build one native persisted reaction record directly from Express."""
+
+    if _clean_text(express_result.get("decision")) != "emit":
+        return None
+    thought = _clean_text(express_result.get("content"))
+    if not thought:
+        return None
+
+    normalized_primary_anchor = build_reaction_anchor(primary_anchor)
+    normalized_related = [build_reaction_anchor(anchor) for anchor in related_anchors or [] if isinstance(anchor, dict)]
+    prior_link = _copy_prior_link(express_result.get("prior_link"))
+    outside_link = _copy_outside_link(express_result.get("outside_link"))
+    search_intent = _copy_search_intent(express_result.get("search_intent"))
+    compat_family = compat_reaction_family(
+        {
+            "content": thought,
+            "anchor_quote": _clean_text(express_result.get("anchor_quote")) or _clean_text(normalized_primary_anchor.get("quote")),
+            "prior_link": prior_link,
+            "outside_link": outside_link,
+            "search_intent": search_intent,
+        }
+    )
+
+    return {
+        "reaction_id": reaction_id
+        or derive_reaction_id(
+            chapter_ref=chapter_ref,
+            emitted_at_sentence_id=emitted_at_sentence_id,
+            reaction_type=compat_family,
+            ordinal=ordinal,
+        ),
+        "chapter_id": int(chapter_id),
+        "chapter_ref": _clean_text(chapter_ref),
+        "emitted_at_sentence_id": _clean_text(emitted_at_sentence_id),
+        "record_source": "express",
+        "type": compat_family,  # type: ignore[typeddict-item]
+        "compat_family": compat_family,  # type: ignore[typeddict-item]
+        "thought": thought,
+        "primary_anchor": normalized_primary_anchor,
+        "related_anchors": normalized_related,
+        "reconsolidation_record_id": _clean_text(reconsolidation_record_id),
+        "supersedes_reaction_id": _clean_text(supersedes_reaction_id),
+        "compatibility_section_ref": _clean_text(compatibility_section_ref),
+        "prior_link": prior_link,
+        "outside_link": outside_link,
+        "search_intent": search_intent,
+        "search_query": compat_search_query({"search_intent": search_intent}),
+        "search_results": [],
         "created_at": created_at or _timestamp(),
     }
 
@@ -292,7 +488,7 @@ def project_chapter_result_compatibility(
     records = [
         record
         for record in records
-        if _clean_text(record.get("chapter_ref")) == chapter_ref and _clean_text(record.get("type")) != "silent"
+        if _clean_text(record.get("chapter_ref")) == chapter_ref and compat_reaction_family(record) != "silent"
     ]
 
     section_groups: dict[str, dict[str, object]] = {}
@@ -328,12 +524,13 @@ def project_chapter_result_compatibility(
             section_groups[section_ref] = section
 
         target_locator = _target_locator_from_anchor(primary_anchor)
+        reaction_type = compat_reaction_family(record)
         reaction_card = {
             "reaction_id": _clean_text(record.get("reaction_id")),
-            "type": _clean_text(record.get("type")) or "association",
+            "type": reaction_type,
             "anchor_quote": _clean_text(primary_anchor.get("quote")),
             "content": _clean_text(record.get("thought")),
-            "search_query": _clean_text(record.get("search_query")),
+            "search_query": compat_search_query(record),
             "search_results": [
                 dict(item)
                 for item in record.get("search_results", [])
@@ -354,7 +551,6 @@ def project_chapter_result_compatibility(
         if target_locator is not None:
             reaction_card["target_locator"] = target_locator
         section["reactions"].append(reaction_card)
-        reaction_type = _clean_text(record.get("type")) or "association"
         reaction_counts[reaction_type] += 1
         featured_candidates.append(
             {
@@ -673,10 +869,11 @@ def reconsolidation(
     later_reaction: AnchoredReactionRecord | None = None
     reconsolidation_record: ReconsolidationRecord | None = None
     if decision == "reconsolidate" and later_candidate is not None and emitted_at_sentence_id:
+        later_reaction_family = compat_reaction_family(later_candidate)
         new_reaction_id = derive_reaction_id(
             chapter_ref=chapter_ref,
             emitted_at_sentence_id=emitted_at_sentence_id,
-            reaction_type=str(later_candidate.get("type", "")),
+            reaction_type=later_reaction_family,
         )
         raw_record = _normalize_reconsolidation_record(
             payload.get("reconsolidation_record"),

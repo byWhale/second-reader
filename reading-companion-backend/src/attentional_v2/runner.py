@@ -81,6 +81,8 @@ from .schemas import (
 )
 from .slow_cycle import (
     build_reaction_record,
+    build_reaction_record_from_express_result,
+    compat_reaction_family,
     project_chapter_result_compatibility,
     reaction_records_for_chapter,
     run_phase6_chapter_cycle,
@@ -626,58 +628,6 @@ def _supporting_refs_for_express(
         if isinstance(detail, dict):
             supporting_refs.append(dict(detail))
     return supporting_refs[:4]
-
-
-def _legacy_reaction_type_from_express_result(express_result: ExpressResult) -> str:
-    """Map the new express contract back into the temporary legacy family vocabulary."""
-
-    if _clean_text(express_result.get("decision")) != "emit":
-        return "silent"
-    if isinstance(express_result.get("search_intent"), dict):
-        return "curious"
-    if isinstance(express_result.get("prior_link"), dict):
-        return "retrospect"
-    if isinstance(express_result.get("outside_link"), dict):
-        return "association"
-    content = _clean_text(express_result.get("content"))
-    anchor_quote = _clean_text(express_result.get("anchor_quote"))
-    if content and len(content) <= max(120, len(anchor_quote) + 60):
-        return "highlight"
-    return "discern"
-
-
-def _legacy_reaction_candidate_from_express_result(
-    express_result: ExpressResult,
-    *,
-    supporting_refs: list[dict[str, object]],
-) -> dict[str, object] | None:
-    """Project one new express result into the current legacy reaction payload shape."""
-
-    if _clean_text(express_result.get("decision")) != "emit":
-        return None
-    prior_link = dict(express_result.get("prior_link") or {})
-    ref_lookup = {
-        _clean_text(ref.get("ref_id")): ref
-        for ref in supporting_refs
-        if isinstance(ref, dict) and _clean_text(ref.get("ref_id"))
-    }
-    related_anchor_quotes: list[str] = []
-    for ref_id in prior_link.get("ref_ids", []) if isinstance(prior_link.get("ref_ids"), list) else []:
-        ref = ref_lookup.get(_clean_text(ref_id))
-        if not isinstance(ref, dict):
-            continue
-        quote = _clean_text(ref.get("quote")) or _clean_text(ref.get("excerpt_text")) or _clean_text(ref.get("summary"))
-        if quote:
-            related_anchor_quotes.append(quote)
-    search_intent = dict(express_result.get("search_intent") or {})
-    return {
-        "type": _legacy_reaction_type_from_express_result(express_result),
-        "anchor_quote": _clean_text(express_result.get("anchor_quote")),
-        "content": _clean_text(express_result.get("content")),
-        "related_anchor_quotes": related_anchor_quotes[:3],
-        "search_query": _clean_text(search_intent.get("query")),
-        "search_results": [],
-    }
 
 
 def _move_type_from_route_decision(
@@ -1351,10 +1301,6 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     )
 
                 emitted_reaction: AnchoredReactionRecord | None = None
-                reaction_payload = _legacy_reaction_candidate_from_express_result(
-                    express_result or {},
-                    supporting_refs=supporting_refs,
-                ) or (dict(read_result.get("raw_reaction", {})) if isinstance(read_result.get("raw_reaction"), dict) else {})
                 current_anchor = _build_current_anchor_from_read_result(
                     read_result=read_result,
                     express_result=express_result,
@@ -1362,11 +1308,10 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     focal_sentence=focal_sentence,
                 )
 
-                if route_decision.get("persist_raw_reaction") and reaction_payload:
-                    anchor_bank = upsert_anchor_record(anchor_bank, current_anchor)  # type: ignore[assignment]
+                if route_decision.get("persist_raw_reaction"):
                     chapter_reaction_count = len(reaction_records_for_chapter(reaction_records, chapter_ref=chapter_ref))
-                    emitted_reaction = build_reaction_record(
-                        reaction=reaction_payload,
+                    emitted_reaction = build_reaction_record_from_express_result(
+                        express_result=express_result or {},
                         primary_anchor=current_anchor,
                         chapter_id=chapter_id,
                         chapter_ref=chapter_ref,
@@ -1374,26 +1319,39 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                         compatibility_section_ref=_compatibility_section_ref(chapter_id, focal_sentence),
                         ordinal=chapter_reaction_count + 1,
                     )
-                    reaction_records = append_reaction_record(reaction_records, emitted_reaction)
-                    append_activity_event(
-                        output_dir,
-                        {
-                            "type": "reaction_emitted",
-                            "stream": "mindstream",
-                            "kind": "thought",
-                            "visibility": "default",
-                            "message": _clean_text(emitted_reaction.get("thought")),
-                            "chapter_id": chapter_id,
-                            "chapter_ref": chapter_ref,
-                            "segment_ref": _compatibility_section_ref(chapter_id, focal_sentence),
-                            "anchor_quote": _clean_text(emitted_reaction.get("primary_anchor", {}).get("quote")),
-                            "reading_locus": _reading_locus(chapter_id, chapter_ref, focal_sentence, local_buffer),
-                            "move_type": chosen_move or None,
-                            "active_reaction_id": _clean_text(emitted_reaction.get("reaction_id")),
-                            "reaction_types": [_clean_text(emitted_reaction.get("type"))],
-                            "current_excerpt": _clean_text(focal_sentence.get("text"))[:220],
-                        },
-                    )
+                    if emitted_reaction is None and isinstance(read_result.get("raw_reaction"), dict):
+                        emitted_reaction = build_reaction_record(
+                            reaction=dict(read_result.get("raw_reaction", {})),
+                            primary_anchor=current_anchor,
+                            chapter_id=chapter_id,
+                            chapter_ref=chapter_ref,
+                            emitted_at_sentence_id=focal_sentence_id,
+                            compatibility_section_ref=_compatibility_section_ref(chapter_id, focal_sentence),
+                            ordinal=chapter_reaction_count + 1,
+                            record_source="legacy_fallback",
+                        )
+                    if emitted_reaction is not None:
+                        anchor_bank = upsert_anchor_record(anchor_bank, current_anchor)  # type: ignore[assignment]
+                        reaction_records = append_reaction_record(reaction_records, emitted_reaction)
+                        append_activity_event(
+                            output_dir,
+                            {
+                                "type": "reaction_emitted",
+                                "stream": "mindstream",
+                                "kind": "thought",
+                                "visibility": "default",
+                                "message": _clean_text(emitted_reaction.get("thought")),
+                                "chapter_id": chapter_id,
+                                "chapter_ref": chapter_ref,
+                                "segment_ref": _compatibility_section_ref(chapter_id, focal_sentence),
+                                "anchor_quote": _clean_text(emitted_reaction.get("primary_anchor", {}).get("quote")),
+                                "reading_locus": _reading_locus(chapter_id, chapter_ref, focal_sentence, local_buffer),
+                                "move_type": chosen_move or None,
+                                "active_reaction_id": _clean_text(emitted_reaction.get("reaction_id")),
+                                "reaction_types": [compat_reaction_family(emitted_reaction)],
+                                "current_excerpt": _clean_text(focal_sentence.get("text"))[:220],
+                            },
+                        )
 
                 if route_decision.get("action") == "bridge_back":
                     candidate_set = generate_candidate_set(

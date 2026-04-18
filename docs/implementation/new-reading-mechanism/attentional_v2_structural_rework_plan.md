@@ -56,9 +56,14 @@ Implementation checkpoint:
   - the live runner now routes `read -> express(if needed) -> navigate.route`
   - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal`
   - `Express` now owns visible-reaction wording on the live path
-  - old family handling now survives only through a thin compatibility adapter on persisted reaction records
-- `Phase E3` remains next:
-  - keep old reaction family handling only in slow-cycle / eval / UI compatibility adapters while validating the new visible-reaction contract
+  - old family handling now survives only through a thin compatibility adapter posture rather than as the live prompt ontology
+- `Phase E3` is now landed:
+  - persisted `reaction_records` now keep `Express`-native surfaced semantics first
+  - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper rather than treating legacy `type` as the internal truth
+  - the bounded fallback from missing `ExpressResult` to legacy `read.raw_reaction` is now explicitly marked as compatibility-only
+- next after `Phase E3`:
+  - validate quality on the new persistence/export baseline
+  - then decide whether later slices should expose surfaced-reaction structure more natively above the current compatibility envelopes
 
 Primary upstream evidence:
 
@@ -764,7 +769,7 @@ Landed status so far:
 
 - `Phase E1` is landed.
 - the first compatibility-first `Phase E2` slice is landed.
-- `Phase E3` remains open.
+- `Phase E3` is landed.
 
 Goal:
 
@@ -836,21 +841,28 @@ Cut the live runner over to the new ownership split.
 
 #### Phase E3 — Compatibility adapters and evaluation repair
 
-Status: `next`
+Status: `landed`
 
 Keep the old family only where the rest of the system still needs it.
 
-- slow-cycle aggregation may continue to use compatibility-mapped family labels temporarily
-- eval / normalized bundles may continue to emit legacy family labels temporarily
+- persisted visible reactions now keep surfaced semantics first:
+  - `thought`
+  - `prior_link`
+  - `outside_link`
+  - `search_intent`
+- slow-cycle aggregation now derives compatibility family labels from persisted surfaced semantics rather than treating legacy `type` as the record truth
+- eval / normalized bundles now emit legacy family labels as compat projections from those same native records
 - UI/current-activity compatibility surfaces may continue to project old-family vocabulary temporarily
-- those adapters should be thin mappings from the new `ExpressResult`
+- those adapters are now thin mappings from persisted surfaced reaction records rather than a runner-side downcast from `ExpressResult`
 - the adapter layer must not re-enter the prompt contract and redefine how `Express` thinks
+- the narrow fallback from missing `ExpressResult` to legacy `read.raw_reaction` remains available only as a marked compatibility/exception path
 
 #### Validation target
 
 - visible reactions should sound like reading-time reactions again rather than mechanism-authored summaries
 - `Read` should become easier to explain as reading plus implicit uptake rather than as a control super-node
 - old-family compatibility should continue working long enough to avoid breaking slow-cycle/eval/public adapters during the transition
+- persisted reaction truth should now be inspectable in native `Express` terms without reconstructing it from legacy family labels
 - implementation should land in the required order:
   1. freeze contract
   2. cut live path

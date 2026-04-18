@@ -508,13 +508,18 @@ class AnchoredReactionRecord(TypedDict, total=False):
     chapter_id: int
     chapter_ref: str
     emitted_at_sentence_id: str
+    record_source: str
     type: ReactionType
+    compat_family: ReactionType
     thought: str
     primary_anchor: ReactionAnchor
     related_anchors: list[ReactionAnchor]
     reconsolidation_record_id: str
     supersedes_reaction_id: str
     compatibility_section_ref: str
+    prior_link: PriorLink | None
+    outside_link: OutsideLink | None
+    search_intent: SearchIntent | None
     search_query: str
     search_results: list[SearchHit]
     created_at: str

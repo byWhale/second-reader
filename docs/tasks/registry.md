@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-18T21:35:00+08:00`
+Last updated: `2026-04-18T19:48:48+08:00`
 
 ## Status Values
 - `active`
@@ -170,7 +170,7 @@ Last updated: `2026-04-18T21:35:00+08:00`
   - `Phase B` is now landed:
     - `read` now owns the authoritative current-unit packet on the live path
     - the live runner now builds bounded carry-forward context and allows bounded `active recall / look-back` supplementation
-    - raw reaction truth now comes directly from `read`, with mechanism-private `read_audit` records for context use
+    - mechanism-private `read_audit` records now capture carried refs plus supplemental-context use, while the old `raw_reaction` field remains only as a compatibility shell for later slices
   - `Phase C.1` is now landed:
     - live prompt inputs now flow through a bounded internal `state_packet.v1` layer
     - `navigate.unitize` now receives a small `navigation_context`
@@ -201,9 +201,13 @@ Last updated: `2026-04-18T21:35:00+08:00`
     - the live runner now routes `navigate.unitize -> read -> express(if needed) -> navigate.route`
     - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal`
     - visible-reaction wording now comes from `Express`
-    - legacy family-shaped reaction records are still generated through a thin adapter for slow-cycle / eval / UI compatibility
-  - next keep `Phase E3` as the bounded follow-up:
-    - continue shrinking the compatibility layer in slow-cycle / eval / UI adapters
+  - `Phase E3` is now landed:
+    - persisted `reaction_records` now keep `Express`-native surfaced fields first
+    - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper instead of treating legacy `type` as the internal truth
+    - the bounded fallback from missing `ExpressResult` to legacy `read.raw_reaction` is now explicitly marked as compatibility-only
+  - next build on the landed `Phase E3` baseline:
+    - validate reading quality and eval behavior on the new surfaced-reaction persistence path
+    - only then decide whether later slices should expose surfaced-reaction structure more natively above today's compatibility envelopes
     - keep `knowledge_activations` narrowed to helper territory unless a later explicit design pass changes that rule
 - Post-Phase-D evaluation posture:
   - the April 12 post-Phase-D smoke is finished and the April 13 targeted judged validation is also finished

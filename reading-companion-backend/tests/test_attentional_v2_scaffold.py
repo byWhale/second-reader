@@ -266,15 +266,36 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
                 "explanation": "",
                 "supporting_ref_ids": [],
             },
+            "express_signal": {
+                "should_express": True,
+                "focal_quote": anchor_quote,
+                "why_now": "The line deserves a surfaced reaction in the new path.",
+                "supporting_ref_ids": ["anchor:a-0"],
+            },
             "raw_reaction": {
                 "type": "highlight",
                 "anchor_quote": anchor_quote,
-                "content": f"Noted: {anchor_quote[:40]}",
+                "content": f"Legacy fallback: {anchor_quote[:40]}",
                 "related_anchor_quotes": [],
                 "search_query": "",
                 "search_results": [],
             },
             "context_request": None,
+        }
+
+    def fake_express_unit(**kwargs):
+        focal_quote = kwargs["express_signal"]["focal_quote"]
+        return {
+            "decision": "emit",
+            "anchor_quote": focal_quote,
+            "content": f"Express noticed: {focal_quote[:40]}",
+            "prior_link": {
+                "ref_ids": ["anchor:a-0"],
+                "relation": "callback",
+                "note": "The earlier thread quietly set this up.",
+            },
+            "outside_link": None,
+            "search_intent": None,
         }
 
     def fake_phase6_chapter_cycle(**kwargs):
@@ -337,6 +358,7 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
     monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
+    monkeypatch.setattr(runner_module, "express_unit", fake_express_unit)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
     mechanism = AttentionalV2Mechanism()
@@ -373,6 +395,124 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert chapter_manifest["result_file"] == "_mechanisms/attentional_v2/derived/chapter_result_compatibility/chapter-001.json"
     assert chapter_manifest["visible_reaction_count"] >= 1
     assert chapter_manifest["reaction_type_diversity"] >= 1
+    persisted_reactions = json.loads(reaction_records_file(result.output_dir).read_text(encoding="utf-8"))["records"]
+    assert persisted_reactions[0]["record_source"] == "express"
+    assert persisted_reactions[0]["thought"].startswith("Express noticed:")
+    assert persisted_reactions[0]["prior_link"]["ref_ids"] == ["anchor:a-0"]
+
+
+def test_attentional_v2_runner_marks_legacy_fallback_when_express_withholds(tmp_path, monkeypatch):
+    """Legacy raw-reaction persistence should survive only as a marked compat fallback."""
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
+
+    def fake_read_unit(**kwargs):
+        focal_sentence = kwargs["current_unit_sentences"][-1]
+        anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
+        return {
+            "local_understanding": f"Meaning unit around {anchor_quote[:24]}",
+            "move_hint": "advance",
+            "continuation_pressure": False,
+            "implicit_uptake": [],
+            "anchor_evidence": [],
+            "prior_material_use": {
+                "materially_used": False,
+                "explanation": "",
+                "supporting_ref_ids": [],
+            },
+            "express_signal": {
+                "should_express": True,
+                "focal_quote": anchor_quote,
+                "why_now": "test fallback",
+                "supporting_ref_ids": [],
+            },
+            "raw_reaction": {
+                "type": "highlight",
+                "anchor_quote": anchor_quote,
+                "content": f"Legacy fallback: {anchor_quote[:40]}",
+                "related_anchor_quotes": [],
+                "search_query": "",
+                "search_results": [],
+            },
+            "context_request": None,
+        }
+
+    def fake_process_sentence_intake(sentence, *, local_buffer, working_state, concept_registry, thread_trace, anchor_bank, window_size=6, cadence_limit=4):
+        next_buffer = {
+            **local_buffer,
+            "current_sentence_id": sentence["sentence_id"],
+            "current_sentence_index": sentence["sentence_index"],
+            "recent_sentences": [*local_buffer.get("recent_sentences", []), dict(sentence)][-window_size:],
+            "open_meaning_unit_sentence_ids": [sentence["sentence_id"]],
+            "seen_sentence_ids": [*local_buffer.get("seen_sentence_ids", []), sentence["sentence_id"]],
+        }
+        return next_buffer, {
+            "schema_version": ATTENTIONAL_V2_SCHEMA_VERSION,
+            "mechanism_version": ATTENTIONAL_V2_MECHANISM_VERSION,
+            "current_sentence_id": sentence["sentence_id"],
+            "output": "zoom_now",
+            "gate_state": "hot",
+            "signals": [],
+            "cadence_counter": 1,
+            "callback_anchor_ids": [],
+        }
+
+    def fake_phase6_chapter_cycle(**kwargs):
+        compatibility_payload = project_chapter_result_compatibility(
+            book_id=kwargs["book_id"],
+            chapter=kwargs["chapter"],
+            reaction_records=kwargs["reaction_records"],
+            output_language=kwargs["output_language"],
+            output_dir=kwargs["output_dir"],
+            persist=True,
+        )
+        return {
+            "chapter_consolidation": {"chapter_ref": kwargs["chapter"].get("reference", "")},
+            "promotion_results": [],
+            "working_state": kwargs["working_state"],
+            "concept_registry": kwargs["concept_registry"],
+            "thread_trace": kwargs["thread_trace"],
+            "anchor_bank": kwargs["anchor_bank"],
+            "reflective_frames": kwargs["reflective_frames"],
+            "knowledge_activations": kwargs["knowledge_activations"],
+            "reaction_records": kwargs["reaction_records"],
+            "compatibility_payload": compatibility_payload,
+        }
+
+    monkeypatch.setattr(
+        runner_module,
+        "navigate_unitize",
+        lambda *, current_sentence, preview_sentences, **_kwargs: {
+            "start_sentence_id": current_sentence["sentence_id"],
+            "end_sentence_id": current_sentence["sentence_id"],
+            "preview_range": {
+                "start_sentence_id": preview_sentences[0]["sentence_id"],
+                "end_sentence_id": preview_sentences[-1]["sentence_id"],
+            },
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": [current_sentence["sentence_id"]],
+            "reason": "test_unitize_single_sentence",
+            "continuation_pressure": False,
+        },
+    )
+    monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
+    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
+    monkeypatch.setattr(runner_module, "express_unit", lambda **_kwargs: {"decision": "withhold"})
+    monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
+
+    mechanism = AttentionalV2Mechanism()
+    result = mechanism.read_book(
+        ReadRequest(
+            book_path=_fixture_epub(),
+            mechanism_key=ATTENTIONAL_V2_MECHANISM_KEY,
+            mechanism_config={},
+        )
+    )
+
+    persisted_reactions = json.loads(reaction_records_file(result.output_dir).read_text(encoding="utf-8"))["records"]
+    assert persisted_reactions[0]["record_source"] == "legacy_fallback"
+    assert persisted_reactions[0]["thought"].startswith("Legacy fallback:")
 
 
 def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, monkeypatch):

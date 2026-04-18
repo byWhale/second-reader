@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-18T21:35:00+08:00`
+Last verified: `2026-04-18T19:48:48+08:00`
 
 ## Current Objective
 - Land `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -172,7 +172,7 @@ Last verified: `2026-04-18T21:35:00+08:00`
     - `read` now owns the authoritative current-unit read packet on the live path
     - the live runner now builds a bounded `carry-forward context` before each unit read
     - `read` may request bounded supplemental context through `active recall` or `look-back`
-    - `raw reaction` truth now comes directly from `read`, and private `read_audit` records now capture carried refs plus supplemental-context use
+    - private `read_audit` records now capture carried refs plus supplemental-context use, while the old `raw_reaction` field remains only as a compatibility shell for later slices
   - `Phase C.1` is now landed as the first packetization seam:
     - live prompt inputs are now built through a bounded internal state packet layer instead of ad hoc per-node context assembly
     - `navigate.unitize` now receives a small `navigation_context`
@@ -219,7 +219,14 @@ Last verified: `2026-04-18T21:35:00+08:00`
     - the live runner now routes `navigate.unitize -> read -> express(if needed) -> navigate.route`
     - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal`
     - visible-reaction wording now comes from `Express`
-    - legacy family-shaped reaction records are still generated through a thin adapter for slow-cycle / eval / UI compatibility
+  - `Phase E3` is now landed:
+    - persisted `reaction_records` now keep `Express`-native surfaced fields first:
+      - `thought`
+      - `prior_link`
+      - `outside_link`
+      - `search_intent`
+    - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper rather than treating legacy `type` as the internal truth
+    - the bounded fallback from missing `ExpressResult` to legacy `read.raw_reaction` is now explicitly marked as compatibility-only
   - the April 12 post-Phase-D smoke has now finished and is interpreted as follows:
     - `value_of_others_private_en__8_10` produced repeated anomalous long-tail calls during the April 12 smoke
     - a static size/content snapshot now lives at:
@@ -297,9 +304,10 @@ Last verified: `2026-04-18T21:35:00+08:00`
         - no active isolated replay is running now
         - no active background eval jobs remain in the registry
         - a full prompt/response replay without touching the active eval pool requires another spare key with `MiniMax-M2.7` access, or must wait until using the main eval pool is acceptable
-  - the next backend code slice is now narrowed to `Phase E3`:
-    - continue shrinking the compatibility layer in slow-cycle / eval / UI adapters now that the first `Read -> Express` live-path slice is landed
-    - do not reopen trigger authority, helper-contract retirement, or old-state compatibility in that next slice
+  - the next backend code slice should build on the landed `Phase E3` baseline:
+    - validate reading quality and eval behavior on the new surfaced-reaction persistence path
+    - only after that decide whether later slices should expose surfaced-reaction structure more natively above today's compatibility envelopes
+    - do not reopen trigger authority, helper-contract retirement, or old-state compatibility while doing that
 - Frontend direction is now fixed for the next product lane:
   - do not keep the old `iterator_v1` / section-first presentation as a co-equal product model
   - keep that older presentation shape only as a compatibility shell while V2-native surfaces are being built

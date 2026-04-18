@@ -12,7 +12,11 @@ from src.attentional_v2.schemas import (
     build_empty_reconsolidation_records,
     build_empty_reflective_frames,
 )
-from src.attentional_v2.slow_cycle import build_reaction_record, project_chapter_result_compatibility
+from src.attentional_v2.slow_cycle import (
+    build_reaction_record,
+    build_reaction_record_from_express_result,
+    project_chapter_result_compatibility,
+)
 from src.attentional_v2.storage import reaction_records_file, reconsolidation_records_file, reflective_frames_file, save_json
 from src.reading_core.storage import save_book_document
 from src.reading_mechanisms.attentional_v2 import AttentionalV2Mechanism
@@ -234,6 +238,52 @@ def test_attentional_v2_can_build_and_persist_normalized_eval_bundle(tmp_path):
     export_path = mechanism.persist_normalized_eval_bundle(output_dir, config_payload={"benchmark": "attentional_v2_local"})
     assert export_path == normalized_eval_bundle_file(output_dir)
     assert export_path.exists()
+
+
+def test_normalized_eval_bundle_projects_compat_fields_from_native_reaction_record(tmp_path):
+    """Normalized eval export should derive legacy fields from native surfaced reaction semantics."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    mechanism = AttentionalV2Mechanism()
+    mechanism.initialize_artifacts(output_dir)
+    save_book_document(output_dir / "public" / "book_document.json", _book_document())
+
+    reaction_records = build_empty_reaction_records()
+    reaction_records["records"] = [
+        build_reaction_record_from_express_result(
+            express_result={
+                "decision": "emit",
+                "anchor_quote": "Markets begin as relations among people.",
+                "content": "The social frame opens a question worth following.",
+                "prior_link": None,
+                "outside_link": None,
+                "search_intent": {
+                    "query": "social marketplace framing",
+                    "rationale": "Useful follow-up for later comparison.",
+                },
+            },
+            primary_anchor=_anchor("a-1", "c1-s1", "Markets begin as relations among people.", 1),
+            chapter_id=1,
+            chapter_ref="Chapter 1",
+            emitted_at_sentence_id="c1-s1",
+        )
+    ]
+    save_json(reaction_records_file(output_dir), reaction_records)
+
+    project_chapter_result_compatibility(
+        book_id="demo-book",
+        chapter={**_book_document()["chapters"][0], "reference": "Chapter 1"},
+        reaction_records=reaction_records,
+        output_language="en",
+        output_dir=output_dir,
+        persist=True,
+    )
+
+    bundle = mechanism.build_normalized_eval_bundle(output_dir, config_payload={"benchmark": "attentional_v2_local"})
+
+    assert bundle["reactions"][0]["type"] == "curious"
+    assert bundle["reactions"][0]["content"] == "The social frame opens a question worth following."
+    assert bundle["reactions"][0]["search_query"] == "social marketplace framing"
 
 
 def test_attentional_v2_integrity_checks_flag_cursor_anchor_and_reconsolidation_drift(tmp_path):

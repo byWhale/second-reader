@@ -56,7 +56,10 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - the live loop now routes through `navigate.unitize -> read -> express(if needed) -> navigate.route`
   - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal` as first-class live-path outputs
   - `Express` now owns visible-reaction wording on the live path
-  - old family-shaped reaction records are still produced through a thin adapter for slow-cycle / eval / UI compatibility
+- Phase E3 is now also landed as the first native surfaced-reaction persistence slice.
+  - persisted visible reactions now keep `Express`-native surfaced fields such as `prior_link`, `outside_link`, and `search_intent`
+  - `reaction_records`, chapter slow-cycle compatibility projection, and normalized eval export now all derive old family labels through one compat helper instead of treating legacy `type` as the internal truth
+  - old family vocabulary survives only as a projection / sidecar layer for slow-cycle, eval, and UI compatibility
 - Phase C.1 of the post-eval structural rework is now landed.
   - Live prompt inputs now flow through a bounded internal `state_packet.v1` seam.
   - `navigate.unitize` now receives packetized `navigation_context`.
@@ -261,6 +264,10 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - only for surfaced outside references; not for generic model knowledge
   - optional `search_intent`
     - only when the surfaced reaction naturally opens a worthwhile next question
+- persisted visible reaction records now keep that surfaced shape natively.
+  - `thought` remains the persisted visible text field in this slice.
+  - `prior_link`, `outside_link`, and `search_intent` are now first-class persisted fields.
+  - `compat_family`, legacy `type`, and legacy `search_query` are now compatibility sidecars derived from that surfaced shape rather than the other way around.
 - `silent` is therefore no longer an approved primary reaction type in the new contract.
   - It becomes the `withhold` branch of `Express`.
 - `Highlight` remains visible-thought territory in the new contract.
@@ -285,6 +292,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - compatibility adapter may still use these for bounded local anchored reactions that remain fully inside the current unit
 - This mapping is transitional.
   - It exists for slow-cycle aggregation, eval normalization, and UI adapter continuity.
+  - It is now derived from persisted surfaced reaction records through one compat helper rather than treated as the persisted reaction truth.
   - It must not become the governing shape of the new `Express` prompt.
 - Default call types are:
   - `chapter opening`
@@ -448,6 +456,12 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `_mechanisms/attentional_v2/runtime/knowledge_activations.json`
   - `_mechanisms/attentional_v2/runtime/move_history.json`
   - `_mechanisms/attentional_v2/runtime/reaction_records.json`
+    - persisted visible reactions now store native surfaced semantics first:
+      - `thought`
+      - `prior_link`
+      - `outside_link`
+      - `search_intent`
+    - legacy `type`, `compat_family`, and `search_query` remain as compatibility sidecars
   - `_mechanisms/attentional_v2/runtime/reconsolidation_records.json`
   - `_mechanisms/attentional_v2/runtime/reader_policy.json`
   - `_mechanisms/attentional_v2/runtime/resume_metadata.json`

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-18T21:35:00+08:00",
+  "updated_at": "2026-04-18T19:48:48+08:00",
   "tasks": [
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V2",
@@ -122,7 +122,7 @@
         "bgjob_post_phase_d_parallel_judged_eval_retry2_20260413"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed, Phase E1 is landed, and the first compatibility-first Phase E2 slice is now landed: the live runner routes navigate.unitize -> read -> express(if needed) -> navigate.route, read now emits unit_delta / pressure_signals / express_signal, visible-reaction wording now comes from Express, and legacy family-shaped reaction records survive only through a thin compatibility adapter. Keep the April 12 post-Phase-D smoke and the April 13 targeted judged validation as completed evidence, but treat the next implementation move as Phase E3 adapter cleanup rather than another prompt-freeze pass. That next bounded slice should keep shrinking slow-cycle / eval / UI dependency on old family records without reopening trigger authority, helper-contract retirement, or old-state compatibility.",
+      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed, Phase E1 is landed, the first compatibility-first Phase E2 slice is landed, and Phase E3 is now landed too: the live runner routes navigate.unitize -> read -> express(if needed) -> navigate.route, visible-reaction wording now comes from Express, persisted reaction_records now keep Express-native surfaced fields first, and slow-cycle / eval compatibility labels are now projected through one compat helper instead of treated as the internal truth. Keep the April 12 post-Phase-D smoke and the April 13 targeted judged validation as completed evidence, and use the next bounded slice to validate quality on top of this surfaced-reaction persistence baseline before deciding whether any later work should expose that structure more natively above today's compatibility envelopes.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
@@ -137,7 +137,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_progress_and_latency_check_20260413.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_value_of_others_ch8_debug_legacykey_20260413/analysis/registry_snapshot.json"
       ],
-      "last_updated": "2026-04-18T13:35:00Z",
+      "last_updated": "2026-04-18T19:48:48+08:00",
       "last_updated_by": "codex"
     },
     {

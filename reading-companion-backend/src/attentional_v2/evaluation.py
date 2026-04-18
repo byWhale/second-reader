@@ -24,6 +24,7 @@ from src.reading_runtime.shell_state import load_runtime_shell
 
 from .observability import reading_locus_from_cursor
 from .schemas import ATTENTIONAL_V2_MECHANISM_VERSION, ATTENTIONAL_V2_POLICY_VERSION, ReaderPolicy
+from .slow_cycle import compat_reaction_family, compat_search_query
 from .storage import (
     ATTENTIONAL_V2_MECHANISM_KEY,
     chapter_result_compatibility_file,
@@ -263,12 +264,12 @@ def _normalized_reactions(output_dir: Path) -> list[NormalizedReaction]:
         reactions.append(
             {
                 "reaction_id": _clean_text(raw.get("reaction_id")),
-                "type": _clean_text(raw.get("type")) or "association",
+                "type": compat_reaction_family(raw),
                 "chapter_ref": _clean_text(raw.get("chapter_ref")),
                 "section_ref": _reaction_section_ref(raw, chapter_id=chapter_id),
                 "anchor_quote": _clean_text(primary_anchor.get("quote")) if isinstance(primary_anchor, Mapping) else "",
                 "content": _clean_text(raw.get("thought")),
-                "search_query": _clean_text(raw.get("search_query")),
+                "search_query": compat_search_query(raw),
                 "search_results": [
                     dict(item)
                     for item in raw.get("search_results", [])
