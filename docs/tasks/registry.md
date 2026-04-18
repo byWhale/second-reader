@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-18T17:16:00+08:00`
+Last updated: `2026-04-18T17:46:40+08:00`
 
 ## Status Values
 - `active`
@@ -61,7 +61,9 @@ Last updated: `2026-04-18T17:16:00+08:00`
       - separate experimental review:
         - `芒格之道` now has a dedicated target-centered experimental review:
           - `reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md`
-        - use this file instead of the older substrate memo when reviewing `芒格之道` under the v2 method
+        - the unified current review entry is:
+          - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+        - use that unified review doc for the current pass; keep the separate `芒格` file only as a per-book companion instead of falling back to the older substrate memo
     - next gate:
       - show these candidates for user review before any freeze or formal judged run
 - Jobs: none

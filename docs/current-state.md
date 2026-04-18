@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-18T17:16:00+08:00`
+Last verified: `2026-04-18T17:46:40+08:00`
 
 ## Current Objective
 - Land `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -32,9 +32,9 @@ Last verified: `2026-04-18T17:16:00+08:00`
     - candidate authoring must stay review-gated before freeze
     - current window substrate is reused from:
       - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1`
-    - first draft candidate batch is now authored for review:
-      - review doc:
-        - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+      - first draft candidate batch is now authored for review:
+        - review doc:
+          - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
       - draft candidate dataset:
         - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
       - current batch truth:
@@ -47,7 +47,9 @@ Last verified: `2026-04-18T17:16:00+08:00`
       - separate experimental review:
         - `芒格之道` now has a new-method experimental review at:
           - `reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md`
-        - use that file, not the older substrate memo, when reviewing `芒格之道` under the v2 target-centered method
+        - the unified review entry now lives in:
+          - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+        - use that unified review doc for the current pass; keep the separate `芒格` file only as a per-book companion and never fall back to the older substrate memo
       - current review gate:
         - keep every case at `draft_candidate`
         - wait for user review before any freeze promotion or judged run

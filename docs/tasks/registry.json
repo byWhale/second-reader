@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-18T17:16:00+08:00",
+  "updated_at": "2026-04-18T17:46:40+08:00",
   "tasks": [
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V2",
@@ -21,7 +21,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
-      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The landed builder/schema live at reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py and the landed runner lives at reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py. The draft manifest lives at reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json and the draft dataset lives at reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft. The current review-gated main batch now contains 10 active draft target cases across 悉达多 (6) and 活出生命的意义 (4), documented in reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md. Every case remains at draft_candidate; the next gate is user review before any freeze promotion or formal judged run. The Value of Others current four local-detail cases have been removed from the active main batch and are now deferred to a later architecture-first pass. 芒格之道 now has a separate target-centered experimental review at reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md; use that file rather than the older substrate memo when reviewing Munger under the v2 method.",
+      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The landed builder/schema live at reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py and the landed runner lives at reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py. The draft manifest lives at reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json and the draft dataset lives at reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft. The current unified review entry is reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md: it contains the 10 active main-batch draft cases across 悉达多 (6) and 活出生命的意义 (4), a deferred note for The Value of Others, and an experimental appendix for 芒格之道. Every main-batch case remains at draft_candidate; the next gate is user review before any freeze promotion or formal judged run. Keep reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md only as a per-book companion and do not fall back to the older substrate memo.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -39,7 +39,7 @@
         "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft/cases.jsonl",
         "reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md"
       ],
-      "last_updated": "2026-04-18T17:16:00+08:00",
+      "last_updated": "2026-04-18T17:46:40+08:00",
       "last_updated_by": "codex"
     },
     {

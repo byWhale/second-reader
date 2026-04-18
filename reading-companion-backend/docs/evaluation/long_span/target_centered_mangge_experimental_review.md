@@ -1,5 +1,9 @@
 # 芒格之道 Target-Centered Experimental Review
 
+Note: this file is now a source-specific companion. For the current unified review pass, prefer:
+- `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+- see the `Experimental Appendix` section there for the live combined review entry.
+
 Status: `experimental_review` only. This document is outside the active v2 main batch and does not change the active draft case dataset or manifest.
 
 Purpose: record a **new-method, target-centered** pass over `mangge_zhi_dao_private_zh__segment_1` so future review does not have to fall back to the older substrate memo.
