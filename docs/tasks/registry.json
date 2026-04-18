@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-18T11:40:00Z",
+  "updated_at": "2026-04-18T16:53:50+08:00",
   "tasks": [
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V2",
@@ -21,7 +21,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
-      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The landed builder/schema now live at reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py and the landed runner lives at reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py. The draft scaffold manifest now lives at reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json and the draft scaffold dataset lives at reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft. V2 now centers each case on one target_span/target_zone plus a prepared long-range thread with 2+ upstream nodes and explicit required_relations, scores each mechanism absolutely through quality_score with callback_score as a secondary bonus, reuses the active user-level selective v1 reading windows as substrate, and does not directly judge raw mechanism-specific memory/state structures. The next dataset move is still candidate-authoring only: show draft target cases for review before any freeze or formal judged run.",
+      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The landed builder/schema live at reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py and the landed runner lives at reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py. The draft manifest lives at reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json and the draft dataset lives at reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft. The current review-gated main batch now contains 10 active draft target cases across 悉达多 (6) and 活出生命的意义 (4), documented in reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md. Every case remains at draft_candidate; the next gate is user review before any freeze promotion or formal judged run. The Value of Others current four local-detail cases have been removed from the active main batch and are now deferred to a later architecture-first pass.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -34,9 +34,11 @@
         "reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py",
         "reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py",
         "reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json",
-        "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft/manifest.json"
+        "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft/manifest.json",
+        "reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md",
+        "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft/cases.jsonl"
       ],
-      "last_updated": "2026-04-18T11:40:00Z",
+      "last_updated": "2026-04-18T16:53:50+08:00",
       "last_updated_by": "codex"
     },
     {

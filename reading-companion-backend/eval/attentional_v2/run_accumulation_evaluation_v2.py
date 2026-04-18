@@ -19,11 +19,10 @@ from eval.attentional_v2.accumulation_benchmark_v2 import (
     DRAFT_MANIFEST_PATH,
     ROOT,
     TARGET_CASE_DRAFT_DATASET_DIR,
-    TargetCase,
-    UpstreamNode,
-    RequiredRelation,
     SpanPoint,
     SpanSlice,
+    TargetCase,
+    UpstreamNode,
     WINDOW_DATASET_DIR,
     target_case_from_row,
 )
@@ -87,7 +86,6 @@ class TargetEvidenceBundle:
     segment_id: str
     target_ref: dict[str, Any]
     upstream_refs: list[dict[str, Any]]
-    required_relations: list[dict[str, Any]]
     expected_integration: str
     target_local_reactions: list[dict[str, Any]]
     explicit_callback_actions: list[dict[str, Any]]
@@ -100,9 +98,6 @@ class AbsoluteAccumulationJudgeResult:
     quality_score: int
     callback_score: int
     thread_built: str
-    correct_relation_ids: list[str]
-    missed_relation_ids: list[str]
-    distorted_relation_ids: list[str]
     reason: str
 
 
@@ -680,7 +675,6 @@ def _build_target_evidence_bundle(
         segment_id=segment.segment_id,
         target_ref=_point_to_payload(case.target_span),
         upstream_refs=[_point_to_payload(node) for node in case.upstream_nodes],
-        required_relations=[asdict(item) for item in case.required_relations],
         expected_integration=case.expected_integration,
         target_local_reactions=target_local_reactions,
         explicit_callback_actions=explicit_callback_actions,
@@ -694,14 +688,11 @@ def _default_judgment(*, reason: str) -> dict[str, Any]:
         "quality_score": 1,
         "callback_score": 0,
         "thread_built": "not_built",
-        "correct_relation_ids": [],
-        "missed_relation_ids": [],
-        "distorted_relation_ids": [],
         "reason": reason,
     }
 
 
-def _normalize_judgment(payload: object, *, relation_ids: set[str], default_reason: str) -> dict[str, Any]:
+def _normalize_judgment(payload: object, *, default_reason: str) -> dict[str, Any]:
     default = _default_judgment(reason=default_reason)
     if not isinstance(payload, dict):
         return default
@@ -717,19 +708,10 @@ def _normalize_judgment(payload: object, *, relation_ids: set[str], default_reas
     if thread_built not in {"built", "partial", "not_built"}:
         thread_built = default["thread_built"]
 
-    def _relation_list(field_name: str) -> list[str]:
-        value = payload.get(field_name)
-        if not isinstance(value, list):
-            return []
-        return [str(item) for item in value if str(item) in relation_ids]
-
     return {
         "quality_score": min(5, max(1, quality_score)),
         "callback_score": min(2, max(0, callback_score)),
         "thread_built": thread_built,
-        "correct_relation_ids": _relation_list("correct_relation_ids"),
-        "missed_relation_ids": _relation_list("missed_relation_ids"),
-        "distorted_relation_ids": _relation_list("distorted_relation_ids"),
         "reason": _clean_text(payload.get("reason")) or default["reason"],
     }
 
@@ -757,7 +739,6 @@ def _judge_target_case(
     if judge_mode not in JUDGE_MODE_VALUES:
         raise ValueError(f"unsupported judge mode: {judge_mode}")
 
-    relation_ids = {relation.relation_id for relation in case.required_relations}
     system_prompt = """You are doing offline single-mechanism reader evaluation.
 
 Question family: `reader_character.coherent_accumulation`
@@ -773,7 +754,7 @@ Main scoring:
 
 Use:
 - `thread_built = built` when the target-point reaction clearly reconstructs the prepared thread
-- `thread_built = partial` when it captures only part of the thread or relations
+- `thread_built = partial` when it captures only part of the thread
 - `thread_built = not_built` when it misses or distorts the prepared thread
 
 Return JSON only.""";
@@ -782,7 +763,6 @@ Return JSON only.""";
         "thread_type": case.thread_type,
         "target_span": asdict(case.target_span),
         "upstream_nodes": [asdict(node) for node in case.upstream_nodes],
-        "required_relations": [asdict(relation) for relation in case.required_relations],
         "expected_integration": case.expected_integration,
         "long_range_rationale": case.long_range_rationale,
     }
@@ -790,7 +770,7 @@ Return JSON only.""";
     base_user_prompt = (
         f"Target-centered case:\n{json.dumps(case_payload, ensure_ascii=False, indent=2)}\n\n"
         f"Mechanism evidence bundle:\n{json.dumps(evidence_payload, ensure_ascii=False, indent=2)}\n\n"
-        'Return JSON: {"quality_score":1,"callback_score":0,"thread_built":"built|partial|not_built","correct_relation_ids":["r1"],"missed_relation_ids":["r2"],"distorted_relation_ids":[],"reason":"3-6 sentences."}'
+        'Return JSON: {"quality_score":1,"callback_score":0,"thread_built":"built|partial|not_built","reason":"3-6 sentences."}'
     )
     payload: object = {}
     normalized = _default_judgment(reason="judge_unavailable")
@@ -811,7 +791,7 @@ Return JSON only.""";
             payload = {}
         except Exception:
             payload = {}
-        normalized = _normalize_judgment(payload, relation_ids=relation_ids, default_reason="judge_unavailable")
+        normalized = _normalize_judgment(payload, default_reason="judge_unavailable")
         if _judgment_needs_retry(payload, normalized=normalized, default_reason="judge_unavailable"):
             continue
         break

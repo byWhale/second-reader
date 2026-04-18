@@ -7,7 +7,6 @@ Unlike v1, v2 does not use bounded `EARLY / MID / LATE` probes as the active
 case primitive. The case primitive is a target-centered long-range thread:
 - one target span / target zone
 - a variable number of upstream nodes
-- explicit required relations
 - expected integration at the target point
 """
 
@@ -71,15 +70,6 @@ class UpstreamNode:
 
 
 @dataclass(frozen=True)
-class RequiredRelation:
-    relation_id: str
-    from_node_id: str
-    to_node_id: str
-    relation_type: str
-    description: str
-
-
-@dataclass(frozen=True)
 class TargetCase:
     case_id: str
     source_id: str
@@ -90,7 +80,6 @@ class TargetCase:
     thread_type: str
     target_span: SpanPoint
     upstream_nodes: list[UpstreamNode]
-    required_relations: list[RequiredRelation]
     expected_integration: str
     callback_eligible_spans: list[SpanPoint]
     non_goal_but_tempting_points: list[SpanPoint]
@@ -198,25 +187,6 @@ def _upstream_node_from_raw(raw: dict[str, Any], *, owner: str) -> UpstreamNode:
     )
 
 
-def _required_relation_from_raw(raw: dict[str, Any], *, owner: str) -> RequiredRelation:
-    relation_id = _clean_text(raw.get("relation_id"))
-    if not relation_id:
-        raise ValueError(f"{owner} missing relation_id")
-    from_node_id = _clean_text(raw.get("from_node_id"))
-    to_node_id = _clean_text(raw.get("to_node_id"))
-    relation_type = _clean_text(raw.get("relation_type"))
-    description = _clean_text(raw.get("description"))
-    if not from_node_id or not to_node_id or not relation_type or not description:
-        raise ValueError(f"{owner}:{relation_id} missing required fields")
-    return RequiredRelation(
-        relation_id=relation_id,
-        from_node_id=from_node_id,
-        to_node_id=to_node_id,
-        relation_type=relation_type,
-        description=description,
-    )
-
-
 def target_case_from_row(raw: dict[str, Any]) -> TargetCase:
     case_id = _clean_text(raw.get("case_id"))
     if not case_id:
@@ -247,20 +217,6 @@ def target_case_from_row(raw: dict[str, Any]) -> TargetCase:
     upstream_node_ids = {node.node_id for node in upstream_nodes}
     if len(upstream_node_ids) != len(upstream_nodes):
         raise ValueError(f"{case_id} has duplicate upstream node ids")
-
-    relations_raw = raw.get("required_relations")
-    if not isinstance(relations_raw, list) or not relations_raw:
-        raise ValueError(f"{case_id} must include required_relations")
-    required_relations = [
-        _required_relation_from_raw(dict(item), owner=f"{case_id}:required_relation")
-        for item in relations_raw
-        if isinstance(item, dict)
-    ]
-    if not required_relations:
-        raise ValueError(f"{case_id} must include at least one valid required relation")
-    for relation in required_relations:
-        if relation.from_node_id not in upstream_node_ids or relation.to_node_id not in upstream_node_ids:
-            raise ValueError(f"{case_id} relation {relation.relation_id} references unknown upstream node ids")
 
     callback_points = [
         _span_point_from_raw(dict(item), owner=f"{case_id}:callback_eligible_span")
@@ -293,7 +249,6 @@ def target_case_from_row(raw: dict[str, Any]) -> TargetCase:
         thread_type=thread_type,
         target_span=target_span,
         upstream_nodes=upstream_nodes,
-        required_relations=required_relations,
         expected_integration=expected_integration,
         callback_eligible_spans=callback_points,
         non_goal_but_tempting_points=tempting_points,

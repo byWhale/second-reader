@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-18T11:40:00Z`
+Last updated: `2026-04-18T16:53:50+08:00`
 
 ## Status Values
 - `active`
@@ -38,7 +38,7 @@ Last updated: `2026-04-18T11:40:00Z`
     - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
   - active v2 evaluation contract:
     - one `target_span / target_zone`
-    - `2+` upstream nodes plus explicit `required_relations`
+    - `2+` upstream nodes plus one explicit `expected_integration`
     - absolute per-mechanism `quality_score` as the main output
     - `callback_score` as a secondary bonus score
     - no direct judging of raw mechanism-specific memory/state structures
@@ -46,8 +46,20 @@ Last updated: `2026-04-18T11:40:00Z`
   - active substrate:
     - reuse the current `user-level selective v1` reading windows
   - next dataset move:
-    - author draft target cases only
-    - show those candidates for review before any freeze or formal judged run
+    - first review-gated draft target-case batch is now authored:
+      - review doc:
+        - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+      - draft dataset:
+        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
+      - current batch truth:
+        - `10` active draft cases
+        - `悉达多`: `6`
+        - `活出生命的意义`: `4`
+      - deferred line:
+        - `The Value of Others` current four local-detail draft cases have been removed from the active main batch
+        - if this book re-enters long-span curation later, it should do so only after a separate theory-architecture pass
+    - next gate:
+      - show these candidates for user review before any freeze or formal judged run
 - Jobs: none
 
 ### `TASK-USER-LEVEL-SELECTIVE-V1` — Replace the active local/user-level benchmark with the note-aligned selective package

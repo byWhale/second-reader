@@ -122,15 +122,6 @@ def _bootstrap_case_dataset(tmp_path: Path) -> Path:
                         "span_slices": [_span_slice(segment_id="segment_a", paragraph_index=2, char_start=0, char_end=12, text="mid pressure")],
                     },
                 ],
-                "required_relations": [
-                    {
-                        "relation_id": "r1",
-                        "from_node_id": "u1",
-                        "to_node_id": "u2",
-                        "relation_type": "develops_into",
-                        "description": "The early setup develops into the mid pressure before the target point.",
-                    }
-                ],
                 "expected_integration": "At the target point, the reader should connect the late development back to the earlier setup and pressure.",
                 "callback_eligible_spans": [
                     _span_point("cb1", segment_id="segment_a", paragraph_index=1, char_start=0, char_end=11, text="early setup")
@@ -247,15 +238,6 @@ def test_build_target_evidence_bundle_collects_target_callbacks_and_followups() 
                     "span_slices": [_span_slice(segment_id="segment_a", paragraph_index=2, char_start=0, char_end=12, text="mid pressure")],
                 },
             ],
-            "required_relations": [
-                {
-                    "relation_id": "r1",
-                    "from_node_id": "u1",
-                    "to_node_id": "u2",
-                    "relation_type": "develops_into",
-                    "description": "The early setup develops into the mid pressure.",
-                }
-            ],
             "expected_integration": "late depends on earlier setup",
             "callback_eligible_spans": [_span_point("cb1", segment_id="segment_a", paragraph_index=1, char_start=0, char_end=11, text="early setup")],
             "non_goal_but_tempting_points": [_span_point("tempting", segment_id="segment_a", paragraph_index=4, char_start=0, char_end=8, text="after target")],
@@ -344,9 +326,6 @@ def test_run_accumulation_evaluation_v2_writes_absolute_results(tmp_path: Path, 
             "quality_score": 5 if mechanism_key == "attentional_v2" else 4,
             "callback_score": 2 if mechanism_key == "attentional_v2" else 1,
             "thread_built": "built",
-            "correct_relation_ids": ["r1"],
-            "missed_relation_ids": [],
-            "distorted_relation_ids": [],
             "reason": "fresh_rejudge",
         }
 

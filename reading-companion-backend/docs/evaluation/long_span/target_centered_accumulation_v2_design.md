@@ -40,8 +40,6 @@ Each `TargetCase` contains:
   - one point or small target zone on the rendered window substrate
 - `upstream_nodes[]`
   - `2+` prepared earlier nodes
-- `required_relations[]`
-  - the relations that should be reconstructed at the target point
 - `expected_integration`
   - the compact plain-language statement of what the reader should build at the target point
 - `callback_eligible_spans[]`
@@ -78,7 +76,6 @@ It contains only externalized or normalized evidence:
   - the next short sequence of reactions after the target point
 - `target_ref`
 - `upstream_refs`
-- `required_relations`
 - `expected_integration`
 - `non_goal_but_tempting_points`
 
@@ -106,9 +103,6 @@ The judge returns an absolute per-mechanism result:
   - `built`
   - `partial`
   - `not_built`
-- `correct_relation_ids`
-- `missed_relation_ids`
-- `distorted_relation_ids`
 - `reason`
 
 Interpretation:
@@ -144,9 +138,9 @@ The first mining order remains:
 
 1. `悉达多`
 2. `活出生命的意义`
-3. `The Value of Others`
+3. `The Value of Others` only after a separate theory-architecture pass
 
-`芒格之道` stays a lower-priority experimental surface. `纳瓦尔宝典` is currently excluded from the main target dataset unless later review finds clearly stronger target-centered cases.
+`芒格之道` stays a lower-priority experimental surface outside the active main batch. `纳瓦尔宝典` is currently excluded from the main target dataset unless later review finds clearly stronger target-centered cases.
 
 ## Files
 

@@ -24,20 +24,52 @@
       "ready_now": 5
     },
     "accumulation_target_cases": {
-      "target_total": 0,
-      "ready_now": 0,
+      "target_total": 10,
+      "ready_now": 10,
       "freeze_ready": 0,
-      "review_pending": 0
+      "review_pending": 10
     }
   },
   "splits": {
     "accumulation_target_cases_draft": {
-      "all": [],
-      "by_thread_type": {}
+      "all": [
+        "xidaduo_seg1_tc01_no_teaching_can_deliver",
+        "xidaduo_seg1_tc02_world_not_behind_appearances",
+        "xidaduo_seg1_tc03_samana_skills_redeployed",
+        "xidaduo_seg1_tc04_become_child_again",
+        "xidaduo_seg1_tc05_kamala_death_instant_eternal",
+        "xidaduo_seg1_tc06_father_son_voices_to_om",
+        "huochu_seg1_tc01_love_beyond_presence",
+        "huochu_seg1_tc02_humor_art_weapon",
+        "huochu_seg1_tc03_future_goal_responsibility",
+        "huochu_seg1_tc06_noble_vs_base_across_roles"
+      ],
+      "by_thread_type": {
+        "概念/区分澄清线": [
+          "xidaduo_seg1_tc01_no_teaching_can_deliver",
+          "xidaduo_seg1_tc02_world_not_behind_appearances",
+          "xidaduo_seg1_tc03_samana_skills_redeployed",
+          "xidaduo_seg1_tc04_become_child_again",
+          "huochu_seg1_tc06_noble_vs_base_across_roles"
+        ],
+        "叙事型故事脉络": [
+          "xidaduo_seg1_tc05_kamala_death_instant_eternal",
+          "xidaduo_seg1_tc06_father_son_voices_to_om"
+        ],
+        "论证型论证线": [
+          "huochu_seg1_tc01_love_beyond_presence",
+          "huochu_seg1_tc02_humor_art_weapon",
+          "huochu_seg1_tc03_future_goal_responsibility"
+        ]
+      }
     },
     "accumulation_target_cases_frozen": {
       "all": [],
-      "by_thread_type": {}
+      "by_thread_type": {
+        "概念/区分澄清线": [],
+        "叙事型故事脉络": [],
+        "论证型论证线": []
+      }
     }
   },
   "notes": [

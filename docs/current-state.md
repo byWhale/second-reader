@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-18T11:40:00Z`
+Last verified: `2026-04-18T16:53:50+08:00`
 
 ## Current Objective
 - Land `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -32,6 +32,21 @@ Last verified: `2026-04-18T11:40:00Z`
     - candidate authoring must stay review-gated before freeze
     - current window substrate is reused from:
       - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1`
+    - first draft candidate batch is now authored for review:
+      - review doc:
+        - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+      - draft candidate dataset:
+        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
+      - current batch truth:
+        - `10` active draft target cases total
+        - `悉达多`: `6`
+        - `活出生命的意义`: `4`
+      - deferred long-span line:
+        - `The Value of Others` current four local-detail cases have been removed from the active v2 batch
+        - if it re-enters long-span curation later, it should do so only after a separate theory-architecture pass
+      - current review gate:
+        - keep every case at `draft_candidate`
+        - wait for user review before any freeze promotion or judged run
   - historical boundary:
     - keep `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` as durable historical mechanism evidence
     - do not treat the old bounded `EARLY / MID / LATE` probe method as the active long-span methodology anymore

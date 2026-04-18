@@ -66,15 +66,6 @@ def _case_row(case_id: str = "case_a", *, upstream_count: int = 2) -> dict[str, 
         "thread_type": "论证型论证线",
         "target_span": _span_point("target", segment_id="segment_a", paragraph_index=5, char_start=0, char_end=12, text="Target text"),
         "upstream_nodes": upstream_nodes,
-        "required_relations": [
-            {
-                "relation_id": "r1",
-                "from_node_id": "u1",
-                "to_node_id": f"u{upstream_count}",
-                "relation_type": "supports",
-                "description": "Earlier claim should support later target understanding.",
-            }
-        ],
         "expected_integration": "The target reaction should connect the later claim back to the earlier line of reasoning.",
         "callback_eligible_spans": [
             _span_point("callback_1", segment_id="segment_a", paragraph_index=2, char_start=0, char_end=10, text="Earlier text 2")
@@ -95,15 +86,15 @@ def test_target_case_from_row_accepts_variable_upstream_counts() -> None:
         assert len(case.upstream_nodes) == upstream_count
 
 
-def test_target_case_from_row_requires_target_span_and_relations() -> None:
+def test_target_case_from_row_requires_target_span_and_expected_integration() -> None:
     row = _case_row()
     row.pop("target_span")
     with pytest.raises(ValueError, match="missing target_span"):
         accumulation_v2.target_case_from_row(row)
 
     row = _case_row()
-    row["required_relations"] = []
-    with pytest.raises(ValueError, match="required_relations"):
+    row["expected_integration"] = ""
+    with pytest.raises(ValueError, match="expected_integration"):
         accumulation_v2.target_case_from_row(row)
 
 

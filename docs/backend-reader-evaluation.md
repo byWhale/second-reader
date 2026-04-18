@@ -192,7 +192,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - `reader_character.coherent_accumulation` is not the same thing as generic whole-book memory.
 - The active operational target is now target-centered long-span integration:
   - the benchmark prepares one `target_span / target_zone`
-  - the case also prepares one long-range thread made of `upstream_nodes[]`, `required_relations[]`, and `expected_integration`
+  - the case also prepares one long-range thread made of `upstream_nodes[]` plus `expected_integration`
   - the evaluation question becomes:
     - when the mechanism reaches the target point, does it actually build the prepared long-range thread there?
 - The target of evaluation is therefore not "did the mechanism react separately at early / middle / late points?"
@@ -200,7 +200,6 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - A valid accumulation case usually reuses one continuous reading window and prepares:
   - one `target_span`
   - `2+` upstream nodes
-  - one or more required relations between those nodes
   - one expected integration statement that says what should be reconstructed at the target point
 - The benchmark may still use `EARLY / MID / LATE` as an authoring shorthand when that helps humans read the case, but those labels are no longer the active evaluation contract.
 - Books or chapters whose sections are largely independent are poor default accumulation surfaces even if they remain strong local excerpt surfaces.
@@ -217,7 +216,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - Strong target-centered cases therefore require:
   - one clearly specified `target_span`
   - one prepared long-range thread that already exists in the source window
-  - explicit `required_relations[]` so the judge is not forced to invent the thread
+  - one clear `expected_integration` statement so the judge is not forced to invent the thread
   - `non_goal_but_tempting_points[]` when nearby but wrong callbacks are likely
 - If the reader would have to supply most of the thread by outside inference, the case should be treated as weak or ambiguous rather than as true long-span accumulation evidence.
 - Distance does not need to be imposed as a separate synthetic rule once the prepared thread is already genuinely long-range in the source text.
