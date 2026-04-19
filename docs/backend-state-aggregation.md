@@ -159,6 +159,9 @@ Use `docs/api-contract.md` for exact fields and routes. Use this file to underst
     - `critique -> discern`
     - `curiosity -> curious`
     - `known -> resonance`
+  - For `attentional_v2`, persisted visible-reaction truth is surfaced-native reaction data rather than a native family/type field.
+  - Public `type` and filter taxonomy are aggregation-time compatibility projections from that surfaced-native record shape.
+  - Aggregation must not treat the public taxonomy as proof that the mechanism's internal prompt contract is family-first.
 - Canonical frontend routes
   - Product-facing URLs returned by the backend should come from contract helpers such as `canonical_book_path()` and `canonical_chapter_path()`.
   - Catalog and realtime payloads should emit canonical frontend routes even when older compatibility routes still exist elsewhere.

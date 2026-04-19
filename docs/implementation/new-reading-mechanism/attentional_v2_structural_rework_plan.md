@@ -75,6 +75,7 @@ Implementation checkpoint:
   - chapter-tail detours are now drained before chapter slow-cycle closes
 - `Phase F3` is now landed as the reaction-persistence and compatibility reconvergence slice:
   - persisted visible reactions now enter the system only through `Read.surfaced_reactions[]`
+  - those native surfaced reactions do not carry a reaction `type`; old family labels now exist only as downstream projections
   - mainline and detour reading now share one surfaced-native reaction-record builder
   - chapter-result compatibility projection and normalized eval export now read surfaced-native persisted records and derive legacy family labels only through the compat helper
   - dead live ownership paths for the old `Express` persistence flow and `raw_reaction` fallback are now removed
@@ -916,6 +917,7 @@ Why this reset won:
   - owns current-unit understanding
   - owns `unit_delta`
   - owns `surfaced_reactions[]`
+  - owns surfaced semantics directly rather than emitting a native reaction-family label
   - owns `implicit_uptake_ops[]`
   - owns `pressure_signals`
   - may emit one `detour_need`
@@ -942,6 +944,10 @@ Why this reset won:
   - `read_audit`
   - `refs`
   - `knowledge_activations` as helper territory
+- native visible-reaction truth vs compat family
+  - native truth is `surfaced_reactions[]` plus the surfaced-native persisted reaction record
+  - old `highlight / discern / association / retrospect / curious / silent` labels remain compatibility vocabulary only
+  - `highlight` is no longer a native generation family; it is a compat-side label for one class of local surfaced reaction
 
 #### Frozen prompt-carry posture
 

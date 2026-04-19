@@ -289,6 +289,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
       - optional `prior_link`
       - optional `outside_link`
       - optional `search_intent`
+    - the native surfaced-reaction shape does not carry a `type`
   - `implicit_uptake_ops`
     - explicit patch/append/close/link operations against the durable state layers
     - `read` should not rewrite whole state objects
@@ -301,6 +302,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - what it is trying to find (`target_hint`)
   - the current status of that need
 - surfaced reactions are now the primary visible-reaction truth in the approved contract.
+  - for `attentional_v2`, native visible-reaction truth is the surfaced semantic payload itself, not a reaction-family label.
   - old family labels remain compatibility projections only.
   - the current E3 persisted surfaced fields remain useful evidence and may be reused during migration.
 - `silent` is no longer a primary reaction type.
@@ -322,6 +324,10 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - compatibility adapter uses it when surfaced `search_intent` must be rendered into older family-based outputs
   - `highlight / discern`
     - compatibility adapter may still use these for bounded local anchored reactions that remain fully inside the current unit
+    - they are no longer prompt-time native generation families for `attentional_v2`
+    - `highlight` now means a compat-projected local anchored reaction whose surfaced payload stays inside the current unit and does not explicitly surface `prior_link`, `outside_link`, or `search_intent`
+    - `highlight` therefore may still contain real visible wording; it no longer means "only saved, nothing to say"
+    - `discern` remains a compat-side split for a more interpretively explicit local anchored reaction, not a native `Read`-time type field
 - This mapping is transitional.
   - It exists for slow-cycle aggregation, eval normalization, and UI adapter continuity.
   - It is now derived from persisted surfaced reaction records through one compat helper rather than treated as the persisted reaction truth.

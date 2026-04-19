@@ -26,6 +26,17 @@ The public UI and API expose exactly five reaction types:
 - `retrospect`
 - `curious`
 
+These are public/API-facing compatibility labels.
+
+For `attentional_v2`, the internal native visible-reaction truth is surfaced semantics such as:
+- `anchor_quote`
+- `content`
+- optional `prior_link`
+- optional `outside_link`
+- optional `search_intent`
+
+Public `reaction_type` is therefore a compatibility-facing projection for filtering and display, not the native `attentional_v2` prompt-time ontology.
+
 No other public reaction type should appear in:
 - REST responses
 - WebSocket event payloads
