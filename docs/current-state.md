@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-19T13:03:02+08:00`
+Last verified: `2026-04-19T15:32:58+08:00`
 
 ## Current Objective
 - Land `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -230,11 +230,27 @@ Last verified: `2026-04-19T13:03:02+08:00`
       - `surfaced_reactions`
       - `implicit_uptake_ops`
       - `pressure_signals`
-      - optional `revisit_need`
+      - optional `detour_need`
     - the dedicated live `Express` node is no longer on the live path
     - `Read` prompt packaging now uses compact `always carry / selective carry / not carry` projections instead of the broader intermediate packet
+  - `Phase F2` is now landed as the navigate-owned detour cutover:
+    - the live `Read` contract now emits `detour_need` instead of the transitional `revisit_need`
+    - `Navigate` now owns bounded detour search over:
+      - structure cards
+      - long-distance-memory digests
+      - source-grounded anchor handles
+    - `local_continuity` now persists:
+      - `mainline_cursor`
+      - `active_detour_id`
+      - `active_detour_need`
+      - `detour_trace`
+    - detour search now uses one bounded prompt family with:
+      - `narrow_scope`
+      - `land_region`
+      - `defer_detour`
+    - landed detour regions now flow back through the same normal `navigate.unitize -> read -> navigate.route` loop
+    - chapter-tail detours are now drained before chapter slow-cycle closes, so a last-unit detour is not silently dropped
   - the active next implementation slices are now:
-    - `Phase F2` — navigate-owned revisit cutover
     - `Phase F3` — reaction persistence and compatibility reconvergence
     - `Phase F4` — quality validation and dead-path cleanup
   - the April 12 post-Phase-D smoke has now finished and is interpreted as follows:

@@ -679,8 +679,8 @@ def persist_read_audit(
             )
             if isinstance(read_result.get("surfaced_reactions"), list)
             else 0,
-            "revisit_need": dict(read_result.get("revisit_need") or {})
-            if isinstance(read_result.get("revisit_need"), dict)
+            "detour_need": dict(read_result.get("detour_need") or {})
+            if isinstance(read_result.get("detour_need"), dict)
             else {},
             "llm_fallbacks": [dict(item) for item in (llm_fallbacks or []) if isinstance(item, dict)],
         },

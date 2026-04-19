@@ -56,11 +56,24 @@ Implementation checkpoint:
   - this branch remains valuable evidence, but it is no longer the approved end-state target for the mechanism
 - `Phase F1` is now landed as the first post-freeze cutover:
   - the live per-unit loop is now `navigate.unitize -> read -> navigate.route`
-  - `Read` now directly owns surfaced reactions, implicit uptake ops, pressure signals, and optional `revisit_need`
+  - `Read` now directly owns surfaced reactions, implicit uptake ops, pressure signals, and optional `detour_need`
   - the dedicated live `Express` node is no longer on the runner path
   - `Read` prompt packaging now follows compact `always carry / selective carry / not carry` projections
-- next after F1:
-  - `Phase F2` should replace `context_request`-style private recall ownership with `revisit_need -> navigate`
+- `Phase F2` is now landed as the navigate-owned detour cutover:
+  - the live `Read` contract now emits `detour_need` directly
+  - `Navigate` now owns bounded hierarchical detour search rather than a private supplemental fetch loop
+  - `local_continuity` now persists:
+    - `mainline_cursor`
+    - `active_detour_id`
+    - `active_detour_need`
+    - `detour_trace`
+  - detour search now uses one prompt family whose legal outcomes are:
+    - `narrow_scope`
+    - `land_region`
+    - `defer_detour`
+  - landed detour regions now re-enter the same normal `navigate.unitize -> read -> navigate.route` reading loop
+  - chapter-tail detours are now drained before chapter slow-cycle closes
+- next after F2:
   - `Phase F3` should keep surfaced-reaction compatibility projections working while persistence and adapters reconverge on the simplified live path
   - `Phase F4` should validate quality and clean dead steady-state branches
 
@@ -235,7 +248,7 @@ The mechanism can form local understanding that later becomes harder to see beca
 - make `read` carry forward prior context and expose prior-material use as an observational result rather than a separate mechanism action
 - restructure state and prompt packetization so long-distance continuity becomes more reliable
 - simplify the read path so surfaced reactions stay close to the same call that formed the reading understanding
-- move revisit ownership back under `navigate`
+- move detour ownership back under `navigate`
 - keep compatibility projections working while the live path becomes simpler again
 - preserve existing compatibility behavior where practical while the backend shape changes
 
@@ -559,7 +572,7 @@ But the later post-E3 review now says the stable next shape should be:
 - keep carried continuity and bounded recall
 - simplify the `read` contract
 - return surfaced reactions to `read`
-- move revisit dispatch to `navigate`
+- move detour dispatch to `navigate`
 
 ### 7.3 Phase C — Restructure state and prompt packetization
 
@@ -614,7 +627,7 @@ Keep V2's typed-state base, but stop exposing it to the model as an unstructured
   - durable chapter understandings, book frames, and stable definitions
 - `anchor_bank`
   - source-grounded evidence base only
-  - retained anchors, typed relations, revisit / bridge support
+  - retained anchors, typed relations, detour / bridge support
   - not a generic semantic memory bucket
 
 #### Current V2 state disposition that should guide migration
@@ -869,7 +882,7 @@ Keep the old family only where the rest of the system still needs it.
   2. cut live path
   3. clean compatibility / evaluation chain
 
-### 7.6 Post-E3 contract freeze — Read-native surfaced reactions, prompt projection, and revisit ownership
+### 7.6 Post-E3 contract freeze — Read-native surfaced reactions, prompt projection, and detour ownership
 
 Status: `active design baseline`
 
@@ -886,7 +899,7 @@ Why this reset won:
 
 - surfaced reactions should stay closer to the first reading moment instead of being re-worded by a second live node
 - the main problem was an overloaded `Read` contract and overpacked prompt/context assembly, not the mere absence of a wording node
-- revisit behavior belongs with `Navigate` because it is fundamentally a reading-window routing decision
+- detour behavior belongs with `Navigate` because it is fundamentally a reading-window routing decision
 - chapter-level consolidation still belongs with `slow cycle`, not with `Read`
 
 #### Frozen next-shape contract
@@ -894,14 +907,14 @@ Why this reset won:
 - `Navigate`
   - owns coverage-unit choice
   - owns `local_continuity`
-  - owns revisit dispatch
+  - owns detour search and dispatch
 - `Read`
   - owns current-unit understanding
   - owns `unit_delta`
   - owns `surfaced_reactions[]`
   - owns `implicit_uptake_ops[]`
   - owns `pressure_signals`
-  - may emit one `revisit_need`
+  - may emit one `detour_need`
 - `slow cycle`
   - owns chapter-end cooling, promotion, reconsolidation, and `reflective_frames`
 - `Runner`
@@ -910,7 +923,7 @@ Why this reset won:
 #### Frozen state-layer model
 
 - `local_continuity`
-  - reading-flow state, cursor, revisit queue, return points
+  - reading-flow state, cursor, `mainline_cursor`, active detour trace, and return semantics
 - `working_state`
   - current hot unresolved items
 - `long-distance memory`
@@ -918,7 +931,7 @@ Why this reset won:
   - `thread_trace`
   - `reflective_frames`
 - `anchor_bank`
-  - source-grounding substrate for surfaced reactions, revisit localization, and evaluation honesty
+  - source-grounding substrate for surfaced reactions, detour localization, and evaluation honesty
 - `artifacts / history`
   - `reaction_records`
   - `move_history`
@@ -941,7 +954,8 @@ Frozen node projections:
     - `local_continuity`
     - one thin routing digest from `working_state`
   - `selective carry`
-    - minimal anchor/thread/concept handles for revisit localization
+    - structure-map cards
+    - minimal anchor/thread/concept handles for detour localization
   - `not carry`
     - full history/audit and large earlier source text
 - `Read`
@@ -953,7 +967,7 @@ Frozen node projections:
     - compact `thread_digest`
     - compact `reflective_digest`
   - `selective carry`
-    - bounded earlier source excerpt for `inline_look_back`
+    - bounded detour-context excerpt or anchor detail once `Navigate` has landed a detour region
     - specific anchor details
     - sparse supporting refs
   - `not carry`
@@ -963,15 +977,35 @@ Frozen node projections:
     - full `read_audit`
     - full `anchor_bank`
 
-#### Frozen revisit contract
+#### Frozen detour contract
 
-- `Read` does not privately complete a revisit on its own
-- `Read` only emits `revisit_need`
-- `Navigate` decides one of:
-  - `inline_look_back`
-    - keep current unit as the main reading object, but inject one bounded earlier excerpt on the next read
-  - `revisit_hop`
-    - temporarily redirect the window to an earlier region, then return to the saved forward cursor
+- `Read` does not privately complete a detour on its own
+- `Read` only emits `detour_need`
+- `detour_need` is intentionally light:
+  - `reason`
+  - `target_hint`
+  - `status`
+- `Navigate` owns all detour search and return decisions
+- Detour is not a special side-channel retrieval action
+  - once `Navigate` lands a detour region, that region is read through the same normal `navigate.unitize -> read -> navigate.route` loop
+- `Navigate` should reason over:
+  - book structure cards
+  - compact long-distance-memory digests
+  - source-grounded anchor handles
+  - current `detour_trace`
+  - `mainline_cursor`
+- Detour localization should be semantic and LLM-led, not a program-led candidate-recall subsystem
+- Detour search should use one prompt family with three legal outcomes:
+  - `narrow_scope`
+  - `land_region`
+  - `defer_detour`
+- Detour search should be bounded:
+  - one call when the target is already obvious from memory and structure
+  - two calls for ordinary ambiguity
+  - three calls as the hard upper bound before best-effort landing or defer-to-mainline behavior
+- A non-productive detour is not automatically a failure.
+  - the reader may still refresh understanding while looking
+  - if the target remains too vague, the system should return to the mainline instead of searching indefinitely
 
 #### Implementation slices after the freeze
 
@@ -983,7 +1017,7 @@ Frozen node projections:
   - `surfaced_reactions`
   - `implicit_uptake_ops`
   - `pressure_signals`
-  - optional `revisit_need`
+  - optional `detour_need`
 - the live runner no longer calls the dedicated `Express` step
 - whole-object memory rewrites were replaced with explicit `append / update / close / link` operations
 - read prompt packaging now uses the frozen `always / selective / not` posture
@@ -993,13 +1027,30 @@ Frozen node projections:
   - compact prompt-packet projection
   - slow-cycle compatibility invariants
 
-##### Phase F2 — Navigate-owned revisit cutover
+##### Phase F2 — Navigate-owned detour cutover (`landed`)
 
-- replace the current `context_request`-style private recall ownership with `revisit_need`
-- teach `Navigate` to schedule:
-  - `inline_look_back`
-  - `revisit_hop`
-- add explicit return-point handling in `local_continuity`
+- `Read` now emits `detour_need` on the live path instead of the transitional `revisit_need`
+- `Navigate` now runs bounded detour search as a normal navigation responsibility
+- `local_continuity` now maintains:
+  - `mainline_cursor`
+  - `active_detour_id`
+  - `active_detour_need`
+  - `detour_trace`
+- detour targets are now localized through hierarchical semantic search over:
+  - chapter / section structure cards
+  - compact long-distance-memory digests
+  - source-grounded anchor handles
+- one `detour-search` prompt family now returns:
+  - `narrow_scope`
+  - `land_region`
+  - `defer_detour`
+- once a detour region is landed, the runner routes back into normal reading for that region rather than inventing a second reading system
+- detour episodes may chain semantically rather than forcing strict stack-style returns
+- search remains bounded and honest:
+  - target one call when memory and structure make the detour obvious
+  - allow two calls for ordinary ambiguity
+  - cap at three calls before best-effort landing or defer-to-mainline behavior
+- chapter-tail pending detours are now drained before chapter slow-cycle closes so the final mainline unit cannot silently drop a fresh detour request
 
 ##### Phase F3 — Reaction persistence and compatibility reconvergence
 

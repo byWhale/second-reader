@@ -174,6 +174,7 @@ def capture_local_continuity(
     chapter_id: int | None,
     chapter_ref: str,
     local_buffer: LocalBufferState,
+    prior_continuity: LocalContinuityState | None = None,
     mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION,
 ) -> LocalContinuityState:
     """Project the heavier local buffer into the compact Phase 7 continuity envelope."""
@@ -204,6 +205,31 @@ def capture_local_continuity(
         ],
         "recent_meaning_units": recent_meaning_units,
         "last_meaning_unit_closed_at_sentence_id": _clean_text(local_buffer.get("last_meaning_unit_closed_at_sentence_id")),
+        "mainline_cursor": dict(prior_continuity.get("mainline_cursor", {}))
+        if isinstance(prior_continuity, dict) and isinstance(prior_continuity.get("mainline_cursor"), dict)
+        else build_shared_cursor(
+            chapter_id=chapter_id,
+            chapter_ref=chapter_ref,
+            current_sentence_id=_clean_text(local_buffer.get("current_sentence_id")),
+            open_meaning_unit_sentence_ids=[
+                _clean_text(sentence_id)
+                for sentence_id in local_buffer.get("open_meaning_unit_sentence_ids", [])
+                if _clean_text(sentence_id)
+            ],
+        ),
+        "active_detour_id": _clean_text(prior_continuity.get("active_detour_id"))
+        if isinstance(prior_continuity, dict)
+        else "",
+        "active_detour_need": dict(prior_continuity.get("active_detour_need", {}))
+        if isinstance(prior_continuity, dict) and isinstance(prior_continuity.get("active_detour_need"), dict)
+        else None,
+        "detour_trace": [
+            dict(item)
+            for item in prior_continuity.get("detour_trace", [])
+            if isinstance(item, dict)
+        ]
+        if isinstance(prior_continuity, dict) and isinstance(prior_continuity.get("detour_trace"), list)
+        else [],
         "is_reconstructed": bool(local_buffer.get("is_reconstructed", False)),
         "reconstructed_from_checkpoint_id": local_buffer.get("reconstructed_from_checkpoint_id"),
         "last_resume_kind": local_buffer.get("last_resume_kind"),
@@ -216,6 +242,7 @@ def persist_reading_position(
     chapter_id: int | None,
     chapter_ref: str,
     local_buffer: LocalBufferState,
+    local_continuity: LocalContinuityState | None = None,
     active_artifact_refs: RuntimeArtifactRefs | None = None,
     status: str | None = None,
     phase: str | None = None,
@@ -227,6 +254,7 @@ def persist_reading_position(
         chapter_id=chapter_id,
         chapter_ref=chapter_ref,
         local_buffer=local_buffer,
+        prior_continuity=local_continuity,
         mechanism_version=str(local_buffer.get("mechanism_version", "") or ATTENTIONAL_V2_MECHANISM_VERSION),
     )
     save_json(local_continuity_file(output_dir), continuity)

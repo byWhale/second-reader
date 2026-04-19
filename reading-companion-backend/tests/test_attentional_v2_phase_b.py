@@ -117,10 +117,10 @@ def test_read_unit_projects_compact_packet_and_returns_f1_surface_contract(tmp_p
                     },
                 }
             ],
-            "revisit_need": {
+            "detour_need": {
                 "reason": "Need the exact earlier wording.",
                 "target_hint": "the earlier promise line",
-                "preferred_mode": "inline_look_back",
+                "status": "open",
             },
         }
 
@@ -255,7 +255,7 @@ def test_read_unit_projects_compact_packet_and_returns_f1_surface_contract(tmp_p
     assert "\"working_pressure_digest\"" not in captured["prompt"]
     assert "\"refs\": [" not in captured["prompt"]
     assert "\"anchor_bank_digest\"" not in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.read.v6"
+    assert manifest["prompt_version"] == "attentional_v2.read.v7"
     assert result["unit_delta"] == "The second sentence sharpens the first one."
     assert result["pressure_signals"] == {
         "continuation_pressure": True,
@@ -266,7 +266,7 @@ def test_read_unit_projects_compact_packet_and_returns_f1_surface_contract(tmp_p
     assert result["surfaced_reactions"][0]["prior_link"]["ref_ids"] == ["anchor:a-1", "lookback:sentence:c1-s1"]
     assert result["implicit_uptake_ops"][0]["op"] == "update"
     assert result["implicit_uptake_ops"][0]["target_store"] == "working_state"
-    assert result["revisit_need"]["preferred_mode"] == "inline_look_back"
+    assert result["detour_need"]["status"] == "open"
 
     route = navigate_route(read_result=result)
     assert route["action"] == "bridge_back"
@@ -431,10 +431,10 @@ def test_run_read_with_context_loop_reads_once_and_persists_f1_audit(tmp_path, m
                     "payload": {"kind": "question", "statement": "What changes here?"},
                 }
             ],
-            "revisit_need": {
-                "reason": "A later revisit may still help compare the earlier line.",
+            "detour_need": {
+                "reason": "A later detour may still help compare the earlier line.",
                 "target_hint": "the opening sentence",
-                "preferred_mode": "inline_look_back",
+                "status": "open",
             },
         }
 
@@ -464,6 +464,7 @@ def test_run_read_with_context_loop_reads_once_and_persists_f1_audit(tmp_path, m
         reaction_records=build_empty_reaction_records(),
         reader_policy=build_default_reader_policy(),
         output_language="en",
+        detour_context=None,
         output_dir=output_dir,
         book_title="Demo Book",
         author="Tester",
@@ -478,8 +479,8 @@ def test_run_read_with_context_loop_reads_once_and_persists_f1_audit(tmp_path, m
     assert calls[0]["supplemental_context"] is None
     assert read_result["surfaced_reactions"][0]["anchor_quote"] == "Beta sentence."
     assert read_result["implicit_uptake_ops"][0]["op"] == "append"
-    assert read_result["revisit_need"]["preferred_mode"] == "inline_look_back"
+    assert read_result["detour_need"]["status"] == "open"
     assert audit_line["stop_reason"] == "read_complete"
     assert audit_line["surfaced_reaction_count"] == 1
-    assert audit_line["revisit_need"]["target_hint"] == "the opening sentence"
+    assert audit_line["detour_need"]["target_hint"] == "the opening sentence"
     assert audit_line["supplemental_satisfied"] is False

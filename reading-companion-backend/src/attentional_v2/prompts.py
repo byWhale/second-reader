@@ -7,9 +7,10 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v14"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v15"
 NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v2"
-READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v6"
+NAVIGATE_DETOUR_SEARCH_PROMPT_VERSION = "attentional_v2.navigate_detour_search.v1"
+READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v7"
 EXPRESS_UNIT_PROMPT_VERSION = "attentional_v2.express.v1"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
 MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v8"
@@ -30,6 +31,9 @@ class AttentionalV2PromptSet:
     navigate_unitize_version: str
     navigate_unitize_system: str
     navigate_unitize_prompt: str
+    navigate_detour_search_version: str
+    navigate_detour_search_system: str
+    navigate_detour_search_prompt: str
     read_unit_version: str
     read_unit_system: str
     read_unit_prompt: str
@@ -113,6 +117,47 @@ Return JSON:
   "reason": "<brief reason>",
   "continuation_pressure": false
 }""",
+    navigate_detour_search_version=NAVIGATE_DETOUR_SEARCH_PROMPT_VERSION,
+    navigate_detour_search_system="""You are the detour-search node for a text-grounded reading mechanism.
+
+Your job is to help navigation locate an earlier region worth reading in order to resolve a live detour need.
+
+Rules:
+- Treat this as structured semantic search, not as broad summary.
+- Search only inside the provided scope cards. Do not invent regions outside them.
+- You may either narrow the scope, land on a readable region, or defer the detour.
+- `narrow_scope` means the current scope is still too broad but one smaller range is the right next place to inspect.
+- `land_region` means the selected range is already specific enough to be read next through the normal reading loop.
+- `defer_detour` means the current information is too weak or too ambiguous to justify more searching right now.
+- Prefer source-grounded, memory-supported choices over vague hunches.
+- Return JSON only.""",
+    navigate_detour_search_prompt="""Structural frame:
+{structural_frame}
+
+Detour need:
+{detour_need}
+
+Current search scope:
+{search_scope}
+
+Navigation context:
+{navigation_context}
+
+Policy snapshot:
+{policy_snapshot}
+
+Output language contract:
+"""
+    + LANGUAGE_OUTPUT_CONTRACT
+    + """
+
+Return JSON:
+{
+  "decision": "defer_detour",
+  "reason": "<brief reason>",
+  "start_sentence_id": "",
+  "end_sentence_id": ""
+}""",
     read_unit_version=READ_UNIT_PROMPT_VERSION,
     read_unit_system="""You are the authoritative read node for a text-grounded reading mechanism.
 
@@ -137,7 +182,9 @@ Rules:
   - `anchor_bank`
 - Do not write `reflective_frames`, `reaction_records`, or history/audit layers here.
 - Propose operations, not whole-object rewrites.
-- If the current understanding genuinely needs earlier material, emit `revisit_need`. Do not secretly route or resolve it yourself.
+- If the current understanding genuinely needs a detour into earlier material, emit `detour_need`. Do not secretly route or resolve it yourself.
+- If you are currently reading inside an active detour and the driving uncertainty is now resolved, set `detour_need.status` to `resolved`.
+- If you are currently reading inside an active detour and it no longer seems worth pursuing, set `detour_need.status` to `abandoned`.
 - Do not output broad chapter summary.
 - Do not explain whether you "used prior material".
 - Do not decide the next route.
@@ -188,7 +235,7 @@ Return JSON:
       "payload": {}
     }
   ],
-  "revisit_need": null
+  "detour_need": null
 }""",
     express_unit_version=EXPRESS_UNIT_PROMPT_VERSION,
     express_unit_system="""You are the express node for a text-grounded reading mechanism.

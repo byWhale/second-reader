@@ -202,6 +202,53 @@ def test_persist_reading_position_recreates_missing_runtime_shell(tmp_path: Path
     assert shell["cursor"]["sentence_id"] == "c1-s6"
 
 
+def test_persist_reading_position_preserves_detour_state(tmp_path: Path):
+    """Persisting position should carry detour state through local continuity snapshots."""
+
+    output_dir = tmp_path / "output" / "demo-book"
+    AttentionalV2Mechanism().initialize_artifacts(output_dir)
+    local_buffer = _build_buffer(total_sentences=6, closed_breaks=[3])
+
+    persisted = persist_reading_position(
+        output_dir,
+        chapter_id=1,
+        chapter_ref="Chapter 1",
+        local_buffer=local_buffer,
+        local_continuity={
+            "mainline_cursor": {
+                "position_kind": "sentence",
+                "chapter_id": 1,
+                "chapter_ref": "Chapter 1",
+                "sentence_id": "c1-s6",
+            },
+            "active_detour_id": "detour:1:c1-s6:1",
+            "active_detour_need": {
+                "reason": "Need to revisit the earlier setup.",
+                "target_hint": "the opening setup",
+                "status": "open",
+            },
+            "detour_trace": [
+                {
+                    "detour_id": "detour:1:c1-s6:1",
+                    "origin_cursor": {
+                        "position_kind": "sentence",
+                        "chapter_id": 1,
+                        "chapter_ref": "Chapter 1",
+                        "sentence_id": "c1-s6",
+                    },
+                    "origin_target_hint": "the opening setup",
+                    "status": "open",
+                }
+            ],
+        },
+    )
+
+    continuity = persisted["local_continuity"]
+    assert continuity["active_detour_id"] == "detour:1:c1-s6:1"
+    assert continuity["active_detour_need"]["target_hint"] == "the opening setup"
+    assert continuity["detour_trace"][0]["status"] == "open"
+
+
 def test_cold_resume_expands_to_open_meaning_unit_start(tmp_path: Path):
     """Cold resume should backfill to the start of the current open meaning unit when needed."""
 

@@ -9,7 +9,7 @@ from typing import Callable
 
 from src.reading_core import BookDocument
 from src.reading_core.storage import book_document_file, save_book_document
-from src.reading_core.runtime_contracts import MechanismInfo, ParseRequest, ParseResult, ReadRequest, ReadResult
+from src.reading_core.runtime_contracts import MechanismInfo, ParseRequest, ParseResult, ReadRequest, ReadResult, SharedRunCursor
 from src.reading_runtime import artifacts as runtime_artifacts
 from src.reading_runtime.llm_registry import DEFAULT_RUNTIME_PROFILE_ID
 from src.reading_runtime.provisioning import ProvisionedBook, ensure_canonical_parse
@@ -32,6 +32,7 @@ from .intake import process_sentence_intake
 from .knowledge import apply_activation_operations
 from .nodes import (
     build_unitize_preview,
+    navigate_detour_search,
     navigate_route,
     navigate_unitize,
     persist_unitization_audit,
@@ -48,8 +49,11 @@ from .schemas import (
     AnchorBankState,
     AnchoredReactionRecord,
     ConceptRegistryState,
+    DetourNeed,
+    DetourSearchResult,
     KnowledgeActivationsState,
     LocalBufferState,
+    LocalContinuityState,
     MoveHistoryState,
     NavigateRouteDecision,
     ReactionRecordsState,
@@ -66,6 +70,7 @@ from .schemas import (
     build_default_reader_policy,
     build_empty_knowledge_activations,
     build_empty_local_buffer,
+    build_empty_local_continuity,
     build_empty_move_history,
     build_empty_reaction_records,
     build_empty_reconsolidation_records,
@@ -105,6 +110,7 @@ from .storage import (
     knowledge_activations_file,
     load_json,
     local_buffer_file,
+    local_continuity_file,
     move_history_file,
     normalized_eval_bundle_file,
     reaction_records_file,
@@ -150,6 +156,127 @@ def _chapter_matches_request(chapter: dict[str, object], requested_number: int) 
     chapter_id = int(chapter.get("id", 0) or 0)
     chapter_number = int(chapter.get("chapter_number", 0) or 0)
     return requested_number in {chapter_id, chapter_number}
+
+
+def _shared_cursor_for_sentence(
+    *,
+    chapter_id: int | None,
+    chapter_ref: str,
+    sentence: dict[str, object] | None,
+) -> SharedRunCursor:
+    """Build one shared cursor for a concrete sentence position."""
+
+    if not isinstance(sentence, dict):
+        return {
+            "position_kind": "chapter",
+            "chapter_id": chapter_id,
+            "chapter_ref": chapter_ref,
+        }
+    sentence_id = _clean_text(sentence.get("sentence_id"))
+    if not sentence_id:
+        return {
+            "position_kind": "chapter",
+            "chapter_id": chapter_id,
+            "chapter_ref": chapter_ref,
+        }
+    return {
+        "position_kind": "sentence",
+        "chapter_id": chapter_id,
+        "chapter_ref": chapter_ref,
+        "sentence_id": sentence_id,
+    }
+
+
+def _local_continuity_detour_trace(local_continuity: LocalContinuityState) -> list[dict[str, object]]:
+    """Return the mutable detour trace list from local continuity."""
+
+    if not isinstance(local_continuity.get("detour_trace"), list):
+        local_continuity["detour_trace"] = []
+    return [
+        dict(item)
+        for item in local_continuity.get("detour_trace", [])
+        if isinstance(item, dict)
+    ]
+
+
+def _active_detour_need(local_continuity: LocalContinuityState) -> DetourNeed | None:
+    """Return the currently active detour need if one is open."""
+
+    active_detour_need = local_continuity.get("active_detour_need")
+    if not isinstance(active_detour_need, dict):
+        return None
+    if _clean_text(active_detour_need.get("status")).lower() != "open":
+        return None
+    return dict(active_detour_need)  # type: ignore[return-value]
+
+
+def _sync_active_detour_from_trace(local_continuity: LocalContinuityState) -> LocalContinuityState:
+    """Sync the active detour pointer from the latest still-open trace entry."""
+
+    trace = _local_continuity_detour_trace(local_continuity)
+    for entry in reversed(trace):
+        if _clean_text(entry.get("status")).lower() != "open":
+            continue
+        local_continuity["active_detour_id"] = _clean_text(entry.get("detour_id"))
+        local_continuity["active_detour_need"] = {
+            "reason": "",
+            "target_hint": _clean_text(entry.get("origin_target_hint")),
+            "status": "open",
+        }
+        local_continuity["detour_trace"] = trace
+        return local_continuity
+    local_continuity["active_detour_id"] = ""
+    local_continuity["active_detour_need"] = None
+    local_continuity["detour_trace"] = trace
+    return local_continuity
+
+
+def _apply_detour_need(
+    local_continuity: LocalContinuityState,
+    detour_need: DetourNeed | None,
+) -> LocalContinuityState:
+    """Apply one detour need emitted by read into local continuity state."""
+
+    if not isinstance(detour_need, dict):
+        return local_continuity
+    status = _clean_text(detour_need.get("status")).lower() or "open"
+    if status not in {"open", "resolved", "abandoned"}:
+        status = "open"
+    trace = _local_continuity_detour_trace(local_continuity)
+    if status == "open":
+        origin_cursor = (
+            dict(local_continuity.get("mainline_cursor", {}))
+            if isinstance(local_continuity.get("mainline_cursor"), dict)
+            else {}
+        )
+        origin_chapter_id = origin_cursor.get("chapter_id")
+        origin_sentence_id = _clean_text(origin_cursor.get("sentence_id"))
+        detour_id = f"detour:{int(origin_chapter_id or 0)}:{origin_sentence_id or 'chapter'}:{len(trace) + 1}"
+        trace.append(
+            {
+                "detour_id": detour_id,
+                "origin_cursor": origin_cursor,
+                "origin_target_hint": _clean_text(detour_need.get("target_hint")),
+                "status": "open",
+            }
+        )
+        local_continuity["detour_trace"] = trace
+        local_continuity["active_detour_id"] = detour_id
+        local_continuity["active_detour_need"] = {
+            "reason": _clean_text(detour_need.get("reason")),
+            "target_hint": _clean_text(detour_need.get("target_hint")),
+            "status": "open",
+        }
+        return local_continuity
+
+    active_detour_id = _clean_text(local_continuity.get("active_detour_id"))
+    for entry in trace:
+        if _clean_text(entry.get("detour_id")) != active_detour_id:
+            continue
+        entry["status"] = status
+        break
+    local_continuity["detour_trace"] = trace
+    return _sync_active_detour_from_trace(local_continuity)
 
 
 def _chapter_statuses(document: BookDocument, output_dir: Path) -> dict[int, str]:
@@ -242,6 +369,7 @@ def _default_builder(name: str) -> Callable[[], dict[str, object]]:
 
     builders: dict[str, Callable[[], dict[str, object]]] = {
         "local_buffer": lambda: build_empty_local_buffer(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
+        "local_continuity": lambda: build_empty_local_continuity(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "trigger_state": lambda: build_empty_trigger_state(mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION),
         "continuation_capsule": lambda: build_empty_continuation_capsule(
             mechanism_version=ATTENTIONAL_V2_MECHANISM_VERSION,
@@ -280,6 +408,7 @@ def _load_runtime_bundle(output_dir: Path) -> dict[str, dict[str, object]]:
 
     bundle = {
         "local_buffer": _load_or_default(local_buffer_file(output_dir), _default_builder("local_buffer")),
+        "local_continuity": _load_or_default(local_continuity_file(output_dir), _default_builder("local_continuity")),
         "trigger_state": _load_or_default(trigger_state_file(output_dir), _default_builder("trigger_state")),
         "continuation_capsule": _load_or_default(continuation_capsule_file(output_dir), _default_builder("continuation_capsule")),
         "knowledge_activations": _load_or_default(
@@ -321,6 +450,7 @@ def _save_runtime_bundle(output_dir: Path, bundle: dict[str, dict[str, object]])
     """Persist the attentional runtime bundle."""
 
     save_json(local_buffer_file(output_dir), bundle["local_buffer"])
+    save_json(local_continuity_file(output_dir), bundle["local_continuity"])
     save_json(trigger_state_file(output_dir), bundle["trigger_state"])
     save_json(continuation_capsule_file(output_dir), bundle["continuation_capsule"])
     save_json(working_state_file(output_dir), bundle["working_state"])
@@ -423,6 +553,7 @@ def _reset_live_runtime(output_dir: Path) -> None:
         concept_registry_file(output_dir),
         thread_trace_file(output_dir),
         local_buffer_file(output_dir),
+        local_continuity_file(output_dir),
         trigger_state_file(output_dir),
         continuation_capsule_file(output_dir),
         anchor_bank_file(output_dir),
@@ -511,6 +642,914 @@ def _resolve_unit_sentences(
     if start_index < 0 or end_index < start_index:
         return []
     return [dict(sentence) for sentence in sentences[start_index : end_index + 1]]
+
+
+def _build_sentence_lookup(
+    document: BookDocument,
+) -> tuple[dict[str, dict[str, object]], dict[int, dict[str, object]]]:
+    """Build sentence and chapter lookup tables from the shared book document."""
+
+    sentence_lookup: dict[str, dict[str, object]] = {}
+    chapter_lookup: dict[int, dict[str, object]] = {}
+    for raw_chapter in document.get("chapters", []):
+        if not isinstance(raw_chapter, dict):
+            continue
+        chapter = dict(raw_chapter)
+        chapter_id = int(chapter.get("id", 0) or 0)
+        if chapter_id <= 0:
+            continue
+        chapter_lookup[chapter_id] = chapter
+        chapter_ref = _chapter_ref(chapter)
+        for index, sentence in enumerate(chapter.get("sentences", [])):
+            if not isinstance(sentence, dict):
+                continue
+            sentence_id = _sentence_id(sentence)
+            if not sentence_id:
+                continue
+            sentence_lookup[sentence_id] = {
+                "chapter_id": chapter_id,
+                "chapter_ref": chapter_ref,
+                "sentence_index": index,
+                "sentence": dict(sentence),
+            }
+    return sentence_lookup, chapter_lookup
+
+
+def _sentences_visible_to_detour(
+    chapter: dict[str, object],
+    *,
+    mainline_cursor: SharedRunCursor,
+) -> list[dict[str, object]]:
+    """Return the earlier-in-book sentence slice currently visible to detour search."""
+
+    chapter_id = int(chapter.get("id", 0) or 0)
+    mainline_chapter_id = int(mainline_cursor.get("chapter_id", 0) or 0)
+    sentences = [dict(sentence) for sentence in chapter.get("sentences", []) if isinstance(sentence, dict)]
+    if chapter_id <= 0 or not sentences or mainline_chapter_id <= 0:
+        return []
+    if chapter_id < mainline_chapter_id:
+        return sentences
+    if chapter_id > mainline_chapter_id:
+        return []
+    mainline_sentence_id = _clean_text(mainline_cursor.get("sentence_id"))
+    if not mainline_sentence_id:
+        return []
+    cutoff = next((index for index, sentence in enumerate(sentences) if _sentence_id(sentence) == mainline_sentence_id), -1)
+    if cutoff < 0:
+        return sentences
+    return sentences[:cutoff]
+
+
+def _paragraph_index(sentence: dict[str, object]) -> int:
+    """Return the best-effort paragraph index for one sentence."""
+
+    locator = sentence.get("locator")
+    if isinstance(locator, dict):
+        value = int(locator.get("paragraph_index", 0) or locator.get("paragraph_start", 0) or 0)
+        if value > 0:
+            return value
+    return int(sentence.get("paragraph_index", 0) or 0)
+
+
+def _scope_card(
+    *,
+    card_id: str,
+    label: str,
+    summary: str,
+    sentences: list[dict[str, object]],
+) -> dict[str, object]:
+    """Build one structured detour-scope card from a bounded sentence slice."""
+
+    return {
+        "card_id": card_id,
+        "label": label,
+        "summary": summary,
+        "start_sentence_id": _sentence_id(sentences[0]) if sentences else "",
+        "end_sentence_id": _sentence_id(sentences[-1]) if sentences else "",
+    }
+
+
+def _build_detour_chapter_scope(
+    *,
+    document: BookDocument,
+    survey_map: dict[str, object],
+    mainline_cursor: SharedRunCursor,
+) -> dict[str, object]:
+    """Build the initial detour-search scope as chapter cards over already-read space."""
+
+    chapter_summaries = {
+        int(entry.get("chapter_id", 0) or 0): dict(entry)
+        for entry in survey_map.get("chapter_map", [])
+        if isinstance(entry, dict)
+    } if isinstance(survey_map.get("chapter_map"), list) else {}
+    cards: list[dict[str, object]] = []
+    for raw_chapter in document.get("chapters", []):
+        if not isinstance(raw_chapter, dict):
+            continue
+        chapter = dict(raw_chapter)
+        chapter_id = int(chapter.get("id", 0) or 0)
+        visible_sentences = _sentences_visible_to_detour(chapter, mainline_cursor=mainline_cursor)
+        if chapter_id <= 0 or not visible_sentences:
+            continue
+        chapter_summary = chapter_summaries.get(chapter_id, {})
+        opening_sentences = chapter_summary.get("opening_sentences", [])
+        summary = ""
+        if isinstance(opening_sentences, list) and opening_sentences:
+            first_opening = opening_sentences[0]
+            if isinstance(first_opening, dict):
+                summary = _clean_text(first_opening.get("text"))
+        if not summary:
+            summary = _clean_text(visible_sentences[0].get("text"))[:180]
+        cards.append(
+            _scope_card(
+                card_id=f"chapter:{chapter_id}",
+                label=_clean_text(chapter.get("title")) or _chapter_ref(chapter),
+                summary=summary,
+                sentences=visible_sentences,
+            )
+        )
+    return {
+        "scope_kind": "chapter_cards",
+        "reason": "initial_detour_scope",
+        "cards": cards,
+    }
+
+
+def _build_detour_section_or_window_scope(
+    *,
+    chapter: dict[str, object],
+    selected_sentences: list[dict[str, object]],
+) -> dict[str, object]:
+    """Build the second-layer detour scope from one landed chapter region."""
+
+    heading_indexes = [
+        index
+        for index, sentence in enumerate(selected_sentences)
+        if _clean_text(sentence.get("text_role")) == "section_heading"
+    ]
+    if heading_indexes:
+        cards: list[dict[str, object]] = []
+        for offset, start_index in enumerate(heading_indexes):
+            end_index = heading_indexes[offset + 1] - 1 if offset + 1 < len(heading_indexes) else len(selected_sentences) - 1
+            scope_sentences = selected_sentences[start_index : end_index + 1]
+            if not scope_sentences:
+                continue
+            cards.append(
+                _scope_card(
+                    card_id=f"section:{_sentence_id(scope_sentences[0])}",
+                    label=_clean_text(scope_sentences[0].get("text")) or f"Section {offset + 1}",
+                    summary=_clean_text(scope_sentences[min(1, len(scope_sentences) - 1)].get("text"))[:180],
+                    sentences=scope_sentences,
+                )
+            )
+        if cards:
+            return {
+                "scope_kind": "section_cards",
+                "reason": f"expand_{int(chapter.get('id', 0) or 0)}_sections",
+                "cards": cards,
+            }
+
+    paragraphs: dict[int, list[dict[str, object]]] = {}
+    for sentence in selected_sentences:
+        paragraph_index = _paragraph_index(sentence)
+        paragraphs.setdefault(paragraph_index, []).append(sentence)
+    ordered_paragraphs = [paragraphs[index] for index in sorted(paragraphs) if paragraphs[index]]
+    window_size = 3
+    cards = []
+    for window_index in range(0, len(ordered_paragraphs), window_size):
+        paragraph_window = ordered_paragraphs[window_index : window_index + window_size]
+        scope_sentences = [sentence for paragraph in paragraph_window for sentence in paragraph]
+        if not scope_sentences:
+            continue
+        first_paragraph = _paragraph_index(scope_sentences[0])
+        last_paragraph = _paragraph_index(scope_sentences[-1])
+        cards.append(
+            _scope_card(
+                card_id=f"paragraph_window:{_sentence_id(scope_sentences[0])}",
+                label=f"Paragraphs {first_paragraph}-{last_paragraph}",
+                summary=_clean_text(scope_sentences[0].get("text"))[:180],
+                sentences=scope_sentences,
+            )
+        )
+    return {
+        "scope_kind": "paragraph_window_cards",
+        "reason": f"expand_{int(chapter.get('id', 0) or 0)}_paragraph_windows",
+        "cards": cards,
+    }
+
+
+def _build_detour_paragraph_preview_scope(
+    *,
+    selected_sentences: list[dict[str, object]],
+) -> dict[str, object]:
+    """Build the final detour-search layer as paragraph previews."""
+
+    paragraphs: dict[int, list[dict[str, object]]] = {}
+    for sentence in selected_sentences:
+        paragraph_index = _paragraph_index(sentence)
+        paragraphs.setdefault(paragraph_index, []).append(sentence)
+    cards: list[dict[str, object]] = []
+    for paragraph_index in sorted(paragraphs):
+        paragraph_sentences = paragraphs[paragraph_index]
+        if not paragraph_sentences:
+            continue
+        preview = " ".join(_clean_text(sentence.get("text")) for sentence in paragraph_sentences[:2]).strip()
+        cards.append(
+            _scope_card(
+                card_id=f"paragraph:{_sentence_id(paragraph_sentences[0])}",
+                label=f"Paragraph {paragraph_index}",
+                summary=preview[:220],
+                sentences=paragraph_sentences,
+            )
+        )
+    return {
+        "scope_kind": "paragraph_preview_cards",
+        "reason": "paragraph_preview_scope",
+        "cards": cards,
+    }
+
+
+def _expand_detour_scope(
+    *,
+    current_scope: dict[str, object],
+    selected_sentences: list[dict[str, object]],
+    chapter: dict[str, object],
+) -> dict[str, object] | None:
+    """Expand one detour scope into its next finer-grained layer."""
+
+    scope_kind = _clean_text(current_scope.get("scope_kind"))
+    if scope_kind == "chapter_cards":
+        return _build_detour_section_or_window_scope(chapter=chapter, selected_sentences=selected_sentences)
+    if scope_kind in {"section_cards", "paragraph_window_cards"}:
+        return _build_detour_paragraph_preview_scope(selected_sentences=selected_sentences)
+    return None
+
+
+def _build_detour_navigation_packet(
+    *,
+    chapter_ref: str,
+    local_buffer: LocalBufferState,
+    working_state: WorkingState,
+    concept_registry: ConceptRegistryState,
+    thread_trace: ThreadTraceState,
+    reflective_frames: ReflectiveFramesState,
+    anchor_bank: AnchorBankState,
+    move_history: MoveHistoryState,
+    reaction_records: ReactionRecordsState,
+    continuation_capsule: dict[str, object],
+    local_continuity: LocalContinuityState,
+) -> dict[str, object]:
+    """Build the compact packet used by the detour-search node."""
+
+    carry_forward_context = build_carry_forward_context(
+        chapter_ref=chapter_ref,
+        current_unit_sentence_ids=[],
+        local_buffer=local_buffer,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        move_history=move_history,
+        reaction_records=reaction_records,
+        continuation_capsule=continuation_capsule,
+    )
+    refs = [
+        dict(ref)
+        for ref in carry_forward_context.get("refs", [])
+        if isinstance(ref, dict) and _clean_text(ref.get("kind")) in {"anchor", "concept", "thread"}
+    ][:8]
+    detour_trace_summary = [
+        {
+            "detour_id": _clean_text(entry.get("detour_id")),
+            "origin_target_hint": _clean_text(entry.get("origin_target_hint")),
+            "status": _clean_text(entry.get("status")),
+        }
+        for entry in local_continuity.get("detour_trace", [])
+        if isinstance(entry, dict)
+    ][-4:]
+    return {
+        "packet_version": _clean_text(carry_forward_context.get("packet_version")),
+        "mainline_cursor": dict(local_continuity.get("mainline_cursor", {}))
+        if isinstance(local_continuity.get("mainline_cursor"), dict)
+        else {},
+        "active_detour_id": _clean_text(local_continuity.get("active_detour_id")),
+        "active_detour_need": dict(local_continuity.get("active_detour_need", {}))
+        if isinstance(local_continuity.get("active_detour_need"), dict)
+        else {},
+        "detour_trace": detour_trace_summary,
+        "working_state": {
+            "gate_state": _clean_text(carry_forward_context.get("working_state_digest", {}).get("gate_state"))
+            if isinstance(carry_forward_context.get("working_state_digest"), dict)
+            else "",
+            "active_items": [
+                dict(item)
+                for item in carry_forward_context.get("working_state_digest", {}).get("active_items", [])
+                if isinstance(item, dict)
+            ][:6]
+            if isinstance(carry_forward_context.get("working_state_digest"), dict)
+            else [],
+        },
+        "concept_digest": [
+            dict(item)
+            for item in carry_forward_context.get("concept_digest", [])
+            if isinstance(item, dict)
+        ][:3],
+        "thread_digest": [
+            dict(item)
+            for item in carry_forward_context.get("thread_digest", [])
+            if isinstance(item, dict)
+        ][:3],
+        "reflective_digest": dict(carry_forward_context.get("chapter_reflective_frame", {}))
+        if isinstance(carry_forward_context.get("chapter_reflective_frame"), dict)
+        else {},
+        "anchor_handles": refs,
+    }
+
+
+def _build_detour_read_context(local_continuity: LocalContinuityState) -> dict[str, object]:
+    """Build the tiny detour-specific carry packet for a detour reading step."""
+
+    return {
+        "active_detour_need": dict(local_continuity.get("active_detour_need", {}))
+        if isinstance(local_continuity.get("active_detour_need"), dict)
+        else {},
+        "mainline_background": {
+            "mainline_cursor": dict(local_continuity.get("mainline_cursor", {}))
+            if isinstance(local_continuity.get("mainline_cursor"), dict)
+            else {},
+        },
+        "detour_trace_summary": [
+            {
+                "detour_id": _clean_text(entry.get("detour_id")),
+                "origin_target_hint": _clean_text(entry.get("origin_target_hint")),
+                "status": _clean_text(entry.get("status")),
+            }
+            for entry in local_continuity.get("detour_trace", [])
+            if isinstance(entry, dict)
+        ][-4:],
+    }
+
+
+def _selected_detour_region(
+    *,
+    sentence_lookup: dict[str, dict[str, object]],
+    chapter_lookup: dict[int, dict[str, object]],
+    search_result: DetourSearchResult,
+) -> tuple[dict[str, object], list[dict[str, object]]] | None:
+    """Resolve one detour-search result into a concrete chapter plus sentence region."""
+
+    start_sentence_id = _clean_text(search_result.get("start_sentence_id"))
+    end_sentence_id = _clean_text(search_result.get("end_sentence_id"))
+    start_entry = sentence_lookup.get(start_sentence_id, {})
+    end_entry = sentence_lookup.get(end_sentence_id, {})
+    start_chapter_id = int(start_entry.get("chapter_id", 0) or 0)
+    end_chapter_id = int(end_entry.get("chapter_id", 0) or 0)
+    if start_chapter_id <= 0 or start_chapter_id != end_chapter_id:
+        return None
+    chapter = chapter_lookup.get(start_chapter_id)
+    if not isinstance(chapter, dict):
+        return None
+    selected_sentences = _resolve_unit_sentences(
+        [dict(sentence) for sentence in chapter.get("sentences", []) if isinstance(sentence, dict)],
+        unitize_decision={
+            "start_sentence_id": start_sentence_id,
+            "end_sentence_id": end_sentence_id,
+        },
+    )
+    if not selected_sentences:
+        return None
+    return chapter, selected_sentences
+
+
+def _run_detour_search_loop(
+    *,
+    document: BookDocument,
+    survey_map: dict[str, object],
+    sentence_lookup: dict[str, dict[str, object]],
+    chapter_lookup: dict[int, dict[str, object]],
+    local_continuity: LocalContinuityState,
+    detour_need: DetourNeed,
+    navigation_packet: dict[str, object],
+    reader_policy: ReaderPolicy,
+    output_language: str,
+    output_dir: Path | None,
+    book_title: str,
+    author: str,
+) -> DetourSearchResult:
+    """Run one bounded detour-search loop and return a landed region or deferral."""
+
+    mainline_cursor = (
+        dict(local_continuity.get("mainline_cursor", {}))
+        if isinstance(local_continuity.get("mainline_cursor"), dict)
+        else {}
+    )
+    scope = _build_detour_chapter_scope(
+        document=document,
+        survey_map=survey_map,
+        mainline_cursor=mainline_cursor,  # type: ignore[arg-type]
+    )
+    if not scope.get("cards"):
+        return {
+            "decision": "defer_detour",
+            "reason": "no_visible_detour_scope",
+            "start_sentence_id": "",
+            "end_sentence_id": "",
+        }
+
+    last_narrow: DetourSearchResult | None = None
+    last_selected_region: tuple[dict[str, object], list[dict[str, object]]] | None = None
+    for _attempt in range(3):
+        search_result = navigate_detour_search(
+            search_scope=scope,
+            detour_need=detour_need,
+            navigation_context=navigation_packet,  # type: ignore[arg-type]
+            reader_policy=reader_policy,
+            output_language=output_language,
+            output_dir=output_dir,
+            book_title=book_title,
+            author=author,
+        )
+        if _clean_text(search_result.get("decision")) == "defer_detour":
+            return search_result
+        selected_region = _selected_detour_region(
+            sentence_lookup=sentence_lookup,
+            chapter_lookup=chapter_lookup,
+            search_result=search_result,
+        )
+        if selected_region is None:
+            return {
+                "decision": "defer_detour",
+                "reason": "detour_scope_resolution_failed",
+                "start_sentence_id": "",
+                "end_sentence_id": "",
+            }
+        if _clean_text(search_result.get("decision")) == "land_region":
+            return search_result
+        last_narrow = search_result
+        last_selected_region = selected_region
+        next_scope = _expand_detour_scope(
+            current_scope=scope,
+            selected_sentences=selected_region[1],
+            chapter=selected_region[0],
+        )
+        if next_scope is None or not next_scope.get("cards"):
+            break
+        scope = next_scope
+
+    if last_narrow is not None and last_selected_region is not None:
+        return {
+            "decision": "land_region",
+            "reason": _clean_text(last_narrow.get("reason")) or "best_effort_land_after_bounded_detour_search",
+            "start_sentence_id": _clean_text(last_narrow.get("start_sentence_id")),
+            "end_sentence_id": _clean_text(last_narrow.get("end_sentence_id")),
+        }
+    return {
+        "decision": "defer_detour",
+        "reason": "detour_search_exhausted",
+        "start_sentence_id": "",
+        "end_sentence_id": "",
+    }
+
+
+def _run_detour_episode(
+    *,
+    document: BookDocument,
+    survey_map: dict[str, object],
+    sentence_lookup: dict[str, dict[str, object]],
+    chapter_lookup: dict[int, dict[str, object]],
+    local_continuity: LocalContinuityState,
+    chapter_ref: str,
+    local_buffer: LocalBufferState,
+    trigger_state: TriggerState,
+    continuation_capsule: dict[str, object],
+    working_state: WorkingState,
+    concept_registry: ConceptRegistryState,
+    thread_trace: ThreadTraceState,
+    reflective_frames: ReflectiveFramesState,
+    anchor_bank: AnchorBankState,
+    knowledge_activations: KnowledgeActivationsState,
+    move_history: MoveHistoryState,
+    reaction_records: ReactionRecordsState,
+    reconsolidation_records: dict[str, object],
+    reader_policy: ReaderPolicy,
+    output_language: str,
+    output_dir: Path | None,
+    provisioned: ProvisionedBook,
+    bundle: dict[str, dict[str, object]],
+    book_title: str,
+    author: str,
+) -> dict[str, object]:
+    """Run one detour search plus one normal detour reading step if needed."""
+
+    active_detour_need = _active_detour_need(local_continuity)
+    if active_detour_need is None:
+        return {
+            "local_buffer": local_buffer,
+            "local_continuity": local_continuity,
+            "trigger_state": trigger_state,
+            "working_state": working_state,
+            "concept_registry": concept_registry,
+            "thread_trace": thread_trace,
+            "reflective_frames": reflective_frames,
+            "anchor_bank": anchor_bank,
+            "knowledge_activations": knowledge_activations,
+            "move_history": move_history,
+            "reaction_records": reaction_records,
+            "reconsolidation_records": reconsolidation_records,
+            "bundle": bundle,
+            "performed": False,
+        }
+
+    navigation_packet = _build_detour_navigation_packet(
+        chapter_ref=chapter_ref,
+        local_buffer=local_buffer,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        move_history=move_history,
+        reaction_records=reaction_records,
+        continuation_capsule=continuation_capsule,
+        local_continuity=local_continuity,
+    )
+    search_result = _run_detour_search_loop(
+        document=document,
+        survey_map=survey_map,
+        sentence_lookup=sentence_lookup,
+        chapter_lookup=chapter_lookup,
+        local_continuity=local_continuity,
+        detour_need=active_detour_need,
+        navigation_packet=navigation_packet,
+        reader_policy=reader_policy,
+        output_language=output_language,
+        output_dir=output_dir,
+        book_title=book_title,
+        author=author,
+    )
+    if _clean_text(search_result.get("decision")) == "defer_detour":
+        local_continuity = _apply_detour_need(
+            local_continuity,
+            {
+                "reason": _clean_text(search_result.get("reason")) or _clean_text(active_detour_need.get("reason")),
+                "target_hint": _clean_text(active_detour_need.get("target_hint")),
+                "status": "abandoned",
+            },
+        )
+        bundle["local_continuity"] = local_continuity
+        return {
+            "local_buffer": local_buffer,
+            "local_continuity": local_continuity,
+            "trigger_state": trigger_state,
+            "working_state": working_state,
+            "concept_registry": concept_registry,
+            "thread_trace": thread_trace,
+            "reflective_frames": reflective_frames,
+            "anchor_bank": anchor_bank,
+            "knowledge_activations": knowledge_activations,
+            "move_history": move_history,
+            "reaction_records": reaction_records,
+            "reconsolidation_records": reconsolidation_records,
+            "bundle": bundle,
+            "performed": False,
+        }
+
+    selected_region = _selected_detour_region(
+        sentence_lookup=sentence_lookup,
+        chapter_lookup=chapter_lookup,
+        search_result=search_result,
+    )
+    if selected_region is None:
+        local_continuity = _apply_detour_need(
+            local_continuity,
+            {
+                "reason": "detour_region_resolution_failed",
+                "target_hint": _clean_text(active_detour_need.get("target_hint")),
+                "status": "abandoned",
+            },
+        )
+        bundle["local_continuity"] = local_continuity
+        return {
+            "local_buffer": local_buffer,
+            "local_continuity": local_continuity,
+            "trigger_state": trigger_state,
+            "working_state": working_state,
+            "concept_registry": concept_registry,
+            "thread_trace": thread_trace,
+            "reflective_frames": reflective_frames,
+            "anchor_bank": anchor_bank,
+            "knowledge_activations": knowledge_activations,
+            "move_history": move_history,
+            "reaction_records": reaction_records,
+            "reconsolidation_records": reconsolidation_records,
+            "bundle": bundle,
+            "performed": False,
+        }
+
+    detour_chapter, detour_region_sentences = selected_region
+    detour_chapter_id = int(detour_chapter.get("id", 0) or 0)
+    detour_chapter_ref = _chapter_ref(detour_chapter)
+    navigation_context = build_navigation_context(
+        chapter_ref=detour_chapter_ref,
+        current_sentence_id=_sentence_id(detour_region_sentences[0]),
+        local_buffer=local_buffer,
+        trigger_state=trigger_state,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        move_history=move_history,
+        reaction_records=reaction_records,
+        continuation_capsule=continuation_capsule,
+    )
+    unitize_decision = navigate_unitize(
+        current_sentence=detour_region_sentences[0],
+        preview_sentences=detour_region_sentences,
+        navigation_context=navigation_context,
+        reader_policy=reader_policy,
+        output_language=output_language,
+        output_dir=output_dir,
+        book_title=book_title,
+        author=author,
+        chapter_title=_clean_text(detour_chapter.get("title")),
+    )
+    chosen_unit_sentences = _resolve_unit_sentences(detour_region_sentences, unitize_decision=unitize_decision)
+    if not chosen_unit_sentences:
+        chosen_unit_sentences = [dict(detour_region_sentences[0])]
+        fallback_sentence_id = _sentence_id(detour_region_sentences[0])
+        unitize_decision = {
+            "start_sentence_id": fallback_sentence_id,
+            "end_sentence_id": fallback_sentence_id,
+            "preview_range": {
+                "start_sentence_id": _sentence_id(detour_region_sentences[0]),
+                "end_sentence_id": _sentence_id(detour_region_sentences[-1]),
+            },
+            "boundary_type": "paragraph_end",
+            "evidence_sentence_ids": [fallback_sentence_id],
+            "reason": "detour_unitize_fallback",
+            "continuation_pressure": False,
+        }
+
+    for detour_sentence in chosen_unit_sentences:
+        local_buffer, trigger_state = process_sentence_intake(
+            detour_sentence,
+            local_buffer=local_buffer,
+            working_state=working_state,
+            concept_registry=concept_registry,
+            thread_trace=thread_trace,
+            anchor_bank=anchor_bank,
+        )
+    focal_sentence = chosen_unit_sentences[-1]
+    persist_unitization_audit(
+        output_dir,
+        chapter_id=detour_chapter_id,
+        chapter_ref=detour_chapter_ref,
+        unitize_decision=unitize_decision,
+    )
+    persist_reading_position(
+        output_dir,
+        chapter_id=detour_chapter_id,
+        chapter_ref=detour_chapter_ref,
+        local_buffer=local_buffer,
+        local_continuity=local_continuity,
+        status="running",
+        phase="reading",
+    )
+    read_result, read_fallbacks = _run_read_with_context_loop(
+        chapter=detour_chapter,
+        chosen_unit_sentences=chosen_unit_sentences,
+        unitize_decision=unitize_decision,
+        local_buffer=local_buffer,
+        continuation_capsule=continuation_capsule,
+        working_state=working_state,
+        concept_registry=concept_registry,
+        thread_trace=thread_trace,
+        reflective_frames=reflective_frames,
+        anchor_bank=anchor_bank,
+        knowledge_activations=knowledge_activations,
+        move_history=move_history,
+        reaction_records=reaction_records,
+        reader_policy=reader_policy,
+        output_language=output_language,
+        detour_context=_build_detour_read_context(local_continuity),
+        output_dir=output_dir,
+        book_title=book_title,
+        author=author,
+        chapter_id=detour_chapter_id,
+        chapter_ref=detour_chapter_ref,
+    )
+    route_decision: NavigateRouteDecision = navigate_route(read_result=read_result)
+    for fallback in read_fallbacks:
+        if not isinstance(fallback, dict):
+            continue
+        append_activity_event(
+            output_dir,
+            {
+                "type": "llm_fallback",
+                "stream": "mindstream",
+                "kind": "transition",
+                "visibility": "hidden",
+                "message": f"Detour read fallback for {_clean_text(fallback.get('node')) or 'unknown_node'}.",
+                "chapter_id": detour_chapter_id,
+                "chapter_ref": detour_chapter_ref,
+                "segment_ref": _compatibility_section_ref(detour_chapter_id, focal_sentence),
+                "reading_locus": _reading_locus(detour_chapter_id, detour_chapter_ref, focal_sentence, local_buffer),
+                "current_excerpt": _clean_text(focal_sentence.get('text'))[:220],
+                "problem_code": _clean_text(fallback.get("problem_code")),
+            },
+        )
+    working_state = apply_working_state_operations(working_state, read_result.get("implicit_uptake_ops", []))
+    concept_registry = apply_concept_registry_operations(concept_registry, read_result.get("implicit_uptake_ops", []))
+    thread_trace = apply_thread_trace_operations(thread_trace, read_result.get("implicit_uptake_ops", []))
+    anchor_bank = apply_anchor_bank_operations(anchor_bank, read_result.get("implicit_uptake_ops", []))
+
+    chosen_move = _move_type_from_route_decision(route_decision)
+    if chosen_move in {"advance", "dwell", "bridge", "reframe"}:
+        move_history = append_move(
+            move_history,
+            {
+                "move_id": f"move:{_sentence_id(focal_sentence)}:{chosen_move}",
+                "move_type": chosen_move,
+                "reason": _clean_text(route_decision.get("reason")) or "detour read route",
+                "source_sentence_id": _sentence_id(focal_sentence),
+                "target_anchor_id": _clean_text(route_decision.get("target_anchor_id")),
+                "target_sentence_id": _clean_text(route_decision.get("target_sentence_id")),
+                "created_at": _timestamp(),
+            },
+        )
+
+    emitted_reactions: list[AnchoredReactionRecord] = []
+    current_anchor = None
+    surfaced_reactions = [
+        dict(item)
+        for item in read_result.get("surfaced_reactions", [])
+        if isinstance(item, dict)
+    ]
+    chapter_reaction_count = len(reaction_records_for_chapter(reaction_records, chapter_ref=detour_chapter_ref))
+    for index, surfaced_reaction in enumerate(surfaced_reactions, start=1):
+        current_anchor = _build_current_anchor_from_read_result(
+            surfaced_reaction=surfaced_reaction,
+            chosen_unit_sentences=chosen_unit_sentences,
+            focal_sentence=focal_sentence,
+            unit_delta=_clean_text(read_result.get("unit_delta")),
+        )
+        emitted_reaction = build_reaction_record_from_surfaced_reaction(
+            reaction=surfaced_reaction,
+            primary_anchor=current_anchor,
+            chapter_id=detour_chapter_id,
+            chapter_ref=detour_chapter_ref,
+            emitted_at_sentence_id=_sentence_id(focal_sentence),
+            compatibility_section_ref=_compatibility_section_ref(detour_chapter_id, focal_sentence),
+            ordinal=chapter_reaction_count + index,
+        )
+        if emitted_reaction is None:
+            continue
+        anchor_bank = upsert_anchor_record(anchor_bank, current_anchor)  # type: ignore[assignment]
+        reaction_records = append_reaction_record(reaction_records, emitted_reaction)
+        emitted_reactions.append(emitted_reaction)
+        append_activity_event(
+            output_dir,
+            {
+                "type": "reaction_emitted",
+                "stream": "mindstream",
+                "kind": "thought",
+                "visibility": "default",
+                "message": _clean_text(emitted_reaction.get("thought")),
+                "chapter_id": detour_chapter_id,
+                "chapter_ref": detour_chapter_ref,
+                "segment_ref": _compatibility_section_ref(detour_chapter_id, focal_sentence),
+                "anchor_quote": _clean_text(emitted_reaction.get("primary_anchor", {}).get("quote")),
+                "reading_locus": _reading_locus(detour_chapter_id, detour_chapter_ref, focal_sentence, local_buffer),
+                "move_type": chosen_move or None,
+                "active_reaction_id": _clean_text(emitted_reaction.get("reaction_id")),
+                "reaction_types": [compat_reaction_family(emitted_reaction)],
+                "current_excerpt": _clean_text(focal_sentence.get("text"))[:220],
+            },
+        )
+
+    if route_decision.get("action") == "bridge_back":
+        bridge_anchor = current_anchor or build_anchor_record(
+            sentence_start_id=_sentence_id(focal_sentence),
+            sentence_end_id=_sentence_id(focal_sentence),
+            quote=_clean_text(focal_sentence.get("text")),
+            locator=dict(focal_sentence.get("locator", {})) if isinstance(focal_sentence.get("locator"), dict) else {},
+            anchor_kind="unit_evidence",
+            why_it_mattered=_clean_text(read_result.get("unit_delta")),
+        )
+        candidate_set = generate_candidate_set(
+            provisioned.book_document,
+            current_sentence_id=_sentence_id(focal_sentence),
+            current_text=_clean_text(focal_sentence.get("text")),
+            anchor_bank=anchor_bank,
+            concept_registry=concept_registry,
+            thread_trace=thread_trace,
+        )
+        phase5 = run_phase5_bridge_cycle(
+            current_span_sentences=chosen_unit_sentences,
+            candidate_set=candidate_set,
+            working_state=working_state,
+            concept_registry=concept_registry,
+            thread_trace=thread_trace,
+            anchor_bank=anchor_bank,
+            knowledge_activations=knowledge_activations,
+            move_history=move_history,
+            reader_policy=reader_policy,
+            output_language=output_language,
+            current_anchor=bridge_anchor,
+            output_dir=output_dir,
+            book_title=book_title,
+            author=author,
+            chapter_title=_clean_text(detour_chapter.get("title")),
+        )
+        working_state = phase5["working_state"]  # type: ignore[assignment]
+        concept_registry = phase5["concept_registry"]  # type: ignore[assignment]
+        thread_trace = phase5["thread_trace"]  # type: ignore[assignment]
+        anchor_bank = phase5["anchor_bank"]  # type: ignore[assignment]
+        knowledge_activations = phase5["knowledge_activations"]  # type: ignore[assignment]
+        move_history = phase5["move_history"]  # type: ignore[assignment]
+
+    if route_decision.get("close_current_unit", True):
+        local_buffer = close_local_meaning_unit(local_buffer)
+
+    if isinstance(read_result.get("detour_need"), dict):
+        local_continuity = _apply_detour_need(local_continuity, read_result.get("detour_need"))  # type: ignore[arg-type]
+    elif _active_detour_need(local_continuity) is not None:
+        local_continuity = _apply_detour_need(
+            local_continuity,
+            {
+                "reason": "",
+                "target_hint": _clean_text(active_detour_need.get("target_hint")),
+                "status": "resolved",
+            },
+        )
+
+    if chapter_result_compatibility_file(output_dir, detour_chapter_id).exists():
+        project_chapter_result_compatibility(
+            book_id=runtime_artifacts.book_id_from_output_dir(output_dir),
+            chapter=detour_chapter,
+            reaction_records=reaction_records,
+            output_language=output_language,
+            output_dir=output_dir,
+            persist=True,
+        )
+
+    bundle.update(
+        {
+            "local_buffer": local_buffer,
+            "local_continuity": local_continuity,
+            "trigger_state": trigger_state,
+            "continuation_capsule": _build_runtime_continuation_capsule(
+                chapter_ref=detour_chapter_ref,
+                local_buffer=local_buffer,
+                working_state=working_state,
+                concept_registry=concept_registry,
+                thread_trace=thread_trace,
+                reflective_frames=reflective_frames,
+                anchor_bank=anchor_bank,
+                move_history=move_history,
+                reaction_records=reaction_records,
+            ),
+            "working_state": working_state,
+            "concept_registry": concept_registry,
+            "thread_trace": thread_trace,
+            "reflective_frames": reflective_frames,
+            "anchor_bank": anchor_bank,
+            "knowledge_activations": knowledge_activations,
+            "move_history": move_history,
+            "reaction_records": reaction_records,
+            "reconsolidation_records": reconsolidation_records,
+            "reader_policy": reader_policy,
+            "resume_metadata": bundle.get("resume_metadata", {}),
+        }
+    )
+    _save_runtime_bundle(output_dir, bundle)
+    persist_reading_position(
+        output_dir,
+        chapter_id=detour_chapter_id,
+        chapter_ref=detour_chapter_ref,
+        local_buffer=local_buffer,
+        local_continuity=local_continuity,
+        status="running",
+        phase="reading",
+    )
+    return {
+        "local_buffer": local_buffer,
+        "local_continuity": local_continuity,
+        "trigger_state": trigger_state,
+        "working_state": working_state,
+        "concept_registry": concept_registry,
+        "thread_trace": thread_trace,
+        "reflective_frames": reflective_frames,
+        "anchor_bank": anchor_bank,
+        "knowledge_activations": knowledge_activations,
+        "move_history": move_history,
+        "reaction_records": reaction_records,
+        "reconsolidation_records": reconsolidation_records,
+        "bundle": bundle,
+        "performed": True,
+    }
 
 
 def _build_current_anchor_from_read_result(
@@ -661,6 +1700,7 @@ def _run_read_with_context_loop(
     reaction_records: ReactionRecordsState,
     reader_policy: ReaderPolicy,
     output_language: str,
+    detour_context: dict[str, object] | None,
     output_dir: Path | None,
     book_title: str,
     author: str,
@@ -694,6 +1734,7 @@ def _run_read_with_context_loop(
             reader_policy=reader_policy,
             output_language=output_language,
             supplemental_context=None,
+            detour_context=detour_context,
             output_dir=output_dir,
             book_title=book_title,
             author=author,
@@ -710,7 +1751,7 @@ def _run_read_with_context_loop(
             },
             "surfaced_reactions": [],
             "implicit_uptake_ops": [],
-            "revisit_need": None,
+            "detour_need": None,
         }
 
     persist_read_audit(
@@ -840,6 +1881,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
 
         reader_policy: ReaderPolicy = bundle["reader_policy"]  # type: ignore[assignment]
         local_buffer: LocalBufferState = bundle["local_buffer"]  # type: ignore[assignment]
+        local_continuity: LocalContinuityState = bundle["local_continuity"]  # type: ignore[assignment]
         trigger_state: TriggerState = bundle["trigger_state"]  # type: ignore[assignment]
         working_state: WorkingState = bundle["working_state"]  # type: ignore[assignment]
         concept_registry: ConceptRegistryState = bundle["concept_registry"]  # type: ignore[assignment]
@@ -851,6 +1893,8 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
         reaction_records: ReactionRecordsState = bundle["reaction_records"]  # type: ignore[assignment]
         reconsolidation_records = bundle["reconsolidation_records"]
         resume_metadata = bundle["resume_metadata"]
+        survey_map = load_json(survey_map_file(output_dir)) if survey_map_file(output_dir).exists() else {}
+        sentence_lookup, chapter_lookup = _build_sentence_lookup(provisioned.book_document)
 
         chapter_statuses = _chapter_statuses(provisioned.book_document, output_dir)
         resume_chapter_id = int(resume_payload.get("local_continuity", {}).get("chapter_id", 0) or 0) if isinstance(resume_payload, dict) else None
@@ -906,6 +1950,56 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
 
             cursor = start_index
             while cursor < len(sentences):
+                local_continuity["mainline_cursor"] = _shared_cursor_for_sentence(
+                    chapter_id=chapter_id,
+                    chapter_ref=chapter_ref,
+                    sentence=sentences[cursor],
+                )
+                bundle["local_continuity"] = local_continuity
+                if _active_detour_need(local_continuity) is not None:
+                    detour_result = _run_detour_episode(
+                        document=provisioned.book_document,
+                        survey_map=survey_map,
+                        sentence_lookup=sentence_lookup,
+                        chapter_lookup=chapter_lookup,
+                        local_continuity=local_continuity,
+                        chapter_ref=chapter_ref,
+                        local_buffer=local_buffer,
+                        trigger_state=trigger_state,
+                        continuation_capsule=dict(bundle.get("continuation_capsule", {})),
+                        working_state=working_state,
+                        concept_registry=concept_registry,
+                        thread_trace=thread_trace,
+                        reflective_frames=reflective_frames,
+                        anchor_bank=anchor_bank,
+                        knowledge_activations=knowledge_activations,
+                        move_history=move_history,
+                        reaction_records=reaction_records,
+                        reconsolidation_records=reconsolidation_records,
+                        reader_policy=reader_policy,
+                        output_language=provisioned.output_language,
+                        output_dir=output_dir,
+                        provisioned=provisioned,
+                        bundle=bundle,
+                        book_title=provisioned.title,
+                        author=provisioned.author,
+                    )
+                    local_buffer = detour_result["local_buffer"]  # type: ignore[assignment]
+                    local_continuity = detour_result["local_continuity"]  # type: ignore[assignment]
+                    trigger_state = detour_result["trigger_state"]  # type: ignore[assignment]
+                    working_state = detour_result["working_state"]  # type: ignore[assignment]
+                    concept_registry = detour_result["concept_registry"]  # type: ignore[assignment]
+                    thread_trace = detour_result["thread_trace"]  # type: ignore[assignment]
+                    reflective_frames = detour_result["reflective_frames"]  # type: ignore[assignment]
+                    anchor_bank = detour_result["anchor_bank"]  # type: ignore[assignment]
+                    knowledge_activations = detour_result["knowledge_activations"]  # type: ignore[assignment]
+                    move_history = detour_result["move_history"]  # type: ignore[assignment]
+                    reaction_records = detour_result["reaction_records"]  # type: ignore[assignment]
+                    reconsolidation_records = detour_result["reconsolidation_records"]  # type: ignore[assignment]
+                    bundle = detour_result["bundle"]  # type: ignore[assignment]
+                    if bool(detour_result.get("performed")):
+                        continue
+
                 sentence = sentences[cursor]
                 sentence_id = _clean_text(sentence.get("sentence_id"))
                 local_buffer, trigger_state = process_sentence_intake(
@@ -989,6 +2083,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     chapter_id=chapter_id,
                     chapter_ref=chapter_ref,
                     local_buffer=local_buffer,
+                    local_continuity=local_continuity,
                     status="running",
                     phase="reading",
                 )
@@ -1025,6 +2120,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     reaction_records=reaction_records,
                     reader_policy=reader_policy,
                     output_language=provisioned.output_language,
+                    detour_context=None,
                     output_dir=output_dir,
                     book_title=provisioned.title,
                     author=provisioned.author,
@@ -1064,6 +2160,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     read_result.get("implicit_uptake_ops", []),
                 )
                 anchor_bank = apply_anchor_bank_operations(anchor_bank, read_result.get("implicit_uptake_ops", []))
+                local_continuity = _apply_detour_need(local_continuity, read_result.get("detour_need"))  # type: ignore[arg-type]
 
                 chosen_move = _move_type_from_route_decision(route_decision)
                 if chosen_move in {"advance", "dwell", "bridge", "reframe"}:
@@ -1211,6 +2308,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                 bundle.update(
                     {
                         "local_buffer": local_buffer,
+                        "local_continuity": local_continuity,
                         "trigger_state": trigger_state,
                         "continuation_capsule": _build_runtime_continuation_capsule(
                             chapter_ref=chapter_ref,
@@ -1247,11 +2345,58 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
                     chapter_id=chapter_id,
                     chapter_ref=chapter_ref,
                     local_buffer=local_buffer,
+                    local_continuity=local_continuity,
                     active_artifact_refs={key: value for key, value in active_refs.items() if value},
                     status="running",
                     phase="reading",
                 )
                 cursor += len(chosen_unit_sentences)
+
+            detour_drain_steps = 0
+            while _active_detour_need(local_continuity) is not None and detour_drain_steps < 8:
+                detour_result = _run_detour_episode(
+                    document=provisioned.book_document,
+                    survey_map=survey_map,
+                    sentence_lookup=sentence_lookup,
+                    chapter_lookup=chapter_lookup,
+                    local_continuity=local_continuity,
+                    chapter_ref=chapter_ref,
+                    local_buffer=local_buffer,
+                    trigger_state=trigger_state,
+                    continuation_capsule=dict(bundle.get("continuation_capsule", {})),
+                    working_state=working_state,
+                    concept_registry=concept_registry,
+                    thread_trace=thread_trace,
+                    reflective_frames=reflective_frames,
+                    anchor_bank=anchor_bank,
+                    knowledge_activations=knowledge_activations,
+                    move_history=move_history,
+                    reaction_records=reaction_records,
+                    reconsolidation_records=reconsolidation_records,
+                    reader_policy=reader_policy,
+                    output_language=provisioned.output_language,
+                    output_dir=output_dir,
+                    provisioned=provisioned,
+                    bundle=bundle,
+                    book_title=provisioned.title,
+                    author=provisioned.author,
+                )
+                local_buffer = detour_result["local_buffer"]  # type: ignore[assignment]
+                local_continuity = detour_result["local_continuity"]  # type: ignore[assignment]
+                trigger_state = detour_result["trigger_state"]  # type: ignore[assignment]
+                working_state = detour_result["working_state"]  # type: ignore[assignment]
+                concept_registry = detour_result["concept_registry"]  # type: ignore[assignment]
+                thread_trace = detour_result["thread_trace"]  # type: ignore[assignment]
+                reflective_frames = detour_result["reflective_frames"]  # type: ignore[assignment]
+                anchor_bank = detour_result["anchor_bank"]  # type: ignore[assignment]
+                knowledge_activations = detour_result["knowledge_activations"]  # type: ignore[assignment]
+                move_history = detour_result["move_history"]  # type: ignore[assignment]
+                reaction_records = detour_result["reaction_records"]  # type: ignore[assignment]
+                reconsolidation_records = detour_result["reconsolidation_records"]  # type: ignore[assignment]
+                bundle = detour_result["bundle"]  # type: ignore[assignment]
+                detour_drain_steps += 1
+                if not bool(detour_result.get("performed")):
+                    break
 
             chapter_end_anchor = build_anchor_record(
                 sentence_start_id=_clean_text(sentences[-1].get("sentence_id")) if sentences else f"c{chapter_id}-end",
@@ -1290,6 +2435,7 @@ def read_attentional_v2(request: ReadRequest, mechanism: MechanismInfo) -> ReadR
             bundle.update(
                 {
                     "local_buffer": local_buffer,
+                    "local_continuity": local_continuity,
                     "trigger_state": trigger_state,
                     "continuation_capsule": _build_runtime_continuation_capsule(
                         chapter_ref=chapter_ref,

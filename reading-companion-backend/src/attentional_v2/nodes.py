@@ -23,6 +23,8 @@ from .schemas import (
     ClosureDecision,
     ContextRequest,
     ControllerDecisionResult,
+    DetourNeed,
+    DetourSearchResult,
     ExpressResult,
     ExpressSignal,
     GateState,
@@ -42,8 +44,6 @@ from .schemas import (
     ReactionType,
     ReadAnchorEvidence,
     ReadUnitResult,
-    RevisitNeed,
-    RevisitMode,
     ReaderPolicy,
     SearchIntent,
     SurfacedReaction,
@@ -91,7 +91,8 @@ _STATE_OPERATION_TYPES = {
     "supersede",
     "reactivate",
 }
-_REVISIT_MODES: set[RevisitMode] = {"inline_look_back", "revisit_hop"}
+_DETOUR_STATUSES = {"open", "resolved", "abandoned"}
+_DETOUR_SEARCH_DECISIONS = {"narrow_scope", "land_region", "defer_detour"}
 _CLOSURE_DECISIONS: set[ClosureDecision] = {"continue", "close"}
 _EMISSION_DECISIONS: set[ReactionEmissionDecision] = {"emit", "withhold"}
 _ANCHOR_FOCUS_KINDS = {"phrase", "sentence", "span"}
@@ -1272,25 +1273,56 @@ def _normalize_surfaced_reactions(
     return reactions
 
 
-def _normalize_revisit_need(value: object) -> RevisitNeed | None:
-    """Normalize one optional revisit-need request."""
+def _normalize_detour_need(value: object) -> DetourNeed | None:
+    """Normalize one optional detour-need request."""
 
     if not isinstance(value, dict):
         return None
-    preferred_mode = _clean_text(value.get("preferred_mode")).lower().replace("-", "_")
-    if preferred_mode not in _REVISIT_MODES:
-        preferred_mode = ""
     reason = _clean_text(value.get("reason"))
     target_hint = _clean_text(value.get("target_hint"))
-    if not any((reason, target_hint, preferred_mode)):
+    status = _clean_text(value.get("status")).lower().replace("-", "_")
+    if status not in _DETOUR_STATUSES:
+        status = "open"
+    if not any((reason, target_hint)):
         return None
-    result: RevisitNeed = {
+    result: DetourNeed = {
         "reason": reason,
         "target_hint": target_hint,
+        "status": status,  # type: ignore[typeddict-item]
     }
-    if preferred_mode:
-        result["preferred_mode"] = preferred_mode  # type: ignore[typeddict-item]
     return result
+
+
+def _normalize_detour_search_result(
+    value: object,
+    *,
+    allowed_sentence_ids: set[str],
+) -> DetourSearchResult:
+    """Normalize one detour-search result against the currently visible search space."""
+
+    if not isinstance(value, dict):
+        return {
+            "decision": "defer_detour",
+            "reason": "",
+            "start_sentence_id": "",
+            "end_sentence_id": "",
+        }
+    decision = _clean_text(value.get("decision")).lower().replace("-", "_")
+    if decision not in _DETOUR_SEARCH_DECISIONS:
+        decision = "defer_detour"
+    start_sentence_id = _clean_text(value.get("start_sentence_id"))
+    end_sentence_id = _clean_text(value.get("end_sentence_id"))
+    if decision != "defer_detour":
+        if start_sentence_id not in allowed_sentence_ids or end_sentence_id not in allowed_sentence_ids:
+            decision = "defer_detour"
+            start_sentence_id = ""
+            end_sentence_id = ""
+    return {
+        "decision": decision,  # type: ignore[typeddict-item]
+        "reason": _clean_text(value.get("reason")),
+        "start_sentence_id": start_sentence_id,
+        "end_sentence_id": end_sentence_id,
+    }
 
 
 def _normalize_express_result(
@@ -1448,7 +1480,7 @@ def _fallback_read_unit_result(
         },
         "surfaced_reactions": [],
         "implicit_uptake_ops": [],
-        "revisit_need": None,
+        "detour_need": None,
     }
 
 
@@ -1606,6 +1638,75 @@ def navigate_unitize(
     )
 
 
+def navigate_detour_search(
+    *,
+    search_scope: dict[str, object],
+    detour_need: DetourNeed,
+    navigation_context: NavigationContext | None = None,
+    reader_policy: ReaderPolicy,
+    output_language: str,
+    output_dir: Path | None = None,
+    book_title: str = "",
+    author: str = "",
+    chapter_title: str = "",
+) -> DetourSearchResult:
+    """Run one bounded detour-search step over a structured search scope."""
+
+    prompts = ATTENTIONAL_V2_PROMPTS
+    structural_frame = _structural_frame(
+        book_title=book_title,
+        author=author,
+        chapter_title=chapter_title,
+        output_language=output_language,
+    )
+    cards = [
+        dict(card)
+        for card in search_scope.get("cards", [])
+        if isinstance(card, dict)
+    ]
+    allowed_sentence_ids = {
+        _clean_text(card.get(key))
+        for card in cards
+        for key in ("start_sentence_id", "end_sentence_id")
+        if _clean_text(card.get(key))
+    }
+    user_prompt = _render_prompt(
+        prompts.navigate_detour_search_prompt,
+        structural_frame=_json_block(structural_frame),
+        detour_need=_json_block(dict(detour_need)),
+        search_scope=_json_block(
+            {
+                "scope_kind": _clean_text(search_scope.get("scope_kind")),
+                "reason": _clean_text(search_scope.get("reason")),
+                "cards": cards,
+            }
+        ),
+        navigation_context=_json_block(dict(navigation_context or {})),
+        policy_snapshot=_json_block(reader_policy),
+        output_language_name=language_name(output_language),
+    )
+    _write_prompt_manifest(
+        output_dir,
+        node_name="navigate_detour_search",
+        prompt_version=prompts.navigate_detour_search_version,
+        system_prompt=prompts.navigate_detour_search_system,
+        user_prompt=user_prompt,
+        promptset_version=prompts.promptset_version,
+    )
+
+    try:
+        with llm_invocation_scope(trace_context=LLMTraceContext(stage="phase4", node="navigate_detour_search")):
+            payload = invoke_json(prompts.navigate_detour_search_system, user_prompt, default={})
+        return _normalize_detour_search_result(payload, allowed_sentence_ids=allowed_sentence_ids)
+    except ReaderLLMError:
+        return {
+            "decision": "defer_detour",
+            "reason": "detour_search_llm_error",
+            "start_sentence_id": "",
+            "end_sentence_id": "",
+        }
+
+
 def _route_targets_from_ref_ids(
     supporting_ref_ids: list[str],
 ) -> tuple[str, str]:
@@ -1633,6 +1734,7 @@ def read_unit(
     reader_policy: ReaderPolicy,
     output_language: str,
     supplemental_context: dict[str, object] | None = None,
+    detour_context: dict[str, object] | None = None,
     output_dir: Path | None = None,
     book_title: str = "",
     author: str = "",
@@ -1644,6 +1746,7 @@ def read_unit(
     prompt_packet = build_read_prompt_packet(
         carry_forward_context=carry_forward_context,
         supplemental_context=supplemental_context,
+        detour_context=detour_context,
     )
     structural_frame = _structural_frame(
         book_title=book_title,
@@ -1746,7 +1849,7 @@ def read_unit(
             if isinstance(payload, dict)
             else None
         ),
-        "revisit_need": _normalize_revisit_need(payload.get("revisit_need")) if isinstance(payload, dict) else None,
+        "detour_need": _normalize_detour_need(payload.get("detour_need")) if isinstance(payload, dict) else None,
     }
     return result
 

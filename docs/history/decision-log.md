@@ -1875,3 +1875,64 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/src/attentional_v2/nodes.py`
 - `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
 - `reading-companion-backend/tests/test_attentional_v2_phase_b.py`
+
+## Entry 66
+**ID**: DEC-069
+**Status**: active
+
+**Decision / Inflection**: Replace the planned `revisit` model with a unified `detour` model, and make F2 a `Navigate`-owned bounded hierarchical semantic search rather than a program-led candidate-recall subsystem.
+
+**Period**: April 19, 2026, during the F2 design freeze immediately after landing Phase F1.
+
+**Problem**: The post-F1 discussion made two issues explicit. First, the word `revisit` was too narrow for the actual behavior the project wanted: the reader might jump backward, chain to another earlier location, or otherwise leave the mainline reading path for semantically motivated reasons that were broader than “look back once and return.” Second, a program-led candidate-recall design would have pushed too much semantic authority into deterministic retrieval logic even though detour localization is fundamentally a meaning-driven reading move. The project wanted something simpler and more universal: one normal reading system, with `Navigate` temporarily redirecting that system when the current read says another region now matters.
+
+**Alternatives considered**: Keep `revisit` as the stable term and split it into `inline_look_back` plus `revisit_hop`; let programs pre-recall semantic candidates and ask `Navigate` only to rank them; or force `Read` to provide exact earlier coordinates before any non-mainline jump could occur.
+
+**Why this path won**: `Detour` better names the real behavior: a temporary departure from the mainline reading path whose destination and return behavior are decided by navigation rather than by a private reader-side helper. It also preserves universality. The same mechanism can cover a quick backward jump, a chained multi-hop excursion, or a future non-mainline jump without inventing separate sub-modes. Treating detour localization as `Navigate`-owned hierarchical semantic search keeps semantic authority where it belongs: the LLM reasons over structure cards, long-distance-memory digests, and source-grounded anchor handles; the program only supplies the searchable space, bounded expansion, and state bookkeeping. This matches the design lesson from coding agents: prefer maps, handles, and stepwise narrowing over heavy precomputed semantic recall.
+
+**What changed in the system**: The stable mechanism doc and the structural rework plan now freeze F2 around `detour` terminology and behavior. `Read` will still emit the live F1 transitional field `revisit_need` until F2 lands, but the approved target shape is `detour_need`. `Navigate` will own `mainline_cursor`, `active_detour_id`, and `detour_trace`, and it will use one bounded `detour-search` prompt family whose legal outcomes are `narrow_scope`, `land_region`, and `defer_detour`. Detour search is bounded to one call when memory makes the target obvious, two calls for ordinary ambiguity, and three calls as the hard upper bound before best-effort landing or defer-to-mainline behavior. Once a detour region is landed, it is read through the same ordinary `navigate.unitize -> read -> navigate.route` loop as any other region.
+
+**Why it matters later**: Without recording this shift, future contributors would assume the project still intended to harden `inline_look_back` and `revisit_hop` as first-class stable modes, or that F2 should primarily be a smarter retrieval helper. This entry preserves the actual approved design: detour is a navigation concept, not a retrieval subsystem, and the project is intentionally standardizing on one reading loop with navigation-owned redirection rather than proliferating specialized side channels.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `reading-companion-backend/docs/research/claude_code_context_management_research_20260412.md`
+
+## Entry 67
+**ID**: DEC-070
+**Status**: active
+
+**Decision / Inflection**: Land `Phase F2` by cutting the live mechanism from transitional `revisit_need` into `Navigate`-owned `detour`, with bounded hierarchical semantic search and normal-loop detour reading.
+
+**Period**: April 19, 2026, during the implementation slice immediately after the F2 design freeze.
+
+**Problem**: After F1 landed, the mechanism still had a mismatch between the approved design and the live runtime. The docs already said detour should belong to `Navigate`, but the live code still treated it as a transitional placeholder and had not yet made non-mainline reading a first-class navigation behavior. That left three quality risks: semantic jump-reading was not yet truly owned by `Navigate`, persistence/resume had no durable detour state, and a fresh detour raised on the last mainline unit of a chapter could still be lost before chapter slow-cycle close.
+
+**Alternatives considered**: Keep the F1 transitional `revisit_need` name a little longer, continue relying on runner-private supplemental helpers, or postpone the cutover until later persistence cleanup work.
+
+**Why this path won**: The cleanest next step was to finish the ownership cutover before taking on later compatibility cleanup. That keeps the reading loop simple: `Read` says another region now matters, `Navigate` searches for it in a bounded way, and once found the mechanism just keeps reading normally. By also persisting detour state in `local_continuity`, resume and chapter transitions stay honest without inventing a second reading system or a heavy retrieval subsystem.
+
+**What changed in the system**: The live `Read` contract now emits `detour_need`. `LocalContinuityState` now persists `mainline_cursor`, `active_detour_id`, `active_detour_need`, and `detour_trace`. The runner now uses one bounded `detour-search` prompt family with `narrow_scope / land_region / defer_detour`, performs detour search before choosing the next reading region, and routes landed detour regions back through the ordinary `navigate.unitize -> read -> navigate.route` loop. Resume snapshots and read audits now preserve detour state, and chapter-tail detours are drained before chapter slow-cycle close so a final-unit detour request is not silently dropped.
+
+**Why it matters later**: This is the point where detour stopped being only an approved design and became live runtime behavior. Future work on reaction persistence cleanup and dead-path removal can now assume a real `Navigate`-owned detour mechanism instead of reasoning about a transitional placeholder.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `reading-companion-backend/src/attentional_v2/schemas.py`
+- `reading-companion-backend/src/attentional_v2/prompts.py`
+- `reading-companion-backend/src/attentional_v2/nodes.py`
+- `reading-companion-backend/src/attentional_v2/state_projection.py`
+- `reading-companion-backend/src/attentional_v2/resume.py`
+- `reading-companion-backend/src/attentional_v2/read_context.py`
+- `reading-companion-backend/src/attentional_v2/runner.py`
+- `reading-companion-backend/tests/test_attentional_v2_phase_b.py`
+- `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
+- `reading-companion-backend/tests/test_attentional_v2_resume.py`

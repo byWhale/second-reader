@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-19T13:03:02+08:00`
+Last updated: `2026-04-19T15:32:58+08:00`
 
 ## Status Values
 - `active`
@@ -202,11 +202,17 @@ Last updated: `2026-04-19T13:03:02+08:00`
     - this branch remains valuable evidence, but it is no longer the approved end-state target
   - `Phase F1` is now landed:
     - the live per-unit loop is back to `navigate.unitize -> read -> navigate.route`
-    - `Read` now owns surfaced reactions, implicit uptake ops, pressure signals, and optional `revisit_need`
+    - `Read` now owns surfaced reactions, implicit uptake ops, pressure signals, and optional `detour_need`
     - the dedicated live `Express` node is no longer on the runner path
     - `Read` prompt packaging now follows compact `always carry / selective carry / not carry` projections
+  - `Phase F2` is now landed:
+    - the live `Read` contract now emits `detour_need`
+    - `Navigate` now owns bounded detour search over structure cards, memory digests, and source-grounded anchor handles
+    - `local_continuity` now persists `mainline_cursor / active_detour_id / active_detour_need / detour_trace`
+    - detour search uses one bounded prompt family with `narrow_scope / land_region / defer_detour`
+    - detour regions are now read through the same normal `navigate.unitize -> read -> navigate.route` loop
+    - chapter-tail detours are now drained before slow-cycle close
   - next implementation line:
-    - `Phase F2` — navigate-owned revisit cutover
     - `Phase F3` — reaction persistence and compatibility reconvergence
     - `Phase F4` — quality validation and dead-path cleanup
 - Post-Phase-D evaluation posture:

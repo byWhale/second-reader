@@ -22,7 +22,8 @@ UnitizeBoundaryType = Literal[
 ]
 RouteAction = Literal["commit", "continue", "bridge_back", "reframe"]
 ContextRequestKind = Literal["active_recall", "look_back"]
-RevisitMode = Literal["inline_look_back", "revisit_hop"]
+DetourStatus = Literal["open", "resolved", "abandoned"]
+DetourSearchDecision = Literal["narrow_scope", "land_region", "defer_detour"]
 StateOperationType = Literal[
     "append",
     "update",
@@ -160,6 +161,10 @@ class LocalContinuityState(TypedDict, total=False):
     open_meaning_unit_sentence_ids: list[str]
     recent_meaning_units: list[list[str]]
     last_meaning_unit_closed_at_sentence_id: str
+    mainline_cursor: SharedRunCursor
+    active_detour_id: str
+    active_detour_need: "DetourNeed" | None
+    detour_trace: list["DetourTraceEntry"]
     is_reconstructed: bool
     reconstructed_from_checkpoint_id: str | None
     last_resume_kind: ResumeKind | None
@@ -406,7 +411,7 @@ class ReadUnitResult(TypedDict, total=False):
     pressure_signals: PressureSignals
     surfaced_reactions: list["SurfacedReaction"]
     implicit_uptake_ops: list["StateOperation"]
-    revisit_need: "RevisitNeed" | None
+    detour_need: "DetourNeed" | None
 
 
 class StateOperation(TypedDict, total=False):
@@ -431,12 +436,30 @@ class SurfacedReaction(TypedDict, total=False):
     search_intent: "SearchIntent" | None
 
 
-class RevisitNeed(TypedDict, total=False):
-    """One bounded desire to revisit earlier material after the current read settles."""
+class DetourNeed(TypedDict, total=False):
+    """One bounded desire to detour away from the mainline to resolve a live need."""
 
     reason: str
     target_hint: str
-    preferred_mode: RevisitMode
+    status: DetourStatus
+
+
+class DetourTraceEntry(TypedDict, total=False):
+    """One lightweight detour trace record owned by navigation continuity state."""
+
+    detour_id: str
+    origin_cursor: SharedRunCursor
+    origin_target_hint: str
+    status: DetourStatus
+
+
+class DetourSearchResult(TypedDict, total=False):
+    """One bounded detour-search result emitted by the navigation search step."""
+
+    decision: DetourSearchDecision
+    reason: str
+    start_sentence_id: str
+    end_sentence_id: str
 
 
 class BridgeCandidate(TypedDict, total=False):
@@ -1032,6 +1055,14 @@ def build_empty_local_continuity(
         "open_meaning_unit_sentence_ids": [],
         "recent_meaning_units": [],
         "last_meaning_unit_closed_at_sentence_id": "",
+        "mainline_cursor": {
+            "position_kind": "chapter",
+            "chapter_id": None,
+            "chapter_ref": "",
+        },
+        "active_detour_id": "",
+        "active_detour_need": None,
+        "detour_trace": [],
         "is_reconstructed": False,
         "reconstructed_from_checkpoint_id": None,
         "last_resume_kind": None,
