@@ -36,8 +36,9 @@ Do not use the older April 6 lane as current mechanism evidence; it remains hist
   - [accumulation_benchmark_v2.py](../../../eval/attentional_v2/accumulation_benchmark_v2.py)
   - [run_accumulation_evaluation_v2.py](../../../eval/attentional_v2/run_accumulation_evaluation_v2.py)
 - Split manifests:
-  - [attentional_v2_accumulation_benchmark_v2_draft.json](../../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json)
   - [attentional_v2_accumulation_benchmark_v2_frozen.json](../../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json)
+  - retained implementation mirror:
+    - [attentional_v2_accumulation_benchmark_v2_draft.json](../../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json)
 
 `v2` is now the active long-span method definition and it now has a first frozen reviewed seed set, but it still does not have a formal judged run.
 
@@ -58,6 +59,6 @@ Current frozen seed-set truth:
 
 ## Working Memos
 
-- [Long-Span substrate candidate memo](./long_span_substrate_candidate_memo.md): rolling pure-original-window mining memo across the current five excerpt/user-level reading windows. This is a pre-curation working document, not formal judged-run evidence.
-- [Target-centered candidate review](./target_centered_candidate_review.md): current unified v2 review and freeze record. It now captures the `12`-case frozen seed set across `悉达多`, `活出生命的意义`, and the first two `芒格之道` lines, while keeping `The Value of Others` deferred and one weaker `芒格` line held back.
+- [Target-centered candidate review](./target_centered_candidate_review.md): current unified v2 review and freeze record. It captures the `12`-case frozen seed set across `悉达多`, `活出生命的意义`, and the first two `芒格之道` lines, while keeping `The Value of Others` deferred and one weaker `芒格` line held back.
 - [Target-centered 芒格 experimental review](./target_centered_mangge_experimental_review.md): source-specific companion for `芒格之道`. Keep it only as a per-book supplement; use the unified candidate review above as the main review entry.
+- [Historical pre-curation substrate memo](./archive/long_span_substrate_candidate_memo.md): archived mining memo from the earlier pre-freeze substrate pass. Keep it as historical curation context only, not as a current working entry.

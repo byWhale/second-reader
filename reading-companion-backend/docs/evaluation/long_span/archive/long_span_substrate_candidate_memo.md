@@ -1,13 +1,13 @@
-# Long-Span Substrate Candidate Memo
+# Historical Pre-Curation Long-Span Substrate Candidate Memo
 
 Date: `2026-04-16`
 
 ## Scope
 
-- This memo is a rolling candidate pool for bounded long-span substrate mining.
+- This memo is a historical rolling candidate pool from the earlier bounded long-span substrate mining pass.
 - Discovery source is restricted to the current excerpt/user-level window raw text under `segment_sources/*.txt`.
 - `note cases`, `excerpt cases`, and old long-span probes were not used to discover candidates. They may be used later only for cross-checking.
-- This memo is not yet a dataset curation artifact. It does not modify the long-span benchmark manifest, long-span probes, or any eval run outputs.
+- This memo is not a current dataset curation artifact. It predates the frozen target-centered v2 seed set and now survives only as archived pre-curation context.
 - Line numbers below are taken from `nl -ba` on the current window source files.
 
 ## Summary Table

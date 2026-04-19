@@ -2014,3 +2014,42 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/tests/test_attentional_v2_nodes.py`
 - `reading-companion-backend/tests/test_attentional_v2_resume.py`
 - `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
+
+## Entry 70
+**ID**: DEC-073
+**Status**: active
+
+**Decision / Inflection**: Keep the note-aligned `user-level selective v1` package and the repaired strict rejudge in an explicit dual-pointer posture instead of silently promoting the repaired sibling into the active dataset pointer.
+
+**Period**: April 19, 2026, after the repaired strict source-span rejudge had completed and the project needed a clean dataset/evidence index.
+
+**Problem**: By this point the repo had two truths that were both real but easy to conflate. The active local/user-level package was the rebuilt `attentional_v2_user_level_selective_v1` benchmark with `5` segments and `202` note cases, while the latest completed formal judged evidence lived on the repaired sibling package with `5` segments and `203` note cases. Leaving that distinction implicit made it too easy for future contributors to mistake the repaired evidence bundle for a silent benchmark promotion, or to keep describing the completed rerun as if it were still active.
+
+**Alternatives considered**: Quietly switch the active benchmark pointer to the repaired sibling package, keep talking about the repaired rerun as if it were still an in-flight recovery lane, or collapse both truths into one vague "current dataset" label and let readers infer the rest.
+
+**Why this path won**: An explicit dual-pointer posture preserves honesty without forcing an unnecessary benchmark promotion decision. It lets the project keep the current active package stable for local/workbench use, while still treating the repaired strict rejudge as the current formal evidence bundle. That makes dataset identity, evidence identity, and future promotion decisions all visible instead of smuggling one into another.
+
+**What changed in the system**: Entry docs now distinguish:
+- active dataset pointer:
+  - `attentional_v2_user_level_selective_v1`
+  - `5` reading segments / `202` note cases
+- current formal evidence bundle:
+  - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+  - run executed on `attentional_v2_user_level_selective_v1_repaired_20260416`
+  - `5` reading segments / `203` note cases
+
+The completed repaired run now has a checked-in human interpretation report, task state is recorded as `waiting` rather than `active`, and the stopped watchdog / failed reuse lane remain preserved only as historical evidence.
+
+**Why it matters later**: Without this entry, future agents would see the repaired package, the completed strict rejudge, and the still-active `202`-case package and have to guess which one "counts." This decision preserves the intended answer: both count, but they count in different roles until a later explicit promotion decision is made.
+
+**Primary evidence**:
+- `docs/backend-reader-evaluation.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `reading-companion-backend/docs/evaluation/README.md`
+- `reading-companion-backend/docs/evaluation/user_level/README.md`
+- `reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md`
+- `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/manifest.json`
+- `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json`
+- `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/aggregate.json`

@@ -7,20 +7,21 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-19T22:39:17+08:00`
+Last verified: `2026-04-19T23:07:58+08:00`
 
 ## Current Objective
-- Land `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
+- Keep `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
   - active design doc:
     - `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
   - landed builder / schema:
     - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
   - landed runner:
     - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
-  - draft scaffold manifest:
-    - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
-  - draft scaffold dataset:
-    - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
+  - retained implementation mirror:
+    - manifest:
+      - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
+    - dataset:
+      - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
   - active v2 method shape:
     - evaluate one mechanism at a time with absolute scoring
     - center each case on one `target_span / target_zone` plus a prepared long-range thread
@@ -34,13 +35,13 @@ Last verified: `2026-04-19T22:39:17+08:00`
     - first frozen reviewed seed set is now landed:
       - review doc:
         - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
-      - draft mirror dataset:
-        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
       - frozen case dataset:
         - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen`
       - split manifests:
-        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
         - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json`
+      - retained mirror only:
+        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
+        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
       - current frozen-set truth:
         - `12` frozen target cases total
         - `悉达多`: `6`
@@ -63,7 +64,7 @@ Last verified: `2026-04-19T22:39:17+08:00`
   - historical boundary:
     - keep `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` as durable historical mechanism evidence
     - do not treat the old bounded `EARLY / MID / LATE` probe method as the active long-span methodology anymore
-- Replace the old active `excerpt` benchmark pointer with the new note-aligned `user-level selective v1` package.
+- Keep the note-aligned `user-level selective v1` package as the active local/user-level dataset pointer while treating the repaired rejudge as the current formal evidence bundle.
   - active split manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json`
   - active dataset package:
@@ -87,13 +88,24 @@ Last verified: `2026-04-19T22:39:17+08:00`
     - every active note case now carries a strict `segment_source_v1` char-span under `source_span_slices`
       - this is the source-coordinate system used for `Selective Legibility` candidate retrieval, because the mechanisms read the rendered `segment_sources/*.txt` substrate
       - original parsed-book sentence ids remain as provenance for audit, not as the primary matching coordinate
-    - a repaired sibling package is now staged after refreshing stale managed-note alignments:
+    - repaired sibling package retained for formal evidence and audit:
       - repaired dataset package:
         - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416`
       - repaired audit index:
         - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/audit_human_readable/index.md`
-      - current purpose:
-        - validate and audit repaired note-to-source spans and serve as the source package for the clean strict rejudge relaunch
+      - current role:
+        - serve as the dataset root for the current formal evidence bundle
+      - repaired formal evidence bundle:
+        - run id:
+          - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+        - checked-in interpretation:
+          - `reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md`
+        - machine outputs:
+          - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/aggregate.json`
+          - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/report.md`
+        - formal evidence truth:
+          - `5` reading segments
+          - `203` note cases
       - verified example:
         - `huochu_shengming_de_yiyi_private_zh_personal_notes__e0002` now maps to the full two-sentence source span rather than truncating after the first sentence
   - `excerpt surface v1.1` remains preserved as historical / superseded evidence, not as the active local/user-level benchmark pointer
@@ -119,7 +131,7 @@ Last verified: `2026-04-19T22:39:17+08:00`
         - rerun only the two incomplete `attentional_v2` reading shards:
           - `mangge_zhi_dao_private_zh`
           - `xidaduo_private_zh`
-    - the clean repaired strict source-span rerun is now active:
+    - the clean repaired strict source-span rerun is now completed and is the current formal judged evidence bundle:
       - job id:
         - `bgjob_user_level_selective_v1_repaired_rejudge_20260416`
       - run id:
@@ -127,19 +139,14 @@ Last verified: `2026-04-19T22:39:17+08:00`
       - manifest path:
         - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/attentional_v2_user_level_selective_v1_repaired_20260416_draft.json`
       - auto-recovery watchdog:
-        - `bgjob_job_registry_auto_recovery_watchdog_20260416_excerpt_repaired`
-      - execution posture:
-        - run `iterator_v1` and `attentional_v2` in parallel shard lanes
-        - pin runtime/judge work across:
-          - `MiniMax-M2.7-personal`
-          - `MiniMax-M2.7-personal-2`
-        - reuse completed reading outputs from:
-          - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
-          - `attentional_v2_user_level_selective_v1_rejudge_reuse_20260416`
-          - `attentional_v2_user_level_selective_v1_failed_shards_retry2_20260415`
-          - `attentional_v2_user_level_selective_v1_judged_parallel_retry1_20260415`
-          - `attentional_v2_user_level_selective_v1_judged_parallel_20260414`
-        - rerun only shards without reusable completed outputs
+        - `bgjob_job_registry_auto_recovery_watchdog_20260416_excerpt_repaired` (`abandoned / off`)
+      - top-line result:
+        - `attentional_v2` note recall: `0.0`
+        - `iterator_v1` note recall: `0.2118`
+      - current posture:
+        - keep the active dataset pointer on the `202`-case package
+        - treat the repaired sibling plus completed repaired rejudge as the current formal evidence bundle
+        - if a later task wants to promote the repaired sibling into the active pointer, do that as an explicit follow-up decision rather than an implicit doc assumption
     - failed first mechanism-parallel attempt retained as failed evidence:
       - `bgjob_user_level_selective_v1_judged_parallel_20260414`
       - failure cause:
@@ -300,8 +307,12 @@ Last verified: `2026-04-19T22:39:17+08:00`
     - `Navigate.unitize` no longer receives heuristic `watch_state`
     - the dead `trigger -> zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission` path has been removed from live code and replaced in tests with the current live-node set
     - `text_role` is now explicitly documented as an inherited block-level weak cue rather than sentence-level truth
+  - the first special-content handling slice is now also landed on that cleaned baseline:
+    - `navigate.unitize` now treats heading roles as weak cues rather than automatic standalone units
+    - meaningful headings may still stand alone, but label-like headings now prefer merging with the immediately following body paragraph when the preview allows
+    - deterministic fallback now widens `heading + first body paragraph` instead of returning a bare heading when that body paragraph is already visible
+    - `Read` now explicitly stays proportionate around thin heading-like units and may remain silent there
   - the active next implementation slice is now:
-    - use this cleaned Runner/Navigate baseline to design the special-content handling policy for headings / appendix-like material
     - then do one small post-F4A repair pass and rerun the same six-case pack before opening `Phase F4B`
   - the April 12 post-Phase-D smoke has now finished and is interpreted as follows:
     - `value_of_others_private_en__8_10` produced repeated anomalous long-tail calls during the April 12 smoke
@@ -2725,9 +2736,12 @@ Last verified: `2026-04-19T22:39:17+08:00`
 - Benchmark confidence can look stronger than it really is if corpus growth, promotion, and reviewed-slice confidence gates drift apart.
 
 ## Active Task IDs
-- `TASK-USER-LEVEL-SELECTIVE-V1`
 - `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK`
 - `TASK-V2-NATIVE-READING-PRESENTATION`
+
+## Waiting Task IDs
+- `TASK-USER-LEVEL-SELECTIVE-V1`
+- `TASK-ACCUMULATION-BENCHMARK-V2`
 
 ## Blocked Task IDs
 - none
@@ -2741,54 +2755,42 @@ Last verified: `2026-04-19T22:39:17+08:00`
 3. `docs/current-state.md`
 4. relevant child `AGENTS.md`
 5. `docs/tasks/registry.md`
-6. `docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md`
-7. `docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md`
-8. `docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md`
-9. `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_micro_slice_v1_draft.json`
-10. `docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md`
-11. `docs/backend-reader-evaluation.md`
-12. `reading-companion-backend/docs/evaluation/excerpt/README.md`
-13. `reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md`
-14. `docs/backend-reading-mechanisms/attentional_v2.md`
-15. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_judged_narrow_repair_20260406/summary/report.md`
-16. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_guard_meiguoren_judged_narrow_repair_20260406/summary/report.md`
-17. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_excerpt_micro_slice_v1_smoke_narrow_repair_round2_20260406/`
-18. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_20260406/summary/report.md`
-19. `reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_surface_v1_1_draft.json`
-20. `reading-companion-backend/state/dataset_build/build_runs/excerpt_surface_v1_1_20260406/excerpt_surface_v1_1_summary.md`
-21. `docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md`
-22. `docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md`
-23. `docs/implementation/new-reading-mechanism/question-aligned-case-construction.md`
+6. `docs/backend-reader-evaluation.md`
+7. `reading-companion-backend/docs/evaluation/README.md`
+8. `reading-companion-backend/docs/evaluation/user_level/README.md`
+9. `reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md`
+10. `reading-companion-backend/docs/evaluation/long_span/README.md`
+11. `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
+12. `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+13. `docs/backend-reading-mechanisms/attentional_v2.md`
+14. `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
 
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-18T02:14:14Z",
+  "updated_at": "2026-04-19T15:07:58Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-USER-LEVEL-SELECTIVE-V1",
     "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
     "TASK-V2-NATIVE-READING-PRESENTATION"
+  ],
+  "waiting_task_ids": [
+    "TASK-USER-LEVEL-SELECTIVE-V1",
+    "TASK-ACCUMULATION-BENCHMARK-V2"
   ],
   "blocked_task_ids": [],
   "active_job_ids": [],
   "open_decision_ids": [],
   "detail_refs": [
-    "docs/implementation/new-reading-mechanism/new-reading-mechanism-execution-tracker.md",
-    "docs/implementation/new-reading-mechanism/phase9-compat-cutover-roadmap.md",
-    "docs/implementation/new-reading-mechanism/excerpt-micro-slice-v1-draft.md",
-    "docs/implementation/new-reading-mechanism/excerpt-surface-v1-1-draft.md",
-    "reading-companion-backend/docs/evaluation/excerpt/README.md",
-    "reading-companion-backend/docs/evaluation/excerpt/attentional_v2_excerpt_surface_v1_1_judged_20260406_interpretation.md",
-    "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
-    "docs/implementation/new-reading-mechanism/clustered-benchmark-v1-draft.md",
-    "docs/implementation/new-reading-mechanism/private-library-promotion-round2.md",
-    "docs/implementation/new-reading-mechanism/post-recovery-gate-review-checklist.md",
-    "docs/implementation/new-reading-mechanism/evaluation-question-map.md",
-    "docs/implementation/new-reading-mechanism/evaluation-corpus-requirements.md",
-    "docs/implementation/new-reading-mechanism/dataset-platform-closed-loop.md",
-    "docs/implementation/new-reading-mechanism/question-aligned-case-construction.md",
-    "docs/implementation/new-reading-mechanism/human-notes-guided-dataset-v1-freeze-draft.md",
+    "docs/backend-reader-evaluation.md",
+    "reading-companion-backend/docs/evaluation/README.md",
+    "reading-companion-backend/docs/evaluation/user_level/README.md",
+    "reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md",
+    "reading-companion-backend/docs/evaluation/long_span/README.md",
+    "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
+    "reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md",
+    "docs/backend-reading-mechanisms/attentional_v2.md",
+    "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
     "reading-companion-backend/eval/manifests/splits/attentional_v2_excerpt_micro_slice_v1_draft.json",
     "reading-companion-backend/eval/attentional_v2/ingest_library_sources.py",
     "reading-companion-backend/tests/test_source_intake.py",

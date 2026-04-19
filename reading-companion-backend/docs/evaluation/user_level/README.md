@@ -13,6 +13,18 @@ The current active benchmark is `user-level selective v1`:
 - active comparison runner:
   - [run_user_level_selective_comparison.py](../../../eval/attentional_v2/run_user_level_selective_comparison.py)
 
+Current formal evidence bundle:
+
+- run id:
+  - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+- repaired sibling dataset root used by that run:
+  - [manifest.json](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
+- checked-in interpretation:
+  - [attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md](./attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md)
+- machine outputs:
+  - [aggregate.json](../../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/aggregate.json)
+  - [report.md](../../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/report.md)
+
 ## Current Status
 
 - scope:
@@ -34,6 +46,11 @@ The current active benchmark is `user-level selective v1`:
   - current package size:
     - `5` reading segments
     - `202` note cases
+  - current formal evidence bundle size:
+    - `5` reading segments
+    - `203` note cases
+    - this count belongs to the repaired sibling package used by `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+    - it does not silently replace the active `202`-case dataset pointer
   - every note case includes `source_span_slices` in the rendered segment coordinate system used by the reader runtime
 
 ## Body-Start Rule
@@ -115,7 +132,22 @@ This repair path is intentionally split in two:
 
 ## Formal Runs
 
-The first judged run for this surface should now use the strict source-span rejudge/reuse path:
+Current formal evidence bundle:
+
+- completed repaired strict source-span rejudge:
+  - run id:
+    - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+  - status:
+    - `completed`
+  - dataset root:
+    - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416`
+  - summary:
+    - `attentional_v2` note recall: `0.0`
+    - `iterator_v1` note recall: `0.2118`
+  - interpretation:
+    - [attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md](./attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md)
+
+Historical execution and recovery chain:
 
 - orchestrator:
   - [orchestrate_user_level_selective_eval.py](../../../scripts/orchestrate_user_level_selective_eval.py)
@@ -144,20 +176,20 @@ The first judged run for this surface should now use the strict source-span reju
 - rejudge-only behavior:
   - completed shards are rebuilt from old `outputs/<segment>/<mechanism>` directories without calling `read_book`
   - old scoring summaries remain invalid; the next formal result must regenerate `note_cases`, aggregate summary, and report under a new run id
-- active strict rejudge/reuse run:
+- failed strict rejudge/reuse attempt:
   - job id:
     - `bgjob_user_level_selective_v1_rejudge_reuse_20260416`
   - run id:
     - `attentional_v2_user_level_selective_v1_rejudge_reuse_20260416`
   - status:
-    - `running`
+    - `failed`
   - watchdog:
-    - `bgjob_job_registry_auto_recovery_watchdog_20260416`
+    - `bgjob_job_registry_auto_recovery_watchdog_20260416` (`failed / stopped`)
   - expected behavior:
     - `8` shards use completed reading-output reuse
     - `2` `attentional_v2` shards re-read because their old outputs stopped at `deep_reading`
 
-When the first judged run lands, add it here with:
+When an additional judged run lands, add it here with:
 
 - run id
 - compared mechanisms

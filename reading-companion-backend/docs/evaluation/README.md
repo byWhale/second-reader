@@ -17,18 +17,18 @@ This split is intentional:
 
 | Surface | Run ID | Compared mechanisms | Status | One-line conclusion | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| `user-level selective v1` | `attentional_v2_user_level_selective_v1_draft` | no formal judged run yet | `active benchmark definition` | The active local/user-level benchmark now uses one continuous reading segment per eligible note-linked book and scores `Selective Legibility` as note recall over aligned human notes, with candidate retrieval grounded in strict source-span overlap. | [manifest](../../eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json) · [dataset](../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/manifest.json) · [surface index](./user_level/README.md) |
-| `target-centered long-span accumulation v2` | `attentional_v2_accumulation_benchmark_v2_draft` | no formal judged run yet | `active methodology / draft scaffold` | The active long-span methodology now centers each case on one target point plus a prepared long-range thread, scores each mechanism absolutely on target-point integration quality, and keeps mechanism comparison as a derived report-layer summary only. | [design](./long_span/target_centered_accumulation_v2_design.md) · [surface index](./long_span/README.md) · [draft manifest](../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json) |
+| `user-level selective v1` | `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416` | `attentional_v2` vs `iterator_v1` | `current formal evidence on repaired sibling package` | The active local/user-level benchmark definition still points at the `202`-case `attentional_v2_user_level_selective_v1` package, but the current formal evidence bundle is the completed repaired rejudge on the `203`-case repaired sibling package. | [active manifest](../../eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json) · [active dataset](../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/manifest.json) · [aggregate](../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/aggregate.json) · [report](../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/report.md) · [interpretation](./user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md) · [surface index](./user_level/README.md) |
+| `target-centered long-span accumulation v2` | `attentional_v2_accumulation_benchmark_v2_frozen` | no formal judged run yet | `active methodology + frozen seed set` | The active long-span methodology now centers each case on one target point plus a prepared long-range thread. It has a `12`-case frozen seed set, while judged comparison remains a future explicit step. | [design](./long_span/target_centered_accumulation_v2_design.md) · [surface index](./long_span/README.md) · [frozen manifest](../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json) |
 | `bounded long-span accumulation comparison` | `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` | `attentional_v2` vs `iterator_v1` | `historical durable evidence` | `iterator_v1` won the current durable bounded long-span evidence lane on retrospective bridging and window-end closure; attentional_v2 still showed stronger main-thread fidelity on some single-chapter probes.` | [aggregate](../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/aggregate.json) · [report](../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md) · [surface index](./long_span/README.md) · [interpretation](./long_span/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_interpretation.md) |
 
 ## Surface Directories
 
 - [user_level/](./user_level/README.md)
-  - active note-aligned user-level benchmark definition and future judged reports
+  - active note-aligned benchmark definition, current formal evidence, and preserved failed attempts
 - [excerpt/](./excerpt/README.md)
   - superseded excerpt-surface reports kept as historical evidence
 - [long_span/](./long_span/README.md)
-  - formal bounded long-span interpretation reports
+  - active target-centered long-span review/freeze materials plus historical bounded reports
 
 ## Historical / Legacy Checked-In Reports
 

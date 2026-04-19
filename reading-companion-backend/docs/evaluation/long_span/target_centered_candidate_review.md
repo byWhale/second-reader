@@ -367,7 +367,7 @@ Current durable artifacts:
 
 ## Deferred Cases
 
-- `The Value of Others` current four draft cases have been removed from the active main batch.
+- `The Value of Others` current four draft cases have been removed from the current frozen/main seed-set path.
 - Current posture: `deferred / architecture-first`. If this book re-enters long-span curation later, it should do so only after a separate theory-architecture pass rather than by promoting the current local-detail candidates.
 - `芒格之道` now contributes two frozen official cases and keeps one weaker hold-back line in the appendix below.
 

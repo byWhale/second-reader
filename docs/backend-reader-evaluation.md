@@ -106,6 +106,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the segment must begin at body start rather than dropping into a later chapter cold
   - the judged targets should be real aligned human notes rather than machine-expanded synthetic excerpt cases
   - the main metric should be note recall over user-visible reactions
+  - during a transition, the active dataset pointer and the current formal evidence bundle may differ
+    - for example, a repaired sibling package may back the latest judged evidence while the older active package remains the active benchmark pointer
+    - when that happens, entry docs must state both pointers explicitly rather than implying that they are the same package
 - `reader_character.coherent_accumulation` should now prefer a target-centered long-span surface:
   - reuse one continuous reading window as substrate
   - define one `target_span / target_zone`

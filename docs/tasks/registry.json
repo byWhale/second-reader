@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "updated_at": "2026-04-19T22:35:02+08:00",
+  "updated_at": "2026-04-19T23:07:58+08:00",
   "tasks": [
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V2",
       "title": "Land the target-centered long-span accumulation v2 framework",
-      "status": "active",
+      "status": "waiting",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/backend-reader-evaluation.md",
@@ -21,7 +21,7 @@
       ],
       "job_refs": [],
       "acceptance_ref": "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
-      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The landed builder/schema live at reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py and the landed runner lives at reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py. The split manifests now live at reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json and attentional_v2_accumulation_benchmark_v2_frozen.json, while the case datasets live at reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft and attentional_v2_accumulation_benchmark_v2_cases_frozen. The first frozen reviewed seed set now contains 12 cases across 悉达多 (6), 活出生命的意义 (4), and 芒格之道 (2), recorded in reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md. The Value of Others remains deferred to a later architecture-first pass. Keep reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md only as a per-book companion; mangge tc03 remains held back as experimental-only. Do not launch a formal judged run on v2 unless the user explicitly asks to evaluate the frozen set.",
+      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The landed builder/schema live at reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py and the landed runner lives at reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py. The current frozen reviewed seed set now lives at reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen with its split manifest at reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json. The retained draft mirror under attentional_v2_accumulation_benchmark_v2_cases_draft and the draft manifest are implementation scaffolding only. The first frozen reviewed seed set contains 12 cases across 悉达多 (6), 活出生命的意义 (4), and 芒格之道 (2), recorded in reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md. The Value of Others remains deferred to a later architecture-first pass, and mangge tc03 remains held back as experimental-only in reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md. Do not launch a formal judged run on v2 unless the user explicitly asks to evaluate the frozen set.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -36,16 +36,18 @@
         "reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json",
         "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft/manifest.json",
         "reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md",
+        "reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json",
         "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft/cases.jsonl",
+        "reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen/manifest.json",
         "reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md"
       ],
-      "last_updated": "2026-04-19T22:35:02+08:00",
+      "last_updated": "2026-04-19T15:07:58Z",
       "last_updated_by": "codex"
     },
     {
       "id": "TASK-USER-LEVEL-SELECTIVE-V1",
       "title": "Replace the active local/user-level benchmark with the note-aligned selective package",
-      "status": "active",
+      "status": "waiting",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/backend-reader-evaluation.md",
@@ -58,7 +60,8 @@
       "decision_refs": [
         "DEC-062",
         "DEC-063",
-        "DEC-064"
+        "DEC-064",
+        "DEC-073"
       ],
       "job_refs": [
         "bgjob_user_level_selective_v1_judged_parallel_20260414",
@@ -70,7 +73,7 @@
         "bgjob_job_registry_auto_recovery_watchdog_20260416_excerpt_repaired"
       ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Keep the new active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The active package truth is now 5 reading segments and 202 note cases after rebuilding the package with a stricter body-start rule: reading segments start at the first real body unit rather than the absolute beginning of the source file, front matter such as disclaimers, recommendation / preface material, book-about-book notes, timeline pages, and part/chapter stubs is skipped, and nawaer_baodian_private_zh now uses a benchmark-local body-start override at c13 (认识财富创造的原理) so its old preface-side c6 note no longer participates in the active package. Every active note case still carries segment_source_v1 char-span slices, and Selective Legibility candidate retrieval must use strict source-span overlap rather than string or semantic similarity. Broad semantic-segment fallback spans remain judge-only candidates and never auto-count as exact note recall. A repaired sibling package is still staged at reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416 with a matching audit export, and the known truncated example huochu_shengming_de_yiyi_private_zh_personal_notes__e0002 maps to the full two-sentence source span there. Keep the repaired rerun as the current formal evaluation lane while the strict source-span jobs and preserved failed evidence remain available for diagnosis.",
+      "next_action": "Keep the active local/user-level pointer on user-level selective v1 and treat the older excerpt surface v1.1 line as historical / superseded evidence only. The landed builder and runner now live at reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py and run_user_level_selective_comparison.py. The active package truth remains 5 reading segments and 202 note cases under reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1 after the stricter body-start rebuild. The repaired sibling package at reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416 is now the current formal evidence dataset root, and the completed run attentional_v2_user_level_selective_v1_repaired_rejudge_20260416 is the current formal evidence bundle with 5 reading segments and 203 note cases. Keep the repaired sibling explicit rather than silently promoting it into the active pointer. Preserve the failed reuse / retry evidence for diagnosis only.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -85,11 +88,12 @@
         "reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/attentional_v2_user_level_selective_v1_repaired_20260416_draft.json",
         "reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/note_cases.jsonl",
         "reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/audit_human_readable/index.md",
+        "reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md",
         "reading-companion-backend/docs/evaluation/user_level/README.md",
         "reading-companion-backend/docs/evaluation/excerpt/README.md",
         "docs/history/decision-log.md"
       ],
-      "last_updated": "2026-04-16T13:18:16Z",
+      "last_updated": "2026-04-19T15:07:58Z",
       "last_updated_by": "codex"
     },
     {
@@ -129,7 +133,7 @@
         "bgjob_attentional_v2_f4a_quality_audit_20260419"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed, and Phase E1 through Phase E3 remain preserved as a landed intermediate compatibility-first branch. Phase F1 is now landed: the live per-unit loop is back to navigate.unitize -> read -> navigate.route, Read now owns surfaced reactions / implicit uptake ops / pressure signals / optional detour_need, the dedicated live Express node is off the runner path, and read prompt packaging now follows compact always-carry / selective-carry / not-carry projections. Phase F2 is also landed: Navigate owns bounded detour search over structure cards, long-distance-memory digests, and source-grounded anchor handles; local_continuity now persists mainline_cursor / active_detour_id / active_detour_need / detour_trace; detour search uses one bounded prompt family with narrow_scope / land_region / defer_detour; and landed detour regions now flow back through the same normal navigate.unitize -> read -> navigate.route loop, including chapter-tail detour draining before slow-cycle close. Phase F3 is also landed: persisted visible reactions enter the system only through Read.surfaced_reactions[], mainline and detour reading share one surfaced-native reaction-record builder, chapter-result compatibility projection and normalized eval export now derive legacy family labels only through the compat helper, and dead live ownership paths for the old Express persistence flow and raw_reaction fallback are removed. Phase F4A is complete as a first six-case focused audit, and the trigger/watch cleanup slice is now also landed on top of that baseline: sentence intake is pure local_buffer ingest, live runtime/checkpoint/resume no longer carry trigger_state, Navigate.unitize no longer receives watch_state, and the dead trigger -> zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission path is gone from live code. The next move is to use this cleaned Runner/Navigate baseline to design special-content handling for headings and appendix-like material, then do one small post-F4A repair pass and rerun the same six-case pack before opening Phase F4B.",
+      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed, and Phase E1 through Phase E3 remain preserved as a landed intermediate compatibility-first branch. Phase F1 is now landed: the live per-unit loop is back to navigate.unitize -> read -> navigate.route, Read now owns surfaced reactions / implicit uptake ops / pressure signals / optional detour_need, the dedicated live Express node is off the runner path, and read prompt packaging now follows compact always-carry / selective-carry / not-carry projections. Phase F2 is also landed: Navigate owns bounded detour search over structure cards, long-distance-memory digests, and source-grounded anchor handles; local_continuity now persists mainline_cursor / active_detour_id / active_detour_need / detour_trace; detour search uses one bounded prompt family with narrow_scope / land_region / defer_detour; and landed detour regions now flow back through the same normal navigate.unitize -> read -> navigate.route loop, including chapter-tail detour draining before slow-cycle close. Phase F3 is also landed: persisted visible reactions enter the system only through Read.surfaced_reactions[], mainline and detour reading share one surfaced-native reaction-record builder, chapter-result compatibility projection and normalized eval export now derive legacy family labels only through the compat helper, and dead live ownership paths for the old Express persistence flow and raw_reaction fallback are removed. Phase F4A is complete as a first six-case focused audit. The trigger/watch cleanup slice is now landed on top of that baseline, and the first special-content handling slice is now landed too: sentence intake is pure local_buffer ingest, live runtime/checkpoint/resume no longer carry trigger_state, Navigate.unitize no longer receives watch_state, heading roles are now weak cues rather than automatic standalone units, label-like headings prefer merging with the immediately following body paragraph when the preview allows, deterministic fallback widens heading + first body paragraph instead of returning a bare heading when that body paragraph is already visible, and Read now stays proportionate around thin heading-like units. The next move is one small post-F4A repair pass and a rerun of the same six-case pack before opening Phase F4B.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
@@ -165,7 +169,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_f4a_quality_audit_20260419/summary/aggregate.json",
         "docs/implementation/new-reading-mechanism/runtime-artifact-map.md"
       ],
-      "last_updated": "2026-04-19T22:39:17+08:00",
+      "last_updated": "2026-04-19T22:53:10+08:00",
       "last_updated_by": "codex"
     },
     {

@@ -8,7 +8,7 @@ Promotion note:
 - `mangge_seg1_exp_tc01_competence_circle_to_safety_margin` and `mangge_seg1_exp_tc02_self_interest_distorts_advice` were promoted into the first frozen v2 seed set on `2026-04-19`.
 - `mangge_seg1_exp_tc03_waiting_against_dealmaking` remains held back as an experimental-only line.
 
-Status: `experimental_review` only. This document is outside the active v2 main batch and does not change the active draft case dataset or manifest.
+Status: `experimental_review` only. This document is outside the current frozen v2 seed set except for the two lines explicitly noted as promoted, and it does not change the active draft case dataset or manifest.
 
 Purpose: record a **new-method, target-centered** pass over `mangge_zhi_dao_private_zh__segment_1` so future review does not have to fall back to the older substrate memo.
 
@@ -18,7 +18,7 @@ Discovery rule: every candidate below was mined directly from the active正文�
 
 | Book | Window | Candidate count | Status | Notes |
 | --- | --- | ---: | --- | --- |
-| 《芒格之道》 | `mangge_zhi_dao_private_zh__segment_1` | 3 | experimental only | Repeated bottom-philosophy signals across 1987-1990 talks; promising, but weaker and more repetition-dependent than the current main batch. |
+| 《芒格之道》 | `mangge_zhi_dao_private_zh__segment_1` | 3 | experimental only | Repeated bottom-philosophy signals across 1987-1990 talks; promising, but weaker and more repetition-dependent than the current frozen seed set. |
 
 Thread-type mix in this experimental pass:
 - `概念/区分澄清线`: `2`

@@ -142,13 +142,13 @@ The first frozen reviewed seed set was approved on `2026-04-19`:
 - `芒格之道`: `2`
 - `The Value of Others`: still deferred to a separate theory-architecture pass
 
-The first mining order remains:
+The first mining order that produced the frozen seed set was:
 
 1. `悉达多`
 2. `活出生命的意义`
 3. `The Value of Others` only after a separate theory-architecture pass
 
-`芒格之道` stays a lower-priority experimental surface outside the active main batch. `纳瓦尔宝典` is currently excluded from the main target dataset unless later review finds clearly stronger target-centered cases.
+`芒格之道` began as a lower-priority experimental surface, but its first two reviewed lines are now inside the frozen seed set while one weaker line remains held back as experimental-only. `纳瓦尔宝典` is currently excluded from the main target dataset unless later review finds clearly stronger target-centered cases.
 
 ## Files
 
@@ -167,9 +167,9 @@ Case datasets:
 - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
 - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen`
 
-Working mining memo:
+Archived pre-curation memo:
 
-- `reading-companion-backend/docs/evaluation/long_span/long_span_substrate_candidate_memo.md`
+- `reading-companion-backend/docs/evaluation/long_span/archive/long_span_substrate_candidate_memo.md`
 
 ## Historical Boundary
 

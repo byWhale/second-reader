@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-19T22:35:02+08:00`
+Last updated: `2026-04-19T23:07:58+08:00`
 
 ## Status Values
 - `active`
@@ -19,149 +19,6 @@ Last updated: `2026-04-19T22:35:02+08:00`
 - `cancelled`
 
 ## Active
-
-### `TASK-ACCUMULATION-BENCHMARK-V2` — Land the target-centered long-span accumulation v2 framework
-- Status: `active`
-- Lane: `dataset_platform`
-- Priority: `high`
-- Detail: `docs/backend-reader-evaluation.md`
-- Next: keep bounded long-span v1 as historical mechanism evidence, but treat `target-centered long-span accumulation v2` as the active long-span methodology.
-  - landed design doc:
-    - `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
-  - landed builder / schema:
-    - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
-  - landed runner:
-    - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
-  - draft scaffold manifest:
-    - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
-  - draft scaffold dataset:
-    - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
-  - active v2 evaluation contract:
-    - one `target_span / target_zone`
-    - `2+` upstream nodes plus one explicit `expected_integration`
-    - absolute per-mechanism `quality_score` as the main output
-    - `callback_score` as a secondary bonus score
-    - no direct judging of raw mechanism-specific memory/state structures
-    - no pairwise LLM judge prompt
-  - active substrate:
-    - reuse the current `user-level selective v1` reading windows
-  - next dataset move:
-    - first frozen reviewed target-case seed set is now landed:
-      - review doc:
-        - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
-      - draft mirror dataset:
-        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
-      - frozen dataset:
-        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen`
-      - split manifests:
-        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
-        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json`
-      - current frozen-set truth:
-        - `12` frozen cases
-        - `悉达多`: `6`
-        - `活出生命的意义`: `4`
-        - `芒格之道`: `2`
-      - deferred line:
-        - `The Value of Others` current four local-detail draft cases have been removed from the active main batch
-        - if this book re-enters long-span curation later, it should do so only after a separate theory-architecture pass
-      - held-back experimental line:
-        - `芒格之道` now has a dedicated target-centered experimental review:
-          - `reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md`
-        - the unified current review entry is:
-          - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
-        - `mangge tc01` and `tc02` are now inside the frozen seed set
-        - `mangge tc03` remains held back as experimental-only
-        - use that unified review doc for the current pass; keep the separate `芒格` file only as a per-book companion instead of falling back to the older substrate memo
-    - next gate:
-      - keep this frozen seed set stable unless explicit re-curation is requested
-      - do not start a formal judged run until the user explicitly asks to evaluate the frozen set
-- Jobs: none
-
-### `TASK-USER-LEVEL-SELECTIVE-V1` — Replace the active local/user-level benchmark with the note-aligned selective package
-- Status: `active`
-- Lane: `dataset_platform`
-- Priority: `high`
-- Detail: `docs/backend-reader-evaluation.md`
-- Next: keep the new active local/user-level pointer on `user-level selective v1` and treat the older `excerpt surface v1.1` line as historical / superseded evidence only.
-  - landed builder:
-    - `reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py`
-  - landed runner:
-    - `reading-companion-backend/eval/attentional_v2/run_user_level_selective_comparison.py`
-  - active split manifest:
-    - `reading-companion-backend/eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json`
-  - active dataset package:
-    - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1`
-  - current package truth:
-    - `5` reading segments
-    - `202` note cases
-    - `nawaer_baodian_private_zh` remains included after repairing the library-notes alignment fallback and then rebuilding the active package with a stricter body-start rule
-    - reading segments now start at the first real body unit rather than the absolute beginning of the source file
-    - front matter such as disclaimers, recommendation / preface material, book-about-book notes, timeline pages, and part/chapter stubs is skipped before segment construction
-    - `nawaer_baodian_private_zh` now uses a benchmark-local body-start override at `c13` (`认识财富创造的原理`)
-    - its old preface-side note at `c6` no longer participates in the active package
-    - every note case now has `segment_source_v1` char-span slices; this is the strict matching coordinate for `Selective Legibility`
-  - active metric:
-    - `Selective Legibility` only
-    - count `exact_match + focused_hit` as note recall
-    - keep `incidental_cover` supporting-only
-    - candidate retrieval must use source-span overlap, not string similarity or semantic similarity
-    - broad semantic-segment fallback spans are judge-only candidates and never auto-count as exact note recall
-  - repaired sibling package now staged for audit-safe verification while the active strict rejudge run is still in flight:
-    - repaired dataset package:
-      - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416`
-    - repaired audit index:
-      - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/audit_human_readable/index.md`
-    - verified repair example:
-      - `huochu_shengming_de_yiyi_private_zh_personal_notes__e0002` now maps to the full two-sentence source span
-    - switch posture:
-      - keep the active benchmark pointer unchanged until a clean strict rejudge is relaunched, then decide whether to promote the repaired package into the active path
-  - next evaluation move:
-    - the latest strict source-span judged run is now preserved as failed evidence:
-      - job id:
-        - `bgjob_user_level_selective_v1_rejudge_reuse_20260416`
-      - run id:
-        - `attentional_v2_user_level_selective_v1_rejudge_reuse_20260416`
-      - failure cause:
-        - a local test regression wrote a temporary `source_a` fixture into the active split manifest, so the watchdog relaunched the failed job against the wrong shard set until its relaunch budget was exhausted
-      - repair status:
-        - the default-argument bug in `build_user_level_selective_v1(...)` is now fixed
-        - the active split manifest has been restored from `HEAD`
-        - the watchdog has been stopped because no auto-recoverable eval jobs remain active
-      - intended relaunch posture:
-        - reuse completed reading outputs from the current run on a clean relaunch, then from `retry2` and `retry1`
-        - re-score all reusable shards under the strict source-span contract
-        - rerun only the incomplete `attentional_v2` reading shards for `mangge_zhi_dao_private_zh` and `xidaduo_private_zh`
-    - the clean repaired strict source-span rerun is now active:
-      - job id:
-        - `bgjob_user_level_selective_v1_repaired_rejudge_20260416`
-      - run id:
-        - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
-      - manifest path:
-        - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/attentional_v2_user_level_selective_v1_repaired_20260416_draft.json`
-      - watchdog:
-        - `bgjob_job_registry_auto_recovery_watchdog_20260416_excerpt_repaired`
-      - execution posture:
-        - reuse repaired-run, old rejudge, retry2, retry1, and judged-parallel completed reading outputs where possible
-        - rerun only shards without reusable completed outputs
-        - keep `iterator_v1` and `attentional_v2` in parallel shard lanes across the two configured MiniMax targets
-    - execution is now split by `segment x mechanism`, so `attentional_v2` and `iterator_v1` run as independent shards instead of serializing inside one per-book shard
-    - the first mechanism-parallel attempt is preserved as failed evidence rather than overwritten:
-      - `bgjob_user_level_selective_v1_judged_parallel_20260414`
-      - failed because shard-scoped runs were still evaluating note cases from other segments, causing `KeyError` during merge-stage note-case evaluation
-    - the first retry is also preserved as failed evidence rather than overwritten:
-      - `bgjob_user_level_selective_v1_judged_parallel_retry1_20260415`
-      - failed after the code bug was fixed because `7 / 10` shards still died on provider-side timeout / quota-cooldown / `520` / `529` instability
-    - invalidated retry2 is preserved only as bug-diagnostic evidence:
-      - `bgjob_user_level_selective_v1_failed_shards_retry2_20260415`
-      - stopped after discovering that the runner admitted candidates by text similarity rather than strict source-span overlap
-      - do not use retry2 results as mechanism evidence
-    - use the new parallel orchestrator:
-      - `reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py`
-- Jobs:
-  - `bgjob_user_level_selective_v1_rejudge_reuse_20260416` (`failed`)
-  - `bgjob_job_registry_auto_recovery_watchdog_20260416` (`stopped`)
-  - `bgjob_user_level_selective_v1_repaired_rejudge_20260416` (`running`)
-  - `bgjob_job_registry_auto_recovery_watchdog_20260416_excerpt_repaired` (`running`)
 
 ### `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK` — Execute the post-Phase-9 structural rework of `attentional_v2`
 - Status: `active`
@@ -258,8 +115,12 @@ Last updated: `2026-04-19T22:35:02+08:00`
     - `Navigate.unitize` no longer receives heuristic `watch_state`
     - the dead `trigger -> zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission` path has been removed from live code
     - `text_role` is now explicitly documented as an inherited block-level weak cue
+  - the first special-content handling slice is now also landed on that cleaned baseline:
+    - `navigate.unitize` now treats heading roles as weak cues rather than automatic standalone units
+    - meaningful headings may still stand alone, but label-like headings now prefer merging with the immediately following body paragraph when the preview allows
+    - deterministic fallback now widens `heading + first body paragraph` instead of returning a bare heading when that body paragraph is already visible
+    - `Read` now explicitly stays proportionate around thin heading-like units and may remain silent there
   - next implementation line:
-    - use the cleaned Runner/Navigate baseline to design the special-content handling policy for headings / appendix-like material
     - then do one small post-F4A repair pass and rerun the same six-case pack before opening `Phase F4B`
 - Post-Phase-D evaluation posture:
   - the April 12 post-Phase-D smoke is finished and the April 13 targeted judged validation is also finished
@@ -351,6 +212,95 @@ Last updated: `2026-04-19T22:35:02+08:00`
   - `bgjob_runtime_viability_gate_serialfix_20260401` (`completed`)
 
 ## Waiting
+
+### `TASK-ACCUMULATION-BENCHMARK-V2` — Land the target-centered long-span accumulation v2 framework
+- Status: `waiting`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/backend-reader-evaluation.md`
+- Next: keep bounded long-span v1 as historical mechanism evidence, but treat `target-centered long-span accumulation v2` as the active long-span methodology.
+  - landed design doc:
+    - `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
+  - landed builder / schema:
+    - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
+  - landed runner:
+    - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
+  - active v2 evaluation contract:
+    - one `target_span / target_zone`
+    - `2+` upstream nodes plus one explicit `expected_integration`
+    - absolute per-mechanism `quality_score` as the main output
+    - `callback_score` as a secondary bonus score
+    - no direct judging of raw mechanism-specific memory/state structures
+    - no pairwise LLM judge prompt
+  - active substrate:
+    - reuse the current `user-level selective v1` reading windows
+  - current frozen reviewed seed set:
+    - unified review / freeze record:
+      - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
+    - frozen dataset:
+      - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen`
+    - frozen split manifest:
+      - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json`
+    - retained implementation mirror only:
+      - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
+      - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
+    - current frozen-set truth:
+      - `12` frozen cases
+      - `悉达多`: `6`
+      - `活出生命的意义`: `4`
+      - `芒格之道`: `2`
+    - deferred line:
+      - `The Value of Others` remains deferred to a later theory-architecture pass
+    - held-back experimental line:
+      - `reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md`
+      - `mangge tc03` remains held back as experimental-only
+  - next gate:
+    - keep the frozen seed set stable unless explicit re-curation is requested
+    - do not start a formal judged run until the user explicitly asks to evaluate the frozen set
+- Jobs: none
+
+### `TASK-USER-LEVEL-SELECTIVE-V1` — Replace the active local/user-level benchmark with the note-aligned selective package
+- Status: `waiting`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/backend-reader-evaluation.md`
+- Next: keep the active local/user-level pointer on `user-level selective v1` and treat the older `excerpt surface v1.1` line as historical / superseded evidence only.
+  - landed builder:
+    - `reading-companion-backend/eval/attentional_v2/user_level_selective_v1.py`
+  - landed runner:
+    - `reading-companion-backend/eval/attentional_v2/run_user_level_selective_comparison.py`
+  - active split manifest:
+    - `reading-companion-backend/eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json`
+  - active dataset package truth:
+    - dataset root:
+      - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1`
+    - `5` reading segments
+    - `202` note cases
+    - reading segments start at the first real body unit rather than the absolute beginning of the source file
+    - front matter such as disclaimers, recommendation / preface material, book-about-book notes, timeline pages, and part/chapter stubs is skipped before segment construction
+    - `nawaer_baodian_private_zh` now uses a benchmark-local body-start override at `c13`
+    - every note case now has `segment_source_v1` char-span slices; this is the strict matching coordinate for `Selective Legibility`
+  - current formal evidence bundle:
+    - run id:
+      - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+    - repaired dataset root:
+      - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416`
+    - repaired audit index:
+      - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/audit_human_readable/index.md`
+    - repaired formal evidence truth:
+      - `5` reading segments
+      - `203` note cases
+    - checked-in interpretation:
+      - `reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md`
+  - preserved failed evidence:
+    - `bgjob_user_level_selective_v1_rejudge_reuse_20260416`
+    - `bgjob_user_level_selective_v1_judged_parallel_20260414`
+    - `bgjob_user_level_selective_v1_judged_parallel_retry1_20260415`
+    - `bgjob_user_level_selective_v1_failed_shards_retry2_20260415`
+  - next gate:
+    - keep the active package pointer unchanged unless a later explicit task promotes the repaired sibling package
+    - keep the repaired completed run as the current formal evidence bundle for this surface
+- Jobs: none
 
 ### `TASK-DATASET-QUESTION-ALIGNED-CASE-CONSTRUCTION` — Build question-aligned case construction for evaluation datasets
 - Status: `waiting`
