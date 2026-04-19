@@ -50,20 +50,19 @@ Implementation checkpoint:
   - warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state
   - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity plus stop reasons
   - public compatibility surfaces remain unchanged
-- `Phase E1` is now landed:
-  - the new `Read -> Express` contract is frozen in the stable mechanism doc and this implementation plan
-- the first compatibility-first `Phase E2` slice is now also landed:
-  - the live runner now routes `read -> express(if needed) -> navigate.route`
-  - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal`
-  - `Express` now owns visible-reaction wording on the live path
-  - old family handling now survives only through a thin compatibility adapter posture rather than as the live prompt ontology
-- `Phase E3` is now landed:
-  - persisted `reaction_records` now keep `Express`-native surfaced semantics first
-  - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper rather than treating legacy `type` as the internal truth
-  - the bounded fallback from missing `ExpressResult` to legacy `read.raw_reaction` is now explicitly marked as compatibility-only
-- next after `Phase E3`:
-  - validate quality on the new persistence/export baseline
-  - then decide whether later slices should expose surfaced-reaction structure more natively above the current compatibility envelopes
+- `Phase E1` through `Phase E3` are now landed as an intermediate compatibility-first branch:
+  - that branch preserved the temporary `Read -> Express` split as historical/landed reality
+  - persisted `reaction_records` now keep surfaced semantics first and old family labels survive only as compatibility projections
+  - this branch remains valuable evidence, but it is no longer the approved end-state target for the mechanism
+- `Phase F1` is now landed as the first post-freeze cutover:
+  - the live per-unit loop is now `navigate.unitize -> read -> navigate.route`
+  - `Read` now directly owns surfaced reactions, implicit uptake ops, pressure signals, and optional `revisit_need`
+  - the dedicated live `Express` node is no longer on the runner path
+  - `Read` prompt packaging now follows compact `always carry / selective carry / not carry` projections
+- next after F1:
+  - `Phase F2` should replace `context_request`-style private recall ownership with `revisit_need -> navigate`
+  - `Phase F3` should keep surfaced-reaction compatibility projections working while persistence and adapters reconverge on the simplified live path
+  - `Phase F4` should validate quality and clean dead steady-state branches
 
 Primary upstream evidence:
 
@@ -235,7 +234,9 @@ The mechanism can form local understanding that later becomes harder to see beca
 - align span visibility and span authority
 - make `read` carry forward prior context and expose prior-material use as an observational result rather than a separate mechanism action
 - restructure state and prompt packetization so long-distance continuity becomes more reliable
-- move visible-reaction wording out of `read` and into `Express` while keeping `read` responsible for expression-worthiness judgment
+- simplify the read path so surfaced reactions stay close to the same call that formed the reading understanding
+- move revisit ownership back under `navigate`
+- keep compatibility projections working while the live path becomes simpler again
 - preserve existing compatibility behavior where practical while the backend shape changes
 
 ### 5.2 Explicitly out of scope for this plan
@@ -257,7 +258,7 @@ The rework should be understood as a controlled remap of current V2 responsibili
 | `zoom_read` | currently carries too much of the real reading responsibility but only opens on gated cases | absorb its reading semantics into `read` |
 | `meaning_unit_closure` | closure authority is entangled with partial visibility windows | split into `read` boundary evidence plus `navigate.route` close / continue judgment |
 | `controller_decision` | one more control surface in an already over-fragmented chain | absorb into `navigate.route` |
-| `reaction_emission` | thins out already-formed reading truth | replace it with a narrow `Express` node that owns surfaced wording while `read` keeps the underlying uptake and expression-worthiness judgment |
+| `reaction_emission` | thins out already-formed reading truth | collapse surfaced reactions back into `read` and keep old family handling only as compatibility projection |
 | lazy bridge retrieval / `bridge_resolution` | useful in principle, but too downstream to carry continuity by itself | keep only as optional execution path beneath `carry-forward context` and `active recall / look-back` |
 | `working_pressure` | useful hot-state concept, but currently mixed with older local-cycle shape | evolve into `working_state` |
 | `anchor_memory` | useful evidence territory, but too easy to over-expand conceptually | evolve into `anchor_bank` only |
@@ -484,9 +485,11 @@ That landed baseline solved one class of thinning-out failure, but it also expos
 
 - when `read` carries too much control and continuity responsibility, the surfaced output tends to sound like mechanism-authored summary rather than reading-time reaction
 
-The approved next step is therefore not to make `read` rewrite better visible prose.
+The later post-E3 review changed the conclusion again:
 
-It is to split visible reaction back out into a dedicated `Express` node while keeping `read` responsible for the underlying uptake and expression-worthiness judgment.
+- the core problem was not "visible wording needs its own permanent node"
+- it was "the read contract and prompt/context package are too overloaded"
+- the approved next direction is therefore to simplify `read` and return surfaced reactions to that same reading call rather than investing further in a permanent `Express` split
 
 #### Suggested code slices
 
@@ -545,19 +548,18 @@ Deterministic code should not hard-code a semantic taxonomy of "allowed reuse ty
 
 #### Follow-up interpretation
 
-The current Phase B baseline is still valuable, but it is no longer the intended end state for visible reaction ownership.
+The current Phase B baseline remains valuable because it established:
 
-The approved next-shape interpretation is:
+- carried continuity by default
+- bounded supplemental recall only when genuinely needed
+- deterministic routing downstream of one authoritative read packet
 
-- `read` should keep:
-  - current-unit reading
-  - `unit_delta`
-  - `implicit_uptake`
-  - `pressure_signals`
-  - `should_express` / `express_signal`
-  - optional `context_request`
-- `read` should stop being the final owner of visible reaction wording
-- visible reaction wording should move into a dedicated `Express` node
+But the later post-E3 review now says the stable next shape should be:
+
+- keep carried continuity and bounded recall
+- simplify the `read` contract
+- return surfaced reactions to `read`
+- move revisit dispatch to `navigate`
 
 ### 7.3 Phase C — Restructure state and prompt packetization
 
@@ -761,9 +763,9 @@ It should only happen after the earlier phases prove stable enough to justify ad
 
 - Phase D strengthened continuity and resume without reopening the main control skeleton
 - compaction still remains intentionally lighter than a full central compactor
-- the next follow-up is now concretized as the `Read -> Express` split and compatibility migration rather than left implicit
+- the next follow-up is now concretized as a read-native surfaced-reaction simplification rather than as a deeper investment in the `Read -> Express` split
 
-### 7.5 Phase E — Read / Express split and visible-reaction contract cleanup
+### 7.5 Phase E — Historical `Read / Express` split and compatibility cleanup
 
 Landed status so far:
 
@@ -773,8 +775,7 @@ Landed status so far:
 
 Goal:
 
-- keep `Read` centered on actual reading and implicit uptake
-- move user-visible reaction wording into a dedicated `Express` node
+- preserve the historical intermediate branch that split visible wording into a dedicated `Express` node
 - keep old reaction-family expectations only as compatibility adapters while the runtime and evaluation chain catch up
 
 This phase is intentionally split. It should not be implemented as one giant sweep.
@@ -867,6 +868,151 @@ Keep the old family only where the rest of the system still needs it.
   1. freeze contract
   2. cut live path
   3. clean compatibility / evaluation chain
+
+### 7.6 Post-E3 contract freeze — Read-native surfaced reactions, prompt projection, and revisit ownership
+
+Status: `active design baseline`
+
+This is the current approved target shape after reviewing the landed `Phase E3` branch.
+
+The key conclusion is:
+
+- the dedicated live `Express` node was a useful compatibility-first experiment
+- but it should not remain the mechanism's steady-state center of gravity
+- the next implementation slices should simplify the per-unit loop back toward:
+  - `navigate.unitize -> read -> navigate.route`
+
+Why this reset won:
+
+- surfaced reactions should stay closer to the first reading moment instead of being re-worded by a second live node
+- the main problem was an overloaded `Read` contract and overpacked prompt/context assembly, not the mere absence of a wording node
+- revisit behavior belongs with `Navigate` because it is fundamentally a reading-window routing decision
+- chapter-level consolidation still belongs with `slow cycle`, not with `Read`
+
+#### Frozen next-shape contract
+
+- `Navigate`
+  - owns coverage-unit choice
+  - owns `local_continuity`
+  - owns revisit dispatch
+- `Read`
+  - owns current-unit understanding
+  - owns `unit_delta`
+  - owns `surfaced_reactions[]`
+  - owns `implicit_uptake_ops[]`
+  - owns `pressure_signals`
+  - may emit one `revisit_need`
+- `slow cycle`
+  - owns chapter-end cooling, promotion, reconsolidation, and `reflective_frames`
+- `Runner`
+  - remains deterministic orchestration / apply / persist only
+
+#### Frozen state-layer model
+
+- `local_continuity`
+  - reading-flow state, cursor, revisit queue, return points
+- `working_state`
+  - current hot unresolved items
+- `long-distance memory`
+  - `concept_registry`
+  - `thread_trace`
+  - `reflective_frames`
+- `anchor_bank`
+  - source-grounding substrate for surfaced reactions, revisit localization, and evaluation honesty
+- `artifacts / history`
+  - `reaction_records`
+  - `move_history`
+  - `read_audit`
+  - `refs`
+  - `knowledge_activations` as helper territory
+
+#### Frozen prompt-carry posture
+
+Use three carry classes only:
+
+- `always carry`
+- `selective carry`
+- `not carry`
+
+Frozen node projections:
+
+- `Navigate`
+  - `always carry`
+    - `local_continuity`
+    - one thin routing digest from `working_state`
+  - `selective carry`
+    - minimal anchor/thread/concept handles for revisit localization
+  - `not carry`
+    - full history/audit and large earlier source text
+- `Read`
+  - `always carry`
+    - `current_unit`
+    - compact `local_continuity` summary
+    - compact `working_state`
+    - compact `concept_digest`
+    - compact `thread_digest`
+    - compact `reflective_digest`
+  - `selective carry`
+    - bounded earlier source excerpt for `inline_look_back`
+    - specific anchor details
+    - sparse supporting refs
+  - `not carry`
+    - full `refs`
+    - full `move_history`
+    - full `reaction_records`
+    - full `read_audit`
+    - full `anchor_bank`
+
+#### Frozen revisit contract
+
+- `Read` does not privately complete a revisit on its own
+- `Read` only emits `revisit_need`
+- `Navigate` decides one of:
+  - `inline_look_back`
+    - keep current unit as the main reading object, but inject one bounded earlier excerpt on the next read
+  - `revisit_hop`
+    - temporarily redirect the window to an earlier region, then return to the saved forward cursor
+
+#### Implementation slices after the freeze
+
+##### Phase F1 — Read contract and prompt-packaging cutover (`landed`)
+
+- live per-unit loop now runs `navigate.unitize -> read -> navigate.route`
+- `Read` now owns:
+  - `unit_delta`
+  - `surfaced_reactions`
+  - `implicit_uptake_ops`
+  - `pressure_signals`
+  - optional `revisit_need`
+- the live runner no longer calls the dedicated `Express` step
+- whole-object memory rewrites were replaced with explicit `append / update / close / link` operations
+- read prompt packaging now uses the frozen `always / selective / not` posture
+- focused backend validation now covers:
+  - scaffold live-path integration
+  - read-contract prompt packaging
+  - compact prompt-packet projection
+  - slow-cycle compatibility invariants
+
+##### Phase F2 — Navigate-owned revisit cutover
+
+- replace the current `context_request`-style private recall ownership with `revisit_need`
+- teach `Navigate` to schedule:
+  - `inline_look_back`
+  - `revisit_hop`
+- add explicit return-point handling in `local_continuity`
+
+##### Phase F3 — Reaction persistence and compatibility reconvergence
+
+- persist surfaced reactions directly from `ReadResult`
+- keep the current family-based and chapter-result compatibility projections alive through adapters only
+- make the old dedicated `Express` path fallback/off-path rather than the approved main route
+
+##### Phase F4 — Quality validation and dead-path cleanup
+
+- run small-sample quality audits before any broad rerun
+- verify that surfaced reactions sound like reading-time reactions again
+- verify that prompt/context load is lighter and less duplicated
+- remove or isolate the dead steady-state `Express` path only after the simplified route proves stable
 
 ## 8. Backend Compatibility Guardrails During Rework
 

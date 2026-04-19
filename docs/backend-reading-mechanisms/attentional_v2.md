@@ -52,14 +52,23 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `read` may request bounded supplemental context through `active_recall` or `look_back`.
   - private `read_audit` records capture context use.
   - legacy `raw reaction` fields remain on the read packet only as a compatibility shell, not as the live visible-reaction authority.
-- Phase E1 and the first compatibility-first Phase E2 slice are now landed.
-  - the live loop now routes through `navigate.unitize -> read -> express(if needed) -> navigate.route`
-  - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal` as first-class live-path outputs
-  - `Express` now owns visible-reaction wording on the live path
-- Phase E3 is now also landed as the first native surfaced-reaction persistence slice.
-  - persisted visible reactions now keep `Express`-native surfaced fields such as `prior_link`, `outside_link`, and `search_intent`
-  - `reaction_records`, chapter slow-cycle compatibility projection, and normalized eval export now all derive old family labels through one compat helper instead of treating legacy `type` as the internal truth
-  - old family vocabulary survives only as a projection / sidecar layer for slow-cycle, eval, and UI compatibility
+- Phase E1 through E3 are now preserved as a landed intermediate compatibility-first baseline.
+  - that branch routed through `navigate.unitize -> read -> express(if needed) -> navigate.route`
+  - persisted visible reactions on that baseline now keep surfaced fields such as `prior_link`, `outside_link`, and `search_intent`
+  - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper instead of treating legacy `type` as the internal truth
+  - this branch is preserved as landed evidence, but it is no longer the approved end-state shape for the mechanism
+- Phase F1 of the post-E3 rework is now landed.
+  - the live per-unit loop has been cut back to:
+    - `navigate.unitize -> read -> navigate.route`
+  - `Read` now directly owns:
+    - `unit_delta`
+    - `surfaced_reactions`
+    - `implicit_uptake_ops`
+    - `pressure_signals`
+    - optional `revisit_need`
+  - the dedicated live `Express` node is no longer on the live runner path
+  - `Read` prompt packaging now follows the compact `always carry / selective carry / not carry` contract instead of receiving the broader intermediate packet wholesale
+  - `Navigate` revisit dispatch (`inline_look_back` vs `revisit_hop`) remains the next implementation slice rather than a landed live behavior
 - Phase C.1 of the post-eval structural rework is now landed.
   - Live prompt inputs now flow through a bounded internal `state_packet.v1` seam.
   - `navigate.unitize` now receives packetized `navigation_context`.
@@ -78,8 +87,8 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - Sentence-intake, bridge, and chapter slow-cycle now execute directly on the new primary state layers.
   - The live runner no longer projects into `working_pressure / anchor_memory / reflective_summaries` in order to execute helpers.
   - Live runtime loading and resume now reject pre-`Phase C.3` runtime/checkpoint shapes instead of migrating them on the live path.
-- Phase D of the post-eval structural rework is now landed as the continuity / recall / resume polish slice.
-  - `read` now runs under a budget-bounded multi-step supplemental loop instead of a single extra pass.
+- Phase D of the post-eval structural rework is now landed as preserved intermediate continuity / recall / resume evidence.
+  - that branch added a budget-bounded multi-step supplemental loop around `read`.
   - Runtime state and full checkpoints now persist a lightweight `continuation capsule` with explicit `rehydration entrypoints`.
   - Warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state.
   - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity plus stop reasons.
@@ -90,7 +99,8 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - sentence intake and watch-state update
   - `navigate.unitize`
   - mandatory formal unit read with bounded carry-forward context
-  - optional budget-bounded supplemental recall / look-back looping when `read` asks for it
+  - `read` directly surfaces zero-to-many reading-time reactions and emits bounded state ops
+  - optional `revisit_need` may be recorded for the later `Navigate`-owned revisit slice, but it is not yet a live revisit loop
   - `navigate.route`
   - optional `bridge_resolution`
   - chapter-end slow-cycle work such as `chapter_consolidation`, `reflective_promotion`, and `reconsolidation`
@@ -119,8 +129,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - an unresolved interpretive pressure such as contradiction, ambiguity, instability, motif recurrence, or unexplained significance
 - `working hypothesis`
   - a provisional claim about what the chapter or book is doing
-- `revisit link`
-  - a connection from a new span back to an earlier sentence or meaning unit that has become newly important
+- `revisit need`
+  - a reading-time need to recover earlier material because the current unit cannot be understood cleanly with the presently carried context alone
+  - it is a request for future navigation, not a completed revisit
 
 ## Reading Progression Logic
 - The mechanism starts with a survey pass.
@@ -132,15 +143,18 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `no_zoom`, `monitor`, and `zoom_now` are still persisted as watch metadata.
   - They no longer decide whether正文 gets a formal read.
   - Their Phase A role is observability, cheap salience evidence, and later audit/debug support.
-- The live Phase A-E2 control loop is now:
+- The current live Phase F1 baseline now runs:
   - ingest the next unread sentence
   - persist watch-state / trigger metadata
   - `navigate.unitize` over a fixed preview window
   - build a small `carry-forward context` from persisted state
   - formally read the chosen coverage unit through `read`
-  - when `read` explicitly asks for more context, resolve one bounded `active_recall` or `look_back` supplement at a time and continue rerunning `read` while budget remains and more context is still explicitly requested
-  - run `express` only when `read` surfaces `should_express`
+  - let `read` directly surface zero-to-many reading-time reactions for that exact unit
+  - persist any `revisit_need` as a navigation-facing signal for a later slice instead of privately resolving it in the live path
   - `navigate.route` over that exact unit
+- The next-shape follow-up after F1 is:
+  - keep the same simplified loop
+  - teach `Navigate` to actively dispatch `revisit_need` as either `inline_look_back` or `revisit_hop`
 - `navigate.unitize` is now the sole selector of the next coverage unit.
   - Boundary choice is prompt-led and semantic.
   - Runtime guardrails only keep the unit from running away.
@@ -149,27 +163,26 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - current paragraph remainder
     - plus the next paragraph in the same section
   - Because the current canonical substrate does not expose stable section ids, "same section" is implemented conservatively by refusing to cross into heading paragraphs during preview construction.
-- `read` is now the authoritative formal unit-read node.
-  - On the current live baseline, it owns current-unit understanding, carried-forward-context use, `unit_delta`, `implicit_uptake`, `pressure_signals`, `express_signal`, and optional `context_request`.
-  - Legacy compatibility fields such as `raw_reaction`, `move_hint`, and `prior_material_use` may still be present on the read packet, but they no longer define live visible-reaction ownership.
-  - It no longer depends on the old `zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission` chain on the live path.
-- The approved `read` contract is now the live target shape.
-  - It reads the exact unit, forms one temporary `unit_delta`, produces `implicit_uptake`, emits local `pressure_signals`, decides `should_express`, and optionally requests more context.
-  - It is no longer the long-term owner of visible reaction wording.
-  - It is no longer the place that explains prior-material use as a central semantic task.
-  - It is no longer the node that hands route an already-decided move label.
+- `read` remains the authoritative formal unit-read node.
+  - On the current live baseline, it now directly produces `unit_delta`, `surfaced_reactions`, `implicit_uptake_ops`, `pressure_signals`, and optional `revisit_need`.
+  - It should not remain a control super-node.
+  - It should stay centered on:
+    - current-unit understanding
+    - surfaced reactions that genuinely arise during that read
+    - implicit memory/state updates
+    - revisit needs that must be routed later
+  - Legacy compatibility fields such as `raw_reaction`, `move_hint`, `prior_material_use`, `express_signal`, and `context_request` are now historical/E3-baseline territory, not the live F1 contract.
 - `unit_delta` is a temporary internal read result, not a new durable memory layer.
   - It exists only as the local read-after state of one unit.
   - Durable memory still changes only through `implicit_uptake` into the existing primary state layers.
   - Visible reaction is only the surfaced tip of that temporary read result, not the whole thing.
-- `Express` is now the live visible-reaction node.
-  - It surfaces one bounded visible reaction only when `read` has already formed enough local pressure to justify expression.
-  - It does not own memory update, route choice, or supplemental recall.
-  - It operates on the exact current unit plus a narrow `express_signal`, not on the full carry-forward packet.
+- `Express` is now best understood as historical intermediate compatibility-first territory rather than a live mechanism node.
+  - It helped isolate visible wording while the system proved out surfaced-reaction persistence.
+  - But the approved next shape no longer treats a dedicated `Express` step as the mechanism's stable center of gravity, and F1 has already removed it from the live runner path.
 - `navigate.route` is now the sole next-step decision layer for that same chosen unit.
   - In Phase B it deterministically consumes `ReadUnitResult`.
   - Its main job is to keep close/continue/bridge decisions answerable to the exact unit that was just read.
-  - In the approved next shape it should consume `pressure_signals` from `read`, not a semantic `move_hint`.
+  - In the approved next shape it should consume `pressure_signals` plus revisit state from `read`, not a semantic `move_hint`.
 - Span visibility and authority are now aligned.
   - The span being read is the span being judged.
   - The span being judged is the only span that can be closed or extended.
@@ -208,11 +221,17 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 
 ## LLM Call Schedule
 - The main LLM is now called for every formal coverage unit, not for every sentence and not only for old `zoom_now` moments.
-- The live node bundle is now:
+- The current live node bundle is:
   - `navigate_unitize`
   - `read_unit`
-  - optional additional `read_unit` turns inside a budget-bounded supplemental `active_recall` / `look_back` loop
-  - optional `express_unit`
+  - `bridge_resolution`
+  - `reflective_promotion`
+  - `reconsolidation`
+  - `chapter_consolidation`
+- The next follow-up node bundle after F1 is expected to remain:
+  - `navigate_unitize`
+  - `read_unit`
+  - optional later revisit dispatch under `navigate`
   - `bridge_resolution`
   - `reflective_promotion`
   - `reconsolidation`
@@ -222,57 +241,46 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - sentence-level intake still runs without LLM
   - `navigate_unitize` decides the next coverage unit before formal reading begins
   - trigger/watch outputs still exist, but they no longer suppress formal reading
-  - `read_unit` currently owns local understanding, `unit_delta`, `implicit_uptake`, `pressure_signals`, `express_signal`, and optional `context_request`
-  - supplemental context now runs as a budget-bounded loop rather than a single extra pass
-  - `express_unit` now owns visible-reaction wording and can emit at most one bounded surfaced reaction per unit
-  - `navigate.route` is deterministic in Phase B and does not make another LLM call
+  - `read_unit` is now the only steady-state per-unit interpretation call
+  - surfaced reactions now come from that same read call rather than from a follow-on wording node
+  - `navigate.route` remains deterministic and does not make another LLM call
   - deterministic bridge retrieval is only paid when `navigate.route` actually chooses `bridge_back`
-- Under the current post-Phase-E2 live shape:
-  - `read` owns internal uptake and expression worthiness
-  - `express` owns visible reaction wording
+- Under the approved next shape:
+  - `read` owns current-unit understanding, surfaced reactions, implicit uptake, and revisit signaling
   - `navigate.route` owns next-move choice
+  - `slow cycle` owns chapter-end consolidation and promotion
 
-## Approved Read / Express Contract
-- This section freezes the approved-and-landed contract for the post-Phase-D follow-up.
-- `ReadResult` now minimally exposes:
+## Frozen Next-Shape Contract
+- This section freezes the approved next target shape after the post-E3 quality review.
+- `ReadResult` should minimally expose:
   - `unit_delta`
     - the temporary internal read-after change for the current unit
-  - `implicit_uptake`
-    - explicit writes into the current durable state layers
+  - `surfaced_reactions`
+    - zero to many visible reading-time reactions surfaced directly by `read`
+    - each surfaced reaction should carry:
+      - `anchor_quote`
+      - `content`
+      - optional `prior_link`
+      - optional `outside_link`
+      - optional `search_intent`
+  - `implicit_uptake_ops`
+    - explicit patch/append/close/link operations against the durable state layers
+    - `read` should not rewrite whole state objects
   - `pressure_signals`
     - descriptive local pressure such as continuation, backward pull, or frame-shift pressure
-  - `express_signal`
-    - whether a visible reaction should surface now, plus the focal quote / why-now seed needed by `Express`
-  - optional `context_request`
-  - `anchor_evidence`
-- `Express` now consumes:
-  - the exact current unit
-  - one `express_signal`
-  - only the narrow supporting refs already named by `read`
-- The landed compatibility-first implementation slice keeps `Express` narrow:
-  - one unified prompt family
-  - no family-specific prompt branching
-  - at most one visible reaction per unit
-- `ExpressResult` now minimally exposes:
-  - `decision`
-    - `emit` or `withhold`
-  - `anchor_quote`
-  - `content`
-  - optional `prior_link`
-    - only for surfaced earlier-text links; not for generic carry-forward influence
-  - optional `outside_link`
-    - only for surfaced outside references; not for generic model knowledge
-  - optional `search_intent`
-    - only when the surfaced reaction naturally opens a worthwhile next question
-- persisted visible reaction records now keep that surfaced shape natively.
-  - `thought` remains the persisted visible text field in this slice.
-  - `prior_link`, `outside_link`, and `search_intent` are now first-class persisted fields.
-  - `compat_family`, legacy `type`, and legacy `search_query` are now compatibility sidecars derived from that surfaced shape rather than the other way around.
-- `silent` is therefore no longer an approved primary reaction type in the new contract.
-  - It becomes the `withhold` branch of `Express`.
-- `Highlight` remains visible-thought territory in the new contract.
-  - It is still something the user can see.
-  - It should be emitted by `Express`, not directly by `Read`.
+  - optional `revisit_need`
+    - a bounded request for later revisit handling by `navigate`
+- `revisit_need` should minimally answer:
+  - what is unclear right now
+  - what kind of earlier material is needed
+  - whether the need looks like:
+    - `inline_look_back`
+    - or a true `revisit_hop`
+- surfaced reactions are now the primary visible-reaction truth in the approved contract.
+  - old family labels remain compatibility projections only.
+  - the current E3 persisted surfaced fields remain useful evidence and may be reused during migration.
+- `silent` is no longer a primary reaction type.
+  - it is simply the absence of a surfaced reaction in that unit.
 
 ## Visible-Reaction Compatibility Vocabulary
 - The old `highlight / association / curious / discern / retrospect / silent` family remains available only as a compatibility adapter vocabulary.
@@ -280,7 +288,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - The compatibility posture is:
   - `silent`
     - no longer a primary reaction type
-    - compatibility adapter maps `Express decision = withhold` into old `silent` territory when older surfaces still expect it
+    - compatibility adapter maps "no surfaced reaction in this unit" into old `silent` territory only when an older surface still expects it
   - `retrospect`
     - no longer a primary reaction type
     - compatibility adapter uses it only when a surfaced `prior_link` must be rendered into older family-based outputs
@@ -293,7 +301,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
 - This mapping is transitional.
   - It exists for slow-cycle aggregation, eval normalization, and UI adapter continuity.
   - It is now derived from persisted surfaced reaction records through one compat helper rather than treated as the persisted reaction truth.
-  - It must not become the governing shape of the new `Express` prompt.
+  - It must not become the governing shape of the new `Read` prompt.
 - Default call types are:
   - `chapter opening`
     - set initial expectations and open questions using title, chapter heading, and opening span
@@ -313,60 +321,45 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - downstream consequence for the current hypothesis
 
 ## Context Packaging
-- Each LLM call should receive a structured packet rather than arbitrary raw chunks.
-- Phase C.1 now makes that packetization seam explicit through `state_packet.v1`.
-- The current scaffold persists node-level prompt manifests under `_mechanisms/attentional_v2/internal/prompt_manifests/*.json`.
-- The packet contains:
-  - `structural frame`
-    - book title
-    - author
-    - chapter title
-    - position within chapter/book
-  - `current unit`
-    - the exact chosen coverage unit
-  - `carry-forward context`
-    - persisted `continuation_capsule`
-    - bounded `working_state` digest
-    - bounded reflective-frame digest
-    - bounded concept digest
-    - bounded thread digest
-    - bounded recent anchor-bank digest
-    - recent continuity digest from `local_buffer + move_history + reaction_records`
-    - declared reference ids so `read` can point back to the exact prior material it materially used
-  - packetized read-context view
-    - `continuation_capsule`
-    - `session_continuity_capsule`
-    - `working_state_digest`
-    - `chapter_reflective_frame`
-    - `active_focus_digest`
-    - `concept_digest`
-    - `thread_digest`
-    - `anchor_bank_digest`
-    - legacy alias fields may still remain temporarily available for bounded audit/test compatibility, but live helper execution no longer depends on them
-  - packetized navigation view
-    - `continuation_capsule`
-    - `watch_state`
-    - `session_continuity_capsule`
-    - `working_state_digest`
-    - `chapter_reflective_frame`
-    - `active_focus_digest`
-    - `concept_digest`
-    - `thread_digest`
-    - `anchor_bank_digest`
-  - optional `supplemental_context`
-    - one or more bounded `active_recall` packets from persisted state
-    - and/or one exact bounded `look_back` earlier source span by explicit refs
-- Default carried context is intentionally small.
-  - It should be enough for ordinary continuity without silently turning into a giant memory blob.
-  - It does not inject full `knowledge_activations`, full reaction history, or long raw source excerpts by default.
-- `look_back` is explicit and exact.
-  - It requires resolvable `anchor_id` and/or `sentence_id` refs.
-  - It now returns at most one bounded earlier span per request.
-  - If the earlier source text cannot be resolved, the runner keeps the current `read` result rather than recursing further.
-- Under the approved next shape, `Express` should not receive the full carried-forward packet.
-  - `Express` should see the exact current unit and the narrow `express_signal` derived from `read`.
-  - Any prior/supporting references passed into `Express` should be explicit, sparse, and already chosen by `read`.
-  - `Express` should not reopen supplemental recall on its own.
+- Each node should receive a role-specific projection rather than the full persisted state bundle.
+- The stable carry taxonomy is now:
+  - `always carry`
+  - `selective carry`
+  - `not carry`
+- Persisted state is therefore not the same thing as prompt-visible state.
+- `Navigate` should carry:
+  - `always carry`
+    - `local_continuity`
+    - one thin routing digest from `working_state`
+  - `selective carry`
+    - minimal anchor/thread/concept handles only when needed to localize a revisit target
+  - `not carry`
+    - large earlier source excerpts
+    - full reaction history
+    - full move history
+    - audit/debug ledgers
+- `Read` should carry:
+  - `always carry`
+    - `current_unit`
+    - a compact `local_continuity` summary
+    - compact `working_state`
+    - compact `concept_digest`
+    - compact `thread_digest`
+    - compact `reflective_digest`
+  - `selective carry`
+    - one bounded earlier source excerpt for `inline_look_back`
+    - specific anchor detail
+    - sparse supporting refs
+  - `not carry`
+    - full `refs`
+    - full `move_history`
+    - full `reaction_records`
+    - full `read_audit`
+    - full `anchor_bank`
+- `slow cycle` may carry a broader chapter slice because it is the dedicated chapter-end maintenance pass.
+- Default carried context must stay small and stable.
+  - long-distance memory should travel as compact digests, not as full registries
+  - source-grounded earlier text should be injected only through bounded selective carry
 - Phase A unitization preview is intentionally narrow and deterministic.
   - It previews only the current paragraph remainder and the next paragraph in the same section.
   - The semantic choice of where to stop inside that preview is prompt-led.
@@ -380,57 +373,54 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `defer_search` is used for genuine curiosity when text-grounded reading can continue honestly.
   - `search_now` is a rare escape hatch for interpretation-blocking references or allusions rather than a normal reading behavior.
 
-## Memory And Revisit Logic
-- The mechanism keeps a live state that separates:
-  - what seems settled
-  - what remains open
-  - what may need revisiting later
-- Memory should minimally track:
-  - chapter/book hypotheses
-  - open questions
-  - tensions and contradictions
-  - active motifs or concepts
-  - important anchor lines
-  - revisit links
-- The current scaffold now makes several of those claims concrete:
-  - `continuation_capsule` now persists a lightweight continuity seed plus explicit `rehydration entrypoints` for later recall/resume
-  - `knowledge_activations` tracks separate `recognition_confidence` and `reading_warrant`
-  - `knowledge_use_mode` is distinct from `search_policy_mode`
-  - `anchor_bank` now holds the primary evidence-bearing anchor records and relations
-  - `concept_registry` now holds the primary object-level semantic memory
-  - `thread_trace` now holds the primary cross-unit line/trace memory
-  - `working_pressure`, `anchor_memory`, and `reflective_summaries` now survive only as historical/legacy territory in older artifacts and non-live helper tests
-  - durable visible thought now persists as mechanism-authored anchored reaction records rather than only as projected current-contract cards
-  - reconsolidation now uses append-and-link history instead of mutating earlier persisted reactions
-- Sentence-level trigger detection should happen continuously during intake.
+## State Layers, Ownership, And Revisit Logic
+- The mechanism now distinguishes five state territories:
+  - `local_continuity`
+    - reading-flow position, recent unit boundaries, active revisit queue, and return points
+  - `working_state`
+    - the current unresolved hot items that may still shape the next reads
+  - `long-distance memory`
+    - `concept_registry`
+    - `thread_trace`
+    - `reflective_frames`
+  - `anchor_bank`
+    - the grounding substrate for source-honest visible reactions, revisit localization, and evaluation/audit evidence
+  - `artifacts / history`
+    - `reaction_records`
+    - `move_history`
+    - `read_audit`
+    - `refs`
+    - `knowledge_activations` as helper territory rather than primary carried memory
+- Ownership is now:
+  - `Navigate`
+    - owns `local_continuity`
+    - owns revisit dispatch
+  - `Read`
+    - owns current-unit understanding
+    - owns surfaced reactions
+    - owns updates into `working_state / concept_registry / thread_trace`
+    - may request later revisit by emitting `revisit_need`
+  - `slow cycle`
+    - owns chapter-end cooling, promotion, reconsolidation, and `reflective_frames`
+  - `Runner`
+    - owns deterministic orchestration, apply, and persistence only
+    - it does not own semantic reading decisions
+- `anchor_bank` is necessary, but narrow.
+  - It is not a second giant memory layer.
+  - It exists so surfaced reactions, revisit localization, and evaluation stay source-grounded.
+- `revisit` is now split into two stable shapes:
+  - `inline_look_back`
+    - the next `Read` keeps the current unit as the main object but receives one bounded earlier source excerpt as selective carry
+  - `revisit_hop`
+    - `Navigate` temporarily redirects the reading window to an earlier region, then later returns to the saved forward cursor
+- `Read` should not privately complete a full revisit on its own.
+  - It should only surface a `revisit_need`.
+  - `Navigate` is the node that decides which revisit mode to schedule next.
+- Sentence-level trigger detection should still happen continuously during intake.
   - This protects against missing a crucial single sentence even when the main reasoning unit is larger.
-- The current prompt set now explicitly tells the local interpretation and closure nodes to name:
-  - exact callback cues
-  - exact distinctions or recognition gaps
-  - explanatory patterns
-  - actor intention, social pressure, or concrete causal stakes when those hinges are locally explicit
-  rather than flattening these moments into generic scene summary.
-- The current local synthetic-reaction path is still bounded:
-  - zoom-open local spans may synthesize one bounded local candidate from deterministic cue packets only when the cue family is high-signal:
-    - `marked_phrase`
-    - `loaded_wording`
-    - `analogy_image`
-    - `distinction_cue`
-    - `actor_intention`
-    - `social_pressure`
-    - `causal_stakes`
-  - callback-only or recognition-gap-only cues do not by themselves synthesize a visible local reaction candidate in the current repair posture
-  - pressure cues alone must not force visible output when the zoom-level reaction gate stays closed
-  - this keeps narrative/reference-heavy local cases from disappearing into retrospective summary without converting `attentional_v2` into a dense iterator-style stream
-- Retroactive resurfacing is first-class.
-  - A later span can promote an earlier sentence or paragraph into renewed focus.
-- The Phase 5 bridge helper now enforces source honesty:
+- The Phase 5 bridge helper still enforces source honesty.
   - bridge targets must come from deterministic source candidates
   - if no honest source target exists, bridge resolution declines instead of inventing one
-- Chapter-end backward sweeps should check:
-  - which earlier lines turned out to matter most
-  - which open tensions remain live
-  - whether the chapter-level hypothesis changed
 
 ## Runtime Artifacts
 - Shared substrate dependency

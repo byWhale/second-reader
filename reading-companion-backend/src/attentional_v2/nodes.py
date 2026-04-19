@@ -12,6 +12,7 @@ from src.iterator_reader.language import language_name
 from src.iterator_reader.llm_utils import LLMTraceContext, ReaderLLMError, invoke_json, llm_invocation_scope
 
 from .prompts import ATTENTIONAL_V2_PROMPTS
+from .state_projection import build_read_prompt_packet
 from .schemas import (
     AnchorBankState,
     AnchorMemoryState,
@@ -41,8 +42,11 @@ from .schemas import (
     ReactionType,
     ReadAnchorEvidence,
     ReadUnitResult,
+    RevisitNeed,
+    RevisitMode,
     ReaderPolicy,
     SearchIntent,
+    SurfacedReaction,
     StateOperation,
     TriggerState,
     UnitizeBoundaryType,
@@ -74,8 +78,11 @@ _UNITIZE_BOUNDARY_TYPES: set[UnitizeBoundaryType] = {
     "budget_cap",
 }
 _STATE_OPERATION_TYPES = {
-    "create",
+    "append",
     "update",
+    "close",
+    "link",
+    "create",
     "cool",
     "drop",
     "retain_anchor",
@@ -84,6 +91,7 @@ _STATE_OPERATION_TYPES = {
     "supersede",
     "reactivate",
 }
+_REVISIT_MODES: set[RevisitMode] = {"inline_look_back", "revisit_hop"}
 _CLOSURE_DECISIONS: set[ClosureDecision] = {"continue", "close"}
 _EMISSION_DECISIONS: set[ReactionEmissionDecision] = {"emit", "withhold"}
 _ANCHOR_FOCUS_KINDS = {"phrase", "sentence", "span"}
@@ -994,15 +1002,18 @@ def _normalize_state_operations(value: object) -> list[StateOperation]:
     for item in value:
         if not isinstance(item, dict):
             continue
-        operation_type = _clean_text(item.get("operation_type")).lower().replace("-", "_")
+        operation_type = _clean_text(item.get("op") or item.get("operation_type")).lower().replace("-", "_")
         if operation_type not in _STATE_OPERATION_TYPES:
             continue
         payload = item.get("payload")
+        target_key = _clean_text(item.get("target_key") or item.get("item_id"))
         operations.append(
             {
+                "op": operation_type,  # type: ignore[typeddict-item]
                 "operation_type": operation_type,  # type: ignore[typeddict-item]
-                "target_store": _clean_text(item.get("target_store")) or "working_pressure",
-                "item_id": _clean_text(item.get("item_id")),
+                "target_store": _clean_text(item.get("target_store")) or "working_state",
+                "target_key": target_key,
+                "item_id": target_key,
                 "reason": _clean_text(item.get("reason")),
                 "payload": dict(payload) if isinstance(payload, dict) else {},
             }
@@ -1214,6 +1225,74 @@ def _normalize_search_intent(value: object) -> SearchIntent | None:
     }
 
 
+def _normalize_surfaced_reaction(
+    value: object,
+    *,
+    current_unit_texts: list[str],
+    allowed_ref_ids: set[str],
+) -> SurfacedReaction | None:
+    """Normalize one surfaced read-owned reaction."""
+
+    if not isinstance(value, dict):
+        return None
+    anchor_quote = _clean_text(value.get("anchor_quote"))
+    content = _clean_text(value.get("content"))
+    if not anchor_quote or not content:
+        return None
+    if current_unit_texts and not any(anchor_quote in text for text in current_unit_texts):
+        return None
+    return {
+        "anchor_quote": anchor_quote,
+        "content": content,
+        "prior_link": _normalize_prior_link(value.get("prior_link"), allowed_ref_ids=allowed_ref_ids),
+        "outside_link": _normalize_outside_link(value.get("outside_link")),
+        "search_intent": _normalize_search_intent(value.get("search_intent")),
+    }
+
+
+def _normalize_surfaced_reactions(
+    value: object,
+    *,
+    current_unit_texts: list[str],
+    allowed_ref_ids: set[str],
+) -> list[SurfacedReaction]:
+    """Normalize the surfaced reactions emitted directly by the read step."""
+
+    reactions: list[SurfacedReaction] = []
+    if not isinstance(value, list):
+        return reactions
+    for item in value:
+        normalized = _normalize_surfaced_reaction(
+            item,
+            current_unit_texts=current_unit_texts,
+            allowed_ref_ids=allowed_ref_ids,
+        )
+        if normalized is not None:
+            reactions.append(normalized)
+    return reactions
+
+
+def _normalize_revisit_need(value: object) -> RevisitNeed | None:
+    """Normalize one optional revisit-need request."""
+
+    if not isinstance(value, dict):
+        return None
+    preferred_mode = _clean_text(value.get("preferred_mode")).lower().replace("-", "_")
+    if preferred_mode not in _REVISIT_MODES:
+        preferred_mode = ""
+    reason = _clean_text(value.get("reason"))
+    target_hint = _clean_text(value.get("target_hint"))
+    if not any((reason, target_hint, preferred_mode)):
+        return None
+    result: RevisitNeed = {
+        "reason": reason,
+        "target_hint": target_hint,
+    }
+    if preferred_mode:
+        result["preferred_mode"] = preferred_mode  # type: ignore[typeddict-item]
+    return result
+
+
 def _normalize_express_result(
     value: object,
     *,
@@ -1360,45 +1439,16 @@ def _fallback_read_unit_result(
 ) -> ReadUnitResult:
     """Return one conservative fallback read result."""
 
-    fallback_sentence = current_unit_sentences[-1] if current_unit_sentences else {}
-    sentence_id = _clean_text(fallback_sentence.get("sentence_id"))
-    sentence_text = _clean_text(fallback_sentence.get("text"))
-    anchor_evidence = (
-        [
-            {
-                "sentence_id": sentence_id,
-                "quote": sentence_text[:240],
-                "why_it_matters": reason or "read_unit_fallback",
-            }
-        ]
-        if sentence_id and sentence_text
-        else []
-    )
     return {
-        "unit_delta": "",
+        "unit_delta": _clean_text(reason),
         "pressure_signals": {
             "continuation_pressure": bool(continuation_pressure),
             "backward_pull": False,
             "frame_shift_pressure": False,
         },
-        "express_signal": {
-            "should_express": False,
-            "focal_quote": "",
-            "why_now": "",
-            "supporting_ref_ids": [],
-        },
-        "local_understanding": "",
-        "move_hint": "advance",
-        "continuation_pressure": bool(continuation_pressure),
-        "implicit_uptake": [],
-        "anchor_evidence": anchor_evidence,
-        "prior_material_use": {
-            "materially_used": False,
-            "explanation": "",
-            "supporting_ref_ids": [],
-        },
-        "raw_reaction": None,
-        "context_request": None,
+        "surfaced_reactions": [],
+        "implicit_uptake_ops": [],
+        "revisit_need": None,
     }
 
 
@@ -1591,6 +1641,10 @@ def read_unit(
     """Run the authoritative formal read for one chosen unit."""
 
     prompts = ATTENTIONAL_V2_PROMPTS
+    prompt_packet = build_read_prompt_packet(
+        carry_forward_context=carry_forward_context,
+        supplemental_context=supplemental_context,
+    )
     structural_frame = _structural_frame(
         book_title=book_title,
         author=author,
@@ -1610,8 +1664,8 @@ def read_unit(
                 for sentence in current_unit_sentences
             ]
         ),
-        carry_forward_context=_json_block(carry_forward_context),
-        supplemental_context=_json_block(dict(supplemental_context or {})),
+        carry_forward_context=_json_block(prompt_packet),
+        supplemental_context=_json_block(dict(prompt_packet.get("selective_carry", {}))),
         policy_snapshot=_json_block(reader_policy),
         output_language_name=language_name(output_language),
     )
@@ -1626,11 +1680,6 @@ def read_unit(
     with llm_invocation_scope(trace_context=LLMTraceContext(stage="phase4", node="read_unit")):
         payload = invoke_json(prompts.read_unit_system, user_prompt, default={})
 
-    allowed_sentence_ids = {
-        _clean_text(sentence.get("sentence_id"))
-        for sentence in current_unit_sentences
-        if _clean_text(sentence.get("sentence_id"))
-    }
     current_unit_texts = [
         _clean_text(sentence.get("text"))
         for sentence in current_unit_sentences
@@ -1653,83 +1702,51 @@ def read_unit(
             if isinstance(excerpt, dict) and _clean_text(excerpt.get("ref_id"))
         )
 
-    legacy_move_hint = _clean_text(payload.get("move_hint") if isinstance(payload, dict) else "").lower().replace("-", "_")
-    if legacy_move_hint not in _MOVE_TYPES:
-        legacy_move_hint = "advance"
-    legacy_continuation_pressure = bool(payload.get("continuation_pressure")) if isinstance(payload, dict) else False
-    anchor_evidence = _normalize_read_anchor_evidence(
-        payload.get("anchor_evidence") if isinstance(payload, dict) else None,
-        allowed_sentence_ids=allowed_sentence_ids,
-    )
-    raw_reaction = _normalize_reaction_candidate(payload.get("raw_reaction")) if isinstance(payload, dict) else None
-    if not anchor_evidence and raw_reaction is not None:
-        raw_anchor_quote = _clean_text(raw_reaction.get("anchor_quote"))
-        for sentence in current_unit_sentences:
-            sentence_id = _clean_text(sentence.get("sentence_id"))
-            sentence_text = _clean_text(sentence.get("text"))
-            if raw_anchor_quote and sentence_id and raw_anchor_quote in sentence_text:
-                anchor_evidence = [
-                    {
-                        "sentence_id": sentence_id,
-                        "quote": raw_anchor_quote,
-                        "why_it_matters": _clean_text(payload.get("local_understanding")) if isinstance(payload, dict) else "",
-                    }
-                ]
-                break
     pressure_signals = _normalize_pressure_signals(payload.get("pressure_signals")) if isinstance(payload, dict) else {}
     if not any(pressure_signals.values()):
+        legacy_move_hint = _clean_text(payload.get("move_hint") if isinstance(payload, dict) else "").lower().replace("-", "_")
+        if legacy_move_hint not in _MOVE_TYPES:
+            legacy_move_hint = "advance"
+        legacy_continuation_pressure = bool(payload.get("continuation_pressure")) if isinstance(payload, dict) else False
         pressure_signals = _derive_pressure_signals_from_legacy_fields(
             move_hint=legacy_move_hint,
             continuation_pressure=legacy_continuation_pressure,
         )
-    move_hint = _derive_move_hint_from_pressure_signals(pressure_signals)
-    express_signal = _normalize_express_signal(
-        payload.get("express_signal") if isinstance(payload, dict) else None,
+    surfaced_reactions = _normalize_surfaced_reactions(
+        payload.get("surfaced_reactions") if isinstance(payload, dict) else None,
+        current_unit_texts=current_unit_texts,
         allowed_ref_ids=allowed_ref_ids,
     )
-    if not express_signal.get("focal_quote") and anchor_evidence:
-        express_signal = {
-            **express_signal,
-            "focal_quote": _clean_text(anchor_evidence[0].get("quote")),
-        }
-    focal_quote = _clean_text(express_signal.get("focal_quote"))
-    if focal_quote and current_unit_texts and not any(focal_quote in text for text in current_unit_texts):
-        express_signal = {
-            **express_signal,
-            "focal_quote": _clean_text(anchor_evidence[0].get("quote")) if anchor_evidence else "",
-        }
-    if raw_reaction is not None and not bool(express_signal.get("should_express")):
-        express_signal = {
-            "should_express": True,
-            "focal_quote": _clean_text(raw_reaction.get("anchor_quote")) or _clean_text(express_signal.get("focal_quote")),
-            "why_now": _clean_text(raw_reaction.get("content"))[:280],
-            "supporting_ref_ids": list(express_signal.get("supporting_ref_ids", [])),
-        }
-    if bool(express_signal.get("should_express")) and not _clean_text(express_signal.get("focal_quote")):
-        express_signal = {
-            "should_express": False,
-            "focal_quote": "",
-            "why_now": "",
-            "supporting_ref_ids": [],
-        }
+    raw_reaction = _normalize_reaction_candidate(payload.get("raw_reaction")) if isinstance(payload, dict) else None
+    if not surfaced_reactions and raw_reaction is not None:
+        fallback_surface = _normalize_surfaced_reaction(
+            {
+                "anchor_quote": _clean_text(raw_reaction.get("anchor_quote")),
+                "content": _clean_text(raw_reaction.get("content")),
+            },
+            current_unit_texts=current_unit_texts,
+            allowed_ref_ids=allowed_ref_ids,
+        )
+        if fallback_surface is not None:
+            surfaced_reactions = [fallback_surface]
     unit_delta = _clean_text(payload.get("unit_delta")) if isinstance(payload, dict) else ""
     if not unit_delta:
         unit_delta = _clean_text(payload.get("local_understanding")) if isinstance(payload, dict) else ""
     result: ReadUnitResult = {
         "unit_delta": unit_delta,
         "pressure_signals": pressure_signals,
-        "express_signal": express_signal,
-        "local_understanding": _clean_text(payload.get("local_understanding")) if isinstance(payload, dict) else unit_delta,
-        "move_hint": move_hint,  # type: ignore[typeddict-item]
-        "continuation_pressure": bool(pressure_signals.get("continuation_pressure")),
-        "implicit_uptake": _normalize_state_operations(payload.get("implicit_uptake")) if isinstance(payload, dict) else [],
-        "anchor_evidence": anchor_evidence,
-        "prior_material_use": _normalize_prior_material_use(
-            payload.get("prior_material_use") if isinstance(payload, dict) else None,
-            allowed_ref_ids=allowed_ref_ids,
+        "surfaced_reactions": surfaced_reactions,
+        "implicit_uptake_ops": _normalize_state_operations(
+            payload.get("implicit_uptake_ops")
+            if isinstance(payload, dict)
+            else None
+        )
+        or _normalize_state_operations(
+            payload.get("implicit_uptake")
+            if isinstance(payload, dict)
+            else None
         ),
-        "raw_reaction": raw_reaction,
-        "context_request": _normalize_context_request(payload.get("context_request")) if isinstance(payload, dict) else None,
+        "revisit_need": _normalize_revisit_need(payload.get("revisit_need")) if isinstance(payload, dict) else None,
     }
     return result
 
@@ -1808,31 +1825,13 @@ def navigate_route(
         action = "continue"
     if action not in _ROUTE_ACTIONS:
         action = "commit"
-    express_signal = dict(read_result.get("express_signal") or {})
-    prior_material_use = dict(read_result.get("prior_material_use") or {})
-    target_anchor_id, target_sentence_id = _route_targets_from_ref_ids(
-        [
-            *[
-                _clean_text(ref_id)
-                for ref_id in express_signal.get("supporting_ref_ids", [])
-                if isinstance(express_signal.get("supporting_ref_ids"), list) and _clean_text(ref_id)
-            ],
-            *[
-                _clean_text(ref_id)
-                for ref_id in prior_material_use.get("supporting_ref_ids", [])
-                if isinstance(prior_material_use.get("supporting_ref_ids"), list) and _clean_text(ref_id)
-            ],
-        ]
-    )
     return {
         "action": action,  # type: ignore[typeddict-item]
-        "reason": _clean_text(read_result.get("unit_delta"))
-        or _clean_text(read_result.get("local_understanding"))
-        or _clean_text(prior_material_use.get("explanation")),
+        "reason": _clean_text(read_result.get("unit_delta")),
         "close_current_unit": True,
-        "target_anchor_id": target_anchor_id,
-        "target_sentence_id": target_sentence_id,
-        "persist_raw_reaction": bool(express_signal.get("should_express")) or bool(read_result.get("raw_reaction")),
+        "target_anchor_id": "",
+        "target_sentence_id": "",
+        "persist_raw_reaction": bool(read_result.get("surfaced_reactions")),
     }
 
 

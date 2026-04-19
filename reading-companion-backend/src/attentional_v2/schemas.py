@@ -22,7 +22,22 @@ UnitizeBoundaryType = Literal[
 ]
 RouteAction = Literal["commit", "continue", "bridge_back", "reframe"]
 ContextRequestKind = Literal["active_recall", "look_back"]
-StateOperationType = Literal["create", "update", "cool", "drop", "retain_anchor", "link_anchors", "promote", "supersede", "reactivate"]
+RevisitMode = Literal["inline_look_back", "revisit_hop"]
+StateOperationType = Literal[
+    "append",
+    "update",
+    "close",
+    "link",
+    "create",
+    "cool",
+    "drop",
+    "retain_anchor",
+    "link_anchors",
+    "promote",
+    "supersede",
+    "reactivate",
+    "resolve",
+]
 ClosureDecision = Literal["continue", "close"]
 ReactionEmissionDecision = Literal["emit", "withhold"]
 BridgeResolutionDecision = Literal["bridge", "decline"]
@@ -66,6 +81,9 @@ class WorkingPressureItem(TypedDict, total=False):
     kind: str
     statement: str
     support_anchor_ids: list[str]
+    linked_concept_keys: list[str]
+    linked_thread_keys: list[str]
+    last_touched_sentence_id: str
     status: str
 
 
@@ -96,6 +114,8 @@ class WorkingPressureState(TypedDict, total=False):
 
 class WorkingState(WorkingPressureState, total=False):
     """Primary hot state after the Phase C.3 direct migration."""
+
+    active_items: list[WorkingPressureItem]
 
 
 class LocalBufferSentence(TypedDict, total=False):
@@ -247,6 +267,7 @@ class WorkingStateDigest(TypedDict, total=False):
 
     gate_state: str
     pressure_snapshot: dict[str, object]
+    active_items: list[dict[str, object]]
     hot_items: list[dict[str, object]]
     open_questions: list[dict[str, object]]
     live_tensions: list[dict[str, object]]
@@ -383,25 +404,39 @@ class ReadUnitResult(TypedDict, total=False):
 
     unit_delta: str
     pressure_signals: PressureSignals
-    express_signal: ExpressSignal
-    local_understanding: str
-    move_hint: MoveType
-    continuation_pressure: bool
-    implicit_uptake: list[StateOperation]
-    anchor_evidence: list[ReadAnchorEvidence]
-    prior_material_use: PriorMaterialUse
-    raw_reaction: ReactionCandidate | None
-    context_request: ContextRequest | None
+    surfaced_reactions: list["SurfacedReaction"]
+    implicit_uptake_ops: list["StateOperation"]
+    revisit_need: "RevisitNeed" | None
 
 
 class StateOperation(TypedDict, total=False):
     """One explicit state mutation proposed by a Phase 4 node."""
 
+    op: StateOperationType
     operation_type: StateOperationType
     target_store: str
+    target_key: str
     item_id: str
     reason: str
     payload: dict[str, object]
+
+
+class SurfacedReaction(TypedDict, total=False):
+    """One visible in-the-moment reaction surfaced directly by the read node."""
+
+    anchor_quote: str
+    content: str
+    prior_link: "PriorLink" | None
+    outside_link: "OutsideLink" | None
+    search_intent: "SearchIntent" | None
+
+
+class RevisitNeed(TypedDict, total=False):
+    """One bounded desire to revisit earlier material after the current read settles."""
+
+    reason: str
+    target_hint: str
+    preferred_mode: RevisitMode
 
 
 class BridgeCandidate(TypedDict, total=False):
@@ -954,7 +989,9 @@ def build_empty_working_pressure(*, mechanism_version: str = ATTENTIONAL_V2_MECH
 def build_empty_working_state(*, mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION) -> WorkingState:
     """Return the default primary hot state."""
 
-    return build_empty_working_pressure(mechanism_version=mechanism_version)
+    state = build_empty_working_pressure(mechanism_version=mechanism_version)
+    state["active_items"] = []
+    return state  # type: ignore[return-value]
 
 
 def build_empty_local_buffer(*, mechanism_version: str = ATTENTIONAL_V2_MECHANISM_VERSION) -> LocalBufferState:
@@ -1022,6 +1059,7 @@ def build_empty_continuation_capsule(
         "working_state_digest": {
             "gate_state": "",
             "pressure_snapshot": {},
+            "active_items": [],
             "hot_items": [],
             "open_questions": [],
             "live_tensions": [],

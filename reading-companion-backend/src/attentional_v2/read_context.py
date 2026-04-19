@@ -646,9 +646,9 @@ def persist_read_audit(
     chapter_ref: str,
     unitize_decision: UnitizeDecision,
     carry_forward_context: CarryForwardContext,
-    context_request: ContextRequest | None,
-    supplemental_context: dict[str, object] | None,
-    supplemental_satisfied: bool,
+    context_request: ContextRequest | None = None,
+    supplemental_context: dict[str, object] | None = None,
+    supplemental_satisfied: bool = False,
     supplemental_steps: list[dict[str, object]] | None = None,
     stop_reason: str = "",
     budget_exhausted: bool = False,
@@ -674,12 +674,14 @@ def persist_read_audit(
             "budget_exhausted": bool(budget_exhausted),
             "unit_delta": clean_text(read_result.get("unit_delta")),
             "pressure_signals": dict(read_result.get("pressure_signals") or {}),
-            "should_express": bool(read_result.get("express_signal", {}).get("should_express"))
-            if isinstance(read_result.get("express_signal"), dict)
-            else False,
-            "prior_material_use": dict(read_result.get("prior_material_use") or {}),
-            "raw_reaction_present": bool(read_result.get("raw_reaction")),
-            "move_hint": clean_text(read_result.get("move_hint")),
+            "surfaced_reaction_count": len(
+                [item for item in read_result.get("surfaced_reactions", []) if isinstance(item, dict)]
+            )
+            if isinstance(read_result.get("surfaced_reactions"), list)
+            else 0,
+            "revisit_need": dict(read_result.get("revisit_need") or {})
+            if isinstance(read_result.get("revisit_need"), dict)
+            else {},
             "llm_fallbacks": [dict(item) for item in (llm_fallbacks or []) if isinstance(item, dict)],
         },
     )

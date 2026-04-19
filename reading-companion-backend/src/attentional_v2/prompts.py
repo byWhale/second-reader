@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v13"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v14"
 NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v2"
-READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v5"
+READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v6"
 EXPRESS_UNIT_PROMPT_VERSION = "attentional_v2.express.v1"
 ZOOM_READ_PROMPT_VERSION = "attentional_v2.zoom_read.v5"
 MEANING_UNIT_CLOSURE_PROMPT_VERSION = "attentional_v2.meaning_unit_closure.v8"
@@ -116,28 +116,31 @@ Return JSON:
     read_unit_version=READ_UNIT_PROMPT_VERSION,
     read_unit_system="""You are the authoritative read node for a text-grounded reading mechanism.
 
-Your job is to read the exact current unit together with a small carried-forward continuity packet.
+Your job is to read the exact current unit together with a small carried-forward memory packet.
 
 Rules:
 - Treat the provided unit text as the current reading present.
-- Use the carried-forward memory naturally when it is genuinely relevant, but do not collapse the unit into a chapter summary.
-- Do not invent earlier text that is not present in carry-forward or supplemental context.
-- If the current unit clearly depends on earlier material but the provided context is insufficient, request one bounded supplemental context step at a time.
-- Use `active_recall` when you need more structured prior state.
-- Use `look_back` only when exact earlier source wording is needed, and point to explicit anchor ids and/or sentence ids when you can.
-- `unit_delta` should state what shifted in the reader's understanding or pressure after this exact unit, not what the whole chapter means.
-- `pressure_signals` are local post-read signals, not route decisions.
-- `implicit_uptake` must stay explicit. Only target:
+- Use the carried-forward memory naturally when it genuinely matters, but do not collapse the unit into a chapter summary or evaluator voice.
+- Do not invent earlier text that is not present in the carried memory or selective carry.
+- `unit_delta` should say what shifted locally in understanding, pressure, or attention after this exact unit.
+- `pressure_signals` are local post-read signals only. They are not route decisions.
+- If the unit naturally surfaces something worth saying now, write it directly in `surfaced_reactions`.
+- Surfaced reactions must stay anchored to the current unit. Each reaction's `anchor_quote` must be an exact quote from this unit.
+- It is acceptable to emit zero surfaced reactions. It is also acceptable to emit more than one when there are multiple distinct local triggers, but stay bounded. Default to 0-2.
+- Use V1's wide-entry, narrow-expression stance: be willing to notice and surface a real local trigger, but do not manufacture commentary just to fill space.
+- Common local triggers include but are not limited to: a phrase whose wording suddenly sharpens the stakes, a turn that changes the direction of understanding, a definition or distinction that finally clicks, a question that exposes the hidden hinge, or a line that explicitly calls back to something already alive in memory.
+- These are open examples, not a checklist. Do not require a fixed trigger family before expressing.
+- `implicit_uptake_ops` must stay explicit and bounded. Only target:
   - `working_state`
   - `concept_registry`
   - `thread_trace`
   - `anchor_bank`
-  - `knowledge_activations`
-- `reflective_frames` stays slow-cycle only and must not be written here.
-- `anchor_evidence` must cite exact sentence ids from the current unit.
-- `express_signal` should only turn on when one bounded visible reaction genuinely deserves surfacing now.
-- If there is no such visible reaction, set `should_express` to false and leave the other express fields empty.
-- `prior_material_use` is optional audit metadata only. Use it sparingly and only when specific prior refs materially shaped this read.
+- Do not write `reflective_frames`, `reaction_records`, or history/audit layers here.
+- Propose operations, not whole-object rewrites.
+- If the current understanding genuinely needs earlier material, emit `revisit_need`. Do not secretly route or resolve it yourself.
+- Do not output broad chapter summary.
+- Do not explain whether you "used prior material".
+- Do not decide the next route.
 - Return JSON only.""",
     read_unit_prompt="""Structural frame:
 {structural_frame}
@@ -148,7 +151,7 @@ Current unit:
 Read context packet:
 {carry_forward_context}
 
-Supplemental context:
+Selective carry:
 {supplemental_context}
 
 Policy snapshot:
@@ -167,26 +170,25 @@ Return JSON:
     "backward_pull": false,
     "frame_shift_pressure": false
   },
-  "implicit_uptake": [],
-  "anchor_evidence": [
+  "surfaced_reactions": [
     {
-      "sentence_id": "<sentence id from current unit>",
-      "quote": "<exact quote from current unit>",
-      "why_it_matters": "<brief reason>"
+      "anchor_quote": "<exact quote from current unit>",
+      "content": "<visible in-the-moment reaction>",
+      "prior_link": null,
+      "outside_link": null,
+      "search_intent": null
     }
   ],
-  "express_signal": {
-    "should_express": false,
-    "focal_quote": "",
-    "why_now": "",
-    "supporting_ref_ids": []
-  },
-  "prior_material_use": {
-    "materially_used": false,
-    "explanation": "",
-    "supporting_ref_ids": []
-  },
-  "context_request": null
+  "implicit_uptake_ops": [
+    {
+      "op": "append",
+      "target_store": "working_state",
+      "target_key": "item-key",
+      "reason": "<brief reason>",
+      "payload": {}
+    }
+  ],
+  "revisit_need": null
 }""",
     express_unit_version=EXPRESS_UNIT_PROMPT_VERSION,
     express_unit_system="""You are the express node for a text-grounded reading mechanism.

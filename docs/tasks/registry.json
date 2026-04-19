@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-18T19:48:48+08:00",
+  "updated_at": "2026-04-19T13:03:02+08:00",
   "tasks": [
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V2",
@@ -110,7 +110,9 @@
         "DEC-058",
         "DEC-059",
         "DEC-060",
-        "DEC-061"
+        "DEC-061",
+        "DEC-067",
+        "DEC-068"
       ],
       "job_refs": [
         "bgjob_post_phase_d_longspan_smoke_20260412",
@@ -122,7 +124,7 @@
         "bgjob_post_phase_d_parallel_judged_eval_retry2_20260413"
       ],
       "acceptance_ref": "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
-      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed, Phase E1 is landed, the first compatibility-first Phase E2 slice is landed, and Phase E3 is now landed too: the live runner routes navigate.unitize -> read -> express(if needed) -> navigate.route, visible-reaction wording now comes from Express, persisted reaction_records now keep Express-native surfaced fields first, and slow-cycle / eval compatibility labels are now projected through one compat helper instead of treated as the internal truth. Keep the April 12 post-Phase-D smoke and the April 13 targeted judged validation as completed evidence, and use the next bounded slice to validate quality on top of this surfaced-reaction persistence baseline before deciding whether any later work should expose that structure more natively above today's compatibility envelopes.",
+      "next_action": "Continue from the post-Phase-9 structural rework plan under the existing attentional_v2 mechanism key. Phase A through Phase D are landed, and Phase E1 through Phase E3 remain preserved as a landed intermediate compatibility-first branch. Phase F1 is now landed: the live per-unit loop is back to navigate.unitize -> read -> navigate.route, Read now owns surfaced reactions / implicit uptake ops / pressure signals / optional revisit_need, the dedicated live Express node is off the runner path, and read prompt packaging now follows compact always-carry / selective-carry / not-carry projections. Build the next slices in order: Phase F2 navigate-owned revisit cutover, Phase F3 reaction persistence and compatibility reconvergence, then Phase F4 quality validation and dead-path cleanup.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md",
@@ -137,7 +139,7 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_post_phase_d_longspan_smoke_20260412/diagnostics/value_of_others_progress_and_latency_check_20260413.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_value_of_others_ch8_debug_legacykey_20260413/analysis/registry_snapshot.json"
       ],
-      "last_updated": "2026-04-18T19:48:48+08:00",
+      "last_updated": "2026-04-19T13:03:02+08:00",
       "last_updated_by": "codex"
     },
     {

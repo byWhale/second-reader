@@ -1,4 +1,4 @@
-"""Tests for attentional_v2 Phase B read-context integration."""
+"""Tests for attentional_v2 read-contract helpers after the F1 cutover."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import json
 
 from src.attentional_v2 import nodes as nodes_module
 from src.attentional_v2 import runner as runner_module
-from src.attentional_v2.nodes import express_unit, navigate_route, read_unit
+from src.attentional_v2.nodes import navigate_route, read_unit
 from src.attentional_v2.read_context import build_carry_forward_context, resolve_context_request
 from src.attentional_v2.schemas import (
     build_default_reader_policy,
@@ -79,8 +79,8 @@ def _anchor_record(anchor_id: str, sentence_id: str, quote: str) -> dict[str, ob
     }
 
 
-def test_read_unit_includes_carry_forward_and_supplemental_context_in_prompt(tmp_path, monkeypatch):
-    """read_unit should render the exact unit plus bounded carry-forward and supplemental context."""
+def test_read_unit_projects_compact_packet_and_returns_f1_surface_contract(tmp_path, monkeypatch):
+    """read_unit should render the compact prompt packet and return the new F1 fields."""
 
     output_dir = tmp_path / "output" / "demo-book"
     AttentionalV2Mechanism().initialize_artifacts(output_dir)
@@ -89,47 +89,117 @@ def test_read_unit_includes_carry_forward_and_supplemental_context_in_prompt(tmp
     def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
         captured["prompt"] = prompt
         return {
-            "local_understanding": "The second sentence sharpens the first one.",
-            "move_hint": "bridge",
-            "continuation_pressure": True,
-            "implicit_uptake": [
+            "unit_delta": "The second sentence sharpens the first one.",
+            "pressure_signals": {
+                "continuation_pressure": True,
+                "backward_pull": True,
+                "frame_shift_pressure": False,
+            },
+            "surfaced_reactions": [
                 {
-                    "operation_type": "update",
-                    "target_store": "working_pressure",
-                    "item_id": "pressure-1",
-                    "reason": "keep the contrast alive",
-                    "payload": {"kind": "question", "statement": "What changes here?"},
+                    "anchor_quote": "Beta sentence.",
+                    "content": "This is where the move becomes visible.",
+                    "prior_link": {
+                        "ref_ids": ["anchor:a-1", "lookback:sentence:c1-s1"],
+                        "relation": "callback",
+                        "note": "The earlier anchor clarifies the shift.",
+                    },
                 }
             ],
-            "anchor_evidence": [
+            "implicit_uptake_ops": [
                 {
-                    "sentence_id": "c1-s2",
-                    "quote": "Beta sentence.",
-                    "why_it_matters": "This is the local hinge.",
+                    "op": "update",
+                    "target_store": "working_state",
+                    "target_key": "pressure-1",
+                    "payload": {
+                        "kind": "question",
+                        "statement": "What changes here?",
+                    },
                 }
             ],
-            "prior_material_use": {
-                "materially_used": True,
-                "explanation": "The earlier anchor clarifies the shift.",
-                "supporting_ref_ids": ["anchor:a-1", "lookback:sentence:c1-s1"],
-            },
-            "raw_reaction": {
-                "type": "highlight",
-                "anchor_quote": "Beta sentence.",
-                "content": "This is where the move becomes visible.",
-                "related_anchor_quotes": [],
-                "search_query": "",
-                "search_results": [],
-            },
-            "context_request": {
-                "kind": "look_back",
+            "revisit_need": {
                 "reason": "Need the exact earlier wording.",
-                "sentence_ids": ["c1-s1"],
-                "anchor_ids": [],
+                "target_hint": "the earlier promise line",
+                "preferred_mode": "inline_look_back",
             },
         }
 
     monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
+
+    local_buffer = build_empty_local_buffer()
+    local_buffer["recent_sentences"] = [
+        {
+            "sentence_id": "c1-s1",
+            "sentence_index": 1,
+            "paragraph_index": 1,
+            "text": "Alpha sentence.",
+            "text_role": "body",
+        }
+    ]
+    local_buffer["recent_meaning_units"] = [["c1-s1"]]
+
+    working_pressure = build_empty_working_pressure()
+    working_pressure["gate_state"] = "watch"
+    working_pressure["local_questions"] = [
+        {
+            "item_id": "pressure-1",
+            "bucket": "local_questions",
+            "kind": "question",
+            "statement": "Why does the chapter turn here?",
+            "support_anchor_ids": [],
+            "status": "open",
+        }
+    ]
+
+    anchor_memory = build_empty_anchor_memory()
+    anchor_memory["anchor_records"] = [_anchor_record("a-1", "c1-s1", "Alpha sentence.")]
+    anchor_memory["motif_index"] = {"promise": ["a-1"]}
+    anchor_memory["trace_links"] = {"a-1": ["a-1"]}
+
+    reflective_summaries = build_empty_reflective_summaries()
+    reflective_summaries["chapter_understandings"] = [
+        {
+            "item_id": "frame-1",
+            "statement": "The chapter is opening a practical dilemma.",
+            "chapter_ref": "Chapter 1",
+            "confidence_band": "working",
+            "support_anchor_ids": ["a-1"],
+        }
+    ]
+
+    move_history = build_empty_move_history()
+    move_history["moves"] = [
+        {
+            "move_id": "move-1",
+            "move_type": "advance",
+            "reason": "follow the opening claim",
+            "source_sentence_id": "c1-s1",
+            "target_anchor_id": "",
+            "target_sentence_id": "",
+        }
+    ]
+
+    reaction_records = build_empty_reaction_records()
+    reaction_records["records"] = [
+        {
+            "reaction_id": "reaction-1",
+            "type": "highlight",
+            "thought": "The first line already carries pressure.",
+            "emitted_at_sentence_id": "c1-s1",
+            "primary_anchor": {"anchor_id": "a-1", "quote": "Alpha sentence."},
+        }
+    ]
+
+    carry_forward = build_carry_forward_context(
+        chapter_ref="Chapter 1",
+        current_unit_sentence_ids=["c1-s2"],
+        local_buffer=local_buffer,
+        working_pressure=working_pressure,
+        anchor_memory=anchor_memory,
+        reflective_summaries=reflective_summaries,
+        move_history=move_history,
+        reaction_records=reaction_records,
+    )
 
     result = read_unit(
         current_unit_sentences=[
@@ -141,38 +211,7 @@ def test_read_unit_includes_carry_forward_and_supplemental_context_in_prompt(tmp
                 "text_role": "body",
             }
         ],
-        carry_forward_context={
-            "working_pressure_digest": {"gate_state": "watch", "pressure_snapshot": {}, "items": []},
-            "reflective_digest": [],
-            "anchor_digest": [
-                {
-                    "ref_id": "anchor:a-1",
-                    "anchor_id": "a-1",
-                    "quote": "Alpha sentence.",
-                    "anchor_kind": "unit_evidence",
-                    "status": "active",
-                    "sentence_start_id": "c1-s1",
-                    "sentence_end_id": "c1-s1",
-                    "why_it_mattered": "It set up the contrast.",
-                }
-            ],
-            "continuity_digest": {
-                "recent_sentence_ids": ["c1-s1"],
-                "recent_meaning_units": [["c1-s1"]],
-                "recent_moves": [],
-                "recent_reactions": [],
-            },
-            "refs": [
-                {
-                    "ref_id": "anchor:a-1",
-                    "kind": "anchor",
-                    "item_id": "a-1",
-                    "summary": "Alpha sentence.",
-                    "anchor_id": "a-1",
-                    "sentence_id": "c1-s1",
-                }
-            ],
-        },
+        carry_forward_context=carry_forward,
         reader_policy=build_default_reader_policy(),
         output_language="en",
         supplemental_context={
@@ -209,27 +248,30 @@ def test_read_unit_includes_carry_forward_and_supplemental_context_in_prompt(tmp
         )
     )
 
-    assert "\"sentence_id\": \"c1-s2\"" in captured["prompt"]
-    assert "anchor:a-1" in captured["prompt"]
-    assert "lookback:sentence:c1-s1" in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.read.v5"
+    assert "\"packet_version\": \"attentional_v2.state_packet.v1\"" in captured["prompt"]
+    assert "\"active_items\"" in captured["prompt"]
+    assert "\"concept_key\": \"promise\"" in captured["prompt"]
+    assert "\"earlier_excerpts\"" in captured["prompt"]
+    assert "\"working_pressure_digest\"" not in captured["prompt"]
+    assert "\"refs\": [" not in captured["prompt"]
+    assert "\"anchor_bank_digest\"" not in captured["prompt"]
+    assert manifest["prompt_version"] == "attentional_v2.read.v6"
     assert result["unit_delta"] == "The second sentence sharpens the first one."
     assert result["pressure_signals"] == {
         "continuation_pressure": True,
         "backward_pull": True,
         "frame_shift_pressure": False,
     }
-    assert result["express_signal"]["should_express"] is True
-    assert result["express_signal"]["focal_quote"] == "Beta sentence."
-    assert result["move_hint"] == "bridge"
-    assert result["continuation_pressure"] is True
-    assert result["prior_material_use"]["supporting_ref_ids"] == ["anchor:a-1", "lookback:sentence:c1-s1"]
-    assert result["context_request"]["kind"] == "look_back"
+    assert result["surfaced_reactions"][0]["anchor_quote"] == "Beta sentence."
+    assert result["surfaced_reactions"][0]["prior_link"]["ref_ids"] == ["anchor:a-1", "lookback:sentence:c1-s1"]
+    assert result["implicit_uptake_ops"][0]["op"] == "update"
+    assert result["implicit_uptake_ops"][0]["target_store"] == "working_state"
+    assert result["revisit_need"]["preferred_mode"] == "inline_look_back"
 
     route = navigate_route(read_result=result)
     assert route["action"] == "bridge_back"
-    assert route["target_anchor_id"] == "a-1"
-    assert route["target_sentence_id"] == "c1-s1"
+    assert route["target_anchor_id"] == ""
+    assert route["target_sentence_id"] == ""
     assert route["persist_raw_reaction"] is True
 
 
@@ -348,8 +390,8 @@ def test_resolve_context_request_active_recall_surfaces_concepts_and_threads():
     assert any(ref["kind"] == "thread" for ref in resolved["refs"])
 
 
-def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_audit(tmp_path, monkeypatch):
-    """The runner should allow one bounded active-recall supplement and then reread once."""
+def test_run_read_with_context_loop_reads_once_and_persists_f1_audit(tmp_path, monkeypatch):
+    """The F1 live helper should read once and persist the new audit shape."""
 
     output_dir = tmp_path / "output" / "demo-book"
     AttentionalV2Mechanism().initialize_artifacts(output_dir)
@@ -368,60 +410,38 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
                 "supplemental_context": kwargs.get("supplemental_context"),
             }
         )
-        if kwargs.get("supplemental_context") is None:
-            return {
-                "local_understanding": "The unit is suggestive but still underspecified.",
-                "move_hint": "advance",
+        return {
+            "unit_delta": "The unit becomes legible immediately.",
+            "pressure_signals": {
                 "continuation_pressure": False,
-                "implicit_uptake": [],
-                "anchor_evidence": [],
-                "prior_material_use": {
-                    "materially_used": False,
-                    "explanation": "",
-                    "supporting_ref_ids": [],
-                },
-                "raw_reaction": None,
-                "context_request": {
-                    "kind": "active_recall",
-                    "reason": "Need the earlier anchor summary.",
-                    "anchor_ids": ["a-1"],
-                    "sentence_ids": [],
-                },
-            }
-        supplemental_context = kwargs["supplemental_context"]
-        return {
-            "local_understanding": "The unit becomes clear once the earlier anchor is recalled.",
-            "move_hint": "bridge",
-            "continuation_pressure": False,
-            "implicit_uptake": [],
-            "anchor_evidence": [
+                "backward_pull": False,
+                "frame_shift_pressure": False,
+            },
+            "surfaced_reactions": [
                 {
-                    "sentence_id": "c1-s2",
-                    "quote": "Beta sentence.",
-                    "why_it_matters": "The local line now clearly links back.",
+                    "anchor_quote": "Beta sentence.",
+                    "content": "The bridge is clear without a second pass.",
                 }
             ],
-            "prior_material_use": {
-                "materially_used": True,
-                "explanation": "The recalled anchor resolves the local move.",
-                "supporting_ref_ids": [supplemental_context["refs"][0]["ref_id"]],
+            "implicit_uptake_ops": [
+                {
+                    "op": "append",
+                    "target_store": "working_state",
+                    "target_key": "pressure-1",
+                    "payload": {"kind": "question", "statement": "What changes here?"},
+                }
+            ],
+            "revisit_need": {
+                "reason": "A later revisit may still help compare the earlier line.",
+                "target_hint": "the opening sentence",
+                "preferred_mode": "inline_look_back",
             },
-            "raw_reaction": {
-                "type": "highlight",
-                "anchor_quote": "Beta sentence.",
-                "content": "The bridge becomes visible after recall.",
-                "related_anchor_quotes": [],
-                "search_query": "",
-                "search_results": [],
-            },
-            "context_request": None,
         }
 
     monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
 
-    read_result, supplemental_context, llm_fallbacks = runner_module._run_read_with_context_loop(
+    read_result, llm_fallbacks = runner_module._run_read_with_context_loop(
         chapter=chapter,
-        book_document=book_document,
         chosen_unit_sentences=[chapter["sentences"][1]],
         unitize_decision={
             "start_sentence_id": "c1-s2",
@@ -429,7 +449,7 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
             "preview_range": {"start_sentence_id": "c1-s2", "end_sentence_id": "c1-s2"},
             "boundary_type": "paragraph_end",
             "evidence_sentence_ids": ["c1-s2"],
-            "reason": "phase-b-test",
+            "reason": "phase-f1-test",
             "continuation_pressure": False,
         },
         local_buffer=build_empty_local_buffer(),
@@ -454,293 +474,12 @@ def test_run_read_with_context_loop_replays_one_active_recall_pass_and_persists_
     audit_line = json.loads(read_audit_file(output_dir).read_text(encoding="utf-8").strip())
 
     assert llm_fallbacks == []
-    assert supplemental_context is not None
-    assert supplemental_context["kind"] == "active_recall"
-    assert len(calls) == 2
-    assert calls[0]["supplemental_context"] is None
-    assert calls[1]["supplemental_context"]["kind"] == "active_recall"
-    assert read_result["prior_material_use"]["materially_used"] is True
-    assert audit_line["supplemental_satisfied"] is True
-    assert audit_line["stop_reason"] == "read_complete"
-    assert len(audit_line["supplemental_steps"]) == 1
-    assert audit_line["prior_material_use"]["materially_used"] is True
-
-
-def test_run_read_with_context_loop_keeps_first_read_when_look_back_is_unsatisfied(tmp_path, monkeypatch):
-    """An unresolved look-back request should not recurse and should preserve the first read packet."""
-
-    output_dir = tmp_path / "output" / "demo-book"
-    AttentionalV2Mechanism().initialize_artifacts(output_dir)
-    book_document = _book_document()
-    chapter = book_document["chapters"][0]
-    calls: list[dict[str, object]] = []
-    empty_anchor_bank, empty_concept_registry, empty_thread_trace = migrate_anchor_memory_to_new_layers(build_empty_anchor_memory())
-    empty_reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
-
-    first_read = {
-        "local_understanding": "The unit remains locally readable without the missing excerpt.",
-        "move_hint": "advance",
-        "continuation_pressure": True,
-        "implicit_uptake": [],
-        "anchor_evidence": [
-            {
-                "sentence_id": "c1-s2",
-                "quote": "Beta sentence.",
-                "why_it_matters": "It keeps local pressure alive.",
-            }
-        ],
-        "prior_material_use": {
-            "materially_used": False,
-            "explanation": "",
-            "supporting_ref_ids": [],
-        },
-        "raw_reaction": None,
-        "context_request": {
-            "kind": "look_back",
-            "reason": "Need a missing earlier excerpt.",
-            "anchor_ids": ["missing-anchor"],
-            "sentence_ids": [],
-        },
-    }
-
-    def fake_read_unit(**kwargs):
-        calls.append({"supplemental_context": kwargs.get("supplemental_context")})
-        return first_read
-
-    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
-
-    read_result, supplemental_context, llm_fallbacks = runner_module._run_read_with_context_loop(
-        chapter=chapter,
-        book_document=book_document,
-        chosen_unit_sentences=[chapter["sentences"][1]],
-        unitize_decision={
-            "start_sentence_id": "c1-s2",
-            "end_sentence_id": "c1-s2",
-            "preview_range": {"start_sentence_id": "c1-s2", "end_sentence_id": "c1-s2"},
-            "boundary_type": "paragraph_end",
-            "evidence_sentence_ids": ["c1-s2"],
-            "reason": "phase-b-test",
-            "continuation_pressure": True,
-        },
-        local_buffer=build_empty_local_buffer(),
-        continuation_capsule={},
-        working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
-        concept_registry=empty_concept_registry,
-        thread_trace=empty_thread_trace,
-        reflective_frames=empty_reflective_frames,
-        anchor_bank=empty_anchor_bank,
-        knowledge_activations=build_empty_knowledge_activations(),
-        move_history=build_empty_move_history(),
-        reaction_records=build_empty_reaction_records(),
-        reader_policy=build_default_reader_policy(),
-        output_language="en",
-        output_dir=output_dir,
-        book_title="Demo Book",
-        author="Tester",
-        chapter_id=1,
-        chapter_ref="Chapter 1",
-    )
-
-    audit_line = json.loads(read_audit_file(output_dir).read_text(encoding="utf-8").strip())
-
-    assert llm_fallbacks == []
-    assert supplemental_context is None
     assert len(calls) == 1
-    assert read_result is first_read
-    assert audit_line["supplemental_satisfied"] is False
-    assert audit_line["context_request"]["kind"] == "look_back"
-    assert audit_line["stop_reason"] == "supplemental_unsatisfied"
-
-
-def test_run_read_with_context_loop_supports_multiple_supplemental_rounds(tmp_path, monkeypatch):
-    """The runner should allow multiple bounded supplemental rounds before finalizing the read."""
-
-    output_dir = tmp_path / "output" / "demo-book"
-    AttentionalV2Mechanism().initialize_artifacts(output_dir)
-    book_document = _book_document()
-    chapter = book_document["chapters"][0]
-    anchor_memory = build_empty_anchor_memory()
-    anchor_memory["anchor_records"].append(_anchor_record("a-1", "c1-s1", "Alpha sentence."))
-    anchor_bank, concept_registry, thread_trace = migrate_anchor_memory_to_new_layers(anchor_memory)
-    reflective_frames = migrate_reflective_summaries_to_frames(build_empty_reflective_summaries())
-    calls: list[dict[str, object]] = []
-
-    def fake_read_unit(**kwargs):
-        calls.append({"supplemental_context": kwargs.get("supplemental_context")})
-        if len(calls) == 1:
-            return {
-                "local_understanding": "Need structured recall first.",
-                "move_hint": "advance",
-                "continuation_pressure": True,
-                "implicit_uptake": [],
-                "anchor_evidence": [],
-                "prior_material_use": {
-                    "materially_used": False,
-                    "explanation": "",
-                    "supporting_ref_ids": [],
-                },
-                "raw_reaction": None,
-                "context_request": {
-                    "kind": "active_recall",
-                    "reason": "Need prior state first.",
-                    "anchor_ids": ["a-1"],
-                    "sentence_ids": [],
-                },
-            }
-        if len(calls) == 2:
-            return {
-                "local_understanding": "Structured recall helped, but exact earlier wording is still needed.",
-                "move_hint": "bridge",
-                "continuation_pressure": True,
-                "implicit_uptake": [],
-                "anchor_evidence": [],
-                "prior_material_use": {
-                    "materially_used": True,
-                    "explanation": "The recalled anchor set the line.",
-                    "supporting_ref_ids": ["anchor:a-1"],
-                },
-                "raw_reaction": None,
-                "context_request": {
-                    "kind": "look_back",
-                    "reason": "Need the exact earlier wording.",
-                    "anchor_ids": ["a-1"],
-                    "sentence_ids": [],
-                },
-            }
-        return {
-            "local_understanding": "The exact wording completes the bridge.",
-            "move_hint": "bridge",
-            "continuation_pressure": False,
-            "implicit_uptake": [],
-            "anchor_evidence": [
-                {
-                    "sentence_id": "c1-s2",
-                    "quote": "Beta sentence.",
-                    "why_it_matters": "It lands once the earlier wording is visible.",
-                }
-            ],
-            "prior_material_use": {
-                "materially_used": True,
-                "explanation": "Both recall and look-back materially informed the read.",
-                "supporting_ref_ids": ["anchor:a-1", "lookback:anchor:a-1"],
-            },
-            "raw_reaction": None,
-            "context_request": None,
-        }
-
-    monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
-
-    read_result, supplemental_context, llm_fallbacks = runner_module._run_read_with_context_loop(
-        chapter=chapter,
-        book_document=book_document,
-        chosen_unit_sentences=[chapter["sentences"][1]],
-        unitize_decision={
-            "start_sentence_id": "c1-s2",
-            "end_sentence_id": "c1-s2",
-            "preview_range": {"start_sentence_id": "c1-s2", "end_sentence_id": "c1-s2"},
-            "boundary_type": "paragraph_end",
-            "evidence_sentence_ids": ["c1-s2"],
-            "reason": "phase-d-test",
-            "continuation_pressure": True,
-        },
-        local_buffer=build_empty_local_buffer(),
-        continuation_capsule={},
-        working_state=migrate_working_pressure_to_working_state(build_empty_working_pressure()),
-        concept_registry=concept_registry,
-        thread_trace=thread_trace,
-        reflective_frames=reflective_frames,
-        anchor_bank=anchor_bank,
-        knowledge_activations=build_empty_knowledge_activations(),
-        move_history=build_empty_move_history(),
-        reaction_records=build_empty_reaction_records(),
-        reader_policy=build_default_reader_policy(),
-        output_language="en",
-        output_dir=output_dir,
-        book_title="Demo Book",
-        author="Tester",
-        chapter_id=1,
-        chapter_ref="Chapter 1",
-    )
-
-    audit_line = json.loads(read_audit_file(output_dir).read_text(encoding="utf-8").strip())
-
-    assert llm_fallbacks == []
-    assert supplemental_context is not None
-    assert supplemental_context["kind"] == "supplemental_bundle"
-    assert {item["ref_id"] for item in supplemental_context["refs"]} == {"anchor:a-1", "lookback:anchor:a-1"}
-    assert {item["ref_id"] for item in supplemental_context["excerpts"]} == {"lookback:anchor:a-1"}
-    assert len(calls) == 3
-    assert read_result["prior_material_use"]["materially_used"] is True
-    assert audit_line["supplemental_satisfied"] is True
+    assert calls[0]["supplemental_context"] is None
+    assert read_result["surfaced_reactions"][0]["anchor_quote"] == "Beta sentence."
+    assert read_result["implicit_uptake_ops"][0]["op"] == "append"
+    assert read_result["revisit_need"]["preferred_mode"] == "inline_look_back"
     assert audit_line["stop_reason"] == "read_complete"
-    assert [step["kind"] for step in audit_line["supplemental_steps"]] == ["active_recall", "look_back"]
-
-
-def test_express_unit_emits_one_visible_reaction_with_optional_links(tmp_path, monkeypatch):
-    """express_unit should surface one bounded visible reaction with narrow optional side links."""
-
-    output_dir = tmp_path / "output" / "demo-book"
-    AttentionalV2Mechanism().initialize_artifacts(output_dir)
-    captured: dict[str, str] = {}
-
-    def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
-        captured["prompt"] = prompt
-        return {
-            "decision": "emit",
-            "anchor_quote": "Beta sentence.",
-            "content": "This is the line where the earlier contrast finally shows itself.",
-            "prior_link": {
-                "ref_ids": ["anchor:a-1"],
-                "relation": "callback",
-                "note": "The earlier sentence quietly set up this turn.",
-            },
-            "outside_link": None,
-            "search_intent": None,
-        }
-
-    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
-
-    result = express_unit(
-        current_unit_sentences=[
-            {
-                "sentence_id": "c1-s2",
-                "sentence_index": 2,
-                "paragraph_index": 1,
-                "text": "Beta sentence.",
-                "text_role": "body",
-            }
-        ],
-        express_signal={
-            "should_express": True,
-            "focal_quote": "Beta sentence.",
-            "why_now": "The local contrast finally becomes legible here.",
-            "supporting_ref_ids": ["anchor:a-1"],
-        },
-        supporting_refs=[
-            {
-                "ref_id": "anchor:a-1",
-                "kind": "anchor",
-                "summary": "Alpha sentence.",
-                "quote": "Alpha sentence.",
-            }
-        ],
-        reader_policy=build_default_reader_policy(),
-        output_language="en",
-        output_dir=output_dir,
-        book_title="Demo Book",
-        author="Tester",
-        chapter_title="Chapter 1",
-    )
-
-    manifest = json.loads(
-        (output_dir / "_mechanisms" / "attentional_v2" / "internal" / "prompt_manifests" / "express_unit.json").read_text(
-            encoding="utf-8"
-        )
-    )
-
-    assert "Beta sentence." in captured["prompt"]
-    assert "anchor:a-1" in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.express.v1"
-    assert result["decision"] == "emit"
-    assert result["anchor_quote"] == "Beta sentence."
-    assert result["prior_link"]["ref_ids"] == ["anchor:a-1"]
+    assert audit_line["surfaced_reaction_count"] == 1
+    assert audit_line["revisit_need"]["target_hint"] == "the opening sentence"
+    assert audit_line["supplemental_satisfied"] is False

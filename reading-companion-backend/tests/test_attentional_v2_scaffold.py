@@ -250,52 +250,25 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
         captured_unit_reads.append([str(sentence.get("sentence_id")) for sentence in current_unit_sentences])
         captured_carry_forward_contexts.append(dict(kwargs["carry_forward_context"]))
         return {
-            "local_understanding": f"Meaning unit around {anchor_quote[:24]}",
-            "move_hint": "advance",
-            "continuation_pressure": False,
-            "implicit_uptake": [],
-            "anchor_evidence": [
+            "unit_delta": f"Meaning unit around {anchor_quote[:24]}",
+            "pressure_signals": {
+                "continuation_pressure": False,
+                "backward_pull": False,
+                "frame_shift_pressure": False,
+            },
+            "surfaced_reactions": [
                 {
-                    "sentence_id": str(focal_sentence.get("sentence_id")),
-                    "quote": anchor_quote,
-                    "why_it_matters": "The focal line became legible during the formal read.",
+                    "anchor_quote": anchor_quote,
+                    "content": f"Read noticed: {anchor_quote[:40]}",
+                    "prior_link": {
+                        "ref_ids": ["anchor:a-0"],
+                        "relation": "callback",
+                        "note": "The earlier thread quietly set this up.",
+                    },
                 }
             ],
-            "prior_material_use": {
-                "materially_used": False,
-                "explanation": "",
-                "supporting_ref_ids": [],
-            },
-            "express_signal": {
-                "should_express": True,
-                "focal_quote": anchor_quote,
-                "why_now": "The line deserves a surfaced reaction in the new path.",
-                "supporting_ref_ids": ["anchor:a-0"],
-            },
-            "raw_reaction": {
-                "type": "highlight",
-                "anchor_quote": anchor_quote,
-                "content": f"Legacy fallback: {anchor_quote[:40]}",
-                "related_anchor_quotes": [],
-                "search_query": "",
-                "search_results": [],
-            },
-            "context_request": None,
-        }
-
-    def fake_express_unit(**kwargs):
-        focal_quote = kwargs["express_signal"]["focal_quote"]
-        return {
-            "decision": "emit",
-            "anchor_quote": focal_quote,
-            "content": f"Express noticed: {focal_quote[:40]}",
-            "prior_link": {
-                "ref_ids": ["anchor:a-0"],
-                "relation": "callback",
-                "note": "The earlier thread quietly set this up.",
-            },
-            "outside_link": None,
-            "search_intent": None,
+            "implicit_uptake_ops": [],
+            "revisit_need": None,
         }
 
     def fake_phase6_chapter_cycle(**kwargs):
@@ -358,7 +331,6 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
     monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
-    monkeypatch.setattr(runner_module, "express_unit", fake_express_unit)
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
     mechanism = AttentionalV2Mechanism()
@@ -384,7 +356,7 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert captured_carry_forward_contexts[1]["continuity_digest"]["recent_reactions"]
     assert len(unitize_lines) == 2
     assert len(read_audit_lines) == 2
-    assert all(audit["raw_reaction_present"] is True for audit in read_audits)
+    assert all(audit["surfaced_reaction_count"] == 1 for audit in read_audits)
     assert read_audits[1]["carry_forward_ref_ids"]
     shell = load_runtime_shell(runtime_shell_file(result.output_dir))
     assert shell["mechanism_key"] == ATTENTIONAL_V2_MECHANISM_KEY
@@ -396,13 +368,13 @@ def test_attentional_v2_read_book_runs_live_loop_and_persists_compatibility_resu
     assert chapter_manifest["visible_reaction_count"] >= 1
     assert chapter_manifest["reaction_type_diversity"] >= 1
     persisted_reactions = json.loads(reaction_records_file(result.output_dir).read_text(encoding="utf-8"))["records"]
-    assert persisted_reactions[0]["record_source"] == "express"
-    assert persisted_reactions[0]["thought"].startswith("Express noticed:")
+    assert persisted_reactions[0]["record_source"] == "read_surface"
+    assert persisted_reactions[0]["thought"].startswith("Read noticed:")
     assert persisted_reactions[0]["prior_link"]["ref_ids"] == ["anchor:a-0"]
 
 
-def test_attentional_v2_runner_marks_legacy_fallback_when_express_withholds(tmp_path, monkeypatch):
-    """Legacy raw-reaction persistence should survive only as a marked compat fallback."""
+def test_attentional_v2_runner_persists_multiple_read_surface_reactions(tmp_path, monkeypatch):
+    """Read-owned surfaced reactions should persist directly without a separate express pass."""
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(runner_module, "ensure_canonical_parse", lambda *args, **kwargs: _provisioned_book())
@@ -411,31 +383,28 @@ def test_attentional_v2_runner_marks_legacy_fallback_when_express_withholds(tmp_
         focal_sentence = kwargs["current_unit_sentences"][-1]
         anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
         return {
-            "local_understanding": f"Meaning unit around {anchor_quote[:24]}",
-            "move_hint": "advance",
-            "continuation_pressure": False,
-            "implicit_uptake": [],
-            "anchor_evidence": [],
-            "prior_material_use": {
-                "materially_used": False,
-                "explanation": "",
-                "supporting_ref_ids": [],
+            "unit_delta": f"Meaning unit around {anchor_quote[:24]}",
+            "pressure_signals": {
+                "continuation_pressure": False,
+                "backward_pull": False,
+                "frame_shift_pressure": False,
             },
-            "express_signal": {
-                "should_express": True,
-                "focal_quote": anchor_quote,
-                "why_now": "test fallback",
-                "supporting_ref_ids": [],
-            },
-            "raw_reaction": {
-                "type": "highlight",
-                "anchor_quote": anchor_quote,
-                "content": f"Legacy fallback: {anchor_quote[:40]}",
-                "related_anchor_quotes": [],
-                "search_query": "",
-                "search_results": [],
-            },
-            "context_request": None,
+            "surfaced_reactions": [
+                {
+                    "anchor_quote": anchor_quote,
+                    "content": f"First surfaced: {anchor_quote[:20]}",
+                },
+                {
+                    "anchor_quote": anchor_quote,
+                    "content": f"Second surfaced: {anchor_quote[:20]}",
+                    "search_intent": {
+                        "query": "why this line lands so hard",
+                        "rationale": "The second reaction opens a follow-up question.",
+                    },
+                },
+            ],
+            "implicit_uptake_ops": [],
+            "revisit_need": None,
         }
 
     def fake_process_sentence_intake(sentence, *, local_buffer, working_state, concept_registry, thread_trace, anchor_bank, window_size=6, cadence_limit=4):
@@ -498,7 +467,6 @@ def test_attentional_v2_runner_marks_legacy_fallback_when_express_withholds(tmp_
     )
     monkeypatch.setattr(runner_module, "process_sentence_intake", fake_process_sentence_intake)
     monkeypatch.setattr(runner_module, "read_unit", fake_read_unit)
-    monkeypatch.setattr(runner_module, "express_unit", lambda **_kwargs: {"decision": "withhold"})
     monkeypatch.setattr(runner_module, "run_phase6_chapter_cycle", fake_phase6_chapter_cycle)
 
     mechanism = AttentionalV2Mechanism()
@@ -511,8 +479,10 @@ def test_attentional_v2_runner_marks_legacy_fallback_when_express_withholds(tmp_
     )
 
     persisted_reactions = json.loads(reaction_records_file(result.output_dir).read_text(encoding="utf-8"))["records"]
-    assert persisted_reactions[0]["record_source"] == "legacy_fallback"
-    assert persisted_reactions[0]["thought"].startswith("Legacy fallback:")
+    assert len(persisted_reactions) == 4
+    assert all(record["record_source"] == "read_surface" for record in persisted_reactions)
+    assert persisted_reactions[0]["thought"].startswith("First surfaced:")
+    assert persisted_reactions[1]["search_intent"]["query"] == "why this line lands so hard"
 
 
 def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, monkeypatch):
@@ -525,24 +495,15 @@ def test_attentional_v2_read_book_tolerates_missing_reaction_payload(tmp_path, m
         focal_sentence = kwargs["current_unit_sentences"][-1]
         anchor_quote = str(focal_sentence.get("text", "") or "").strip()[:80]
         return {
-            "local_understanding": f"Meaning unit around {anchor_quote[:24]}",
-            "move_hint": "advance",
-            "continuation_pressure": False,
-            "implicit_uptake": [],
-            "anchor_evidence": [
-                {
-                    "sentence_id": str(focal_sentence.get("sentence_id")),
-                    "quote": anchor_quote,
-                    "why_it_matters": "The line was read, but it did not warrant a surfaced reaction.",
-                }
-            ],
-            "prior_material_use": {
-                "materially_used": False,
-                "explanation": "",
-                "supporting_ref_ids": [],
+            "unit_delta": f"Meaning unit around {anchor_quote[:24]}",
+            "pressure_signals": {
+                "continuation_pressure": False,
+                "backward_pull": False,
+                "frame_shift_pressure": False,
             },
-            "raw_reaction": None,
-            "context_request": None,
+            "surfaced_reactions": [],
+            "implicit_uptake_ops": [],
+            "revisit_need": None,
         }
 
     def fake_phase6_chapter_cycle(**kwargs):
@@ -683,18 +644,15 @@ def test_attentional_v2_read_book_still_runs_formal_read_for_monitor_path(tmp_pa
             ]
         )
         return {
-            "local_understanding": "monitor path still got read",
-            "move_hint": "advance",
-            "continuation_pressure": False,
-            "implicit_uptake": [],
-            "anchor_evidence": [],
-            "prior_material_use": {
-                "materially_used": False,
-                "explanation": "",
-                "supporting_ref_ids": [],
+            "unit_delta": "monitor path still got read",
+            "pressure_signals": {
+                "continuation_pressure": False,
+                "backward_pull": False,
+                "frame_shift_pressure": False,
             },
-            "raw_reaction": None,
-            "context_request": None,
+            "surfaced_reactions": [],
+            "implicit_uptake_ops": [],
+            "revisit_need": None,
         }
 
     monkeypatch.setattr(

@@ -14,7 +14,12 @@ from src.attentional_v2.schemas import (
     build_empty_trigger_state,
     build_empty_working_pressure,
 )
-from src.attentional_v2.state_projection import STATE_PACKET_VERSION, build_carry_forward_context, build_navigation_context
+from src.attentional_v2.state_projection import (
+    STATE_PACKET_VERSION,
+    build_carry_forward_context,
+    build_navigation_context,
+    build_read_prompt_packet,
+)
 
 
 def _sentence(sentence_id: str, text: str, *, sentence_index: int = 1) -> dict[str, object]:
@@ -183,6 +188,114 @@ def test_build_navigation_context_wraps_watch_state_and_state_packet():
     assert "concept_digest" in packet
     assert "thread_digest" in packet
     assert "anchor_bank_digest" in packet
+
+
+def test_build_read_prompt_packet_projects_compact_always_carry_and_selective_carry():
+    """The read prompt packet should expose compact digests and omit full state baggage."""
+
+    local_buffer = build_empty_local_buffer()
+    local_buffer["recent_sentences"] = [_sentence("c1-s1", "Alpha sentence.")]
+    local_buffer["recent_meaning_units"] = [["c1-s1"]]
+
+    working_pressure = build_empty_working_pressure()
+    working_pressure["gate_state"] = "watch"
+    working_pressure["local_questions"] = [
+        {
+            "item_id": "question-1",
+            "bucket": "local_questions",
+            "kind": "question",
+            "statement": "Why does the chapter turn here?",
+            "support_anchor_ids": [],
+            "status": "open",
+        }
+    ]
+
+    anchor_memory = build_empty_anchor_memory()
+    anchor_memory["anchor_records"] = [
+        {
+            "anchor_id": "a-1",
+            "sentence_start_id": "c1-s1",
+            "sentence_end_id": "c1-s1",
+            "quote": "Alpha sentence.",
+            "anchor_kind": "unit_evidence",
+            "why_it_mattered": "It established the initial line.",
+            "status": "active",
+            "locator": {},
+        }
+    ]
+    anchor_memory["motif_index"] = {"promise": ["a-1"]}
+    anchor_memory["trace_links"] = {"a-1": ["a-1"]}
+
+    reflective_summaries = build_empty_reflective_summaries()
+    reflective_summaries["chapter_understandings"] = [
+        {
+            "item_id": "frame-1",
+            "statement": "The chapter is opening a practical dilemma.",
+            "chapter_ref": "Chapter 1",
+            "confidence_band": "working",
+            "support_anchor_ids": ["a-1"],
+        }
+    ]
+
+    move_history = build_empty_move_history()
+    reaction_records = build_empty_reaction_records()
+    reaction_records["records"] = [
+        {
+            "reaction_id": "reaction-1",
+            "type": "highlight",
+            "thought": "The first line already carries pressure.",
+            "emitted_at_sentence_id": "c1-s1",
+            "primary_anchor": {"anchor_id": "a-1", "quote": "Alpha sentence."},
+        }
+    ]
+
+    carry_forward = build_carry_forward_context(
+        chapter_ref="Chapter 1",
+        current_unit_sentence_ids=["c1-s2"],
+        local_buffer=local_buffer,
+        working_pressure=working_pressure,
+        anchor_memory=anchor_memory,
+        reflective_summaries=reflective_summaries,
+        move_history=move_history,
+        reaction_records=reaction_records,
+    )
+
+    prompt_packet = build_read_prompt_packet(
+        carry_forward_context=carry_forward,
+        supplemental_context={
+            "refs": [
+                {
+                    "ref_id": "lookback:sentence:c1-s1",
+                    "kind": "look_back_excerpt",
+                    "item_id": "c1-s1",
+                    "summary": "Alpha sentence.",
+                    "sentence_id": "c1-s1",
+                }
+            ],
+            "excerpts": [
+                {
+                    "ref_id": "lookback:sentence:c1-s1",
+                    "source_kind": "sentence",
+                    "sentence_ids": ["c1-s1"],
+                    "chapter_ref": "Chapter 1",
+                    "excerpt_text": "Alpha sentence.",
+                }
+            ],
+        },
+    )
+
+    assert prompt_packet["packet_version"] == STATE_PACKET_VERSION
+    assert prompt_packet["working_state"]["gate_state"] == "watch"
+    assert prompt_packet["working_state"]["active_items"][0]["item_id"] == "question-1"
+    assert prompt_packet["concept_digest"][0]["concept_key"] == "promise"
+    assert prompt_packet["thread_digest"][0]["thread_key"]
+    assert prompt_packet["reflective_digest"]["chapter_frames"][0]["item_id"] == "frame-1"
+    assert prompt_packet["selective_carry"]["earlier_excerpts"][0]["ref_id"] == "lookback:sentence:c1-s1"
+    assert prompt_packet["selective_carry"]["supporting_refs"][0]["ref_id"] == "lookback:sentence:c1-s1"
+    assert "refs" not in prompt_packet
+    assert "anchor_bank_digest" not in prompt_packet
+    assert "working_pressure_digest" not in prompt_packet
+    assert prompt_packet["local_continuity"]["recent_reactions"][0]["reaction_id"] == "reaction-1"
 
 
 def test_navigate_unitize_prompt_receives_navigation_context(monkeypatch):

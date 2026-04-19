@@ -133,20 +133,14 @@ def _sample_quotes(
     return quotes
 
 
-def _build_working_state_digest(
-    working_state: WorkingState,
-    *,
-    refs: list[CarryForwardRef],
-) -> WorkingStateDigest:
-    """Build the prompt-facing digest of the current hot working state."""
+def _working_state_active_items(working_state: WorkingState) -> list[dict[str, object]]:
+    """Return the active-items view, falling back to legacy buckets when needed."""
 
-    hot_items: list[dict[str, object]] = []
-    bucket_records: dict[str, list[dict[str, object]]] = {
-        "local_questions": [],
-        "local_tensions": [],
-        "local_hypotheses": [],
-        "local_motifs": [],
-    }
+    active_items = [dict(item) for item in working_state.get("active_items", []) if isinstance(item, dict)]
+    if active_items:
+        return active_items
+
+    flattened: list[dict[str, object]] = []
     for bucket in ("local_questions", "local_tensions", "local_hypotheses", "local_motifs"):
         for item in working_state.get(bucket, []):
             if not isinstance(item, dict):
@@ -154,37 +148,104 @@ def _build_working_state_digest(
             item_id = clean_text(item.get("item_id"))
             if not item_id:
                 continue
-            ref_id = f"pressure:{item_id}"
-            record = {
-                "ref_id": ref_id,
-                "item_id": item_id,
-                "bucket": bucket,
-                "kind": clean_text(item.get("kind")),
-                "statement": clean_text(item.get("statement")),
-                "status": clean_text(item.get("status")),
-                "support_anchor_ids": list(item.get("support_anchor_ids", []))
-                if isinstance(item.get("support_anchor_ids"), list)
-                else [],
-            }
-            bucket_records[bucket].append(record)
-            if len(hot_items) < 4:
-                hot_items.append(record)
-            _append_ref(
-                refs,
+            flattened.append(
                 {
-                    "ref_id": ref_id,
-                    "kind": "working_state",
                     "item_id": item_id,
-                    "summary": clean_text(item.get("statement")) or clean_text(item.get("kind")),
-                },
+                    "bucket": bucket,
+                    "kind": clean_text(item.get("kind")),
+                    "statement": clean_text(item.get("statement")),
+                    "status": clean_text(item.get("status")),
+                    "support_anchor_ids": list(item.get("support_anchor_ids", []))
+                    if isinstance(item.get("support_anchor_ids"), list)
+                    else [],
+                    "linked_concept_keys": list(item.get("linked_concept_keys", []))
+                    if isinstance(item.get("linked_concept_keys"), list)
+                    else [],
+                    "linked_thread_keys": list(item.get("linked_thread_keys", []))
+                    if isinstance(item.get("linked_thread_keys"), list)
+                    else [],
+                    "last_touched_sentence_id": clean_text(item.get("last_touched_sentence_id")),
+                }
             )
-            if len(bucket_records[bucket]) >= 3:
-                break
+    return flattened
+
+
+def _digest_bucket_for_active_item(item: dict[str, object]) -> str:
+    """Classify one active item into the legacy digest buckets."""
+
+    explicit_bucket = clean_text(item.get("bucket"))
+    if explicit_bucket in {"local_questions", "local_tensions", "local_hypotheses", "local_motifs"}:
+        return explicit_bucket
+    kind = clean_text(item.get("kind")).lower()
+    if "question" in kind:
+        return "local_questions"
+    if any(token in kind for token in ("tension", "conflict", "contrast", "pressure")):
+        return "local_tensions"
+    if any(token in kind for token in ("motif", "image", "pattern", "callback", "echo")):
+        return "local_motifs"
+    return "local_hypotheses"
+
+
+def _build_working_state_digest(
+    working_state: WorkingState,
+    *,
+    refs: list[CarryForwardRef],
+) -> WorkingStateDigest:
+    """Build the prompt-facing digest of the current hot working state."""
+
+    active_items = _working_state_active_items(working_state)
+    hot_items: list[dict[str, object]] = []
+    bucket_records: dict[str, list[dict[str, object]]] = {
+        "local_questions": [],
+        "local_tensions": [],
+        "local_hypotheses": [],
+        "local_motifs": [],
+    }
+    digest_active_items: list[dict[str, object]] = []
+    for item in active_items:
+        item_id = clean_text(item.get("item_id"))
+        if not item_id:
+            continue
+        bucket = _digest_bucket_for_active_item(item)
+        ref_id = f"pressure:{item_id}"
+        record = {
+            "ref_id": ref_id,
+            "item_id": item_id,
+            "bucket": bucket,
+            "kind": clean_text(item.get("kind")),
+            "statement": clean_text(item.get("statement")),
+            "status": clean_text(item.get("status")),
+            "support_anchor_ids": list(item.get("support_anchor_ids", []))
+            if isinstance(item.get("support_anchor_ids"), list)
+            else [],
+            "linked_concept_keys": list(item.get("linked_concept_keys", []))
+            if isinstance(item.get("linked_concept_keys"), list)
+            else [],
+            "linked_thread_keys": list(item.get("linked_thread_keys", []))
+            if isinstance(item.get("linked_thread_keys"), list)
+            else [],
+            "last_touched_sentence_id": clean_text(item.get("last_touched_sentence_id")),
+        }
+        digest_active_items.append(record)
+        if len(bucket_records[bucket]) < 3:
+            bucket_records[bucket].append(record)
+        if len(hot_items) < 4:
+            hot_items.append(record)
+        _append_ref(
+            refs,
+            {
+                "ref_id": ref_id,
+                "kind": "working_state",
+                "item_id": item_id,
+                "summary": clean_text(item.get("statement")) or clean_text(item.get("kind")),
+            },
+        )
     return {
         "gate_state": clean_text(working_state.get("gate_state")),
         "pressure_snapshot": dict(working_state.get("pressure_snapshot", {}))
         if isinstance(working_state.get("pressure_snapshot"), dict)
         else {},
+        "active_items": digest_active_items[:6],
         "hot_items": hot_items,
         "open_questions": bucket_records["local_questions"],
         "live_tensions": bucket_records["local_tensions"],
@@ -738,6 +799,70 @@ def build_carry_forward_context(
         "continuity_digest": session_continuity_capsule,
         "refs": refs,
     }
+
+
+def build_read_prompt_packet(
+    *,
+    carry_forward_context: CarryForwardContext,
+    supplemental_context: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Project the persisted state packet into the narrow read-node prompt view."""
+
+    packet: dict[str, object] = {
+        "packet_version": clean_text(carry_forward_context.get("packet_version")) or STATE_PACKET_VERSION,
+        "local_continuity": dict(carry_forward_context.get("session_continuity_capsule", {}))
+        if isinstance(carry_forward_context.get("session_continuity_capsule"), dict)
+        else {},
+        "working_state": {
+            "gate_state": clean_text(carry_forward_context.get("working_state_digest", {}).get("gate_state"))
+            if isinstance(carry_forward_context.get("working_state_digest"), dict)
+            else "",
+            "active_items": [
+                dict(item)
+                for item in carry_forward_context.get("working_state_digest", {}).get("active_items", [])
+                if isinstance(item, dict)
+            ][:6]
+            if isinstance(carry_forward_context.get("working_state_digest"), dict)
+            else [],
+        },
+        "concept_digest": [
+            dict(item)
+            for item in carry_forward_context.get("concept_digest", [])
+            if isinstance(item, dict)
+        ][:3],
+        "thread_digest": [
+            dict(item)
+            for item in carry_forward_context.get("thread_digest", [])
+            if isinstance(item, dict)
+        ][:3],
+        "reflective_digest": dict(carry_forward_context.get("chapter_reflective_frame", {}))
+        if isinstance(carry_forward_context.get("chapter_reflective_frame"), dict)
+        else {},
+    }
+
+    selective_carry: dict[str, object] = {}
+    if isinstance(supplemental_context, dict):
+        if isinstance(supplemental_context.get("excerpts"), list):
+            selective_carry["earlier_excerpts"] = [
+                dict(item)
+                for item in supplemental_context.get("excerpts", [])
+                if isinstance(item, dict)
+            ][:4]
+        if isinstance(supplemental_context.get("anchors"), list):
+            selective_carry["anchor_details"] = [
+                dict(item)
+                for item in supplemental_context.get("anchors", [])
+                if isinstance(item, dict)
+            ][:4]
+        if isinstance(supplemental_context.get("refs"), list):
+            selective_carry["supporting_refs"] = [
+                dict(item)
+                for item in supplemental_context.get("refs", [])
+                if isinstance(item, dict)
+            ][:6]
+    if selective_carry:
+        packet["selective_carry"] = selective_carry
+    return packet
 
 
 def build_navigation_context(

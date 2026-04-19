@@ -94,6 +94,137 @@ def _remove_by_id(items: list[dict[str, object]], item_id: str, *, id_key: str) 
     return [item for item in items if str(item.get(id_key, "") or "") != selected]
 
 
+def _working_state_active_items(state: WorkingPressureState | WorkingState) -> list[WorkingPressureItem]:
+    """Return the normalized active-items view over the current working state."""
+
+    active_items = [dict(item) for item in state.get("active_items", []) if isinstance(item, dict)]
+    if active_items:
+        return active_items  # type: ignore[return-value]
+
+    flattened: list[WorkingPressureItem] = []
+    for bucket in ("local_hypotheses", "local_questions", "local_tensions", "local_motifs"):
+        for item in state.get(bucket, []):
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get("item_id", "") or "").strip()
+            if not item_id:
+                continue
+            flattened.append(
+                {
+                    "item_id": item_id,
+                    "bucket": bucket,
+                    "kind": str(item.get("kind", "") or "").strip(),
+                    "statement": str(item.get("statement", "") or "").strip(),
+                    "support_anchor_ids": list(item.get("support_anchor_ids", []))
+                    if isinstance(item.get("support_anchor_ids"), list)
+                    else [],
+                    "linked_concept_keys": list(item.get("linked_concept_keys", []))
+                    if isinstance(item.get("linked_concept_keys"), list)
+                    else [],
+                    "linked_thread_keys": list(item.get("linked_thread_keys", []))
+                    if isinstance(item.get("linked_thread_keys"), list)
+                    else [],
+                    "last_touched_sentence_id": str(item.get("last_touched_sentence_id", "") or "").strip(),
+                    "status": str(item.get("status", "") or "").strip(),
+                }
+            )
+    return flattened
+
+
+def _classify_pressure_bucket(item: dict[str, object]) -> PressureBucket:
+    """Infer the closest legacy pressure bucket for one active item."""
+
+    explicit_bucket = str(item.get("bucket", "") or "").strip()
+    if explicit_bucket in {"local_hypotheses", "local_questions", "local_tensions", "local_motifs"}:
+        return explicit_bucket  # type: ignore[return-value]
+
+    kind = str(item.get("kind", "") or "").strip().lower()
+    if "question" in kind:
+        return "local_questions"
+    if any(token in kind for token in ("tension", "conflict", "contrast", "pressure")):
+        return "local_tensions"
+    if any(token in kind for token in ("motif", "image", "pattern", "callback", "echo")):
+        return "local_motifs"
+    return "local_hypotheses"
+
+
+def _sync_legacy_pressure_buckets(
+    state: WorkingPressureState | WorkingState,
+    *,
+    active_items: list[WorkingPressureItem],
+) -> WorkingPressureState | WorkingState:
+    """Project active-items back into the legacy pressure buckets."""
+
+    bucketed: dict[PressureBucket, list[WorkingPressureItem]] = {
+        "local_hypotheses": [],
+        "local_questions": [],
+        "local_tensions": [],
+        "local_motifs": [],
+    }
+    for item in active_items:
+        bucket = _classify_pressure_bucket(item)
+        bucketed[bucket].append(
+            {
+                **dict(item),
+                "bucket": bucket,
+            }
+        )
+    next_state = dict(state)
+    next_state["active_items"] = [dict(item) for item in active_items]
+    for bucket, items in bucketed.items():
+        next_state[bucket] = [dict(item) for item in items]
+    return next_state  # type: ignore[return-value]
+
+
+def _rebuild_active_items_from_buckets(
+    state: WorkingPressureState | WorkingState,
+) -> WorkingPressureState | WorkingState:
+    """Project the legacy bucketed state back into active-items."""
+
+    return _sync_legacy_pressure_buckets(state, active_items=_working_state_active_items(state))
+
+
+def _merge_unique_ids(*values: object) -> list[str]:
+    """Return one stable de-duplicated list of linked ids."""
+
+    ordered: list[str] = []
+    seen: set[str] = set()
+    for raw in values:
+        if not isinstance(raw, list):
+            continue
+        for item in raw:
+            clean = str(item or "").strip()
+            if not clean or clean in seen:
+                continue
+            seen.add(clean)
+            ordered.append(clean)
+    return ordered
+
+
+def _merge_active_item(
+    existing: dict[str, object],
+    payload: dict[str, object],
+    *,
+    item_id: str,
+) -> WorkingPressureItem:
+    """Merge one active-item payload on top of an existing entry."""
+
+    merged: WorkingPressureItem = {
+        "item_id": item_id,
+        "bucket": str(payload.get("bucket", "") or existing.get("bucket", "") or "").strip(),
+        "kind": str(payload.get("kind", "") or existing.get("kind", "") or "").strip(),
+        "statement": str(payload.get("statement", "") or existing.get("statement", "") or "").strip(),
+        "support_anchor_ids": _merge_unique_ids(existing.get("support_anchor_ids"), payload.get("support_anchor_ids")),
+        "linked_concept_keys": _merge_unique_ids(existing.get("linked_concept_keys"), payload.get("linked_concept_keys")),
+        "linked_thread_keys": _merge_unique_ids(existing.get("linked_thread_keys"), payload.get("linked_thread_keys")),
+        "last_touched_sentence_id": str(
+            payload.get("last_touched_sentence_id", "") or existing.get("last_touched_sentence_id", "") or ""
+        ).strip(),
+        "status": str(payload.get("status", "") or existing.get("status", "") or "").strip(),
+    }
+    return merged
+
+
 def set_gate_state(
     state: WorkingPressureState | WorkingState,
     gate_state: GateState,
@@ -115,7 +246,7 @@ def replace_pressure_bucket(
 
     next_state = _touch_state(state)
     next_state[bucket] = [dict(item) for item in items]
-    return next_state  # type: ignore[return-value]
+    return _rebuild_active_items_from_buckets(next_state)  # type: ignore[return-value]
 
 
 def set_pressure_snapshot(
@@ -138,6 +269,7 @@ def _apply_working_state_operations(
     """Apply explicit working-pressure mutations from node outputs."""
 
     next_state = dict(state)
+    active_items = [dict(item) for item in _working_state_active_items(state)]
     touched = False
     for operation in operations:
         if str(operation.get("target_store", "") or "") not in allowed_target_stores:
@@ -145,44 +277,51 @@ def _apply_working_state_operations(
         payload = operation.get("payload")
         if not isinstance(payload, dict):
             continue
-        bucket = str(payload.get("bucket", "") or "")
-        if bucket not in {"local_hypotheses", "local_questions", "local_tensions", "local_motifs"}:
-            continue
-        item_id = str(operation.get("item_id", "") or payload.get("item_id", "") or "")
+        item_id = str(operation.get("target_key", "") or operation.get("item_id", "") or payload.get("item_id", "") or "").strip()
         if not item_id:
             continue
+        operation_type = str(operation.get("op", "") or operation.get("operation_type", "") or "").strip().lower().replace("-", "_")
+        existing = next((dict(item) for item in active_items if str(item.get("item_id", "") or "").strip() == item_id), {})
 
-        bucket_items = [dict(existing) for existing in next_state.get(bucket, [])]
-        operation_type = str(operation.get("operation_type", "") or "")
-        if operation_type in {"create", "update", "reactivate", "cool"}:
-            existing = next((item for item in bucket_items if str(item.get("item_id", "") or "") == item_id), {})
-            merged_item = {
-                **existing,
-                **{
-                    key: value
-                    for key, value in payload.items()
-                    if key in {"kind", "statement", "support_anchor_ids", "status"}
-                },
-                "item_id": item_id,
-            }
-            if operation_type == "reactivate" and not merged_item.get("status"):
+        if operation_type in {"append", "create", "update", "reactivate", "cool"}:
+            merged_item = _merge_active_item(existing, payload, item_id=item_id)
+            if operation_type in {"append", "create"} and not merged_item.get("status"):
                 merged_item["status"] = "active"
-            if operation_type == "cool":
-                merged_item["status"] = str(payload.get("status", "") or "cooling")
-            bucket_items = _upsert_by_id(bucket_items, merged_item, id_key="item_id")
-            next_state[bucket] = bucket_items
+            if operation_type == "reactivate" and not payload.get("status"):
+                merged_item["status"] = "active"
+            if operation_type == "cool" and not payload.get("status"):
+                merged_item["status"] = "cooling"
+            active_items = _upsert_by_id(active_items, merged_item, id_key="item_id")
+            touched = True
+            continue
+
+        if operation_type in {"close", "resolve"}:
+            if not existing:
+                continue
+            merged_item = _merge_active_item(existing, payload, item_id=item_id)
+            if not payload.get("status"):
+                merged_item["status"] = "resolved" if operation_type == "resolve" else "closed"
+            active_items = _upsert_by_id(active_items, merged_item, id_key="item_id")
+            touched = True
+            continue
+
+        if operation_type in {"link", "link_anchors"}:
+            if not existing and not payload:
+                continue
+            merged_item = _merge_active_item(existing, payload, item_id=item_id)
+            active_items = _upsert_by_id(active_items, merged_item, id_key="item_id")
             touched = True
             continue
 
         if operation_type == "drop":
-            next_state[bucket] = _remove_by_id(bucket_items, item_id, id_key="item_id")
+            active_items = _remove_by_id(active_items, item_id, id_key="item_id")
             touched = True
 
     if not touched:
         return state
 
     next_state["updated_at"] = _timestamp()
-    return next_state  # type: ignore[return-value]
+    return _sync_legacy_pressure_buckets(next_state, active_items=active_items)  # type: ignore[return-value]
 
 
 def apply_working_pressure_operations(
@@ -321,7 +460,7 @@ def _apply_anchor_bank_operations(
             continue
         operation_type = str(operation.get("operation_type", "") or "")
 
-        if operation_type in {"create", "update", "retain_anchor"}:
+        if operation_type in {"append", "create", "update", "retain_anchor"}:
             anchor_id = str(operation.get("item_id", "") or payload.get("anchor_id", "") or "")
             sentence_start_id = str(payload.get("sentence_start_id", "") or "")
             sentence_end_id = str(payload.get("sentence_end_id", "") or sentence_start_id or "")
@@ -347,7 +486,7 @@ def _apply_anchor_bank_operations(
             next_state = upsert_anchor_record(next_state, anchor)
             continue
 
-        if operation_type == "link_anchors":
+        if operation_type in {"link", "link_anchors"}:
             relation_id = str(operation.get("item_id", "") or payload.get("relation_id", "") or "")
             source_anchor_id = str(payload.get("source_anchor_id", "") or "")
             target_anchor_id = str(payload.get("target_anchor_id", "") or "")
@@ -361,6 +500,24 @@ def _apply_anchor_bank_operations(
                 "rationale": str(payload.get("rationale", "") or str(operation.get("reason", "") or "")),
             }
             next_state = append_anchor_relation(next_state, relation)
+            continue
+
+        if operation_type in {"close", "resolve"}:
+            anchor_id = str(operation.get("item_id", "") or payload.get("anchor_id", "") or "")
+            if not anchor_id:
+                continue
+            existing_anchor = next(
+                (
+                    dict(anchor)
+                    for anchor in next_state.get("anchor_records", [])
+                    if isinstance(anchor, dict) and str(anchor.get("anchor_id", "") or "") == anchor_id
+                ),
+                None,
+            )
+            if existing_anchor is None:
+                continue
+            existing_anchor["status"] = str(payload.get("status", "") or ("resolved" if operation_type == "resolve" else "closed"))
+            next_state = upsert_anchor_record(next_state, existing_anchor)
 
     return next_state
 
@@ -429,14 +586,20 @@ def _upsert_concept_entry(
     """Apply one concept-registry mutation to the current entries."""
 
     existing = next((dict(entry) for entry in entries if str(entry.get("concept_key", "") or "") == concept_key), {})
-    if operation_type == "drop":
+    normalized_operation = operation_type
+    if normalized_operation in {"append", "create", "link"}:
+        normalized_operation = "update"
+    elif normalized_operation == "close":
+        normalized_operation = "resolve"
+
+    if normalized_operation == "drop":
         return [entry for entry in entries if str(entry.get("concept_key", "") or "") != concept_key]
 
     merged: ConceptRegistryEntry = {
         "concept_key": concept_key,
         "concept_type": str(payload.get("concept_type", "") or existing.get("concept_type", "") or "concept"),
         "status": str(
-            payload.get("status", "") or existing.get("status", "") or ("resolved" if operation_type == "resolve" else "active")
+            payload.get("status", "") or existing.get("status", "") or ("resolved" if normalized_operation == "resolve" else "active")
         ),
         "summary": str(payload.get("summary", "") or existing.get("summary", "")),
         "support_anchor_ids": _merge_linked_ids(existing, payload, "support_anchor_ids"),
@@ -445,7 +608,7 @@ def _upsert_concept_entry(
             payload.get("last_touched_sentence_id", "") or existing.get("last_touched_sentence_id", "")
         ),
     }
-    if operation_type == "reactivate" and not payload.get("status"):
+    if normalized_operation == "reactivate" and not payload.get("status"):
         merged["status"] = "active"
     return _upsert_by_id([dict(entry) for entry in entries], merged, id_key="concept_key")
 
@@ -492,14 +655,20 @@ def _upsert_thread_entry(
     """Apply one thread-trace mutation to the current entries."""
 
     existing = next((dict(entry) for entry in entries if str(entry.get("thread_key", "") or "") == thread_key), {})
-    if operation_type == "drop":
+    normalized_operation = operation_type
+    if normalized_operation in {"append", "create", "link"}:
+        normalized_operation = "update"
+    elif normalized_operation == "close":
+        normalized_operation = "resolve"
+
+    if normalized_operation == "drop":
         return [entry for entry in entries if str(entry.get("thread_key", "") or "") != thread_key]
 
     merged: ThreadTraceEntry = {
         "thread_key": thread_key,
         "thread_type": str(payload.get("thread_type", "") or existing.get("thread_type", "") or "thread"),
         "status": str(
-            payload.get("status", "") or existing.get("status", "") or ("resolved" if operation_type == "resolve" else "active")
+            payload.get("status", "") or existing.get("status", "") or ("resolved" if normalized_operation == "resolve" else "active")
         ),
         "summary": str(payload.get("summary", "") or existing.get("summary", "")),
         "support_anchor_ids": _merge_linked_ids(existing, payload, "support_anchor_ids"),
@@ -510,7 +679,7 @@ def _upsert_thread_entry(
         "source_anchor_id": str(payload.get("source_anchor_id", "") or existing.get("source_anchor_id", "")),
         "target_anchor_ids": _merge_linked_ids(existing, payload, "target_anchor_ids"),
     }
-    if operation_type == "reactivate" and not payload.get("status"):
+    if normalized_operation == "reactivate" and not payload.get("status"):
         merged["status"] = "active"
     return _upsert_by_id([dict(entry) for entry in entries], merged, id_key="thread_key")
 

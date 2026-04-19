@@ -1821,3 +1821,57 @@ The old active windows `nawaer_baodian_private_zh__wealth`, `nawaer_baodian_priv
 - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
 - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
 - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
+
+## Entry 64
+**ID**: DEC-067
+**Status**: active
+
+**Decision / Inflection**: Treat the landed `Read -> Express` split as an intermediate compatibility-first branch, not as the final `attentional_v2` target shape; re-center the next implementation line on `Navigate -> Read -> Route -> slow cycle`, with `Read` owning surfaced reactions and `Navigate` owning revisit dispatch.
+
+**Period**: April 19, 2026, after the post-E3 quality review and mechanism-design consolidation pass.
+
+**Problem**: The Phase E1-E3 branch successfully separated visible wording into a dedicated `Express` node and proved native surfaced-reaction persistence, but the design review exposed a deeper issue: the main prompt/context burden had shifted into an overpacked `Read`, while the extra `Express` call duplicated understanding work and risked moving visible reactions away from the original first-reading moment. At the same time, revisit/look-back behavior was still too tied to runner-private supplemental fetch logic instead of the node definitions the project actually wanted: `Navigate` chooses what to read, `Read` understands it, and chapter-level consolidation stays in `slow cycle`.
+
+**Alternatives considered**: Keep `Read -> Express` as the final live shape and only tune prompt wording, preserve a dedicated `Express` node but expand it to multiple reactions per unit, or collapse surfaced reactions back into `Read` while keeping deterministic orchestration and compatibility projections outside the semantic core.
+
+**Why this path won**: The core product behavior is “read and react while reading,” not “read once and then hand wording to another steady-state node.” Returning surfaced reactions to `Read` keeps visible output closer to the first-reading impulse, simplifies node ownership, and better matches the mechanism's intended control boundaries. The same review also clarified that revisit is fundamentally a navigation decision, so `Read` should surface a `revisit_need` and `Navigate` should decide whether the next step is a bounded `inline_look_back` or a true `revisit_hop`. `slow cycle` remains the chapter-end maintenance territory, and `Runner` remains deterministic orchestration only.
+
+**What changed in the system**: The stable mechanism doc and the structural rework plan now freeze a new target contract: keep `Phase E1-E3` as landed intermediate evidence, but make the next implementation line simplify the per-unit loop back toward `navigate.unitize -> read -> navigate.route`; let `Read` own `surfaced_reactions[]`, `implicit_uptake_ops[]`, `pressure_signals`, and optional `revisit_need`; let `Navigate` own `local_continuity` and revisit dispatch; keep `reflective_frames` as chapter-end `slow cycle` territory; and standardize prompt projections around `always carry / selective carry / not carry` instead of dumping full persisted state into every node.
+
+**Why it matters later**: Without recording this reversal, future contributors would see the landed `Express` persistence work and assume the project wanted to deepen that split. This entry preserves the actual design outcome: the `Express` branch was useful evidence and migration scaffolding, but the approved long-term mechanism shape is simpler and more aligned with the reading-node definitions the project now wants to preserve.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+
+## Entry 65
+**ID**: DEC-068
+**Status**: active
+
+**Decision / Inflection**: Land `Phase F1` by removing the live `Express` step from `attentional_v2`, returning surfaced-reaction ownership to `Read`, and narrowing `Read` prompt packaging to compact carried digests plus selective supplements only.
+
+**Period**: April 19, 2026, during the first implementation slice after the post-E3 contract freeze.
+
+**Problem**: The contract freeze had already established that the `Read -> Express` split was not the approved end-state shape, but until F1 actually landed the live code still risked drifting around the wrong steady-state assumptions: duplicated wording work, overpacked read prompts, and a mismatch between the stable docs and the real runner path.
+
+**Alternatives considered**: Keep `Express` alive on the live path for one more compatibility slice, partially move surfaced reactions back into `Read` while still letting `Express` wordsmith the final output, or defer the cutover until revisit routing was also ready.
+
+**Why this path won**: The safest clean cut was to restore one authoritative per-unit reading node first. That keeps visible reactions closest to the first-reading moment, removes the need to maintain a new compatibility ownership layer for a just-added node, and creates a simpler base for the next revisit-routing slice. By also narrowing prompt packaging at the same time, F1 fixes not only ownership confusion but also the prompt-overload problem that had helped push the mechanism toward summary-like output.
+
+**What changed in the system**: The live per-unit runner path is now `navigate.unitize -> read -> navigate.route`. `Read` now directly returns `unit_delta`, `surfaced_reactions[]`, `implicit_uptake_ops[]`, `pressure_signals`, and optional `revisit_need`. The dedicated live `Express` call is gone from the runner path. `Read` prompt packaging now carries compact `local_continuity`, `working_state`, `concept_digest`, `thread_digest`, and `reflective_digest` by default, with bounded selective carry only for explicit supplements. State mutation now flows through explicit `append / update / close / link` ops instead of whole-object rewrites.
+
+**Why it matters later**: This is the point where the approved post-E3 target shape stopped being only a design statement and became live runtime behavior. Future work on `Navigate`-owned revisit dispatch, reaction persistence cleanup, and dead-path removal can now build on a simpler factual base instead of reasoning about an intermediate `Express` ownership model that is no longer live.
+
+**Primary evidence**:
+- `docs/backend-reading-mechanisms/attentional_v2.md`
+- `docs/implementation/new-reading-mechanism/attentional_v2_structural_rework_plan.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `reading-companion-backend/src/attentional_v2/runner.py`
+- `reading-companion-backend/src/attentional_v2/nodes.py`
+- `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
+- `reading-companion-backend/tests/test_attentional_v2_phase_b.py`

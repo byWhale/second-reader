@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-18T19:48:48+08:00`
+Last updated: `2026-04-19T13:03:02+08:00`
 
 ## Status Values
 - `active`
@@ -195,20 +195,20 @@ Last updated: `2026-04-18T19:48:48+08:00`
     - runtime state and full checkpoints now persist a lightweight `continuation capsule` with rehydration entrypoints
     - warm resume now restores the latest usable continuation capsule together with new-format runtime/checkpoint state
     - `look_back` now resolves one bounded earlier source span, and `read_audit` now records per-step supplemental activity plus stop reasons
-  - `Phase E1` is now landed:
-    - the new `Read -> Express` contract is frozen in the stable mechanism doc and the structural rework plan
-  - the first compatibility-first `Phase E2` slice is now landed:
-    - the live runner now routes `navigate.unitize -> read -> express(if needed) -> navigate.route`
-    - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal`
-    - visible-reaction wording now comes from `Express`
-  - `Phase E3` is now landed:
-    - persisted `reaction_records` now keep `Express`-native surfaced fields first
+  - `Phase E1` through `Phase E3` are now preserved as a landed intermediate branch:
+    - that branch retained the temporary `Read -> Express` split
+    - persisted `reaction_records` now keep surfaced fields first
     - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper instead of treating legacy `type` as the internal truth
-    - the bounded fallback from missing `ExpressResult` to legacy `read.raw_reaction` is now explicitly marked as compatibility-only
-  - next build on the landed `Phase E3` baseline:
-    - validate reading quality and eval behavior on the new surfaced-reaction persistence path
-    - only then decide whether later slices should expose surfaced-reaction structure more natively above today's compatibility envelopes
-    - keep `knowledge_activations` narrowed to helper territory unless a later explicit design pass changes that rule
+    - this branch remains valuable evidence, but it is no longer the approved end-state target
+  - `Phase F1` is now landed:
+    - the live per-unit loop is back to `navigate.unitize -> read -> navigate.route`
+    - `Read` now owns surfaced reactions, implicit uptake ops, pressure signals, and optional `revisit_need`
+    - the dedicated live `Express` node is no longer on the runner path
+    - `Read` prompt packaging now follows compact `always carry / selective carry / not carry` projections
+  - next implementation line:
+    - `Phase F2` — navigate-owned revisit cutover
+    - `Phase F3` — reaction persistence and compatibility reconvergence
+    - `Phase F4` — quality validation and dead-path cleanup
 - Post-Phase-D evaluation posture:
   - the April 12 post-Phase-D smoke is finished and the April 13 targeted judged validation is also finished
   - completed judged runs:

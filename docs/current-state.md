@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-18T19:48:48+08:00`
+Last verified: `2026-04-19T13:03:02+08:00`
 
 ## Current Objective
 - Land `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -213,20 +213,30 @@ Last verified: `2026-04-18T19:48:48+08:00`
     - warm resume now restores new-format state together with the latest usable continuation capsule instead of relying only on raw runtime/checkpoint state
     - `look_back` now returns one bounded earlier source span, and `read_audit` now records per-step supplemental activity, stop reason, and budget exhaustion
     - public/frontend compatibility surfaces remain unchanged
-  - `Phase E1` is now landed:
-    - the new `Read -> Express` contract is frozen in the stable mechanism doc and the structural rework plan
-  - the first compatibility-first `Phase E2` slice is now landed:
-    - the live runner now routes `navigate.unitize -> read -> express(if needed) -> navigate.route`
-    - `read` now emits `unit_delta`, `pressure_signals`, and `express_signal`
-    - visible-reaction wording now comes from `Express`
-  - `Phase E3` is now landed:
-    - persisted `reaction_records` now keep `Express`-native surfaced fields first:
+  - `Phase E1` through `Phase E3` are now preserved as a landed intermediate branch:
+    - that branch retained the temporary `Read -> Express` split
+    - persisted `reaction_records` now keep surfaced fields first:
       - `thought`
       - `prior_link`
       - `outside_link`
       - `search_intent`
     - slow-cycle compatibility projection and normalized eval export now derive old family labels through one compat helper rather than treating legacy `type` as the internal truth
-    - the bounded fallback from missing `ExpressResult` to legacy `read.raw_reaction` is now explicitly marked as compatibility-only
+    - this branch remains valid historical evidence, but it is no longer the approved end-state shape
+  - `Phase F1` is now landed as the read-contract and prompt-packaging cutover:
+    - the live per-unit loop is now:
+      - `navigate.unitize -> read -> navigate.route`
+    - `Read` now directly owns:
+      - `unit_delta`
+      - `surfaced_reactions`
+      - `implicit_uptake_ops`
+      - `pressure_signals`
+      - optional `revisit_need`
+    - the dedicated live `Express` node is no longer on the live path
+    - `Read` prompt packaging now uses compact `always carry / selective carry / not carry` projections instead of the broader intermediate packet
+  - the active next implementation slices are now:
+    - `Phase F2` — navigate-owned revisit cutover
+    - `Phase F3` — reaction persistence and compatibility reconvergence
+    - `Phase F4` — quality validation and dead-path cleanup
   - the April 12 post-Phase-D smoke has now finished and is interpreted as follows:
     - `value_of_others_private_en__8_10` produced repeated anomalous long-tail calls during the April 12 smoke
     - a static size/content snapshot now lives at:
@@ -482,11 +492,14 @@ Last verified: `2026-04-18T19:48:48+08:00`
     - keep `Phase C.2` as the landed first state-territory slice where concept/thread digests now enter the live packet path
     - keep `Phase C.3` as the landed main-state cutover where the new semantic layers now own runtime/checkpoint truth
     - keep `Phase C.4` as the landed helper-contract cutover where sentence-intake / bridge / slow-cycle now execute directly on new-state ownership and live runtime/resume reject old-format state
-    - keep `Phase D` as the landed continuity / recall / resume polish slice:
-      - budget-bounded multi-step supplemental recall is now on the live path
+    - keep `Phase D` as landed intermediate continuity / recall / resume evidence:
       - continuation capsule persistence now supports checkpoint/runtime continuity
       - warm resume now restores the latest usable continuation capsule together with new-format runtime state
-    - the next backend slice should be defined from post-Phase-D observations rather than by reopening old helper contracts
+      - the old budget-bounded supplemental recall loop is no longer the live F1 baseline
+    - `Phase F1` is now the live baseline:
+      - live per-unit path is `navigate.unitize -> read -> navigate.route`
+      - `Read` now owns surfaced reactions directly
+      - the dedicated live `Express` node is off the main path
     - treat prior-material use as something that naturally happens inside `read`, not as a separate mechanism action
   - `excerpt` is currently in a hold posture:
     - keep the completed formal excerpt run as the main product/demo evidence bundle

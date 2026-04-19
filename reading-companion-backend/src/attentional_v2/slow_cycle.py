@@ -44,6 +44,7 @@ from .schemas import (
     ReflectivePromotionResult,
     ReflectiveFramesState,
     SearchIntent,
+    SurfacedReaction,
     ThreadTraceState,
     WorkingPressureItem,
     WorkingState,
@@ -357,6 +358,71 @@ def build_reaction_record_from_express_result(
         "chapter_ref": _clean_text(chapter_ref),
         "emitted_at_sentence_id": _clean_text(emitted_at_sentence_id),
         "record_source": "express",
+        "type": compat_family,  # type: ignore[typeddict-item]
+        "compat_family": compat_family,  # type: ignore[typeddict-item]
+        "thought": thought,
+        "primary_anchor": normalized_primary_anchor,
+        "related_anchors": normalized_related,
+        "reconsolidation_record_id": _clean_text(reconsolidation_record_id),
+        "supersedes_reaction_id": _clean_text(supersedes_reaction_id),
+        "compatibility_section_ref": _clean_text(compatibility_section_ref),
+        "prior_link": prior_link,
+        "outside_link": outside_link,
+        "search_intent": search_intent,
+        "search_query": compat_search_query({"search_intent": search_intent}),
+        "search_results": [],
+        "created_at": created_at or _timestamp(),
+    }
+
+
+def build_reaction_record_from_surfaced_reaction(
+    *,
+    reaction: SurfacedReaction,
+    primary_anchor: AnchorRecord | dict[str, object],
+    related_anchors: list[AnchorRecord | dict[str, object]] | None = None,
+    chapter_id: int,
+    chapter_ref: str,
+    emitted_at_sentence_id: str,
+    reaction_id: str | None = None,
+    reconsolidation_record_id: str | None = None,
+    supersedes_reaction_id: str | None = None,
+    compatibility_section_ref: str | None = None,
+    created_at: str | None = None,
+    ordinal: int | None = None,
+) -> AnchoredReactionRecord | None:
+    """Build one native persisted reaction record directly from read-owned surfaced output."""
+
+    thought = _clean_text(reaction.get("content"))
+    if not thought:
+        return None
+
+    normalized_primary_anchor = build_reaction_anchor(primary_anchor)
+    normalized_related = [build_reaction_anchor(anchor) for anchor in related_anchors or [] if isinstance(anchor, dict)]
+    prior_link = _copy_prior_link(reaction.get("prior_link"))
+    outside_link = _copy_outside_link(reaction.get("outside_link"))
+    search_intent = _copy_search_intent(reaction.get("search_intent"))
+    compat_family = compat_reaction_family(
+        {
+            "content": thought,
+            "anchor_quote": _clean_text(reaction.get("anchor_quote")) or _clean_text(normalized_primary_anchor.get("quote")),
+            "prior_link": prior_link,
+            "outside_link": outside_link,
+            "search_intent": search_intent,
+        }
+    )
+
+    return {
+        "reaction_id": reaction_id
+        or derive_reaction_id(
+            chapter_ref=chapter_ref,
+            emitted_at_sentence_id=emitted_at_sentence_id,
+            reaction_type=compat_family,
+            ordinal=ordinal,
+        ),
+        "chapter_id": int(chapter_id),
+        "chapter_ref": _clean_text(chapter_ref),
+        "emitted_at_sentence_id": _clean_text(emitted_at_sentence_id),
+        "record_source": "read_surface",
         "type": compat_family,  # type: ignore[typeddict-item]
         "compat_family": compat_family,  # type: ignore[typeddict-item]
         "thought": thought,
