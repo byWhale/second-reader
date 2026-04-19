@@ -76,6 +76,8 @@ _STATE_OPERATION_TYPES = {
 }
 _DETOUR_STATUSES = {"open", "resolved", "abandoned"}
 _DETOUR_SEARCH_DECISIONS = {"narrow_scope", "land_region", "defer_detour"}
+
+
 def _timestamp() -> str:
     """Return a stable UTC timestamp."""
 
@@ -316,6 +318,29 @@ def _current_paragraph_end_sentence_id(preview_sentences: list[dict[str, object]
     return _sentence_id(current_paragraph[-1])
 
 
+def _paragraph_sentences_from_preview(
+    preview_sentences: list[dict[str, object]],
+) -> list[list[dict[str, object]]]:
+    """Return ordered paragraph buckets from one preview slice."""
+
+    return [bucket for _paragraph_index, bucket in _sentences_by_paragraph(preview_sentences)]
+
+
+def _is_heading_paragraph(paragraph_sentences: list[dict[str, object]]) -> bool:
+    """Return whether one preview paragraph is entirely heading-like."""
+
+    if not paragraph_sentences:
+        return False
+    roles = {_clean_text(sentence.get("text_role")) for sentence in paragraph_sentences}
+    return bool(roles) and roles.issubset({"chapter_heading", "section_heading"})
+
+
+def _has_body_sentence(paragraph_sentences: list[dict[str, object]]) -> bool:
+    """Return whether one preview paragraph contains body text."""
+
+    return any(_clean_text(sentence.get("text_role")) == "body" for sentence in paragraph_sentences)
+
+
 def _normalize_unitize_boundary_type(value: object) -> UnitizeBoundaryType:
     """Normalize one unitize boundary type with a conservative fallback."""
 
@@ -401,6 +426,16 @@ def _fallback_unitize_decision(preview_sentences: list[dict[str, object]]) -> Un
         }
     paragraph_end_sentence_id = _current_paragraph_end_sentence_id(preview_sentences) or _sentence_id(preview_sentences[-1])
     preview_ids = [_sentence_id(sentence) for sentence in preview_sentences if _sentence_id(sentence)]
+    fallback_reason = "unitize_fallback_current_paragraph"
+
+    preview_paragraphs = _paragraph_sentences_from_preview(preview_sentences)
+    if len(preview_paragraphs) >= 2:
+        first_paragraph = preview_paragraphs[0]
+        second_paragraph = preview_paragraphs[1]
+        if _is_heading_paragraph(first_paragraph) and _has_body_sentence(second_paragraph):
+            paragraph_end_sentence_id = _sentence_id(second_paragraph[-1]) or paragraph_end_sentence_id
+            fallback_reason = "unitize_fallback_heading_with_body"
+
     end_index = preview_ids.index(paragraph_end_sentence_id) if paragraph_end_sentence_id in preview_ids else len(preview_ids) - 1
     return {
         "start_sentence_id": _sentence_id(preview_sentences[0]),
@@ -411,7 +446,7 @@ def _fallback_unitize_decision(preview_sentences: list[dict[str, object]]) -> Un
         },
         "boundary_type": "paragraph_end",
         "evidence_sentence_ids": preview_ids[: end_index + 1],
-        "reason": "unitize_fallback_current_paragraph",
+        "reason": fallback_reason,
         "continuation_pressure": False,
     }
 

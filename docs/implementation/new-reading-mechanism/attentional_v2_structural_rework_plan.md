@@ -1108,8 +1108,13 @@ Status: `in_progress`
   - `Navigate.unitize` no longer receives heuristic `watch_state`
   - the dead `trigger -> zoom_read -> meaning_unit_closure -> controller_decision -> reaction_emission` path has been removed from live code
   - `text_role` is now explicitly treated as an inherited block-level weak cue rather than sentence-level truth
+- the first special-content handling slice is now also landed on that cleaned baseline:
+  - no new helper node, packet, schema, or parser layer was introduced
+  - `navigate.unitize` now treats heading roles as weak cues rather than automatic standalone units
+  - meaningful headings may still stand alone, but label-like headings now prefer merging with the immediately following body paragraph when the preview allows
+  - deterministic unitize fallback now widens `heading -> following body paragraph` instead of falling back to a bare heading when that body paragraph is already visible
+  - `Read` now explicitly stays proportionate around thin heading-like units and may remain silent there
 - next move before `Phase F4B`:
-  - use the cleaned Runner/Navigate baseline to design the special-content handling policy for headings / appendix-like material
   - make one small repair pass focused on:
     - detour trigger willingness
     - explicit surfaced semantic honesty

@@ -255,7 +255,7 @@ def test_read_unit_projects_compact_packet_and_returns_f1_surface_contract(tmp_p
     assert "\"working_pressure_digest\"" not in captured["prompt"]
     assert "\"refs\": [" not in captured["prompt"]
     assert "\"anchor_bank_digest\"" not in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.read.v7"
+    assert manifest["prompt_version"] == "attentional_v2.read.v8"
     assert result["unit_delta"] == "The second sentence sharpens the first one."
     assert result["pressure_signals"] == {
         "continuation_pressure": True,

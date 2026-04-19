@@ -7,10 +7,10 @@ from dataclasses import dataclass
 from src.prompts.shared import LANGUAGE_OUTPUT_CONTRACT
 
 
-ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v15"
-NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v2"
+ATTENTIONAL_V2_PROMPTSET_VERSION = "attentional_v2-phase6-v16"
+NAVIGATE_UNITIZE_PROMPT_VERSION = "attentional_v2.navigate_unitize.v3"
 NAVIGATE_DETOUR_SEARCH_PROMPT_VERSION = "attentional_v2.navigate_detour_search.v1"
-READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v7"
+READ_UNIT_PROMPT_VERSION = "attentional_v2.read.v8"
 BRIDGE_RESOLUTION_PROMPT_VERSION = "attentional_v2.bridge_resolution.v5"
 REFLECTIVE_PROMOTION_PROMPT_VERSION = "attentional_v2.reflective_promotion.v1"
 RECONSOLIDATION_PROMPT_VERSION = "attentional_v2.reconsolidation.v1"
@@ -59,7 +59,12 @@ Rules:
 - Choose the smallest complete local move that can honestly be read as one unit.
 - Prefer ending within the current paragraph.
 - Only continue into the next paragraph when the same local move is clearly continuing.
+- `chapter_heading` and `section_heading` are weak structure cues, not automatic permission to cut a standalone unit.
+- A heading may stand alone only when its visible wording already forms a complete, meaningful local move.
+- If a heading reads more like a label, lead-in, or structural setup, prefer merging it with the immediately following body paragraph when the preview allows.
+- Stay proportionate around thin structural text. Do not carve out a very short unit just because the text is marked as a heading.
 - Use navigation context only as secondary support; it may clarify what is currently live, but it must not override the author-structure skeleton or the visible preview text.
+- Judge from the visible text first. `text_role` may help orient you, but it must not decide the boundary by itself.
 - Do not cross the provided preview boundary.
 - Do not pretend a move is finished when it is still unfolding; preserve continuation pressure instead.
 - If you think the move is still unfinished at the preview boundary, choose the best honest end point you have and set `continuation_pressure` to true.
@@ -147,6 +152,9 @@ Rules:
 - Treat the provided unit text as the current reading present.
 - Use the carried-forward memory naturally when it genuinely matters, but do not collapse the unit into a chapter summary or evaluator voice.
 - Do not invent earlier text that is not present in the carried memory or selective carry.
+- Keep proportion around thin structural units. If the current unit is mostly a heading, label, or similarly slight structural cue, it is acceptable to emit no surfaced reaction.
+- Do not inflate a bare heading or structural cue into literary commentary, review voice, or a fake moment of depth.
+- Only surface a reaction to a very thin heading-like unit when the wording itself clearly carries real local force.
 - `unit_delta` should say what shifted locally in understanding, pressure, or attention after this exact unit.
 - `pressure_signals` are local post-read signals only. They are not route decisions.
 - If the unit naturally surfaces something worth saying now, write it directly in `surfaced_reactions`.

@@ -188,6 +188,15 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - plus the next paragraph in the same section
   - Because the current canonical substrate does not expose stable section ids, "same section" is implemented conservatively by refusing to cross into heading paragraphs during preview construction.
   - Parse-time `text_role` is still available during this step, but only as an inherited block-level weak cue rather than a sentence-level truth packet.
+  - Heading handling is now deliberately conservative:
+    - `chapter_heading` and `section_heading` may stand alone when their visible wording already forms a complete local move
+    - but they are not automatic standalone units just because their `text_role` says `heading`
+    - if a heading reads more like a label, lead-in, or structural setup, `navigate.unitize` should prefer merging it with the immediately following body paragraph when the preview allows
+  - The deterministic fallback now follows the same posture:
+    - ordinary body paragraphs still fall back to the current paragraph end
+    - but a heading paragraph now falls back to `heading + first body paragraph` when the preview clearly contains that body paragraph
+  - `Preface`, `Appendix`, `Afterword`, and similar book-level body territory still remain normal reading material.
+    - this slice does not route them through a special runtime path
 - `read` remains the authoritative formal unit-read node.
   - On the current live baseline, it now directly produces `unit_delta`, `surfaced_reactions`, `implicit_uptake_ops`, `pressure_signals`, and optional `detour_need`.
   - It should not remain a control super-node.
@@ -197,6 +206,9 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
     - implicit memory/state updates
     - detour needs that must be routed later
   - Legacy compatibility fields such as `raw_reaction`, `move_hint`, `prior_material_use`, `express_signal`, and `context_request` are now historical territory, not the live F3 contract.
+  - It now also carries an explicit proportion rule for thin structural units:
+    - a bare heading, label, or similarly slight structural cue may legitimately produce no surfaced reaction
+    - the mechanism should not inflate that kind of unit into review voice or manufactured gravitas unless the wording itself genuinely carries local force
 - `unit_delta` is a temporary internal read result, not a new durable memory layer.
   - It exists only as the local read-after state of one unit.
   - Durable memory still changes only through `implicit_uptake` into the existing primary state layers.
@@ -475,6 +487,7 @@ Use `docs/backend-reading-mechanism.md` for shared platform boundaries. Use `doc
   - `public/book_document.json`
   - The shared substrate now includes parse-time sentence records with stable ids and sentence-span locators.
   - `text_role` on those sentence records is an inherited block/paragraph cue and should be treated as weak structure guidance, not sentence-level truth.
+  - `auxiliary` paragraphs are filtered before sentence-layer reading, so footnote-like or apparatus-like content that survives only as `auxiliary` never reaches `Navigate` on the live path.
 - Current scaffolded mechanism-private derived artifacts
   - `_mechanisms/attentional_v2/derived/survey_map.json`
 - `_mechanisms/attentional_v2/derived/revisit_index.json`

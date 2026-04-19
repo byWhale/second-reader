@@ -34,6 +34,20 @@ def _sentence(
     }
 
 
+def _navigation_context() -> dict[str, object]:
+    return {
+        "packet_version": STATE_PACKET_VERSION,
+        "session_continuity_capsule": {"recent_sentence_ids": ["c0-s9"]},
+        "working_state_digest": {"open_questions": []},
+        "chapter_reflective_frame": {"chapter_frames": []},
+        "active_focus_digest": {"recent_moves": []},
+        "concept_digest": [],
+        "thread_digest": [],
+        "anchor_bank_digest": {"active_anchors": []},
+        "refs": [],
+    }
+
+
 def test_build_unitize_preview_stays_within_current_and_next_non_heading_paragraph():
     """Preview should start at the current sentence, finish the paragraph, then include one following body paragraph."""
 
@@ -63,7 +77,8 @@ def test_navigate_unitize_writes_manifest_and_applies_sentence_cap(tmp_path: Pat
 
     captured: dict[str, str] = {}
 
-    def fake_invoke_json(_system: str, prompt: str, default: object) -> object:
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        captured["system_prompt"] = system_prompt
         captured["prompt"] = prompt
         return {
             "start_sentence_id": "c1-s1",
@@ -86,17 +101,7 @@ def test_navigate_unitize_writes_manifest_and_applies_sentence_cap(tmp_path: Pat
     decision = navigate_unitize(
         current_sentence=preview_sentences[0],
         preview_sentences=preview_sentences,
-        navigation_context={
-            "packet_version": STATE_PACKET_VERSION,
-            "session_continuity_capsule": {"recent_sentence_ids": ["c0-s9"]},
-            "working_state_digest": {"open_questions": []},
-            "chapter_reflective_frame": {"chapter_frames": []},
-            "active_focus_digest": {"recent_moves": []},
-            "concept_digest": [],
-            "thread_digest": [],
-            "anchor_bank_digest": {"active_anchors": []},
-            "refs": [],
-        },
+        navigation_context=_navigation_context(),
         reader_policy=reader_policy,
         output_language="en",
         output_dir=tmp_path,
@@ -109,7 +114,100 @@ def test_navigate_unitize_writes_manifest_and_applies_sentence_cap(tmp_path: Pat
     assert decision["preview_range"]["end_sentence_id"] == "c1-s2"
     assert decision["continuation_pressure"] is True
     assert "\"packet_version\": \"attentional_v2.state_packet.v1\"" in captured["prompt"]
-    assert manifest["prompt_version"] == "attentional_v2.navigate_unitize.v2"
+    assert "weak structure cues, not automatic permission to cut a standalone unit" in captured["system_prompt"]
+    assert manifest["prompt_version"] == "attentional_v2.navigate_unitize.v3"
+
+
+def test_navigate_unitize_fallback_merges_heading_with_following_body(tmp_path: Path, monkeypatch):
+    """Heading-only fallback should widen to heading plus the next body paragraph when available."""
+
+    monkeypatch.setattr(
+        nodes_module,
+        "invoke_json",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            nodes_module.ReaderLLMError("temporary navigation failure", problem_code="network_blocked")
+        ),
+    )
+
+    preview_sentences = [
+        _sentence("c1-s1", "认识财富创造的原理", sentence_index=1, paragraph_index=1, text_role="section_heading"),
+        _sentence("c1-s2", "能学会。", sentence_index=2, paragraph_index=2),
+        _sentence("c1-s3", "而且值得学。", sentence_index=3, paragraph_index=2),
+    ]
+
+    decision = navigate_unitize(
+        current_sentence=preview_sentences[0],
+        preview_sentences=preview_sentences,
+        navigation_context=_navigation_context(),
+        reader_policy=build_default_reader_policy(),
+        output_language="zh",
+        output_dir=tmp_path,
+    )
+
+    assert decision["start_sentence_id"] == "c1-s1"
+    assert decision["end_sentence_id"] == "c1-s3"
+    assert decision["evidence_sentence_ids"] == ["c1-s1", "c1-s2", "c1-s3"]
+    assert decision["reason"] == "unitize_fallback_heading_with_body"
+
+
+def test_navigate_unitize_fallback_keeps_body_paragraph_behavior(tmp_path: Path, monkeypatch):
+    """Ordinary body fallback should still stop at the current paragraph end."""
+
+    monkeypatch.setattr(
+        nodes_module,
+        "invoke_json",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            nodes_module.ReaderLLMError("temporary navigation failure", problem_code="network_blocked")
+        ),
+    )
+
+    preview_sentences = [
+        _sentence("c1-s1", "Alpha.", sentence_index=1, paragraph_index=1),
+        _sentence("c1-s2", "Beta.", sentence_index=2, paragraph_index=1),
+        _sentence("c1-s3", "Gamma.", sentence_index=3, paragraph_index=2),
+    ]
+
+    decision = navigate_unitize(
+        current_sentence=preview_sentences[0],
+        preview_sentences=preview_sentences,
+        navigation_context=_navigation_context(),
+        reader_policy=build_default_reader_policy(),
+        output_language="en",
+        output_dir=tmp_path,
+    )
+
+    assert decision["end_sentence_id"] == "c1-s2"
+    assert decision["evidence_sentence_ids"] == ["c1-s1", "c1-s2"]
+    assert decision["reason"] == "unitize_fallback_current_paragraph"
+
+
+def test_navigate_unitize_fallback_allows_heading_only_when_no_body_follows(tmp_path: Path, monkeypatch):
+    """Heading fallback may remain isolated when the preview does not contain a following body paragraph."""
+
+    monkeypatch.setattr(
+        nodes_module,
+        "invoke_json",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            nodes_module.ReaderLLMError("temporary navigation failure", problem_code="network_blocked")
+        ),
+    )
+
+    preview_sentences = [
+        _sentence("c1-s1", "Chapter 2", sentence_index=1, paragraph_index=1, text_role="chapter_heading"),
+    ]
+
+    decision = navigate_unitize(
+        current_sentence=preview_sentences[0],
+        preview_sentences=preview_sentences,
+        navigation_context=_navigation_context(),
+        reader_policy=build_default_reader_policy(),
+        output_language="en",
+        output_dir=tmp_path,
+    )
+
+    assert decision["end_sentence_id"] == "c1-s1"
+    assert decision["evidence_sentence_ids"] == ["c1-s1"]
+    assert decision["reason"] == "unitize_fallback_current_paragraph"
 
 
 def test_navigate_detour_search_normalizes_invalid_land_into_defer(tmp_path: Path, monkeypatch):
@@ -156,10 +254,12 @@ def test_navigate_detour_search_normalizes_invalid_land_into_defer(tmp_path: Pat
 def test_read_unit_filters_unanchored_surface_and_falls_back_from_legacy_move_hint(tmp_path: Path, monkeypatch):
     """Read should keep only unit-anchored surfaced reactions and derive pressure from legacy fallback fields."""
 
-    monkeypatch.setattr(
-        nodes_module,
-        "invoke_json",
-        lambda *_args, **_kwargs: {
+    captured: dict[str, str] = {}
+
+    def fake_invoke_json(system_prompt: str, prompt: str, default: object) -> object:
+        captured["system_prompt"] = system_prompt
+        captured["prompt"] = prompt
+        return {
             "local_understanding": "The line flips the frame.",
             "move_hint": "reframe",
             "surfaced_reactions": [
@@ -185,8 +285,9 @@ def test_read_unit_filters_unanchored_surface_and_falls_back_from_legacy_move_hi
                     "payload": {"statement": "The frame just shifted."},
                 }
             ],
-        },
-    )
+        }
+
+    monkeypatch.setattr(nodes_module, "invoke_json", fake_invoke_json)
 
     result = read_unit(
         current_unit_sentences=[
@@ -226,7 +327,9 @@ def test_read_unit_filters_unanchored_surface_and_falls_back_from_legacy_move_hi
         }
     ]
     assert result["implicit_uptake_ops"][0]["target_store"] == "working_state"
-    assert manifest["prompt_version"] == "attentional_v2.read.v7"
+    assert "Keep proportion around thin structural units." in captured["system_prompt"]
+    assert "Do not inflate a bare heading or structural cue" in captured["system_prompt"]
+    assert manifest["prompt_version"] == "attentional_v2.read.v8"
 
 
 def test_navigate_route_uses_pressure_signals_only():
