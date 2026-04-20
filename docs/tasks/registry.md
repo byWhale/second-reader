@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-20T20:40:00+08:00`
+Last updated: `2026-04-20T21:20:00+08:00`
 
 ## Status Values
 - `active`
@@ -204,9 +204,11 @@ Last updated: `2026-04-20T20:40:00+08:00`
     - `5`-minute auto-recovery
     - unlimited relaunch budget
   - execution order:
-    - run `user-level selective v1` first on the repaired active `203`-case package
-    - then launch `target-centered accumulation v2`
-    - reuse overlapping excerpt reading outputs for the three shared long-span windows instead of rereading them
+    - launch `user-level selective v1` on the repaired active `203`-case package
+    - launch `target-centered accumulation v2` under the same parent without waiting for whole-excerpt completion
+    - accumulation shards now start on a window-ready barrier:
+      - reuse overlapping excerpt reading outputs for the three shared long-span windows instead of rereading them
+      - wait on not-yet-ready excerpt windows rather than serializing behind unrelated books
   - current child status:
     - active excerpt child:
       - job id:
@@ -223,13 +225,21 @@ Last updated: `2026-04-20T20:40:00+08:00`
         - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420`
         - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420`
     - accumulation child:
-      - will launch from the same parent after excerpt completes
+      - job id:
+        - `bgjob_accumulation_benchmark_v2_active_formal_20260419`
+      - run id:
+        - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+      - April 20 parallelism repair:
+        - the previous parent barrier waited for the entire excerpt child to finish before starting any long-span work
+        - the formal accumulation child now launches with `wait-for-reuse-ready` semantics and starts ready windows immediately
+        - the current child skipped the already completed `huochu` summaries and is now waiting only on the excerpt-backed `mangge` / `xidaduo` windows that are not reusable yet
 - Jobs:
   - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`running`)
   - `bgjob_active_benchmark_rerun_20260419` (`running`)
   - `bgjob_user_level_selective_v1_active_formal_20260419` (`running`)
   - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420` (`running`)
   - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420` (`running`)
+  - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`running`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V2` — Land the target-centered long-span accumulation v2 framework
 - Status: `active`
@@ -266,14 +276,17 @@ Last updated: `2026-04-20T20:40:00+08:00`
       - `芒格之道`: `2`
   - active formal-rerun posture:
     - the user explicitly requested the first full formal comparison on April 19
-    - the shared parent job is now running and will launch the accumulation child after excerpt completes
-    - the accumulation run will reuse overlapping excerpt reading outputs from:
+    - the shared parent job is now running with a window-ready long-span posture
+    - the formal accumulation child `bgjob_accumulation_benchmark_v2_active_formal_20260419` is now active on the same run id
+    - it reuses overlapping excerpt reading outputs from:
       - `huochu_shengming_de_yiyi_private_zh__segment_1`
       - `mangge_zhi_dao_private_zh__segment_1`
       - `xidaduo_private_zh__segment_1`
+    - completed `huochu` shard summaries are already present in-run, and the child now waits for reusable `mangge` / `xidaduo` excerpt outputs instead of serializing behind unrelated finished books
 - Jobs:
   - `bgjob_active_benchmark_rerun_20260419` (`running`)
   - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`running`)
+  - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`running`)
 
 ### `TASK-USER-LEVEL-SELECTIVE-V1` — Replace the active local/user-level benchmark with the note-aligned selective package
 - Status: `active`

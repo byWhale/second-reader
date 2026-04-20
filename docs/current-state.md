@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-20T20:40:00+08:00`
+Last verified: `2026-04-20T21:20:00+08:00`
 
 ## Current Objective
 - Keep `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -71,7 +71,15 @@ Last verified: `2026-04-20T20:40:00+08:00`
             - `bgjob_user_level_selective_v1_active_formal_20260419`
           - run id:
             - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
-        - accumulation child will launch under the same parent after excerpt completes and will reuse overlapping excerpt reading outputs rather than rereading shared windows
+        - active accumulation child:
+          - job id:
+            - `bgjob_accumulation_benchmark_v2_active_formal_20260419`
+          - run id:
+            - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+          - current launch posture:
+            - the formal accumulation child is now started before full excerpt completion
+            - it reuses overlapping excerpt reading outputs and waits on not-yet-ready windows instead of rereading them
+            - completed `huochu_shengming_de_yiyi_private_zh` shard summaries are already reused in-run while `mangge` and `xidaduo` remain gated on excerpt readiness
   - historical boundary:
     - keep `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` as durable historical mechanism evidence
     - do not treat the old bounded `EARLY / MID / LATE` probe method as the active long-span methodology anymore

@@ -349,6 +349,10 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - if a completed bundle can be recovered from an existing unit payload or normalized export, materialize that canonical bundle sidecar first and then treat the unit as ready
 - Once every chapter unit owned by one judged shard is ready, that judged shard may launch immediately even if other smoke shards are still running.
   - judged merge still waits for all judged shards to finish successfully
+- When one active evaluation surface reuses another surface's reading windows, do not impose a whole-surface completion barrier if window-local reuse readiness already exists.
+  - if one long-span shard only depends on one excerpt window, that long-span shard may start as soon as the matching excerpt `(window, mechanism)` output is reusable
+  - do not wait for unrelated excerpt windows or books to finish before launching that ready long-span shard
+  - if the long-span child is launched before every reused window is ready, keep the still-unready shards in a waiting state and poll for reusable outputs instead of rereading the shared window or failing the whole child immediately
 - Offline comparison runs should emit lightweight LLM-usage summaries in addition to product-judgment outputs.
   - minimum useful fields include request counts, retries, approximate RPM, inflight estimates, gate-wait time, quota-wait time, and shard/profile/mechanism breakdowns
   - this observability exists to diagnose software bottlenecks and launch posture, not to become a new benchmark target

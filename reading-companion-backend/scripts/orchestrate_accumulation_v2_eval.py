@@ -231,6 +231,13 @@ def _completed_output_dir_from_seed_runs(*, plan: ShardPlan, seed_run_ids: tuple
     return None
 
 
+def _resolve_ready_reuse_output_dir(*, plan: ShardPlan, seed_run_ids: tuple[str, ...]) -> Path | None:
+    return _completed_output_dir_from_same_run(plan=plan) or _completed_output_dir_from_seed_runs(
+        plan=plan,
+        seed_run_ids=seed_run_ids,
+    )
+
+
 def _reset_failed_shard_outputs(plan: ShardPlan, *, preserve_output_dir: Path | None = None) -> None:
     shard_root = _shard_root_for_plan(plan)
     if not shard_root.exists():
@@ -325,21 +332,60 @@ def _wait_for_shards(
     *,
     processes: dict[str, subprocess.Popen[bytes]],
     plan_by_key: dict[str, ShardPlan],
+    pending_plans: dict[str, ShardPlan] | None,
     manifest_path: Path,
     judge_mode: str,
     run_root: Path,
     max_attempts: int,
     retry_backoff_seconds: int,
     reuse_output_dirs: dict[str, Path] | None = None,
+    seed_run_ids: tuple[str, ...] = (),
+    wait_for_reuse_ready: bool = False,
+    reuse_ready_poll_seconds: int = 30,
 ) -> dict[str, int]:
     exit_codes: dict[str, int] = {}
     attempts = {key: 1 for key in processes}
-    while processes:
+    reuse_output_dirs = dict(reuse_output_dirs or {})
+    pending = dict(pending_plans or {})
+    last_waiting_signature: tuple[str, ...] | None = None
+    while processes or pending:
+        launched_any = False
+        for shard_key, plan in list(pending.items()):
+            reuse_output_dir = reuse_output_dirs.get(shard_key)
+            if reuse_output_dir is None:
+                reuse_output_dir = _resolve_ready_reuse_output_dir(plan=plan, seed_run_ids=seed_run_ids)
+                if reuse_output_dir is not None:
+                    reuse_output_dirs[shard_key] = reuse_output_dir
+            if wait_for_reuse_ready and reuse_output_dir is None:
+                continue
+            processes[shard_key] = _launch_shard(
+                plan=plan,
+                manifest_path=manifest_path,
+                judge_mode=judge_mode,
+                run_root=run_root,
+                reuse_output_dir=reuse_output_dir,
+            )
+            plan_by_key[shard_key] = plan
+            attempts.setdefault(shard_key, 1)
+            pending.pop(shard_key, None)
+            launched_any = True
+        if wait_for_reuse_ready and pending:
+            waiting_signature = tuple(sorted(pending))
+            if waiting_signature != last_waiting_signature:
+                log(
+                    "Waiting for reusable excerpt outputs before launching "
+                    f"{len(waiting_signature)} accumulation shard(s): {', '.join(waiting_signature)}"
+                )
+                last_waiting_signature = waiting_signature
+        else:
+            last_waiting_signature = None
         completed: list[str] = []
+        progress = False
         for shard_key, process in list(processes.items()):
             exit_code = process.poll()
             if exit_code is None:
                 continue
+            progress = True
             _write_process_log(process, f"[{utc_now()}] shard exited with code {exit_code}\n")
             _close_process_log(process)
             plan = plan_by_key[shard_key]
@@ -356,13 +402,13 @@ def _wait_for_shards(
                     handle.flush()
                 if retry_backoff_seconds > 0:
                     time.sleep(retry_backoff_seconds)
-                _reset_failed_shard_outputs(plan, preserve_output_dir=(reuse_output_dirs or {}).get(shard_key))
+                _reset_failed_shard_outputs(plan, preserve_output_dir=reuse_output_dirs.get(shard_key))
                 processes[shard_key] = _launch_shard(
                     plan=plan,
                     manifest_path=manifest_path,
                     judge_mode=judge_mode,
                     run_root=run_root,
-                    reuse_output_dir=(reuse_output_dirs or {}).get(shard_key),
+                    reuse_output_dir=reuse_output_dirs.get(shard_key),
                 )
                 attempts[shard_key] = attempt + 1
                 continue
@@ -378,8 +424,12 @@ def _wait_for_shards(
             completed.append(shard_key)
         for shard_key in completed:
             processes.pop(shard_key, None)
-        if processes:
-            time.sleep(5)
+        if not processes and pending and wait_for_reuse_ready:
+            time.sleep(max(1, int(reuse_ready_poll_seconds)))
+            continue
+        if processes or pending:
+            if not launched_any and not progress:
+                time.sleep(5)
     return exit_codes
 
 
@@ -488,6 +538,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--segment-id", action="append", dest="segment_ids", default=[])
     parser.add_argument("--shard-key", action="append", dest="shard_keys", default=[])
     parser.add_argument("--reuse-output-run-id", action="append", dest="reuse_output_run_ids", default=[])
+    parser.add_argument("--wait-for-reuse-ready", action="store_true")
+    parser.add_argument("--reuse-ready-poll-seconds", type=int, default=30)
     parser.add_argument("--max-shard-attempts", type=int, default=3)
     parser.add_argument("--retry-backoff-seconds", type=int, default=20)
     parser.add_argument("--dry-run", action="store_true")
@@ -545,18 +597,19 @@ def main() -> int:
     run_root = RUNS_ROOT / str(args.run_id)
     run_root.mkdir(parents=True, exist_ok=True)
     reuse_output_run_ids = tuple(str(item) for item in args.reuse_output_run_ids)
+    if args.wait_for_reuse_ready and not reuse_output_run_ids:
+        raise SystemExit("--wait-for-reuse-ready requires at least one --reuse-output-run-id")
     completed_shard_keys = {
         plan.shard_key
         for plan in plans
         if (_shard_root_for_plan(plan) / "summary" / "aggregate.json").exists()
     }
     reuse_output_dirs = {
-        plan.shard_key: _completed_output_dir_from_same_run(plan=plan) or output_dir
+        plan.shard_key: _resolve_ready_reuse_output_dir(plan=plan, seed_run_ids=reuse_output_run_ids) or output_dir
         for plan in plans
         if plan.shard_key not in completed_shard_keys
         and (
-            (output_dir := _completed_output_dir_from_same_run(plan=plan)) is not None
-            or (output_dir := _completed_output_dir_from_seed_runs(plan=plan, seed_run_ids=reuse_output_run_ids)) is not None
+            (output_dir := _resolve_ready_reuse_output_dir(plan=plan, seed_run_ids=reuse_output_run_ids)) is not None
         )
     }
     launch_plans = [plan for plan in plans if plan.shard_key not in completed_shard_keys]
@@ -568,6 +621,8 @@ def main() -> int:
             "manifest_path": str(manifest_path),
             "target_ids": list(target_ids),
             "reuse_output_run_ids": list(reuse_output_run_ids),
+            "wait_for_reuse_ready": bool(args.wait_for_reuse_ready),
+            "reuse_ready_poll_seconds": int(args.reuse_ready_poll_seconds),
             "max_shard_attempts": int(args.max_shard_attempts),
             "retry_backoff_seconds": int(args.retry_backoff_seconds),
             "plans": [
@@ -612,26 +667,19 @@ def main() -> int:
         log(f"Skipping {len(completed_shard_keys)} shard(s) already completed in the current run.")
     if reuse_output_dirs:
         log(f"Reusing completed reading outputs for {len(reuse_output_dirs)} shard(s).")
-    processes = {
-        plan.shard_key: _launch_shard(
-            plan=plan,
-            manifest_path=manifest_path,
-            judge_mode=str(args.judge_mode),
-            run_root=run_root,
-            reuse_output_dir=reuse_output_dirs.get(plan.shard_key),
-        )
-        for plan in launch_plans
-    }
-    plan_by_key = {plan.shard_key: plan for plan in launch_plans}
     exit_codes = _wait_for_shards(
-        processes=processes,
-        plan_by_key=plan_by_key,
+        processes={},
+        plan_by_key={},
+        pending_plans={plan.shard_key: plan for plan in launch_plans},
         manifest_path=manifest_path,
         judge_mode=str(args.judge_mode),
         run_root=run_root,
         max_attempts=max(1, int(args.max_shard_attempts)),
         retry_backoff_seconds=max(0, int(args.retry_backoff_seconds)),
         reuse_output_dirs=reuse_output_dirs,
+        seed_run_ids=reuse_output_run_ids,
+        wait_for_reuse_ready=bool(args.wait_for_reuse_ready),
+        reuse_ready_poll_seconds=max(1, int(args.reuse_ready_poll_seconds)),
     )
     _json_dump(run_root / "meta" / "shard_exit_codes.json", exit_codes)
     failures = {shard_key: code for shard_key, code in exit_codes.items() if int(code) != 0}
@@ -646,12 +694,11 @@ def main() -> int:
         mechanism_keys=mechanism_keys,
         selection=selection,
     )
-    log(
-        "Completed accumulation v2 run "
-        f"{args.run_id}: cases={aggregate['case_count']}, "
-        f"attentional_v2_quality={aggregate['mechanisms']['attentional_v2']['average_quality_score']}, "
-        f"iterator_v1_quality={aggregate['mechanisms']['iterator_v1']['average_quality_score']}"
-    )
+    quality_parts = [
+        f"{mechanism_key}_quality={aggregate['mechanisms'][mechanism_key]['average_quality_score']}"
+        for mechanism_key in mechanism_keys
+    ]
+    log(f"Completed accumulation v2 run {args.run_id}: cases={aggregate['case_count']}, {', '.join(quality_parts)}")
     return 0
 
 

@@ -209,6 +209,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--accumulation-manifest-path", type=Path, default=ACCUMULATION_MANIFEST_PATH)
     parser.add_argument("--target-id", action="append", dest="target_ids", default=[])
     parser.add_argument("--poll-seconds", type=int, default=30)
+    parser.add_argument("--reuse-ready-poll-seconds", type=int, default=30)
     parser.add_argument("--max-shard-attempts", type=int, default=3)
     parser.add_argument("--retry-backoff-seconds", type=int, default=20)
     parser.add_argument("--dry-run", action="store_true")
@@ -253,6 +254,9 @@ def main() -> int:
         str(int(args.retry_backoff_seconds)),
         "--reuse-output-run-id",
         str(args.excerpt_run_id),
+        "--wait-for-reuse-ready",
+        "--reuse-ready-poll-seconds",
+        str(int(args.reuse_ready_poll_seconds)),
     ]
     for target_id in target_ids:
         accumulation_args.extend(["--target-id", target_id])
@@ -313,13 +317,6 @@ def main() -> int:
         expected_outputs=[excerpt_child["aggregate_path"], excerpt_child["report_path"]],
     )
     _wait_for_child_registration(excerpt_child["job_id"], label="excerpt", grace_seconds=15)
-    excerpt_record = _wait_for_child_job(
-        excerpt_child["job_id"],
-        label="excerpt",
-        poll_seconds=int(args.poll_seconds),
-        status_path=run_root / "meta" / "excerpt_status.json",
-    )
-    _json_dump(run_root / "meta" / "excerpt_completed_record.json", excerpt_record)
 
     _ensure_child_job_running(
         job_id=accumulation_child["job_id"],
@@ -330,6 +327,15 @@ def main() -> int:
         expected_outputs=[accumulation_child["aggregate_path"], accumulation_child["report_path"]],
     )
     _wait_for_child_registration(accumulation_child["job_id"], label="accumulation", grace_seconds=15)
+
+    excerpt_record = _wait_for_child_job(
+        excerpt_child["job_id"],
+        label="excerpt",
+        poll_seconds=int(args.poll_seconds),
+        status_path=run_root / "meta" / "excerpt_status.json",
+    )
+    _json_dump(run_root / "meta" / "excerpt_completed_record.json", excerpt_record)
+
     accumulation_record = _wait_for_child_job(
         accumulation_child["job_id"],
         label="accumulation",

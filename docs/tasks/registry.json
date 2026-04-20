@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-20T20:40:00+08:00",
+  "updated_at": "2026-04-20T21:20:00+08:00",
   "tasks": [
     {
       "id": "TASK-ACTIVE-BENCHMARK-FORMAL-RERUN",
@@ -23,10 +23,11 @@
         "bgjob_active_benchmark_rerun_20260419",
         "bgjob_user_level_selective_v1_active_formal_20260419",
         "bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420",
-        "bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420"
+        "bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420",
+        "bgjob_accumulation_benchmark_v2_active_formal_20260419"
       ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Execute the April 19 requested formal rerun under the current active benchmark stack. The shared parent job bgjob_active_benchmark_rerun_20260419 is running attentional_v2_active_benchmark_rerun_20260419. It runs user-level selective v1 first on the repaired active 203-case package under bgjob_user_level_selective_v1_active_formal_20260419 / attentional_v2_user_level_selective_v1_active_rerun_20260419, then launches the accumulation v2 child and reuses overlapping excerpt reading outputs for the three shared long-span windows. On April 20 we found that the excerpt child could remain registry-running while one shard kept reading and other shards had already exhausted local retries, so the watchdog had nothing terminal to relaunch yet. The excerpt and accumulation shard orchestrators now fail fast on terminal shard exhaustion, and the active same-run recovery jobs bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420 plus bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420 are reactivating the cold excerpt shards. The shared watchdog bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419 remains on a 5-minute interval with unlimited relaunch budget.",
+      "next_action": "Execute the April 19 requested formal rerun under the current active benchmark stack. The shared parent job bgjob_active_benchmark_rerun_20260419 is running attentional_v2_active_benchmark_rerun_20260419. The excerpt child bgjob_user_level_selective_v1_active_formal_20260419 / attentional_v2_user_level_selective_v1_active_rerun_20260419 continues on the repaired active 203-case package. On April 20 we found that the excerpt child could remain registry-running while one shard kept reading and other shards had already exhausted local retries, so the watchdog had nothing terminal to relaunch yet. The excerpt and accumulation shard orchestrators now fail fast on terminal shard exhaustion. We also removed the whole-excerpt barrier for long-span: the formal accumulation child bgjob_accumulation_benchmark_v2_active_formal_20260419 is now running attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419 with wait-for-reuse-ready semantics, which means completed overlap windows can start long-span work immediately while unready windows wait for reusable excerpt outputs instead of forcing serialization behind unrelated books. The shared watchdog bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419 remains on a 5-minute interval with unlimited relaunch budget.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -39,7 +40,7 @@
         "reading-companion-backend/scripts/orchestrate_accumulation_v2_eval.py",
         "reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py"
       ],
-      "last_updated": "2026-04-20T12:40:00Z",
+      "last_updated": "2026-04-20T13:20:00Z",
       "last_updated_by": "codex"
     },
     {
@@ -61,10 +62,11 @@
       ],
       "job_refs": [
         "bgjob_active_benchmark_rerun_20260419",
-        "bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419"
+        "bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419",
+        "bgjob_accumulation_benchmark_v2_active_formal_20260419"
       ],
       "acceptance_ref": "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
-      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The user explicitly requested the first full formal comparison on April 19, so the shared parent job bgjob_active_benchmark_rerun_20260419 is now running. The accumulation child will launch after the excerpt child completes and will reuse overlapping excerpt reading outputs from huochu_shengming_de_yiyi_private_zh__segment_1, mangge_zhi_dao_private_zh__segment_1, and xidaduo_private_zh__segment_1 instead of rereading those shared windows. The repaired active user-level 203-case package is now the substrate root.",
+      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology. The user explicitly requested the first full formal comparison on April 19, so the shared parent job bgjob_active_benchmark_rerun_20260419 is now running. The formal accumulation child bgjob_accumulation_benchmark_v2_active_formal_20260419 is now active on the same run id and no longer waits for whole-excerpt completion. It reuses overlapping excerpt reading outputs from huochu_shengming_de_yiyi_private_zh__segment_1, mangge_zhi_dao_private_zh__segment_1, and xidaduo_private_zh__segment_1, starts ready windows immediately, and keeps only the not-yet-reusable windows pending instead of rereading them. Completed huochu shard summaries are already present in-run while mangge and xidaduo remain gated on excerpt readiness. The repaired active user-level 203-case package remains the substrate root.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -86,7 +88,7 @@
         "reading-companion-backend/scripts/orchestrate_accumulation_v2_eval.py",
         "reading-companion-backend/scripts/orchestrate_active_benchmark_eval.py"
       ],
-      "last_updated": "2026-04-20T01:09:28Z",
+      "last_updated": "2026-04-20T13:20:00Z",
       "last_updated_by": "codex"
     },
     {

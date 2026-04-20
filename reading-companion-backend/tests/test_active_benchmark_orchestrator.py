@@ -91,3 +91,54 @@ def test_wait_for_child_registration_tolerates_launcher_race(monkeypatch) -> Non
 
     assert record == {"status": "running"}
     assert sleeps == [1, 1]
+
+
+def test_main_launches_accumulation_before_excerpt_completion(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(orchestrator, "RUNS_ROOT", tmp_path / "runs")
+    monkeypatch.setattr(orchestrator, "_render_report", lambda **kwargs: "# demo\n")
+    call_order: list[str] = []
+
+    def _fake_ensure_child_job_running(*, job_id, **kwargs):
+        call_order.append(f"ensure:{job_id}")
+        return {"status": "launched", "job_id": job_id}
+
+    def _fake_wait_for_child_registration(job_id: str, *, label: str, grace_seconds: int):
+        call_order.append(f"register:{job_id}")
+        return {"status": "running"}
+
+    def _fake_wait_for_child_job(job_id: str, *, label: str, poll_seconds: int, status_path: Path):
+        call_order.append(f"wait:{job_id}")
+        status_path.parent.mkdir(parents=True, exist_ok=True)
+        status_path.write_text("{}\n", encoding="utf-8")
+        return {"status": "completed", "job_id": job_id}
+
+    monkeypatch.setattr(orchestrator, "_ensure_child_job_running", _fake_ensure_child_job_running)
+    monkeypatch.setattr(orchestrator, "_wait_for_child_registration", _fake_wait_for_child_registration)
+    monkeypatch.setattr(orchestrator, "_wait_for_child_job", _fake_wait_for_child_job)
+
+    argv = [
+        "orchestrate_active_benchmark_eval.py",
+        "--run-id",
+        "parent_run",
+        "--excerpt-run-id",
+        "excerpt_run",
+        "--accumulation-run-id",
+        "accumulation_run",
+        "--excerpt-job-id",
+        "excerpt_job",
+        "--accumulation-job-id",
+        "accumulation_job",
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+
+    assert orchestrator.main() == 0
+    assert call_order[:4] == [
+        "ensure:excerpt_job",
+        "register:excerpt_job",
+        "ensure:accumulation_job",
+        "register:accumulation_job",
+    ]
+    assert call_order[4:] == [
+        "wait:excerpt_job",
+        "wait:accumulation_job",
+    ]

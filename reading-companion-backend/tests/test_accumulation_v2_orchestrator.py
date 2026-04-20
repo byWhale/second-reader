@@ -232,6 +232,7 @@ def test_wait_for_shards_fails_fast_and_stops_remaining_processes(monkeypatch, t
             failed_plan.shard_key: failed_plan,
             running_plan.shard_key: running_plan,
         },
+        pending_plans=None,
         manifest_path=tmp_path / "manifest.json",
         judge_mode="llm",
         run_root=run_root,
@@ -242,3 +243,57 @@ def test_wait_for_shards_fails_fast_and_stops_remaining_processes(monkeypatch, t
 
     assert exit_codes == {failed_plan.shard_key: 1}
     assert running_process.terminated is True
+
+
+def test_wait_for_shards_waits_for_reuse_ready_before_launch(monkeypatch, tmp_path: Path) -> None:
+    pending_plan = orchestrator.ShardPlan(
+        segment_id="segment_pending",
+        source_id="source_pending",
+        book_title="Book Pending",
+        case_count=2,
+        mechanism_key="attentional_v2",
+        target_id="target_a",
+        shard_run_id="run/shards/source_pending__attentional_v2",
+    )
+    reuse_dir = tmp_path / "seed" / "outputs"
+    calls = {"count": 0}
+    launched: list[tuple[str, Path | None]] = []
+    sleeps: list[int] = []
+
+    def _fake_resolve_ready_reuse_output_dir(*, plan, seed_run_ids):
+        assert plan == pending_plan
+        assert seed_run_ids == ("seed_run",)
+        calls["count"] += 1
+        if calls["count"] < 2:
+            return None
+        return reuse_dir
+
+    monkeypatch.setattr(orchestrator, "_resolve_ready_reuse_output_dir", _fake_resolve_ready_reuse_output_dir)
+    monkeypatch.setattr(orchestrator.time, "sleep", lambda seconds: sleeps.append(int(seconds)))
+    monkeypatch.setattr(
+        orchestrator,
+        "_launch_shard",
+        lambda *, plan, manifest_path, judge_mode, run_root, reuse_output_dir=None: launched.append(
+            (plan.shard_key, reuse_output_dir)
+        )
+        or _FakeProcess(0),
+    )
+
+    exit_codes = orchestrator._wait_for_shards(
+        processes={},
+        plan_by_key={},
+        pending_plans={pending_plan.shard_key: pending_plan},
+        manifest_path=tmp_path / "manifest.json",
+        judge_mode="llm",
+        run_root=tmp_path / "run",
+        max_attempts=1,
+        retry_backoff_seconds=0,
+        reuse_output_dirs={},
+        seed_run_ids=("seed_run",),
+        wait_for_reuse_ready=True,
+        reuse_ready_poll_seconds=7,
+    )
+
+    assert exit_codes == {pending_plan.shard_key: 0}
+    assert launched == [(pending_plan.shard_key, reuse_dir)]
+    assert sleeps == [7]
