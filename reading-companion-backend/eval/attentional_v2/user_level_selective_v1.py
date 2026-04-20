@@ -25,7 +25,7 @@ from src.reading_runtime.provisioning import ensure_canonical_parse
 
 MANIFEST_ID = "attentional_v2_user_level_selective_v1_draft"
 MANIFEST_PATH = ROOT / "eval" / "manifests" / "splits" / f"{MANIFEST_ID}.json"
-DATASET_ID = "attentional_v2_user_level_selective_v1"
+DATASET_ID = "attentional_v2_user_level_selective_v1_repaired_20260416"
 DATASET_DIR = ROOT / "state" / "eval_local_datasets" / "user_level_benchmarks" / DATASET_ID
 SEGMENTS_FILE = "segments.jsonl"
 NOTE_CASES_FILE = "note_cases.jsonl"

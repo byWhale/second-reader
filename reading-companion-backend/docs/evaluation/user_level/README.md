@@ -7,9 +7,9 @@ The current active benchmark is `user-level selective v1`:
 - active split manifest:
   - [attentional_v2_user_level_selective_v1_draft.json](../../../eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json)
 - active dataset package:
-  - [manifest.json](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/manifest.json)
-  - [segments.jsonl](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/segments.jsonl)
-  - [note_cases.jsonl](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/note_cases.jsonl)
+  - [manifest.json](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
+  - [segments.jsonl](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/segments.jsonl)
+  - [note_cases.jsonl](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/note_cases.jsonl)
 - active comparison runner:
   - [run_user_level_selective_comparison.py](../../../eval/attentional_v2/run_user_level_selective_comparison.py)
 
@@ -17,7 +17,7 @@ Current formal evidence bundle:
 
 - run id:
   - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
-- repaired sibling dataset root used by that run:
+- active dataset root used by that run:
   - [manifest.json](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
 - checked-in interpretation:
   - [attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md](./attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md)
@@ -45,12 +45,12 @@ Current formal evidence bundle:
   - `nawaer_baodian_private_zh` remains included after repairing the library-notes alignment fallback and then rebuilding the active package with a stricter body-start rule
   - current package size:
     - `5` reading segments
-    - `202` note cases
-  - current formal evidence bundle size:
-    - `5` reading segments
     - `203` note cases
-    - this count belongs to the repaired sibling package used by `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
-    - it does not silently replace the active `202`-case dataset pointer
+  - superseded historical predecessor:
+    - [manifest.json](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/manifest.json)
+    - `5` reading segments
+    - `202` note cases
+    - status: `superseded`
   - every note case includes `source_span_slices` in the rendered segment coordinate system used by the reader runtime
 
 ## Body-Start Rule
@@ -85,7 +85,7 @@ For human auditing, a local-only Markdown export is now available:
 - default command:
   - `cd reading-companion-backend && .venv/bin/python eval/attentional_v2/render_user_level_selective_audit.py`
 - default output directory:
-  - `state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1/audit_human_readable/`
+  - `state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/audit_human_readable/`
 - output shape:
   - `index.md`
   - `windows/<segment_id>.md`
@@ -108,11 +108,11 @@ If a note's `note_text` is clearly longer than its `source_span_text`, the first
 - render human-readable audit docs for that repaired package:
   - `cd reading-companion-backend && .venv/bin/python eval/attentional_v2/render_user_level_selective_audit.py --dataset-dir state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_YYYYMMDD`
 
-This repair path is intentionally split in two:
+This repair path remains useful for future alignment fixes:
 
 - managed `library_notes` entries are the durable alignment truth
 - benchmark packages should be rebuilt from that truth
-- if a judged run is currently using the active dataset package, prefer rebuilding into a versioned sibling path first instead of rewriting the active package in place
+- if a judged run is currently using the active dataset package, prefer rebuilding into a new versioned sibling path first instead of rewriting the active package in place
 
 ## Chapter Identity In This Benchmark
 
@@ -146,6 +146,16 @@ Current formal evidence bundle:
     - `iterator_v1` note recall: `0.2118`
   - interpretation:
     - [attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md](./attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md)
+
+Current active rerun posture:
+
+- the repaired `203`-case package is now both:
+  - the active benchmark pointer
+  - the shared reading substrate for `target-centered accumulation v2`
+- the next formal active comparison rerun should:
+  - rerun `user-level selective v1` first
+  - reuse overlapping completed reading outputs for `target-centered accumulation v2`
+  - register all parent/child jobs in the background-job registry with `5`-minute auto-recovery
 
 Historical execution and recovery chain:
 

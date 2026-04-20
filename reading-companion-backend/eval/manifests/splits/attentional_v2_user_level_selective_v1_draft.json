@@ -14,7 +14,7 @@
     "reading_segments": 5,
     "target_note_count": 20,
     "hard_sentence_cap": 350,
-    "note_case_count": 202
+    "note_case_count": 203
   },
   "source_refs": {
     "source_manifests": [
@@ -22,7 +22,7 @@
     ],
     "notes_catalog": "state/dataset_build/library_notes_catalog.json",
     "user_level_dataset_roots": [
-      "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1"
+      "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416"
     ]
   },
   "selected_segments": [
@@ -47,7 +47,7 @@
       "source_id": "nawaer_baodian_private_zh",
       "book_title": "纳瓦尔宝典（硅谷投资人纳瓦尔十年人生智慧，教你如何获得财富与幸福。新时代创业者的《穷查理宝典》）",
       "language_track": "zh",
-      "covered_note_count": 23,
+      "covered_note_count": 24,
       "termination_reason": "chapter_end_after_target_notes"
     },
     {
@@ -75,7 +75,7 @@
       "skipped": 0
     },
     "note_cases": {
-      "ready_now": 202
+      "ready_now": 203
     }
   },
   "splits": {

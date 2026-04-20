@@ -13,6 +13,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 from typing import Any
 
+from eval.attentional_v2.user_level_selective_v1 import DATASET_ID as ACTIVE_USER_LEVEL_DATASET_ID
 from src.reading_runtime.provisioning import ensure_canonical_parse
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -1174,7 +1175,7 @@ def refresh_registered_notes_asset(
         / "state"
         / "eval_local_datasets"
         / "user_level_benchmarks"
-        / "attentional_v2_user_level_selective_v1"
+        / ACTIVE_USER_LEVEL_DATASET_ID
         / "note_cases.jsonl"
     )
     active_user_level_note_case_index: dict[str, dict[str, Any]] = {}

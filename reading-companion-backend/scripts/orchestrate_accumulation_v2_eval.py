@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the active user-level selective benchmark in parallel and merge shard results."""
+"""Run the frozen accumulation v2 benchmark in parallel and merge shard results."""
 
 from __future__ import annotations
 
@@ -20,20 +20,24 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
+from eval.attentional_v2.accumulation_benchmark_v2 import ACTIVE_QUESTION_FAMILY  # noqa: E402
 from eval.attentional_v2.llm_usage_summary import write_llm_usage_summary  # noqa: E402
-from eval.attentional_v2.run_user_level_selective_comparison import (  # noqa: E402
-    MANIFEST_PATH,
+from eval.attentional_v2.run_accumulation_evaluation_v2 import (  # noqa: E402
     _aggregate_results,
     _json_dump,
     _jsonl_load,
     _mechanism_keys_for_filter,
+    _prepare_selection,
     _render_report,
 )
 
 
 PYTHON = BACKEND_ROOT / ".venv" / "bin" / "python"
-RUNNER = BACKEND_ROOT / "eval" / "attentional_v2" / "run_user_level_selective_comparison.py"
+RUNNER = BACKEND_ROOT / "eval" / "attentional_v2" / "run_accumulation_evaluation_v2.py"
 RUNS_ROOT = BACKEND_ROOT / "eval" / "runs" / "attentional_v2"
+FROZEN_MANIFEST_PATH = (
+    BACKEND_ROOT / "eval" / "manifests" / "splits" / "attentional_v2_accumulation_benchmark_v2_frozen.json"
+)
 DEFAULT_TARGET_IDS = ("MiniMax-M2.7-personal", "MiniMax-M2.7-personal-2")
 RETRYABLE_ERROR_MARKERS = (
     "ReaderLLMError",
@@ -51,7 +55,7 @@ class ShardPlan:
     segment_id: str
     source_id: str
     book_title: str
-    covered_note_count: int
+    case_count: int
     mechanism_key: str
     target_id: str
     shard_run_id: str
@@ -67,20 +71,6 @@ def utc_now() -> str:
 
 def log(message: str) -> None:
     print(f"[{utc_now()}] {message}", flush=True)
-
-
-def _load_manifest(manifest_path: Path) -> dict[str, Any]:
-    return json.loads(manifest_path.read_text(encoding="utf-8"))
-
-
-def _load_segment_note_ids(dataset_dir: Path) -> dict[str, list[str]]:
-    manifest = json.loads((dataset_dir / "manifest.json").read_text(encoding="utf-8"))
-    note_cases = _jsonl_load(dataset_dir / str(manifest["note_cases_file"]))
-    by_segment: dict[str, list[str]] = {}
-    for row in note_cases:
-        segment_id = str(row["segment_id"])
-        by_segment.setdefault(segment_id, []).append(str(row["note_case_id"]))
-    return by_segment
 
 
 def _assign_targets(
@@ -103,7 +93,7 @@ def _assign_targets(
     ordered = sorted(
         shard_rows,
         key=lambda item: (
-            -int(item.get("covered_note_count", 0) or 0),
+            -int(item.get("case_count", 0) or 0),
             str(item.get("mechanism_key") or ""),
             str(item.get("segment_id")),
         ),
@@ -117,8 +107,8 @@ def _assign_targets(
             target_id for target_id in target_ids if target_counts[target_id] < max_jobs_per_target
         ] or list(target_ids)
         target_id = min(available_targets, key=lambda item: (target_loads[item], target_counts[item], item))
-        note_weight = int(row.get("covered_note_count", 0) or 0)
-        target_loads[target_id] += note_weight
+        case_weight = int(row.get("case_count", 0) or 0)
+        target_loads[target_id] += case_weight
         target_counts[target_id] += 1
         source_id = str(row["source_id"])
         segment_id = str(row["segment_id"])
@@ -128,7 +118,7 @@ def _assign_targets(
                 segment_id=segment_id,
                 source_id=source_id,
                 book_title=str(row["book_title"]),
-                covered_note_count=note_weight,
+                case_count=case_weight,
                 mechanism_key=mechanism_key,
                 target_id=target_id,
                 shard_run_id=f"{run_id}/shards/{source_id}__{mechanism_key}",
@@ -223,8 +213,7 @@ def _completed_output_dir_from_same_run(*, plan: ShardPlan) -> Path | None:
 
 def _completed_output_dir_from_seed_runs(*, plan: ShardPlan, seed_run_ids: tuple[str, ...]) -> Path | None:
     for seed_run_id in seed_run_ids:
-        output_dir = _source_output_dir(seed_run_id=seed_run_id, plan=plan)
-        completed_output_dir = _completed_output_dir(output_dir)
+        completed_output_dir = _completed_output_dir(_source_output_dir(seed_run_id=seed_run_id, plan=plan))
         if completed_output_dir is not None:
             return completed_output_dir
     return None
@@ -277,7 +266,7 @@ def _wait_for_shards(
     attempts = {key: 1 for key in processes}
     while processes:
         completed: list[str] = []
-        for shard_key, process in processes.items():
+        for shard_key, process in list(processes.items()):
             exit_code = process.poll()
             if exit_code is None:
                 continue
@@ -292,11 +281,7 @@ def _wait_for_shards(
             plan = plan_by_key[shard_key]
             log_path = _log_path_for_plan(run_root=run_root, plan=plan)
             attempt = attempts[shard_key]
-            if (
-                int(exit_code) != 0
-                and attempt < max_attempts
-                and _is_retryable_failure(log_path=log_path)
-            ):
+            if int(exit_code) != 0 and attempt < max_attempts and _is_retryable_failure(log_path=log_path):
                 with log_path.open("ab") as handle:
                     handle.write(
                         (
@@ -326,41 +311,33 @@ def _wait_for_shards(
     return exit_codes
 
 
+def _load_case_ids_by_segment(manifest_path: Path) -> tuple[dict[str, list[str]], Any]:
+    selection = _prepare_selection(formal_manifest_path=manifest_path)
+    case_ids_by_segment = {
+        segment_id: [case.case_id for case in cases]
+        for segment_id, cases in selection.cases_by_window.items()
+    }
+    return case_ids_by_segment, selection
+
+
 def _merge_shards(
     *,
     run_id: str,
     manifest_path: Path,
     plans: list[ShardPlan],
     mechanism_keys: tuple[str, ...],
-    seed_run_ids: tuple[str, ...] = (),
+    selection: Any,
 ) -> dict[str, Any]:
     run_root = RUNS_ROOT / run_id
-    manifest = _load_manifest(manifest_path)
-    dataset_roots = [Path(item) for item in (manifest.get("source_refs") or {}).get("user_level_dataset_roots") or []]
-    dataset_dir = (BACKEND_ROOT / dataset_roots[0]).resolve() if dataset_roots else (BACKEND_ROOT / "state").resolve()
-    note_case_ids_by_segment = _load_segment_note_ids(dataset_dir)
+    case_ids_by_segment, _ = _load_case_ids_by_segment(manifest_path)
 
-    merged_note_cases_by_id: dict[str, dict[str, Any]] = {}
+    merged_cases_by_id: dict[str, dict[str, Any]] = {}
     shard_summaries: list[dict[str, Any]] = []
-    def _candidate_roots(plan: ShardPlan) -> list[Path]:
-        roots = [_shard_root_for_plan(plan)]
-        shard_dir_name = Path(plan.shard_run_id).name
-        roots.extend(RUNS_ROOT / seed_run_id / "shards" / shard_dir_name for seed_run_id in seed_run_ids)
-        return roots
-
     for plan in plans:
-        shard_root = next(
-            (
-                candidate
-                for candidate in _candidate_roots(plan)
-                if (candidate / "summary" / "aggregate.json").exists()
-            ),
-            None,
-        )
-        if shard_root is None:
-            expected = [_shard_root_for_plan(plan), *(RUNS_ROOT / seed_run_id / "shards" / Path(plan.shard_run_id).name for seed_run_id in seed_run_ids)]
-            raise FileNotFoundError(f"missing shard summary for {plan.shard_key}: {expected}")
+        shard_root = _shard_root_for_plan(plan)
         shard_summary_path = shard_root / "summary" / "aggregate.json"
+        if not shard_summary_path.exists():
+            raise FileNotFoundError(f"missing shard summary for {plan.shard_key}: {shard_summary_path}")
         shard_summary = json.loads(shard_summary_path.read_text(encoding="utf-8"))
         shard_summaries.append(
             {
@@ -369,40 +346,57 @@ def _merge_shards(
                 "mechanism_key": plan.mechanism_key,
                 "target_id": plan.target_id,
                 "shard_run_id": plan.shard_run_id,
-                "note_case_count": shard_summary.get("note_case_count"),
+                "case_count": shard_summary.get("case_count"),
             }
         )
-        for note_case_id in note_case_ids_by_segment.get(plan.segment_id, []):
-            note_case_path = shard_root / "note_cases" / f"{note_case_id}.json"
-            if not note_case_path.exists():
-                raise FileNotFoundError(f"missing note-case payload: {note_case_path}")
-            payload = json.loads(note_case_path.read_text(encoding="utf-8"))
-            existing = merged_note_cases_by_id.get(note_case_id)
+        for case_id in case_ids_by_segment.get(plan.segment_id, []):
+            case_path = shard_root / "cases" / f"{case_id}.json"
+            if not case_path.exists():
+                raise FileNotFoundError(f"missing case payload: {case_path}")
+            payload = json.loads(case_path.read_text(encoding="utf-8"))
+            existing = merged_cases_by_id.get(case_id)
             if existing is None:
-                merged_note_cases_by_id[note_case_id] = payload
+                merged_cases_by_id[case_id] = payload
                 continue
             existing_mechanisms = dict(existing.get("mechanism_results") or {})
             existing_mechanisms.update(dict(payload.get("mechanism_results") or {}))
             existing["mechanism_results"] = existing_mechanisms
 
-    merged_note_cases = list(merged_note_cases_by_id.values())
-
-    aggregate = _aggregate_results(note_case_payloads=merged_note_cases, mechanism_keys=mechanism_keys)
+    merged_case_payloads = list(merged_cases_by_id.values())
+    aggregate = _aggregate_results(case_payloads=merged_case_payloads, mechanism_keys=mechanism_keys)
     aggregate.update(
         {
             "run_id": run_id,
             "generated_at": utc_now(),
             "manifest_path": str(manifest_path),
-            "dataset_dir": str(dataset_dir),
-            "segment_count": len(plans),
-            "note_case_count": len(merged_note_cases),
+            "dataset_dir": str(selection.dataset_dir),
+            "segment_count": len(selection.segments),
+            "case_count": len(merged_case_payloads),
+            "question_family": ACTIVE_QUESTION_FAMILY,
             "shards": shard_summaries,
         }
     )
     _json_dump(run_root / "summary" / "aggregate.json", aggregate)
+    _json_dump(
+        run_root / "summary" / "selection.json",
+        {
+            "generated_at": utc_now(),
+            "segment_ids": [segment.segment_id for segment in selection.segments],
+            "case_ids": [case.case_id for case in selection.cases],
+        },
+    )
     (run_root / "summary").mkdir(parents=True, exist_ok=True)
+    (run_root / "summary" / "case_results.jsonl").write_text(
+        "".join(json.dumps(payload, ensure_ascii=False) + "\n" for payload in merged_case_payloads),
+        encoding="utf-8",
+    )
     (run_root / "summary" / "report.md").write_text(
-        _render_report(aggregate=aggregate, run_id=run_id),
+        _render_report(
+            run_id=run_id,
+            selection=selection,
+            aggregate=aggregate,
+            mechanism_keys=mechanism_keys,
+        ),
         encoding="utf-8",
     )
     write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
@@ -413,15 +407,14 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--run-id",
-        default=f"attentional_v2_user_level_selective_v1_judged_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
+        default=f"attentional_v2_accumulation_benchmark_v2_frozen_judged_{datetime.now(timezone.utc).strftime('%Y%m%d')}",
     )
-    parser.add_argument("--manifest-path", type=Path, default=MANIFEST_PATH)
+    parser.add_argument("--manifest-path", type=Path, default=FROZEN_MANIFEST_PATH)
     parser.add_argument("--mechanism-filter", choices=("both", "attentional_v2", "iterator_v1"), default="both")
     parser.add_argument("--judge-mode", choices=("llm",), default="llm")
     parser.add_argument("--target-id", action="append", dest="target_ids", default=[])
     parser.add_argument("--segment-id", action="append", dest="segment_ids", default=[])
     parser.add_argument("--shard-key", action="append", dest="shard_keys", default=[])
-    parser.add_argument("--seed-run-id", action="append", dest="seed_run_ids", default=[])
     parser.add_argument("--reuse-output-run-id", action="append", dest="reuse_output_run_ids", default=[])
     parser.add_argument("--max-shard-attempts", type=int, default=3)
     parser.add_argument("--retry-backoff-seconds", type=int, default=20)
@@ -432,18 +425,43 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     manifest_path = Path(args.manifest_path).resolve()
-    manifest = _load_manifest(manifest_path)
-    selected_segments = list(manifest.get("selected_segments") or [])
+    selection = _prepare_selection(formal_manifest_path=manifest_path)
     if args.segment_ids:
         wanted = set(str(item) for item in args.segment_ids)
-        selected_segments = [row for row in selected_segments if str(row.get("segment_id")) in wanted]
+        selected_segments = [segment for segment in selection.segments if segment.segment_id in wanted]
+        selected_cases = [case for case in selection.cases if case.window_id in wanted]
+        selection = type(selection)(
+            dataset_dir=selection.dataset_dir,
+            dataset_manifest=selection.dataset_manifest,
+            case_dataset_manifests=selection.case_dataset_manifests,
+            segments=selected_segments,
+            cases=selected_cases,
+            selected_case_ids=[case.case_id for case in selected_cases],
+            cases_by_window={
+                window_id: cases for window_id, cases in selection.cases_by_window.items() if window_id in wanted
+            },
+            formal_manifest_path=selection.formal_manifest_path,
+        )
+    else:
+        selected_segments = list(selection.segments)
     if not selected_segments:
         raise SystemExit("no selected segments available")
+
+    case_counts = {segment_id: len(cases) for segment_id, cases in selection.cases_by_window.items()}
+    segment_rows = [
+        {
+            "segment_id": segment.segment_id,
+            "source_id": segment.source_id,
+            "book_title": segment.book_title,
+            "case_count": case_counts.get(segment.segment_id, 0),
+        }
+        for segment in selected_segments
+    ]
 
     target_ids = tuple(str(item) for item in (args.target_ids or list(DEFAULT_TARGET_IDS)))
     mechanism_keys = _mechanism_keys_for_filter(str(args.mechanism_filter))
     plans = _assign_targets(
-        selected_segments=selected_segments,
+        selected_segments=segment_rows,
         mechanism_keys=mechanism_keys,
         target_ids=target_ids,
         run_id=str(args.run_id),
@@ -451,6 +469,7 @@ def main() -> int:
     plans = _filter_plans_by_shard_keys(plans, {str(item) for item in args.shard_keys})
     if not plans:
         raise SystemExit("no shard plans selected")
+
     run_root = RUNS_ROOT / str(args.run_id)
     run_root.mkdir(parents=True, exist_ok=True)
     reuse_output_run_ids = tuple(str(item) for item in args.reuse_output_run_ids)
@@ -464,8 +483,7 @@ def main() -> int:
         for plan in plans
         if plan.shard_key not in completed_shard_keys
         and (
-            (output_dir := _completed_output_dir_from_same_run(plan=plan))
-            is not None
+            (output_dir := _completed_output_dir_from_same_run(plan=plan)) is not None
             or (output_dir := _completed_output_dir_from_seed_runs(plan=plan, seed_run_ids=reuse_output_run_ids)) is not None
         )
     }
@@ -477,7 +495,6 @@ def main() -> int:
             "run_id": str(args.run_id),
             "manifest_path": str(manifest_path),
             "target_ids": list(target_ids),
-            "seed_run_ids": [str(item) for item in args.seed_run_ids],
             "reuse_output_run_ids": list(reuse_output_run_ids),
             "max_shard_attempts": int(args.max_shard_attempts),
             "retry_backoff_seconds": int(args.retry_backoff_seconds),
@@ -486,7 +503,7 @@ def main() -> int:
                     "segment_id": plan.segment_id,
                     "source_id": plan.source_id,
                     "book_title": plan.book_title,
-                    "covered_note_count": plan.covered_note_count,
+                    "case_count": plan.case_count,
                     "mechanism_key": plan.mechanism_key,
                     "target_id": plan.target_id,
                     "shard_run_id": plan.shard_run_id,
@@ -504,7 +521,11 @@ def main() -> int:
                 {
                     "run_id": args.run_id,
                     "plans": [
-                        {**plan.__dict__, "reuse_output_dir": str(reuse_output_dirs.get(plan.shard_key, ""))}
+                        {
+                            **plan.__dict__,
+                            "already_completed_in_run": plan.shard_key in completed_shard_keys,
+                            "reuse_output_dir": str(reuse_output_dirs.get(plan.shard_key, "")),
+                        }
                         for plan in plans
                     ],
                 },
@@ -514,11 +535,11 @@ def main() -> int:
         )
         return 0
 
-    log(f"Launching {len(launch_plans)} user-level selective shard(s) under run {args.run_id}")
+    log(f"Launching {len(launch_plans)} accumulation v2 shard(s) under run {args.run_id}")
     if completed_shard_keys:
         log(f"Skipping {len(completed_shard_keys)} shard(s) already completed in the current run.")
     if reuse_output_dirs:
-        log(f"Rejudging {len(reuse_output_dirs)} shard(s) from existing completed reading outputs.")
+        log(f"Reusing completed reading outputs for {len(reuse_output_dirs)} shard(s).")
     processes = {
         plan.shard_key: _launch_shard(
             plan=plan,
@@ -541,7 +562,7 @@ def main() -> int:
         reuse_output_dirs=reuse_output_dirs,
     )
     _json_dump(run_root / "meta" / "shard_exit_codes.json", exit_codes)
-    failures = {source_id: code for source_id, code in exit_codes.items() if int(code) != 0}
+    failures = {shard_key: code for shard_key, code in exit_codes.items() if int(code) != 0}
     if failures:
         write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
         raise SystemExit(f"one or more shards failed: {failures}")
@@ -551,13 +572,13 @@ def main() -> int:
         manifest_path=manifest_path,
         plans=plans,
         mechanism_keys=mechanism_keys,
-        seed_run_ids=tuple(str(item) for item in args.seed_run_ids),
+        selection=selection,
     )
     log(
-        "Completed user-level selective run "
-        f"{args.run_id}: note_cases={aggregate['note_case_count']}, "
-        f"attentional_v2_recall={aggregate['mechanisms']['attentional_v2']['note_recall']}, "
-        f"iterator_v1_recall={aggregate['mechanisms']['iterator_v1']['note_recall']}"
+        "Completed accumulation v2 run "
+        f"{args.run_id}: cases={aggregate['case_count']}, "
+        f"attentional_v2_quality={aggregate['mechanisms']['attentional_v2']['average_quality_score']}, "
+        f"iterator_v1_quality={aggregate['mechanisms']['iterator_v1']['average_quality_score']}"
     )
     return 0
 

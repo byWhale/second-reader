@@ -19,15 +19,15 @@ from pathlib import Path
 import tempfile
 from typing import Any
 
+from eval.attentional_v2.user_level_selective_v1 import DATASET_DIR as WINDOW_DATASET_DIR
+from eval.attentional_v2.user_level_selective_v1 import DATASET_ID as WINDOW_DATASET_ID
+
 
 ROOT = Path(__file__).resolve().parents[2]
-
-WINDOW_DATASET_ID = "attentional_v2_user_level_selective_v1"
 TARGET_CASES_FAMILY = "accumulation_target_cases"
 TARGET_CASE_DRAFT_DATASET_ID = "attentional_v2_accumulation_benchmark_v2_cases_draft"
 TARGET_CASE_FROZEN_DATASET_ID = "attentional_v2_accumulation_benchmark_v2_cases_frozen"
 
-WINDOW_DATASET_DIR = ROOT / "state" / "eval_local_datasets" / "user_level_benchmarks" / WINDOW_DATASET_ID
 TARGET_CASE_DRAFT_DATASET_DIR = (
     ROOT / "state" / "eval_local_datasets" / TARGET_CASES_FAMILY / TARGET_CASE_DRAFT_DATASET_ID
 )

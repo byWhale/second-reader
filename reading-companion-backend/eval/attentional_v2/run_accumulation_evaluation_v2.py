@@ -26,6 +26,7 @@ from eval.attentional_v2.accumulation_benchmark_v2 import (
     WINDOW_DATASET_DIR,
     target_case_from_row,
 )
+from eval.attentional_v2.completed_output_reuse import rebuild_normalized_bundle_from_completed_output
 from eval.attentional_v2.llm_usage_summary import write_llm_usage_summary
 from src.iterator_reader.llm_utils import ReaderLLMError, invoke_json, llm_invocation_scope
 from src.reading_core.runtime_contracts import ReadRequest
@@ -337,6 +338,35 @@ def _run_mechanism_for_segment(
         "mechanism_key": mechanism_key,
         "mechanism_label": result.mechanism.label,
         "output_dir": str(result.output_dir),
+        "normalized_eval_bundle": bundle,
+        "bundle_summary": _bundle_summary(bundle),
+        "error": "",
+    }
+
+
+def _rebuild_mechanism_payload_from_output(
+    *,
+    segment: ReadingSegment,
+    mechanism_key: str,
+    source_output_dir: Path,
+    run_root: Path,
+) -> dict[str, Any]:
+    rebuilt = rebuild_normalized_bundle_from_completed_output(
+        mechanism_key=mechanism_key,
+        source_output_dir=source_output_dir,
+        segment_id=segment.segment_id,
+    )
+    bundle = dict(rebuilt["normalized_eval_bundle"])
+    mechanism_label = str(rebuilt["mechanism_label"])
+    rebuilt_path = run_root / "rebuilt_bundles" / segment.segment_id / mechanism_key / "normalized_eval_bundle.json"
+    _json_dump(rebuilt_path, bundle)
+    return {
+        "status": "completed",
+        "mechanism_key": mechanism_key,
+        "mechanism_label": mechanism_label,
+        "output_dir": str(source_output_dir),
+        "source_output_dir": str(source_output_dir),
+        "rebuilt_bundle_path": str(rebuilt_path),
         "normalized_eval_bundle": bundle,
         "bundle_summary": _bundle_summary(bundle),
         "error": "",
@@ -1055,6 +1085,7 @@ def run_accumulation_evaluation_v2(
     judge_mode: str = "llm",
     segment_ids: list[str] | None = None,
     case_ids: list[str] | None = None,
+    reuse_output_dir: Path | None = None,
 ) -> dict[str, Any]:
     selection = _prepare_selection(formal_manifest_path=formal_manifest_path, case_ids=case_ids)
     if segment_ids:
@@ -1077,6 +1108,8 @@ def run_accumulation_evaluation_v2(
         raise ValueError("no target cases selected after filtering")
 
     mechanism_keys = _mechanism_keys_for_filter(mechanism_filter)
+    if reuse_output_dir is not None and (len(selection.segments) != 1 or len(mechanism_keys) != 1):
+        raise ValueError("--reuse-output-dir requires exactly one selected segment and one mechanism")
     run_root = DEFAULT_RUNS_ROOT / run_id
     run_root.mkdir(parents=True, exist_ok=True)
     _json_dump(
@@ -1089,6 +1122,7 @@ def run_accumulation_evaluation_v2(
             "case_ids": [case.case_id for case in selection.cases],
             "mechanism_keys": list(mechanism_keys),
             "judge_mode": judge_mode,
+            "reuse_output_dir": str(reuse_output_dir or ""),
         },
     )
 
@@ -1097,12 +1131,20 @@ def run_accumulation_evaluation_v2(
         mechanisms: dict[str, Any] = {}
         for mechanism_key in mechanism_keys:
             try:
-                payload = _run_mechanism_for_segment(
-                    segment=segment,
-                    dataset_dir=selection.dataset_dir,
-                    mechanism_key=mechanism_key,
-                    run_root=run_root,
-                )
+                if reuse_output_dir is not None:
+                    payload = _rebuild_mechanism_payload_from_output(
+                        segment=segment,
+                        mechanism_key=mechanism_key,
+                        source_output_dir=Path(reuse_output_dir).resolve(),
+                        run_root=run_root,
+                    )
+                else:
+                    payload = _run_mechanism_for_segment(
+                        segment=segment,
+                        dataset_dir=selection.dataset_dir,
+                        mechanism_key=mechanism_key,
+                        run_root=run_root,
+                    )
             except Exception as exc:
                 payload = {
                     "status": "failed",
@@ -1178,6 +1220,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--judge-mode", choices=JUDGE_MODE_VALUES, default="llm")
     parser.add_argument("--segment-id", action="append", dest="segment_ids", default=[])
     parser.add_argument("--case-id", action="append", dest="case_ids", default=[])
+    parser.add_argument("--reuse-output-dir", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -1190,6 +1233,7 @@ def main() -> None:
         judge_mode=str(args.judge_mode),
         segment_ids=[str(item) for item in args.segment_ids],
         case_ids=[str(item) for item in args.case_ids],
+        reuse_output_dir=Path(args.reuse_output_dir).resolve() if args.reuse_output_dir else None,
     )
 
 

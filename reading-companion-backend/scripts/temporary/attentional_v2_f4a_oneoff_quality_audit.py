@@ -23,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from eval.attentional_v2.user_level_selective_v1 import DATASET_DIR as USER_LEVEL_DATASET_DIR  # noqa: E402
 from src.attentional_v2.storage import (  # noqa: E402
     chapter_result_compatibility_file,
     local_continuity_file,
@@ -44,7 +45,6 @@ DEFAULT_MAX_UNITS = 8
 DEFAULT_USER_INTENT = (
     "Read as a thoughtful co-reader and surface visible reactions that feel like they arise during the reading itself."
 )
-USER_LEVEL_DATASET_DIR = ROOT / "state" / "eval_local_datasets" / "user_level_benchmarks" / "attentional_v2_user_level_selective_v1"
 WINDOW_CASES_DATASET = ROOT / "state" / "eval_local_datasets" / "window_cases" / "attentional_v2_accumulation_benchmark_v1_window_cases" / "windows.jsonl"
 
 SEGMENT_CASE_IDS = {

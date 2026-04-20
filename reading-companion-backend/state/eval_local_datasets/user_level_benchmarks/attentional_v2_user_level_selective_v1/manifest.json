@@ -1,10 +1,10 @@
 {
   "dataset_id": "attentional_v2_user_level_selective_v1",
   "family": "user_level_note_aligned_benchmark",
-  "status": "active",
+  "status": "superseded",
   "version": "2026-04-16",
   "generated_at": "2026-04-16T13:17:10.141044Z",
-  "description": "Active user-level selective benchmark built directly from aligned human note spans and continuous reading segments.",
+  "description": "Superseded 202-case user-level selective dataset retained as historical evidence after repaired 203-case promotion.",
   "segments_file": "segments.jsonl",
   "note_cases_file": "note_cases.jsonl",
   "registered_source_ids": [
@@ -34,5 +34,7 @@
     "eval/manifests/splits/attentional_v2_excerpt_surface_v1_1_draft.json",
     "state/eval_local_datasets/excerpt_cases/attentional_v2_excerpt_surface_v1_1_excerpt_en",
     "state/eval_local_datasets/excerpt_cases/attentional_v2_excerpt_surface_v1_1_excerpt_zh"
-  ]
+  ],
+  "superseded_by_dataset_id": "attentional_v2_user_level_selective_v1_repaired_20260416",
+  "superseded_by_manifest_path": "eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json"
 }

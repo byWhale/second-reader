@@ -106,9 +106,8 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the segment must begin at body start rather than dropping into a later chapter cold
   - the judged targets should be real aligned human notes rather than machine-expanded synthetic excerpt cases
   - the main metric should be note recall over user-visible reactions
-  - during a transition, the active dataset pointer and the current formal evidence bundle may differ
-    - for example, a repaired sibling package may back the latest judged evidence while the older active package remains the active benchmark pointer
-    - when that happens, entry docs must state both pointers explicitly rather than implying that they are the same package
+  - if a repaired sibling package proves to be the durable corrected benchmark, promote it into the active pointer explicitly rather than leaving a long-lived dual-pointer posture
+  - temporary dual-pointer transitions are acceptable only as short repair bridges and should be called out explicitly while they exist
 - `reader_character.coherent_accumulation` should now prefer a target-centered long-span surface:
   - reuse one continuous reading window as substrate
   - define one `target_span / target_zone`
@@ -268,6 +267,8 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - Stable docs may name one active benchmark pointer while keeping earlier benchmark packages as historical evidence.
 - An active benchmark does not need to maximize breadth if the current project constraint is iteration speed under real token and time pressure.
 - The active local/user-level benchmark pointer now belongs to the note-aligned `user-level selective v1` package rather than to `excerpt surface v1.1`.
+- The active local/user-level dataset root now belongs to the repaired `203`-case package `attentional_v2_user_level_selective_v1_repaired_20260416`.
+  - the earlier `202`-case `attentional_v2_user_level_selective_v1` package remains preserved as superseded historical evidence
 - Older excerpt-surface freezes and their judged reports should remain readable as historical evidence, but they should be labeled `historical` / `superseded` once the active pointer moves.
 - The durable long-span run evidence from bounded accumulation benchmark v1 remains historical mechanism evidence rather than active methodology authority.
   - preserve:

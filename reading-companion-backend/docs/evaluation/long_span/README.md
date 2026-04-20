@@ -40,7 +40,11 @@ Do not use the older April 6 lane as current mechanism evidence; it remains hist
   - retained implementation mirror:
     - [attentional_v2_accumulation_benchmark_v2_draft.json](../../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json)
 
-`v2` is now the active long-span method definition and it now has a first frozen reviewed seed set, but it still does not have a formal judged run.
+`v2` is now the active long-span method definition. It reuses the repaired active user-level window substrate at:
+
+- [attentional_v2_user_level_selective_v1_repaired_20260416](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
+
+It has a first frozen reviewed seed set, but it still does not have a completed formal judged run.
 
 Current frozen seed-set truth:
 - `12` frozen cases total

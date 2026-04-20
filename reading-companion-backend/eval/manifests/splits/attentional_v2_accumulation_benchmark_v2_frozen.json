@@ -9,7 +9,7 @@
   "active_design": "target_centered_long_span_accumulation_v2",
   "source_refs": {
     "user_level_dataset_roots": [
-      "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1"
+      "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416"
     ],
     "accumulation_target_case_datasets": [
       "state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen"
@@ -20,7 +20,7 @@
   },
   "quota_status": {
     "window_substrate": {
-      "dataset_id": "attentional_v2_user_level_selective_v1",
+      "dataset_id": "attentional_v2_user_level_selective_v1_repaired_20260416",
       "ready_now": 5
     },
     "accumulation_target_cases": {

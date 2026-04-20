@@ -66,7 +66,11 @@ def test_wait_for_shards_retries_retryable_failure_once(monkeypatch, tmp_path: P
     relaunched: list[str] = []
 
     monkeypatch.setattr(orchestrator, "_log_path_for_plan", lambda **kwargs: log_path)
-    monkeypatch.setattr(orchestrator, "_reset_failed_shard_outputs", lambda _plan: None)
+    monkeypatch.setattr(
+        orchestrator,
+        "_reset_failed_shard_outputs",
+        lambda _plan, preserve_output_dir=None: None,
+    )
     monkeypatch.setattr(orchestrator.time, "sleep", lambda _seconds: None)
 
     def _relaunch(**kwargs):
@@ -130,3 +134,47 @@ def test_completed_output_dir_from_seed_runs_only_reuses_completed_outputs(tmp_p
     )
 
     assert selected == completed
+
+
+def test_completed_output_dir_from_same_run_reuses_completed_current_output(tmp_path: Path, monkeypatch) -> None:
+    plan = orchestrator.ShardPlan(
+        segment_id="seg_a",
+        source_id="source_a",
+        book_title="Book A",
+        covered_note_count=2,
+        mechanism_key="attentional_v2",
+        target_id="target_a",
+        shard_run_id="target_run/shards/source_a__attentional_v2",
+    )
+    monkeypatch.setattr(orchestrator, "RUNS_ROOT", tmp_path)
+    completed = tmp_path / "target_run" / "shards" / "source_a__attentional_v2" / "outputs" / "seg_a" / "attentional_v2"
+    completed.joinpath("_runtime").mkdir(parents=True)
+    completed.joinpath("_runtime", "run_state.json").write_text('{"status":"completed"}\n', encoding="utf-8")
+
+    selected = orchestrator._completed_output_dir_from_same_run(plan=plan)
+
+    assert selected == completed
+
+
+def test_reset_failed_shard_outputs_preserves_reuse_output_dir(tmp_path: Path, monkeypatch) -> None:
+    plan = orchestrator.ShardPlan(
+        segment_id="seg_a",
+        source_id="source_a",
+        book_title="Book A",
+        covered_note_count=2,
+        mechanism_key="attentional_v2",
+        target_id="target_a",
+        shard_run_id="target_run/shards/source_a__attentional_v2",
+    )
+    monkeypatch.setattr(orchestrator, "RUNS_ROOT", tmp_path)
+    shard_root = tmp_path / "target_run" / "shards" / "source_a__attentional_v2"
+    preserved_output_dir = shard_root / "outputs" / "seg_a" / "attentional_v2"
+    preserved_output_dir.mkdir(parents=True)
+    (preserved_output_dir / "payload.json").write_text("{}", encoding="utf-8")
+    (shard_root / "summary").mkdir(parents=True)
+    (shard_root / "summary" / "aggregate.json").write_text("{}", encoding="utf-8")
+
+    orchestrator._reset_failed_shard_outputs(plan, preserve_output_dir=preserved_output_dir)
+
+    assert preserved_output_dir.exists()
+    assert not (shard_root / "summary").exists()

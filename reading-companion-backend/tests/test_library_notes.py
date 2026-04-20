@@ -7,6 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from eval.attentional_v2.user_level_selective_v1 import DATASET_ID as ACTIVE_USER_LEVEL_DATASET_ID
 from eval.attentional_v2.library_notes import (
     LibraryNotesPaths,
     align_entry_to_book_document,
@@ -480,7 +481,7 @@ def test_refresh_registered_notes_asset_uses_active_benchmark_fallback_when_refr
         / "state"
         / "eval_local_datasets"
         / "user_level_benchmarks"
-        / "attentional_v2_user_level_selective_v1"
+        / ACTIVE_USER_LEVEL_DATASET_ID
     )
     active_dataset_dir.mkdir(parents=True, exist_ok=True)
     (active_dataset_dir / "note_cases.jsonl").write_text(

@@ -344,3 +344,59 @@ def test_run_accumulation_evaluation_v2_writes_absolute_results(tmp_path: Path, 
     assert summary["aggregate"]["derived_comparison"]["winner_counts"] == {"attentional_v2": 1}
     case_result = json.loads((runs_root / "demo_v2_run" / "cases" / "case_a.json").read_text(encoding="utf-8"))
     assert case_result["mechanism_results"]["attentional_v2"]["judgment"]["reason"] == "fresh_rejudge"
+
+
+def test_run_accumulation_evaluation_v2_reuses_existing_output_without_reading(
+    tmp_path: Path, monkeypatch
+) -> None:
+    segment_dataset = _bootstrap_segment_dataset(tmp_path)
+    case_dataset = _bootstrap_case_dataset(tmp_path)
+    manifest_path = _bootstrap_formal_manifest(tmp_path, segment_dataset=segment_dataset, case_dataset=case_dataset)
+    runs_root = tmp_path / "runs"
+    reuse_output_dir = tmp_path / "old-output"
+    monkeypatch.setattr(accumulation_v2_runner, "DEFAULT_RUNS_ROOT", runs_root)
+    monkeypatch.setattr(
+        accumulation_v2_runner,
+        "_run_mechanism_for_segment",
+        lambda **_kwargs: (_ for _ in ()).throw(AssertionError("read_book should not be called")),
+    )
+
+    rebuilt_calls: list[Path] = []
+
+    def _fake_rebuild(**kwargs):
+        rebuilt_calls.append(kwargs["source_output_dir"])
+        return {
+            "status": "completed",
+            "mechanism_key": kwargs["mechanism_key"],
+            "mechanism_label": kwargs["mechanism_key"],
+            "output_dir": str(kwargs["source_output_dir"]),
+            "normalized_eval_bundle": _bundle(),
+            "bundle_summary": {"reaction_count": 4},
+            "error": "",
+        }
+
+    monkeypatch.setattr(accumulation_v2_runner, "_rebuild_mechanism_payload_from_output", _fake_rebuild)
+    monkeypatch.setattr(
+        accumulation_v2_runner,
+        "_judge_target_case",
+        lambda **_kwargs: {
+            "quality_score": 4,
+            "callback_score": 1,
+            "thread_built": "built",
+            "reason": "reused_output",
+        },
+    )
+
+    summary = accumulation_v2_runner.run_accumulation_evaluation_v2(
+        run_id="demo_v2_reuse",
+        formal_manifest_path=manifest_path,
+        mechanism_filter="attentional_v2",
+        judge_mode="llm",
+        segment_ids=["segment_a"],
+        reuse_output_dir=reuse_output_dir,
+    )
+
+    assert summary["case_count"] == 1
+    assert rebuilt_calls == [reuse_output_dir.resolve()]
+    case_result = json.loads((runs_root / "demo_v2_reuse" / "cases" / "case_a.json").read_text(encoding="utf-8"))
+    assert case_result["mechanism_results"]["attentional_v2"]["judgment"]["reason"] == "reused_output"

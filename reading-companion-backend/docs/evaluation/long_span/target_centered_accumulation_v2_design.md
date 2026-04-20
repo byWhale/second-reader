@@ -58,7 +58,7 @@ The active coordinate system is `segment_source_v1`, because the mechanisms read
 `v2` reuses the active `user-level selective v1` reading windows:
 
 - current window dataset:
-  - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1`
+  - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416`
 
 This keeps the reading setup aligned with the repaired body-start rule and avoids maintaining a second long-span-only window family unless later evidence shows that these windows are insufficient.
 
