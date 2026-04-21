@@ -56,6 +56,54 @@ def _job_status(job_id: str) -> dict[str, Any] | None:
     return get_job_record(job_id, root=BACKEND_ROOT)
 
 
+def _aggregate_has_complete_mechanisms(
+    aggregate_path: Path,
+    *,
+    mechanism_keys: tuple[str, ...],
+    count_key: str,
+) -> bool:
+    if not aggregate_path.exists():
+        return False
+    try:
+        aggregate = json.loads(aggregate_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return False
+    try:
+        expected_count = int(aggregate.get(count_key) or 0)
+    except (TypeError, ValueError):
+        return False
+    if expected_count <= 0:
+        return False
+    mechanisms = aggregate.get("mechanisms")
+    if not isinstance(mechanisms, dict):
+        return False
+    for mechanism_key in mechanism_keys:
+        stats = mechanisms.get(mechanism_key)
+        if not isinstance(stats, dict):
+            return False
+        try:
+            mechanism_count = int(stats.get(count_key) or 0)
+        except (TypeError, ValueError):
+            return False
+        if mechanism_count != expected_count:
+            return False
+    return True
+
+
+def _child_outputs_complete(
+    *,
+    aggregate_path: Path,
+    report_path: Path,
+    mechanism_keys: tuple[str, ...],
+    count_key: str,
+) -> bool:
+    return report_path.exists() and _aggregate_has_complete_mechanisms(
+        aggregate_path,
+        mechanism_keys=mechanism_keys,
+        count_key=count_key,
+    )
+
+
 def _shell_command_for_python(script_path: Path, args: list[str]) -> str:
     return " ".join([shlex.quote(str(PYTHON)), shlex.quote(str(script_path)), *[shlex.quote(str(item)) for item in args]])
 
@@ -115,9 +163,21 @@ def _ensure_child_job_running(
     command_text: str,
     run_dir: Path,
     expected_outputs: list[Path],
+    aggregate_path: Path,
+    report_path: Path,
+    mechanism_keys: tuple[str, ...],
+    count_key: str,
 ) -> dict[str, Any]:
     record = _job_status(job_id)
     if record is None:
+        if _child_outputs_complete(
+            aggregate_path=aggregate_path,
+            report_path=report_path,
+            mechanism_keys=mechanism_keys,
+            count_key=count_key,
+        ):
+            log(f"Child job {job_id} is missing from registry, but complete outputs already exist.")
+            return {"status": "completed_from_outputs", "job_id": job_id}
         log(f"Launching child job {job_id}")
         return _launch_child_job(
             job_id=job_id,
@@ -130,6 +190,14 @@ def _ensure_child_job_running(
     status = str(record.get("status") or "").strip().lower()
     if status in SUCCESS_TERMINAL_STATUSES:
         return {"status": "already_completed", "job_id": job_id}
+    if status in TERMINAL_JOB_STATUSES and _child_outputs_complete(
+        aggregate_path=aggregate_path,
+        report_path=report_path,
+        mechanism_keys=mechanism_keys,
+        count_key=count_key,
+    ):
+        log(f"Child job {job_id} is terminal-{status}, but complete outputs already exist.")
+        return {"status": "completed_from_outputs", "job_id": job_id}
     if status not in TERMINAL_JOB_STATUSES:
         return {"status": "already_running", "job_id": job_id}
     log(f"Relaunching child job {job_id} from terminal status {status}")
@@ -147,12 +215,50 @@ def _wait_for_child_registration(job_id: str, *, label: str, grace_seconds: int)
         time.sleep(1)
 
 
-def _wait_for_child_job(job_id: str, *, label: str, poll_seconds: int, status_path: Path) -> dict[str, Any]:
+def _wait_for_child_job(
+    job_id: str,
+    *,
+    label: str,
+    poll_seconds: int,
+    status_path: Path,
+    aggregate_path: Path,
+    report_path: Path,
+    mechanism_keys: tuple[str, ...],
+    count_key: str,
+) -> dict[str, Any]:
     while True:
         record = _job_status(job_id)
         if record is None:
+            if _child_outputs_complete(
+                aggregate_path=aggregate_path,
+                report_path=report_path,
+                mechanism_keys=mechanism_keys,
+                count_key=count_key,
+            ):
+                synthetic_record = {
+                    "job_id": job_id,
+                    "status": "completed_from_outputs",
+                    "observed_at": utc_now(),
+                }
+                _json_dump(
+                    status_path,
+                    {
+                        "updated_at": utc_now(),
+                        "job_id": job_id,
+                        "label": label,
+                        "status": "completed_from_outputs",
+                        "record": synthetic_record,
+                    },
+                )
+                return synthetic_record
             raise RuntimeError(f"{label} child job disappeared from registry: {job_id}")
         status = str(record.get("status") or "").strip().lower()
+        outputs_complete = _child_outputs_complete(
+            aggregate_path=aggregate_path,
+            report_path=report_path,
+            mechanism_keys=mechanism_keys,
+            count_key=count_key,
+        )
         _json_dump(
             status_path,
             {
@@ -160,12 +266,16 @@ def _wait_for_child_job(job_id: str, *, label: str, poll_seconds: int, status_pa
                 "job_id": job_id,
                 "label": label,
                 "status": status,
+                "outputs_complete": outputs_complete,
                 "record": record,
             },
         )
         if status in SUCCESS_TERMINAL_STATUSES:
             return record
         if status in TERMINAL_JOB_STATUSES:
+            if outputs_complete:
+                log(f"Accepting {label} child job {job_id} from complete outputs despite terminal status {status}.")
+                return record
             raise RuntimeError(f"{label} child job failed with status {status}: {job_id}")
         time.sleep(max(1, int(poll_seconds)))
 
@@ -308,31 +418,45 @@ def main() -> int:
         )
         return 0
 
-    _ensure_child_job_running(
+    excerpt_launch = _ensure_child_job_running(
         job_id=excerpt_child["job_id"],
         task_ref=excerpt_child["task_ref"],
         purpose=excerpt_child["purpose"],
         command_text=excerpt_child["command_text"],
         run_dir=excerpt_child["run_dir"],
         expected_outputs=[excerpt_child["aggregate_path"], excerpt_child["report_path"]],
+        aggregate_path=excerpt_child["aggregate_path"],
+        report_path=excerpt_child["report_path"],
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        count_key="note_case_count",
     )
-    _wait_for_child_registration(excerpt_child["job_id"], label="excerpt", grace_seconds=15)
+    if str(excerpt_launch.get("status") or "") != "completed_from_outputs":
+        _wait_for_child_registration(excerpt_child["job_id"], label="excerpt", grace_seconds=15)
 
-    _ensure_child_job_running(
+    accumulation_launch = _ensure_child_job_running(
         job_id=accumulation_child["job_id"],
         task_ref=accumulation_child["task_ref"],
         purpose=accumulation_child["purpose"],
         command_text=accumulation_child["command_text"],
         run_dir=accumulation_child["run_dir"],
         expected_outputs=[accumulation_child["aggregate_path"], accumulation_child["report_path"]],
+        aggregate_path=accumulation_child["aggregate_path"],
+        report_path=accumulation_child["report_path"],
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        count_key="case_count",
     )
-    _wait_for_child_registration(accumulation_child["job_id"], label="accumulation", grace_seconds=15)
+    if str(accumulation_launch.get("status") or "") != "completed_from_outputs":
+        _wait_for_child_registration(accumulation_child["job_id"], label="accumulation", grace_seconds=15)
 
     excerpt_record = _wait_for_child_job(
         excerpt_child["job_id"],
         label="excerpt",
         poll_seconds=int(args.poll_seconds),
         status_path=run_root / "meta" / "excerpt_status.json",
+        aggregate_path=excerpt_child["aggregate_path"],
+        report_path=excerpt_child["report_path"],
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        count_key="note_case_count",
     )
     _json_dump(run_root / "meta" / "excerpt_completed_record.json", excerpt_record)
 
@@ -341,6 +465,10 @@ def main() -> int:
         label="accumulation",
         poll_seconds=int(args.poll_seconds),
         status_path=run_root / "meta" / "accumulation_status.json",
+        aggregate_path=accumulation_child["aggregate_path"],
+        report_path=accumulation_child["report_path"],
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        count_key="case_count",
     )
     _json_dump(run_root / "meta" / "accumulation_completed_record.json", accumulation_record)
 

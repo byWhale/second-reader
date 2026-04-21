@@ -687,6 +687,25 @@ def main() -> int:
         write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
         raise SystemExit(f"one or more shards failed: {failures}")
 
+    if args.shard_keys:
+        _json_dump(
+            run_root / "meta" / "last_filtered_recovery.json",
+            {
+                "updated_at": utc_now(),
+                "run_id": str(args.run_id),
+                "selected_shard_keys": [plan.shard_key for plan in plans],
+                "status": "completed",
+                "root_merge": "skipped",
+                "reason": "shard-filtered recovery runs must not overwrite the run-level aggregate/report",
+            },
+        )
+        write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
+        log(
+            "Completed shard-filtered accumulation v2 recovery "
+            f"{args.run_id}; skipped root merge to preserve full-run summary ownership."
+        )
+        return 0
+
     aggregate = _merge_shards(
         run_id=str(args.run_id),
         manifest_path=manifest_path,

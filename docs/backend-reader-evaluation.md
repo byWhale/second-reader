@@ -338,6 +338,11 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - if one LLM judge call returns JSON that parses structurally but still collapses into the runner's unavailable sentinel because the schema is incomplete or wrongly wrapped, the runner should make one bounded same-target retry with an explicit schema reminder before finalizing the unavailable payload
   - the merge stage should be the only stage that writes the final aggregate/report outputs
   - shard ownership should stay explicit so two processes never write the same `(unit, mechanism)` or final summary concurrently
+  - shard-filtered recovery commands must not write root-level aggregate/report outputs
+    - they should repair only the selected shard summaries and leave the run-level merge to an unfiltered finalization pass
+    - otherwise a successful one-shard recovery can accidentally overwrite the full-run summary with a partial aggregate
+  - parent orchestrators should validate child aggregate completeness before treating expected-output existence as final success
+    - for paired mechanism comparisons, this means verifying that every expected mechanism is present and carries the full expected case/note count
 - On the excerpt surface, smoke health and judged promotion should now be separated.
   - smoke still proves runner health and reusable bundle production
   - smoke merge still waits for all smoke jobs to finish successfully

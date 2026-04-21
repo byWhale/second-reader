@@ -16,14 +16,19 @@ The current active benchmark is `user-level selective v1`:
 Current formal evidence bundle:
 
 - run id:
-  - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
+  - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
 - active dataset root used by that run:
   - [manifest.json](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
-- checked-in interpretation:
-  - [attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md](./attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md)
 - machine outputs:
-  - [aggregate.json](../../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/aggregate.json)
-  - [report.md](../../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/report.md)
+  - [aggregate.json](../../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/aggregate.json)
+  - [report.md](../../../eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/report.md)
+- result:
+  - `attentional_v2 note_recall = 0.3498`
+  - `iterator_v1 note_recall = 0.1232`
+- April 21 merge repair:
+  - all `10` shard summaries were complete, but a shard-filtered recovery invocation overwrote the root summary with a partial one-shard aggregate
+  - the current root summary/report were regenerated from all completed shards
+  - shard-filtered recovery now skips root-level merge/report ownership
 
 ## Current Status
 

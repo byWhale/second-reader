@@ -618,6 +618,25 @@ def main() -> int:
         write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
         raise SystemExit(f"one or more shards failed: {failures}")
 
+    if args.shard_keys:
+        _json_dump(
+            run_root / "meta" / "last_filtered_recovery.json",
+            {
+                "updated_at": utc_now(),
+                "run_id": str(args.run_id),
+                "selected_shard_keys": [plan.shard_key for plan in plans],
+                "status": "completed",
+                "root_merge": "skipped",
+                "reason": "shard-filtered recovery runs must not overwrite the run-level aggregate/report",
+            },
+        )
+        write_llm_usage_summary(run_root, summary_path=run_root / "summary" / "llm_usage.json")
+        log(
+            "Completed shard-filtered user-level selective recovery "
+            f"{args.run_id}; skipped root merge to preserve full-run summary ownership."
+        )
+        return 0
+
     aggregate = _merge_shards(
         run_id=str(args.run_id),
         manifest_path=manifest_path,
@@ -625,11 +644,14 @@ def main() -> int:
         mechanism_keys=mechanism_keys,
         seed_run_ids=tuple(str(item) for item in args.seed_run_ids),
     )
+    recall_parts = [
+        f"{mechanism_key}_recall={aggregate['mechanisms'][mechanism_key]['note_recall']}"
+        for mechanism_key in mechanism_keys
+    ]
     log(
         "Completed user-level selective run "
         f"{args.run_id}: note_cases={aggregate['note_case_count']}, "
-        f"attentional_v2_recall={aggregate['mechanisms']['attentional_v2']['note_recall']}, "
-        f"iterator_v1_recall={aggregate['mechanisms']['iterator_v1']['note_recall']}"
+        f"{', '.join(recall_parts)}"
     )
     return 0
 

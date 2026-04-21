@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-20T21:20:00+08:00`
+Last verified: `2026-04-21T13:07:00+08:00`
 
 ## Current Objective
 - Keep `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
@@ -71,15 +71,18 @@ Last verified: `2026-04-20T21:20:00+08:00`
             - `bgjob_user_level_selective_v1_active_formal_20260419`
           - run id:
             - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
-        - active accumulation child:
+        - completed accumulation child:
           - job id:
             - `bgjob_accumulation_benchmark_v2_active_formal_20260419`
           - run id:
             - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
-          - current launch posture:
-            - the formal accumulation child is now started before full excerpt completion
-            - it reuses overlapping excerpt reading outputs and waits on not-yet-ready windows instead of rereading them
-            - completed `huochu_shengming_de_yiyi_private_zh` shard summaries are already reused in-run while `mangge` and `xidaduo` remain gated on excerpt readiness
+          - current evidence:
+            - `12` frozen target cases completed across `3` windows and `2` mechanisms
+            - `attentional_v2 average_quality_score = 2.583`
+            - `iterator_v1 average_quality_score = 3.083`
+            - overlapping excerpt reading outputs were reused rather than reread
+            - report:
+              - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md`
   - historical boundary:
     - keep `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` as durable historical mechanism evidence
     - do not treat the old bounded `EARLY / MID / LATE` probe method as the active long-span methodology anymore
@@ -164,8 +167,8 @@ Last verified: `2026-04-20T21:20:00+08:00`
         - `iterator_v1` note recall: `0.2118`
       - current posture:
         - its repaired `203`-case dataset root is now the active benchmark pointer
-        - the April 16 repaired rejudge remains the last completed formal evidence until the current rerun finishes
-    - the new formal active rerun is now running:
+        - the April 16 repaired rejudge is superseded as the latest active evidence by the April 19 formal rerun below
+    - the April 19 formal active rerun is now completed and is the current active benchmark evidence bundle:
       - parent job id:
         - `bgjob_active_benchmark_rerun_20260419`
       - parent run id:
@@ -175,20 +178,25 @@ Last verified: `2026-04-20T21:20:00+08:00`
       - excerpt child run id:
         - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
       - shared watchdog:
-        - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419`
-      - execution posture:
+        - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`completed / stopped`)
+      - completed excerpt scope:
         - `5` segments × `2` mechanisms = `10` shard reads on the active repaired package
-        - same-run recovery preserves completed shard summaries
-        - same-run and seed-run recovery both reuse completed reading outputs when strict rescoring can proceed without rereading
-      - April 20 recovery incident and repair:
+        - `203` note cases
+      - excerpt result:
+        - `attentional_v2 note_recall = 0.3498`
+        - `iterator_v1 note_recall = 0.1232`
+      - parent report:
+        - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md`
+      - excerpt report:
+        - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/report.md`
+      - April 20 / April 21 recovery incidents and repairs:
         - the excerpt child entered a semi-stuck posture because `3` shard failures had already exhausted their local retry budgets while `1` surviving shard was still running
         - the child job therefore stayed registry-`running`, which meant the shared watchdog had no terminal child job to relaunch yet
-        - the shard orchestrators are now repaired at:
-          - `reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py`
-          - `reading-companion-backend/scripts/orchestrate_accumulation_v2_eval.py`
-        - new recovery rule:
-          - once one shard reaches terminal failure after its bounded in-process retries, the orchestrator now stops sibling shard workers, exits failed immediately, and lets the same-run watchdog relaunch the child job
-        - active same-run supplemental recovery jobs:
+        - the shard orchestrators now fail fast on terminal shard exhaustion, stop sibling workers, and let the same-run watchdog relaunch the child job
+        - after all shards completed, a shard-filtered recovery invocation overwrote the excerpt root summary with a partial one-shard aggregate
+        - the excerpt root summary/report were regenerated from all `10` completed shard summaries
+        - shard-filtered recovery now skips root-level merge/report ownership, and the parent orchestrator validates complete child outputs before treating terminal child status as fatal
+        - supplemental recovery jobs are archived as superseded by the completed full merge:
           - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420`
           - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420`
     - failed first mechanism-parallel attempt retained as failed evidence:
@@ -2780,7 +2788,6 @@ Last verified: `2026-04-20T21:20:00+08:00`
 - Benchmark confidence can look stronger than it really is if corpus growth, promotion, and reviewed-slice confidence gates drift apart.
 
 ## Active Task IDs
-- `TASK-ACTIVE-BENCHMARK-FORMAL-RERUN`
 - `TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK`
 - `TASK-V2-NATIVE-READING-PRESENTATION`
 - `TASK-USER-LEVEL-SELECTIVE-V1`
@@ -2793,9 +2800,7 @@ Last verified: `2026-04-20T21:20:00+08:00`
 - none
 
 ## Active Job IDs
-- `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419`
-- `bgjob_active_benchmark_rerun_20260419`
-- `bgjob_user_level_selective_v1_active_formal_20260419`
+- none
 
 ## Recommended Reading Path
 1. `AGENTS.md`
@@ -2806,7 +2811,7 @@ Last verified: `2026-04-20T21:20:00+08:00`
 6. `docs/backend-reader-evaluation.md`
 7. `reading-companion-backend/docs/evaluation/README.md`
 8. `reading-companion-backend/docs/evaluation/user_level/README.md`
-9. `reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md`
+9. `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md`
 10. `reading-companion-backend/docs/evaluation/long_span/README.md`
 11. `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
 12. `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
@@ -2816,10 +2821,9 @@ Last verified: `2026-04-20T21:20:00+08:00`
 ## Machine-Readable Appendix
 ```json
 {
-  "updated_at": "2026-04-20T01:09:28Z",
+  "updated_at": "2026-04-21T05:07:00Z",
   "last_updated_by": "codex",
   "active_task_ids": [
-    "TASK-ACTIVE-BENCHMARK-FORMAL-RERUN",
     "TASK-ATTENTIONAL-V2-STRUCTURAL-REWORK",
     "TASK-V2-NATIVE-READING-PRESENTATION",
     "TASK-USER-LEVEL-SELECTIVE-V1",
@@ -2827,17 +2831,13 @@ Last verified: `2026-04-20T21:20:00+08:00`
   ],
   "waiting_task_ids": [],
   "blocked_task_ids": [],
-  "active_job_ids": [
-    "bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419",
-    "bgjob_active_benchmark_rerun_20260419",
-    "bgjob_user_level_selective_v1_active_formal_20260419"
-  ],
+  "active_job_ids": [],
   "open_decision_ids": [],
   "detail_refs": [
     "docs/backend-reader-evaluation.md",
     "reading-companion-backend/docs/evaluation/README.md",
     "reading-companion-backend/docs/evaluation/user_level/README.md",
-    "reading-companion-backend/docs/evaluation/user_level/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416_interpretation.md",
+    "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md",
     "reading-companion-backend/docs/evaluation/long_span/README.md",
     "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
     "reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md",

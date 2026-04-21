@@ -44,7 +44,7 @@ Do not use the older April 6 lane as current mechanism evidence; it remains hist
 
 - [attentional_v2_user_level_selective_v1_repaired_20260416](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
 
-It has a first frozen reviewed seed set, but it still does not have a completed formal judged run.
+It has a first frozen reviewed seed set and a completed first formal judged rerun.
 
 Current frozen seed-set truth:
 - `12` frozen cases total
@@ -54,10 +54,21 @@ Current frozen seed-set truth:
 - `The Value of Others`: deferred to a later architecture-first pass
 - one additional `芒格之道` line remains held back as experimental only
 
+Current formal evidence:
+- run id:
+  - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+- result:
+  - `attentional_v2 average_quality_score = 2.583`
+  - `iterator_v1 average_quality_score = 3.083`
+- machine outputs:
+  - [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json)
+  - [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md)
+
 ## Reports
 
 | Report title | Run ID | Surface | Compared mechanisms | Status | One-line conclusion | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
+| Target-centered long-span accumulation v2 formal rerun | `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419` | `target-centered long-span accumulation v2` | `attentional_v2` vs `iterator_v1` | `completed` | `iterator_v1` leads the first frozen v2 formal rerun on average quality score across 12 target-centered cases.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md) |
 | Long-Span 正式 judged eval 详细解读 | `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` | `bounded long-span accumulation comparison` | `attentional_v2` vs `iterator_v1` | `completed` | `iterator_v1` wins the current durable long-span surface overall; attentional_v2 is cleaner on some single-chapter main-thread probes but still trails on retrospective long-span closure.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md) · [interpretation](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_interpretation.md) |
 | Long-Span 正式 judged eval 后续反思与机制重设计备忘 | `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` | `post-eval mechanism reflection` | `attentional_v2` vs `iterator_v1` | `ongoing` | `The first completed probe-level reflection already suggests that attentional_v2 should replace heuristic semantic triggering with one Reading Agent organized around the two actions navigate and read, while realigning span visibility with span-closing authority.` | [interpretation](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_interpretation.md) · [reaction appendix](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_score_impact_reaction_appendix.md) · [follow-up memo](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_followup_reflection_and_decisions.md) |
 

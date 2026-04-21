@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-20T21:20:00+08:00`
+Last updated: `2026-04-21T13:07:00+08:00`
 
 ## Status Values
 - `active`
@@ -188,59 +188,6 @@ Last updated: `2026-04-20T21:20:00+08:00`
 - Jobs:
   - `bgjob_attentional_v2_f4a_quality_audit_20260419` (`completed`)
 
-### `TASK-ACTIVE-BENCHMARK-FORMAL-RERUN` — Run the formal active V1/V2 benchmark rerun across excerpt and long-span surfaces
-- Status: `active`
-- Lane: `dataset_platform`
-- Priority: `high`
-- Detail: `docs/backend-reader-evaluation.md`
-- Next: execute the April 19 requested full active rerun on the current benchmark stack.
-  - parent orchestration:
-    - job id:
-      - `bgjob_active_benchmark_rerun_20260419`
-    - run id:
-      - `attentional_v2_active_benchmark_rerun_20260419`
-  - shared watchdog:
-    - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419`
-    - `5`-minute auto-recovery
-    - unlimited relaunch budget
-  - execution order:
-    - launch `user-level selective v1` on the repaired active `203`-case package
-    - launch `target-centered accumulation v2` under the same parent without waiting for whole-excerpt completion
-    - accumulation shards now start on a window-ready barrier:
-      - reuse overlapping excerpt reading outputs for the three shared long-span windows instead of rereading them
-      - wait on not-yet-ready excerpt windows rather than serializing behind unrelated books
-  - current child status:
-    - active excerpt child:
-      - job id:
-        - `bgjob_user_level_selective_v1_active_formal_20260419`
-      - run id:
-        - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
-      - April 20 incident:
-        - `3` excerpt shards had already gone cold after exhausting local shard retries while `1` `attentional_v2` shard kept reading
-        - that left the child job registry-`running`, so the shared watchdog had nothing terminal to relaunch yet
-      - landed recovery repair:
-        - `reading-companion-backend/scripts/orchestrate_user_level_selective_eval.py` now fails fast on terminal shard exhaustion, stops sibling shard workers, and lets the watchdog relaunch the same run
-        - the same fail-fast rule is also mirrored into `reading-companion-backend/scripts/orchestrate_accumulation_v2_eval.py`
-      - active same-run supplemental recovery jobs:
-        - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420`
-        - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420`
-    - accumulation child:
-      - job id:
-        - `bgjob_accumulation_benchmark_v2_active_formal_20260419`
-      - run id:
-        - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
-      - April 20 parallelism repair:
-        - the previous parent barrier waited for the entire excerpt child to finish before starting any long-span work
-        - the formal accumulation child now launches with `wait-for-reuse-ready` semantics and starts ready windows immediately
-        - the current child skipped the already completed `huochu` summaries and is now waiting only on the excerpt-backed `mangge` / `xidaduo` windows that are not reusable yet
-- Jobs:
-  - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`running`)
-  - `bgjob_active_benchmark_rerun_20260419` (`running`)
-  - `bgjob_user_level_selective_v1_active_formal_20260419` (`running`)
-  - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420` (`running`)
-  - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420` (`running`)
-  - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`running`)
-
 ### `TASK-ACCUMULATION-BENCHMARK-V2` — Land the target-centered long-span accumulation v2 framework
 - Status: `active`
 - Lane: `dataset_platform`
@@ -274,19 +221,20 @@ Last updated: `2026-04-20T21:20:00+08:00`
       - `悉达多`: `6`
       - `活出生命的意义`: `4`
       - `芒格之道`: `2`
-  - active formal-rerun posture:
-    - the user explicitly requested the first full formal comparison on April 19
-    - the shared parent job is now running with a window-ready long-span posture
-    - the formal accumulation child `bgjob_accumulation_benchmark_v2_active_formal_20260419` is now active on the same run id
-    - it reuses overlapping excerpt reading outputs from:
-      - `huochu_shengming_de_yiyi_private_zh__segment_1`
-      - `mangge_zhi_dao_private_zh__segment_1`
-      - `xidaduo_private_zh__segment_1`
-    - completed `huochu` shard summaries are already present in-run, and the child now waits for reusable `mangge` / `xidaduo` excerpt outputs instead of serializing behind unrelated finished books
+  - latest formal-rerun evidence:
+    - run id:
+      - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+    - summary:
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md`
+    - completed scope:
+      - `12` target cases across `3` shared reading windows and `2` mechanisms
+    - result:
+      - `attentional_v2 average_quality_score = 2.583`
+      - `iterator_v1 average_quality_score = 3.083`
+    - reuse posture:
+      - overlapping excerpt reading outputs were reused for the shared windows rather than reread
 - Jobs:
-  - `bgjob_active_benchmark_rerun_20260419` (`running`)
-  - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`running`)
-  - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`running`)
+  - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`completed`)
 
 ### `TASK-USER-LEVEL-SELECTIVE-V1` — Replace the active local/user-level benchmark with the note-aligned selective package
 - Status: `active`
@@ -316,25 +264,27 @@ Last updated: `2026-04-20T21:20:00+08:00`
   - latest completed formal evidence bundle before the new rerun:
     - run id:
       - `attentional_v2_user_level_selective_v1_repaired_rejudge_20260416`
-  - active formal-rerun posture:
+  - latest formal-rerun evidence:
     - job id:
       - `bgjob_user_level_selective_v1_active_formal_20260419`
     - run id:
       - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
-    - execution shape:
+    - summary:
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/report.md`
+    - completed scope:
       - `5` segments × `2` mechanisms = `10` shard reads
-      - same-run completed shard summaries are skipped on relaunch
-      - same-run completed reading outputs can be reused for rescoring if a shard later fails after reading
-    - April 20 recovery posture:
-      - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420` now reactivates the cold `iterator_v1` shards for `芒格之道` and `悉达多`
-      - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420` now reactivates the cold `xidaduo` `attentional_v2` shard without interrupting the still-live `mangge` `attentional_v2` shard
-      - future terminal shard failures should now fail the child orchestrator immediately instead of hiding behind one remaining live shard
+      - `203` note cases
+    - result:
+      - `attentional_v2 note_recall = 0.3498`
+      - `iterator_v1 note_recall = 0.1232`
+    - April 21 repair note:
+      - a shard-filtered recovery command had overwritten the root summary with a partial one-shard aggregate
+      - the root summary/report are now regenerated from all completed shards
+      - shard-filtered recovery now skips root-level merge/report ownership
 - Jobs:
-  - `bgjob_active_benchmark_rerun_20260419` (`running`)
-  - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`running`)
-  - `bgjob_user_level_selective_v1_active_formal_20260419` (`running`)
-  - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420` (`running`)
-  - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420` (`running`)
+  - `bgjob_user_level_selective_v1_active_formal_20260419` (`completed`)
+  - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420` (`failed / archived as superseded`)
+  - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420` (`failed / archived as superseded`)
 
 ## Parked
 
@@ -433,6 +383,35 @@ Last updated: `2026-04-20T21:20:00+08:00`
 - Next: keep section-first compatibility fields and containers only as migration sidecars; start removal only after the V2-native overview, chapter, and marks surfaces are stable enough that the older presentation model is no longer needed for normal product use
 
 ## Done
+
+### `TASK-ACTIVE-BENCHMARK-FORMAL-RERUN` — Run the formal active V1/V2 benchmark rerun across excerpt and long-span surfaces
+- Status: `done`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/backend-reader-evaluation.md`
+- Next: keep the April 19 formal rerun as the current active benchmark evidence bundle; do not relaunch by default unless a new mechanism or dataset change requires fresh evidence.
+  - parent run:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md`
+  - excerpt child:
+    - run id: `attentional_v2_user_level_selective_v1_active_rerun_20260419`
+    - scope: `203` note cases across `5` reading windows and `2` mechanisms
+    - result: `attentional_v2 note_recall = 0.3498`; `iterator_v1 note_recall = 0.1232`
+  - long-span child:
+    - run id: `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+    - scope: `12` target cases across `3` windows and `2` mechanisms
+    - result: `attentional_v2 average_quality_score = 2.583`; `iterator_v1 average_quality_score = 3.083`
+  - April 21 repair note:
+    - all shard outputs were complete, but a shard-filtered recovery invocation had overwritten the excerpt root summary with a partial one-shard aggregate
+    - the root summary/report were regenerated from all completed shards
+    - shard-filtered recovery now skips root-level merge/report so this partial-summary overwrite cannot recur
+    - the parent orchestrator now validates complete child outputs before treating terminal child status as fatal
+- Jobs:
+  - `bgjob_active_benchmark_rerun_20260419` (`completed`)
+  - `bgjob_user_level_selective_v1_active_formal_20260419` (`completed`)
+  - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`completed`)
+  - `bgjob_job_registry_auto_recovery_watchdog_active_benchmark_20260419` (`completed / stopped`)
+  - `bgjob_user_level_selective_v1_active_formal_recovery_iter_20260420` (`failed / archived as superseded`)
+  - `bgjob_user_level_selective_v1_active_formal_recovery_xidaduo_attn_20260420` (`failed / archived as superseded`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V1` — Build the bounded long-span window benchmark for `coherent_accumulation`
 - Status: `done`
