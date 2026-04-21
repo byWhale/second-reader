@@ -4,6 +4,9 @@ This directory is the active checked-in index for the note-aligned local/user-le
 
 The current active benchmark is `user-level selective v1`:
 
+- full evidence catalog entry point:
+  - [../evidence_catalog.md](../evidence_catalog.md)
+
 - active split manifest:
   - [attentional_v2_user_level_selective_v1_draft.json](../../../eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json)
 - active dataset package:
@@ -211,6 +214,8 @@ When an additional judged run lands, add it here with:
 - status
 - one-line conclusion
 - links to aggregate, report, and any checked-in interpretation
+
+Also upsert the run into [../evidence_catalog.json](../evidence_catalog.json) through `scripts/update_evaluation_catalog.py` after the full root summary/report is complete. Do not catalog shard-filtered recovery outputs as full evidence.
 
 ## Historical Predecessor
 

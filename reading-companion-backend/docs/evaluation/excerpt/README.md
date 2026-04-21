@@ -9,6 +9,7 @@ It keeps the superseded chapter-scoped excerpt-surface reports that were active 
 - Report filenames follow `<run_id>_interpretation.md`.
 - Machine outputs remain under `reading-companion-backend/eval/runs/.../summary/`.
 - This index records the durable entry point for future agent handoff and result review.
+- The cross-surface evidence catalog at [../evidence_catalog.md](../evidence_catalog.md) records this surface as superseded historical evidence.
 
 ## Reports
 

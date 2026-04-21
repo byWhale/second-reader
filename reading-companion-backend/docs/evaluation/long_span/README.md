@@ -11,7 +11,9 @@ This directory now has two layers:
 - Secondary follow-up reflection or redesign memos may sit beside the interpretation report when one judged run leads to later mechanism analysis or implementation-direction notes.
 - Report filenames follow `<run_id>_interpretation.md`.
 - Machine outputs remain under `reading-companion-backend/eval/runs/.../summary/`.
-- Use [../README.md](../README.md) as the cross-surface entry point.
+- Use [../README.md](../README.md) as the narrative cross-surface entry point.
+- Use [../evidence_catalog.md](../evidence_catalog.md) as the durable evidence catalog across current, historical, superseded, audit, and diagnostic runs.
+- After a full root-level long-span merge/report completes, update the catalog through `scripts/update_evaluation_catalog.py`; shard-filtered recovery outputs must not own catalog updates.
 
 ## Historical Durable Evidence
 

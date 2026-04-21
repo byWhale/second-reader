@@ -297,3 +297,45 @@ def test_wait_for_shards_waits_for_reuse_ready_before_launch(monkeypatch, tmp_pa
     assert exit_codes == {pending_plan.shard_key: 0}
     assert launched == [(pending_plan.shard_key, reuse_dir)]
     assert sleeps == [7]
+
+
+def test_update_catalog_only_for_complete_mechanism_set(monkeypatch, tmp_path: Path) -> None:
+    upserts: list[dict] = []
+    monkeypatch.setattr(orchestrator, "build_entry", lambda **kwargs: {"entry": kwargs})
+    monkeypatch.setattr(orchestrator, "upsert_catalog_entry", lambda entry: upserts.append(entry))
+
+    aggregate = {
+        "dataset_dir": str(tmp_path / "dataset"),
+        "manifest_path": str(tmp_path / "manifest.json"),
+        "mechanisms": {
+            "attentional_v2": {"average_quality_score": 2.5},
+            "iterator_v1": {"average_quality_score": 3.0},
+        },
+    }
+
+    orchestrator._update_catalog_or_warn(
+        run_id="run_full",
+        run_root=tmp_path / "run_full",
+        aggregate=aggregate,
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        full_scope=True,
+    )
+    orchestrator._update_catalog_or_warn(
+        run_id="run_filtered",
+        run_root=tmp_path / "run_filtered",
+        aggregate=aggregate,
+        mechanism_keys=("iterator_v1",),
+        full_scope=True,
+    )
+    orchestrator._update_catalog_or_warn(
+        run_id="run_partial",
+        run_root=tmp_path / "run_partial",
+        aggregate=aggregate,
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        full_scope=False,
+    )
+
+    assert len(upserts) == 1
+    assert upserts[0]["entry"]["surface"] == "target_centered_accumulation_v2"
+    assert upserts[0]["entry"]["status"] == "current_formal_evidence"
+    assert "3.0" in upserts[0]["entry"]["one_line_conclusion"]

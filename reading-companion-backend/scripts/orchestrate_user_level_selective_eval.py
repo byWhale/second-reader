@@ -29,6 +29,7 @@ from eval.attentional_v2.run_user_level_selective_comparison import (  # noqa: E
     _mechanism_keys_for_filter,
     _render_report,
 )
+from scripts.update_evaluation_catalog import build_entry, upsert_catalog_entry  # noqa: E402
 
 
 PYTHON = BACKEND_ROOT / ".venv" / "bin" / "python"
@@ -44,6 +45,7 @@ RETRYABLE_ERROR_MARKERS = (
     "Error code: 529",
     "network_blocked",
 )
+FULL_MECHANISM_SET = {"attentional_v2", "iterator_v1"}
 
 
 @dataclass(frozen=True)
@@ -481,6 +483,44 @@ def _merge_shards(
     return aggregate
 
 
+def _update_catalog_or_warn(
+    *,
+    run_id: str,
+    run_root: Path,
+    aggregate: dict[str, Any],
+    mechanism_keys: tuple[str, ...],
+    full_scope: bool,
+) -> None:
+    if not full_scope:
+        log("Skipping evidence catalog update for partial-scope run.")
+        return
+    if set(mechanism_keys) != FULL_MECHANISM_SET:
+        log("Skipping evidence catalog update for non-complete mechanism filter.")
+        return
+    try:
+        mechanisms = aggregate.get("mechanisms") or {}
+        v2_recall = (mechanisms.get("attentional_v2") or {}).get("note_recall")
+        v1_recall = (mechanisms.get("iterator_v1") or {}).get("note_recall")
+        dataset_dir = str(aggregate.get("dataset_dir") or "")
+        entry = build_entry(
+            run_id=run_id,
+            surface="user_level_selective_v1",
+            status="current_formal_evidence",
+            run_dir=run_root,
+            dataset_id=Path(dataset_dir).name if dataset_dir else "",
+            dataset_path=dataset_dir,
+            manifest_path=str(aggregate.get("manifest_path") or ""),
+            one_line_conclusion=(
+                "Formal user-level selective rerun completed; "
+                f"attentional_v2 note_recall={v2_recall}, iterator_v1 note_recall={v1_recall}."
+            ),
+        )
+        upsert_catalog_entry(entry)
+        log("Updated evaluation evidence catalog for user-level selective run.")
+    except Exception as exc:  # pragma: no cover - defensive operator logging
+        log(f"WARNING: failed to update evaluation evidence catalog: {exc}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -643,6 +683,13 @@ def main() -> int:
         plans=plans,
         mechanism_keys=mechanism_keys,
         seed_run_ids=tuple(str(item) for item in args.seed_run_ids),
+    )
+    _update_catalog_or_warn(
+        run_id=str(args.run_id),
+        run_root=run_root,
+        aggregate=aggregate,
+        mechanism_keys=mechanism_keys,
+        full_scope=not bool(args.segment_ids or args.shard_keys),
     )
     recall_parts = [
         f"{mechanism_key}_recall={aggregate['mechanisms'][mechanism_key]['note_recall']}"

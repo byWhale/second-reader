@@ -855,6 +855,10 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - Stable methodology belongs in `docs/`.
 - Reviewed, checked-in evaluation reports belong in `reading-companion-backend/docs/evaluation/`.
   - the root `reading-companion-backend/docs/evaluation/README.md` should act as the cross-surface discovery index
+- The lightweight evidence catalog belongs in `reading-companion-backend/docs/evaluation/evidence_catalog.json` plus `evidence_catalog.md`.
+  - it indexes selected meaningful evidence only: current formal runs, historical evidence, superseded runs, focused quality audits, and important diagnostics
+  - it does not replace raw run artifacts, human interpretation reports, or the background-job registry
+  - update it with `reading-companion-backend/scripts/update_evaluation_catalog.py`
 - Recurring human interpretation reports for formal judged runs should live under a surface-specific subdirectory such as `reading-companion-backend/docs/evaluation/excerpt/` or `reading-companion-backend/docs/evaluation/long_span/`.
   - each such subdirectory should keep a `README.md` index
   - each formal per-run interpretation file should follow `<run_id>_interpretation.md`
@@ -867,6 +871,7 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - `tracked` versus `local-only` is a packaging/compliance distinction
 - Machine-generated benchmark runs belong in `reading-companion-backend/eval/runs/` and should stay out of normal runtime `state/` / `output/` paths.
 - Runtime-first per-run markdown summaries may live under `reading-companion-backend/eval/runs/<benchmark>/<run_id>/summary/` until they are reviewed and promoted into `reading-companion-backend/docs/evaluation/`.
+- Large generated audit appendices may live under a run's `analysis/` directory and be linked from the evidence catalog without being promoted into checked-in report territory.
 - Temporary experiment logs belong in `reading-companion-backend/docs/research/` only when they are not yet stable reports.
 - Stable docs should explain the constitution, the comparison frame, and the report boundary.
 - Benchmarks and reports should carry the living case sets, rubrics, thresholds, run settings, sample sizes, and per-run conclusions.
@@ -940,5 +945,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
 - Formal judged runs that are used as project evidence should also land a human interpretation report in `reading-companion-backend/docs/evaluation/<surface>/`.
   - the machine run summary under `reading-companion-backend/eval/runs/.../summary/` remains the canonical raw output
   - the human interpretation report is where we preserve fair-reading caveats, causal explanation, representative cases, and next-step guidance
-  - the interpretation report should be indexed from both `reading-companion-backend/docs/evaluation/README.md` and the relevant surface `README.md`
+  - the interpretation report should be indexed from the relevant surface `README.md`; the run itself should also be represented in `evidence_catalog.*`
+- Main evaluation orchestrators should update the evidence catalog only after full root-level merge/report completion.
+  - shard-filtered recovery runs must not update root-level catalog entries
+  - a run without complete aggregate/report files cannot be cataloged as `current_formal_evidence`
+  - failed or invalidated runs may be cataloged as diagnostics when they preserve an important failure cause
 - This stable methodology document should not be used as a running benchmark log.

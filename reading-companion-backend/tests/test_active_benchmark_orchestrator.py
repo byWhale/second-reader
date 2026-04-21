@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -40,6 +41,10 @@ def test_ensure_child_job_running_launches_when_missing(monkeypatch, tmp_path: P
         command_text="python demo.py",
         run_dir=tmp_path / "run",
         expected_outputs=[tmp_path / "run" / "summary" / "aggregate.json"],
+        aggregate_path=tmp_path / "run" / "summary" / "aggregate.json",
+        report_path=tmp_path / "run" / "summary" / "report.md",
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        count_key="note_case_count",
     )
 
     assert launches == ["bgjob_demo"]
@@ -62,6 +67,10 @@ def test_ensure_child_job_running_relaunches_failed_job(monkeypatch, tmp_path: P
         command_text="python demo.py",
         run_dir=tmp_path / "run",
         expected_outputs=[tmp_path / "run" / "summary" / "aggregate.json"],
+        aggregate_path=tmp_path / "run" / "summary" / "aggregate.json",
+        report_path=tmp_path / "run" / "summary" / "report.md",
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        count_key="case_count",
     )
 
     assert relaunched == ["bgjob_demo"]
@@ -106,7 +115,7 @@ def test_main_launches_accumulation_before_excerpt_completion(monkeypatch, tmp_p
         call_order.append(f"register:{job_id}")
         return {"status": "running"}
 
-    def _fake_wait_for_child_job(job_id: str, *, label: str, poll_seconds: int, status_path: Path):
+    def _fake_wait_for_child_job(job_id: str, *, label: str, poll_seconds: int, status_path: Path, **_kwargs):
         call_order.append(f"wait:{job_id}")
         status_path.parent.mkdir(parents=True, exist_ok=True)
         status_path.write_text("{}\n", encoding="utf-8")
@@ -142,3 +151,59 @@ def test_main_launches_accumulation_before_excerpt_completion(monkeypatch, tmp_p
         "wait:excerpt_job",
         "wait:accumulation_job",
     ]
+
+
+def test_update_catalog_records_parent_bundle(monkeypatch, tmp_path: Path) -> None:
+    upserts: list[dict] = []
+    monkeypatch.setattr(orchestrator, "build_entry", lambda **kwargs: {"entry": kwargs})
+    monkeypatch.setattr(orchestrator, "upsert_catalog_entry", lambda entry: upserts.append(entry))
+    excerpt_aggregate = tmp_path / "excerpt" / "summary" / "aggregate.json"
+    accumulation_aggregate = tmp_path / "accumulation" / "summary" / "aggregate.json"
+    excerpt_aggregate.parent.mkdir(parents=True)
+    accumulation_aggregate.parent.mkdir(parents=True)
+    excerpt_aggregate.write_text(
+        json.dumps(
+            {
+                "mechanisms": {
+                    "attentional_v2": {"note_recall": 0.35},
+                    "iterator_v1": {"note_recall": 0.12},
+                }
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    accumulation_aggregate.write_text(
+        json.dumps(
+            {
+                "mechanisms": {
+                    "attentional_v2": {"average_quality_score": 2.58},
+                    "iterator_v1": {"average_quality_score": 3.08},
+                }
+            },
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    orchestrator._update_catalog_or_warn(
+        run_id="parent_run",
+        run_root=tmp_path / "parent_run",
+        summary_payload={
+            "excerpt": {
+                "job_id": "excerpt_job",
+                "aggregate_path": str(excerpt_aggregate),
+            },
+            "accumulation": {
+                "job_id": "accumulation_job",
+                "aggregate_path": str(accumulation_aggregate),
+            },
+        },
+    )
+
+    assert len(upserts) == 1
+    assert upserts[0]["entry"]["surface"] == "active_benchmark_bundle"
+    assert upserts[0]["entry"]["job_ids"] == ["excerpt_job", "accumulation_job"]
+    assert "0.35" in upserts[0]["entry"]["one_line_conclusion"]

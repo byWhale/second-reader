@@ -1,0 +1,372 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-04-21T12:17:06.278637Z",
+  "entries": [
+    {
+      "run_id": "attentional_v2_active_benchmark_rerun_20260419",
+      "surface": "active_benchmark_bundle",
+      "evaluation_goal": "Active benchmark bundle",
+      "status": "current_formal_evidence",
+      "dataset_id": "",
+      "dataset_path": "",
+      "manifest_path": "",
+      "mechanisms": [
+        "attentional_v2",
+        "iterator_v1"
+      ],
+      "metric_summary": {
+        "children": {
+          "excerpt": {
+            "run_id": "attentional_v2_user_level_selective_v1_active_rerun_20260419",
+            "job_id": "bgjob_user_level_selective_v1_active_formal_20260419"
+          },
+          "accumulation": {
+            "run_id": "attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419",
+            "job_id": "bgjob_accumulation_benchmark_v2_active_formal_20260419",
+            "reused_output_run_ids": [
+              "attentional_v2_user_level_selective_v1_active_rerun_20260419"
+            ]
+          }
+        }
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md",
+        "analysis_docs": [
+          "eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/analysis/full_case_audit_20260421/README.md"
+        ]
+      },
+      "job_ids": [
+        "bgjob_accumulation_benchmark_v2_active_formal_20260419",
+        "bgjob_user_level_selective_v1_active_formal_20260419"
+      ],
+      "one_line_conclusion": "Active benchmark bundle completed: V2 leads excerpt Selective Legibility; iterator_v1 leads target-centered long-span accumulation.",
+      "updated_at": "2026-04-21T12:17:06.195694Z"
+    },
+    {
+      "run_id": "attentional_v2_f4a_quality_audit_20260419",
+      "surface": "attentional_v2_quality_audit",
+      "evaluation_goal": "Focused mechanism quality audit",
+      "status": "quality_audit",
+      "dataset_id": "",
+      "dataset_path": "",
+      "manifest_path": "",
+      "mechanisms": [
+        "attentional_v2"
+      ],
+      "metric_summary": {
+        "case_count": 6,
+        "completed_case_count": 6,
+        "failed_case_count": 0
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_f4a_quality_audit_20260419",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_f4a_quality_audit_20260419/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_f4a_quality_audit_20260419/summary/report.md"
+      },
+      "job_ids": [
+        "bgjob_attentional_v2_f4a_quality_audit_20260419"
+      ],
+      "one_line_conclusion": "Focused quality audit found V2 reaction density and reading-time wording recovered, while detour behavior was not exercised.",
+      "updated_at": "2026-04-21T12:16:35.933720Z"
+    },
+    {
+      "run_id": "attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407",
+      "surface": "bounded_longspan_accumulation_v1",
+      "evaluation_goal": "Coherent Accumulation",
+      "status": "historical_evidence",
+      "dataset_id": "",
+      "dataset_path": "",
+      "manifest_path": "",
+      "mechanisms": [
+        "attentional_v2",
+        "iterator_v1"
+      ],
+      "metric_summary": {
+        "case_count": 7,
+        "target_summaries": {
+          "coherent_accumulation": {
+            "case_count": 7,
+            "winner_counts": {
+              "iterator_v1": 5,
+              "attentional_v2": 2
+            },
+            "average_scores": {
+              "attentional_v2": 2.457,
+              "iterator_v1": 3.486
+            },
+            "judge_unavailable_count": 0,
+            "mechanism_failure_count": 0
+          },
+          "insight_and_clarification": {
+            "case_count": 7,
+            "winner_counts": {
+              "iterator_v1": 4,
+              "attentional_v2": 2,
+              "tie": 1
+            },
+            "average_scores": {
+              "attentional_v2": 2.457,
+              "iterator_v1": 3.086
+            },
+            "judge_unavailable_count": 0,
+            "mechanism_failure_count": 0
+          }
+        }
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md",
+        "case_results": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/case_results.jsonl",
+        "llm_usage": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/llm_usage.json"
+      },
+      "job_ids": [],
+      "one_line_conclusion": "Historical bounded long-span v1 evidence: iterator_v1 won overall on retrospective bridging and window-end closure.",
+      "updated_at": "2026-04-21T12:17:06.237152Z"
+    },
+    {
+      "run_id": "attentional_v2_excerpt_surface_v1_1_judged_20260406",
+      "surface": "excerpt_surface_v1_1",
+      "evaluation_goal": "Selective Legibility / Insight and Clarification",
+      "status": "superseded",
+      "dataset_id": "",
+      "dataset_path": "",
+      "manifest_path": "",
+      "mechanisms": [
+        "attentional_v2",
+        "iterator_v1"
+      ],
+      "metric_summary": {
+        "case_count": 59,
+        "target_summaries": {
+          "selective_legibility": {
+            "case_count": 59,
+            "winner_counts": {
+              "attentional_v2": 27,
+              "iterator_v1": 21,
+              "tie": 11
+            },
+            "average_scores": {
+              "attentional_v2": 1.98,
+              "iterator_v1": 1.427
+            },
+            "judge_unavailable_count": 0,
+            "mechanism_failure_count": 0
+          },
+          "insight_and_clarification": {
+            "case_count": 43,
+            "winner_counts": {
+              "tie": 8,
+              "iterator_v1": 16,
+              "attentional_v2": 19
+            },
+            "average_scores": {
+              "attentional_v2": 2.2,
+              "iterator_v1": 1.688
+            },
+            "judge_unavailable_count": 0,
+            "mechanism_failure_count": 0
+          }
+        }
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406/summary/report.md",
+        "case_results": "eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406/summary/case_results.jsonl",
+        "llm_usage": "eval/runs/attentional_v2/attentional_v2_excerpt_surface_v1_1_judged_20260406/summary/llm_usage.json"
+      },
+      "job_ids": [],
+      "one_line_conclusion": "Superseded excerpt surface v1.1 formal evidence retained for historical comparison, no longer active benchmark authority.",
+      "updated_at": "2026-04-21T12:17:06.277653Z"
+    },
+    {
+      "run_id": "attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419",
+      "surface": "target_centered_accumulation_v2",
+      "evaluation_goal": "Coherent Accumulation",
+      "status": "current_formal_evidence",
+      "dataset_id": "",
+      "dataset_path": "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416",
+      "manifest_path": "eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json",
+      "mechanisms": [
+        "attentional_v2",
+        "iterator_v1"
+      ],
+      "metric_summary": {
+        "case_count": 12,
+        "segment_count": 3,
+        "question_family": "reader_character.coherent_accumulation",
+        "mechanisms": {
+          "attentional_v2": {
+            "average_quality_score": 2.583,
+            "average_callback_score": 0.25,
+            "case_count": 12,
+            "judge_unavailable_count": 0,
+            "mechanism_unavailable_count": 0
+          },
+          "iterator_v1": {
+            "average_quality_score": 3.083,
+            "average_callback_score": 0.333,
+            "case_count": 12,
+            "judge_unavailable_count": 0,
+            "mechanism_unavailable_count": 0
+          }
+        },
+        "derived_comparison": {
+          "winner_counts": {
+            "iterator_v1": 8,
+            "attentional_v2": 4
+          },
+          "comparison_rule": "quality_score_then_callback_score_then_tie",
+          "case_count": 12
+        }
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md",
+        "case_results": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/case_results.jsonl",
+        "llm_usage": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/llm_usage.json",
+        "selection": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/selection.json"
+      },
+      "job_ids": [
+        "bgjob_accumulation_benchmark_v2_active_formal_20260419"
+      ],
+      "one_line_conclusion": "Current target-centered long-span v2 rerun: iterator_v1 leads average quality score 3.083 vs attentional_v2 2.583.",
+      "updated_at": "2026-04-21T12:16:35.894645Z"
+    },
+    {
+      "run_id": "attentional_v2_user_level_selective_v1_active_rerun_20260419",
+      "surface": "user_level_selective_v1",
+      "evaluation_goal": "Selective Legibility",
+      "status": "current_formal_evidence",
+      "dataset_id": "",
+      "dataset_path": "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416",
+      "manifest_path": "eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json",
+      "mechanisms": [
+        "attentional_v2",
+        "iterator_v1"
+      ],
+      "metric_summary": {
+        "note_case_count": 203,
+        "segment_count": 10,
+        "mechanisms": {
+          "attentional_v2": {
+            "note_recall": 0.3498,
+            "exact_match_count": 32,
+            "focused_hit_count": 39,
+            "incidental_cover_count": 21,
+            "miss_count": 111,
+            "note_case_count": 203
+          },
+          "iterator_v1": {
+            "note_recall": 0.1232,
+            "exact_match_count": 9,
+            "focused_hit_count": 16,
+            "incidental_cover_count": 7,
+            "miss_count": 171,
+            "note_case_count": 203
+          }
+        }
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/report.md",
+        "llm_usage": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/summary/llm_usage.json"
+      },
+      "job_ids": [
+        "bgjob_user_level_selective_v1_active_formal_20260419"
+      ],
+      "one_line_conclusion": "Current active user-level selective rerun: attentional_v2 leads note recall 0.3498 vs iterator_v1 0.1232.",
+      "updated_at": "2026-04-21T12:16:35.854868Z"
+    },
+    {
+      "run_id": "attentional_v2_user_level_selective_v1_failed_shards_retry2_20260415",
+      "surface": "user_level_selective_v1",
+      "evaluation_goal": "Selective Legibility",
+      "status": "invalidated_diagnostic",
+      "dataset_id": "",
+      "dataset_path": "",
+      "manifest_path": "",
+      "mechanisms": [],
+      "metric_summary": {},
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_failed_shards_retry2_20260415"
+      },
+      "job_ids": [
+        "bgjob_user_level_selective_v1_failed_shards_retry2_20260415"
+      ],
+      "one_line_conclusion": "Invalidated diagnostic run stopped after discovering string-similarity candidate retrieval instead of strict source-span overlap.",
+      "updated_at": "2026-04-21T12:16:36.141752Z"
+    },
+    {
+      "run_id": "attentional_v2_user_level_selective_v1_rejudge_reuse_20260416",
+      "surface": "user_level_selective_v1",
+      "evaluation_goal": "Selective Legibility",
+      "status": "failed_diagnostic",
+      "dataset_id": "",
+      "dataset_path": "",
+      "manifest_path": "",
+      "mechanisms": [],
+      "metric_summary": {},
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_rejudge_reuse_20260416",
+        "llm_usage": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_rejudge_reuse_20260416/summary/llm_usage.json"
+      },
+      "job_ids": [
+        "bgjob_user_level_selective_v1_rejudge_reuse_20260416"
+      ],
+      "one_line_conclusion": "Failed diagnostic run retained for the split-manifest contamination and watchdog relaunch failure chain.",
+      "updated_at": "2026-04-21T12:16:36.104222Z"
+    },
+    {
+      "run_id": "attentional_v2_user_level_selective_v1_repaired_rejudge_20260416",
+      "surface": "user_level_selective_v1",
+      "evaluation_goal": "Selective Legibility",
+      "status": "superseded",
+      "dataset_id": "",
+      "dataset_path": "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416",
+      "manifest_path": "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/attentional_v2_user_level_selective_v1_repaired_20260416_draft.json",
+      "mechanisms": [
+        "attentional_v2",
+        "iterator_v1"
+      ],
+      "metric_summary": {
+        "note_case_count": 203,
+        "segment_count": 10,
+        "mechanisms": {
+          "attentional_v2": {
+            "note_recall": 0.0,
+            "exact_match_count": 0,
+            "focused_hit_count": 0,
+            "incidental_cover_count": 0,
+            "miss_count": 203,
+            "note_case_count": 203
+          },
+          "iterator_v1": {
+            "note_recall": 0.2118,
+            "exact_match_count": 13,
+            "focused_hit_count": 30,
+            "incidental_cover_count": 19,
+            "miss_count": 141,
+            "note_case_count": 203
+          }
+        }
+      },
+      "run_paths": {
+        "run_dir": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416",
+        "aggregate": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/aggregate.json",
+        "report": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/report.md",
+        "llm_usage": "eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_repaired_rejudge_20260416/summary/llm_usage.json"
+      },
+      "job_ids": [
+        "bgjob_user_level_selective_v1_repaired_rejudge_20260416"
+      ],
+      "one_line_conclusion": "Superseded repaired strict source-span rejudge; replaced by the April 19 active rerun on the repaired 203-case package.",
+      "updated_at": "2026-04-21T12:16:36.065475Z"
+    }
+  ]
+}

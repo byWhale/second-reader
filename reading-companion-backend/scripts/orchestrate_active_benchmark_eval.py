@@ -24,6 +24,7 @@ from src.reading_runtime.background_job_registry import (  # noqa: E402
     refresh_background_jobs,
     relaunch_background_job,
 )
+from scripts.update_evaluation_catalog import build_entry, upsert_catalog_entry  # noqa: E402
 
 
 PYTHON = BACKEND_ROOT / ".venv" / "bin" / "python"
@@ -304,6 +305,38 @@ def _render_report(*, run_id: str, excerpt_child: dict[str, Any], accumulation_c
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _update_catalog_or_warn(*, run_id: str, run_root: Path, summary_payload: dict[str, Any]) -> None:
+    try:
+        excerpt_aggregate = json.loads(Path(str(summary_payload["excerpt"]["aggregate_path"])).read_text(encoding="utf-8"))
+        accumulation_aggregate = json.loads(
+            Path(str(summary_payload["accumulation"]["aggregate_path"])).read_text(encoding="utf-8")
+        )
+        v2_recall = excerpt_aggregate["mechanisms"]["attentional_v2"]["note_recall"]
+        v1_recall = excerpt_aggregate["mechanisms"]["iterator_v1"]["note_recall"]
+        v2_quality = accumulation_aggregate["mechanisms"]["attentional_v2"]["average_quality_score"]
+        v1_quality = accumulation_aggregate["mechanisms"]["iterator_v1"]["average_quality_score"]
+        entry = build_entry(
+            run_id=run_id,
+            surface="active_benchmark_bundle",
+            status="current_formal_evidence",
+            run_dir=run_root,
+            mechanisms=["attentional_v2", "iterator_v1"],
+            job_ids=[
+                str(summary_payload["excerpt"]["job_id"]),
+                str(summary_payload["accumulation"]["job_id"]),
+            ],
+            one_line_conclusion=(
+                "Active benchmark bundle completed: "
+                f"excerpt note_recall attentional_v2={v2_recall} vs iterator_v1={v1_recall}; "
+                f"long-span average_quality_score attentional_v2={v2_quality} vs iterator_v1={v1_quality}."
+            ),
+        )
+        upsert_catalog_entry(entry)
+        log("Updated evaluation evidence catalog for active benchmark parent run.")
+    except Exception as exc:  # pragma: no cover - defensive operator logging
+        log(f"WARNING: failed to update evaluation evidence catalog: {exc}")
+
+
 def parse_args() -> argparse.Namespace:
     date_slug = datetime.now(timezone.utc).strftime("%Y%m%d")
     parser = argparse.ArgumentParser(description=__doc__)
@@ -499,6 +532,7 @@ def main() -> int:
         ),
         encoding="utf-8",
     )
+    _update_catalog_or_warn(run_id=str(args.run_id), run_root=run_root, summary_payload=summary_payload)
     log(
         "Completed active benchmark rerun "
         f"{args.run_id}: excerpt={args.excerpt_run_id}, accumulation={args.accumulation_run_id}"

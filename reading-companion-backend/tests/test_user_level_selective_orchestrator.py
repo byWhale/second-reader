@@ -306,3 +306,45 @@ def test_reset_failed_shard_outputs_preserves_reuse_output_dir(tmp_path: Path, m
 
     assert preserved_output_dir.exists()
     assert not (shard_root / "summary").exists()
+
+
+def test_update_catalog_only_for_complete_mechanism_set(monkeypatch, tmp_path: Path) -> None:
+    upserts: list[dict] = []
+    monkeypatch.setattr(orchestrator, "build_entry", lambda **kwargs: {"entry": kwargs})
+    monkeypatch.setattr(orchestrator, "upsert_catalog_entry", lambda entry: upserts.append(entry))
+
+    aggregate = {
+        "dataset_dir": str(tmp_path / "dataset"),
+        "manifest_path": str(tmp_path / "manifest.json"),
+        "mechanisms": {
+            "attentional_v2": {"note_recall": 0.3},
+            "iterator_v1": {"note_recall": 0.1},
+        },
+    }
+
+    orchestrator._update_catalog_or_warn(
+        run_id="run_full",
+        run_root=tmp_path / "run_full",
+        aggregate=aggregate,
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        full_scope=True,
+    )
+    orchestrator._update_catalog_or_warn(
+        run_id="run_filtered",
+        run_root=tmp_path / "run_filtered",
+        aggregate=aggregate,
+        mechanism_keys=("attentional_v2",),
+        full_scope=True,
+    )
+    orchestrator._update_catalog_or_warn(
+        run_id="run_partial",
+        run_root=tmp_path / "run_partial",
+        aggregate=aggregate,
+        mechanism_keys=("attentional_v2", "iterator_v1"),
+        full_scope=False,
+    )
+
+    assert len(upserts) == 1
+    assert upserts[0]["entry"]["surface"] == "user_level_selective_v1"
+    assert upserts[0]["entry"]["status"] == "current_formal_evidence"
+    assert "0.3" in upserts[0]["entry"]["one_line_conclusion"]
