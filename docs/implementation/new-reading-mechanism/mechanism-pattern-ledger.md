@@ -317,6 +317,33 @@ This file is a living working ledger. Stable rules still belong in `docs/backend
 - Next action:
   - require each meaningful evaluation closeout to include result, causal interpretation, and selective implementation disposition rather than winner/loser prose alone
 
+### 11. Attentional V2 dynamic unitization is more robust to dirty local text than section-first traversal
+- Pattern kind: `strength`
+- Source mechanism: `attentional_v2`
+- Potential destination: future mechanism comparison and evaluation interpretation
+- Why it matters:
+  - Some source books contain non-lexical separator residue, such as standalone symbolic divider paragraphs, that can look like "dirty characters" in reading output.
+  - A section-first mechanism can preserve that residue inside large precomputed sections, causing otherwise plausible reactions to carry polluted quoted anchors.
+  - `attentional_v2` showed a cleaner behavior on the same material because `Navigate.unitize` chooses the live reading unit from a narrow current preview instead of inheriting one prebuilt section as local truth.
+  - This means V2's advantage over V1 is not only about score or reaction density; it also includes cleaner local reading units and better resistance to malformed section substrate.
+- Evidence:
+  - source package evidence that the separator residue already exists before mechanism output:
+    - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260422/segment_sources/nawaer_baodian_private_zh__segment_1.txt`
+  - `iterator_v1` section substrate evidence:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/shards/nawaer_baodian_private_zh__iterator_v1/outputs/nawaer_baodian_private_zh__segment_1/iterator_v1/_mechanisms/iterator_v1/derived/structure.json`
+    - example `SEG 1.25` includes repeated separator residue together with the leverage passage
+    - example `SEG 1.12` absorbs the full "我看重纳瓦尔，是因为他：" list block plus follow-up prose
+  - user-visible polluted-anchor evidence:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/shards/nawaer_baodian_private_zh__iterator_v1/outputs/nawaer_baodian_private_zh__segment_1/iterator_v1/_mechanisms/iterator_v1/exports/normalized_eval_bundle.json`
+    - one normalized `iterator_v1` `anchor_quote` begins with separator residue before the leverage quote and body passage
+  - `attentional_v2` dynamic unitization evidence:
+    - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419/shards/nawaer_baodian_private_zh__attentional_v2/outputs/nawaer_baodian_private_zh__segment_1/attentional_v2/_mechanisms/attentional_v2/runtime/read_audit.jsonl`
+    - several nearby V2 unitization decisions treat separator residue as thin structure and merge it with adjacent real body text
+    - one residual V2 unit still overreads a separator as standalone structure, so this is an observed advantage rather than a solved guarantee
+- Status: `observed`
+- Next action:
+  - use this as interpretation context when comparing V1 and V2; no repair strategy is recorded in this entry
+
 ### 9. A full judged lane can finish cleanly yet still be unusable if every case falls back to `mechanism_unavailable`
 - Pattern kind: `anti_pattern`
 - Source mechanism: evaluation harness / provider posture
