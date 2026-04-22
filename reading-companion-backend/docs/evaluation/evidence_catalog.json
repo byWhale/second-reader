@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-04-22T12:56:33.923973Z",
+  "updated_at": "2026-04-22T15:12:28Z",
   "entries": [
     {
       "run_id": "attentional_v2_active_benchmark_rerun_20260419",
@@ -42,8 +42,8 @@
         "bgjob_accumulation_v2_rejudge_contract_fix_20260422",
         "bgjob_user_level_selective_v1_active_formal_20260419"
       ],
-      "one_line_conclusion": "Active benchmark bundle completed: V2 leads excerpt Selective Legibility. The original April 19 Long Span child is invalidated by the repaired contract and replaced by the April 22 rejudge, where V2 leads.",
-      "updated_at": "2026-04-21T12:17:06.195694Z"
+      "one_line_conclusion": "Active benchmark bundle remains the current formal excerpt evidence bundle. Its Long Span child and the later April 22 target-centered rejudge are both preserved only as discontinued diagnostic evidence after the Long Span route change.",
+      "updated_at": "2026-04-22T15:12:28Z"
     },
     {
       "run_id": "attentional_v2_f4a_quality_audit_20260419",
@@ -76,7 +76,7 @@
       "run_id": "attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407",
       "surface": "bounded_longspan_accumulation_v1",
       "evaluation_goal": "Coherent Accumulation",
-      "status": "invalidated_diagnostic",
+      "status": "historical_evidence",
       "dataset_id": "",
       "dataset_path": "",
       "manifest_path": "",
@@ -242,7 +242,7 @@
       "run_id": "attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422",
       "surface": "target_centered_accumulation_v2",
       "evaluation_goal": "Coherent Accumulation",
-      "status": "current_formal_evidence",
+      "status": "invalidated_diagnostic",
       "dataset_id": "attentional_v2_user_level_selective_v1_repaired_20260416",
       "dataset_path": "state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416",
       "manifest_path": "eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json",
@@ -288,8 +288,8 @@
         "selection": "eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/selection.json"
       },
       "job_ids": [],
-      "one_line_conclusion": "Formal target-centered accumulation v2 rerun completed; attentional_v2 average_quality_score=2.333, iterator_v1 average_quality_score=1.",
-      "updated_at": "2026-04-22T12:56:33.923891Z"
+      "one_line_conclusion": "This April 22 rejudge repaired the old target-visible evidence contract, but the underlying target-centered question is no longer the current Long Span direction; preserve it as the last corrected diagnostic for the discontinued route.",
+      "updated_at": "2026-04-22T15:12:28Z"
     },
     {
       "run_id": "attentional_v2_user_level_selective_v1_active_rerun_20260419",

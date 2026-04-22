@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-22T20:46:30+08:00`
+Last updated: `2026-04-22T23:12:28+08:00`
 
 ## Status Values
 - `active`
@@ -222,18 +222,18 @@ Last updated: `2026-04-22T20:46:30+08:00`
   - `bgjob_job_registry_auto_recovery_watchdog_full_window_spotcheck_20260421` (`running`)
 
 ### `TASK-ACCUMULATION-BENCHMARK-V2` — Land the target-centered long-span accumulation v2 framework
-- Status: `active`
+- Status: `done`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/backend-reader-evaluation.md`
-- Next: keep bounded long-span v1 as historical mechanism evidence, but treat `target-centered long-span accumulation v2` as the active long-span methodology.
+- Next: keep bounded long-span v1 as historical mechanism evidence, and keep `target-centered accumulation v2` as a discontinued / invalidated long-span route whose final April 22 rejudge remains readable only as diagnostic evidence.
   - landed design doc:
     - `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
   - landed builder / schema:
     - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
   - landed runner:
     - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
-  - active v2 evaluation contract:
+  - archived route contract:
     - one `target_span / target_zone`
     - `2+` upstream nodes plus one explicit `expected_integration`
     - absolute per-mechanism `quality_score` as the main output
@@ -245,9 +245,9 @@ Last updated: `2026-04-22T20:46:30+08:00`
     - do not credit `target_span`, `upstream_refs`, or `expected_integration` as mechanism output evidence
     - no direct judging of raw mechanism-specific memory/state structures
     - no pairwise LLM judge prompt
-  - active substrate:
-    - reuse the repaired active `user-level selective v1` reading windows
-  - current frozen reviewed seed set:
+  - archived substrate:
+    - reused the repaired active `user-level selective v1` reading windows
+  - archived frozen reviewed seed set:
     - unified review / freeze record:
       - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
     - frozen dataset:
@@ -259,7 +259,7 @@ Last updated: `2026-04-22T20:46:30+08:00`
       - `悉达多`: `6`
       - `活出生命的意义`: `4`
       - `芒格之道`: `2`
-  - current formal-rerun evidence:
+  - last corrected diagnostic evidence:
     - run id:
       - `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422`
     - summary:
@@ -268,7 +268,7 @@ Last updated: `2026-04-22T20:46:30+08:00`
       - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md`
     - completed scope:
       - `12` target cases across `3` shared reading windows and `2` mechanisms
-    - result:
+    - result under the discontinued route:
       - `attentional_v2 average_quality_score = 2.333`
       - `iterator_v1 average_quality_score = 1.0`
     - reuse posture:
@@ -281,10 +281,42 @@ Last updated: `2026-04-22T20:46:30+08:00`
       - `iterator_v1 average_quality_score = 3.083`
     - invalidation reason:
       - the old judge contract could credit target source text itself or pre-target callbacks as if they were target-visible mechanism evidence
+  - route-change outcome:
+    - this task is now complete as historical implementation work
+    - the project no longer treats this route as the active Long Span methodology
+    - current active Long Span design authority has moved to:
+      - `Memory Quality`
+      - `Spontaneous Callback`
+      - `False Visible Integration`
 - Jobs:
   - `bgjob_accumulation_benchmark_v2_active_formal_20260419` (`completed`)
   - `bgjob_accumulation_v2_rejudge_contract_fix_20260422` (`completed`)
   - `bgjob_job_registry_auto_recovery_watchdog_longspan_rejudge_20260422` (`completed / stopped`)
+
+### `TASK-LONG-SPAN-MEMORY-DIRECTION-V1` — Design the new Long Span benchmark around memory quality and callback audit
+- Status: `active`
+- Lane: `dataset_platform`
+- Priority: `high`
+- Detail: `docs/backend-reader-evaluation.md`
+- Next: implement the new active Long Span direction as a three-metric benchmark family:
+  - `Memory Quality`
+    - probe-based holistic evaluation of memory/state snapshots during continuous reading
+    - no gold-sentence requirement
+    - no hard dependency on human notes
+  - `Spontaneous Callback`
+    - complete-window visible reaction audit for natural callbacks to earlier material
+  - `False Visible Integration`
+    - negative audit of callback-like reactions for weak grounding, hard-linking, or drift
+  - implementation posture:
+    - keep using the active `user-level selective v1` reading windows as the first substrate
+    - add probe-based state snapshots rather than target-centered target spans
+    - audit full-window reactions rather than score one prepared target point
+  - current state:
+    - design frozen in stable docs
+    - no formal benchmark run yet
+    - next implementation move is to define the probe bundle, reaction-audit bundle, and judge contracts
+- Jobs:
+  - none yet
 
 ### `TASK-USER-LEVEL-SELECTIVE-V1` — Replace the active local/user-level benchmark with the note-aligned selective package
 - Status: `active`
@@ -446,7 +478,7 @@ Last updated: `2026-04-22T20:46:30+08:00`
 - Lane: `dataset_platform`
 - Priority: `high`
 - Detail: `docs/backend-reader-evaluation.md`
-- Next: keep the April 19 formal rerun as the current active benchmark evidence bundle; do not relaunch by default unless a new mechanism or dataset change requires fresh evidence.
+- Next: keep the April 19 formal rerun as the current active benchmark evidence bundle for excerpt only; do not relaunch by default unless a new mechanism or dataset change requires fresh evidence.
   - parent run:
     - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md`
   - excerpt child:
@@ -457,12 +489,13 @@ Last updated: `2026-04-22T20:46:30+08:00`
     - run id: `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
     - scope: `12` target cases across `3` windows and `2` mechanisms
     - result: `attentional_v2 average_quality_score = 2.583`; `iterator_v1 average_quality_score = 3.083`
-    - status: superseded / invalidated for the Long Span child because the judge contract credited non-target-visible evidence
-  - replacement long-span rejudge:
+    - status: discontinued / invalidated diagnostic evidence because the judge contract credited non-target-visible evidence
+  - preserved long-span rejudge for the discontinued route:
     - run id: `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422`
     - scope: `12` target cases across `3` windows and `2` mechanisms
     - result: `attentional_v2 average_quality_score = 2.333`; `iterator_v1 average_quality_score = 1.0`
     - posture: rejudge-only; no reading rerun
+    - status: discontinued / invalidated diagnostic evidence after the Long Span route change
   - April 21 repair note:
     - all shard outputs were complete, but a shard-filtered recovery invocation had overwritten the excerpt root summary with a partial one-shard aggregate
     - the root summary/report were regenerated from all completed shards

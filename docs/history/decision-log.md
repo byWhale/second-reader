@@ -2138,3 +2138,37 @@ The accumulation child is queued behind the same parent and will reuse overlappi
 - `reading-companion-backend/tests/test_attentional_v2_survey.py`
 - `reading-companion-backend/tests/test_attentional_v2_resume.py`
 - `reading-companion-backend/tests/test_attentional_v2_scaffold.py`
+
+## Entry 73
+**ID**: DEC-076
+**Status**: active
+
+**Decision / Inflection**: Retire `target-centered accumulation v2` as the active Long Span methodology and replace it with a new three-metric direction centered on `Memory Quality`, `Spontaneous Callback`, and `False Visible Integration`.
+
+**Period**: April 22, 2026, after the April 22 rejudge repaired the old target-visible evidence contract, but the project concluded that the underlying Long Span product question itself had shifted.
+
+**Problem**: The April 22 rejudge fixed a real bug in the `target-centered accumulation v2` route: it stopped giving credit from the target passage itself or from pre-target callbacks that never became target-visible mechanism evidence. But once that contract was repaired, a more fundamental issue became hard to ignore: the route was still asking the wrong first-order question for the current stage of the project. It was still centered on whether the Reader visibly reconstructed one prepared thread at one target point. The project had by then clarified that its nearer-term goal was different: verify that the Reader is actually reading continuously, forming high-quality memory over time, naturally callbacking prior material when it makes sense, and not inventing false visible integrations. Continuing to treat target-point visible reconstruction as the active Long Span authority would have kept the benchmark focused on prompt-facing visibility rather than on the context-management and memory-quality behavior the product now wanted to validate.
+
+**Alternatives considered**: Keep `target-centered accumulation v2` as the active Long Span route and merely soften the interpretation of its scores, continue to treat the April 22 rejudge as the current formal Long Span authority while adding a second memory-oriented benchmark beside it, or abandon Long Span work entirely until a later product phase clarified visible integration requirements.
+
+**Why this path won**: The new direction better matches the product question the team actually wants answered now. `Memory Quality` directly tests whether continuous reading produces retained, organized, mainline-faithful memory rather than isolated local interpretations. `Spontaneous Callback` gives a lightweight observable check that the Reader is not reading each unit as a disconnected sample. `False Visible Integration` keeps that callback pressure honest by penalizing overclaim, hard-linking, and drift. Together they test the value of the new context-management system much more directly than a single prepared target-point reconstruction question. This route also avoids conflating prompt style with memory quality: a mechanism can remember without always visibly restating its memory at one curated target, so the old target-centered question was too easy to misread as a memory verdict.
+
+**What changed in the system**: Stable evaluation authority now explicitly treats `target-centered accumulation v2` as a discontinued / invalidated historical route whose runs, manifests, case sets, and audit docs remain preserved but no longer define the active Long Span methodology. The active Long Span direction in stable docs is now:
+- `Memory Quality`
+- `Spontaneous Callback`
+- `False Visible Integration`
+
+This new direction is design frozen but not yet implemented as a formal benchmark run. The first intended substrate remains the active `user-level selective v1` reading windows, but the benchmark contract will shift from prepared target cases to probe-based memory snapshots plus complete-window reaction audits.
+
+**Why it matters later**: Without this entry, future contributors would see the April 22 rejudge, note that it fixed the old contract, and reasonably infer that `target-centered accumulation v2` remained the active Long Span authority. That would reopen exactly the wrong optimization loop: improving target-point visible reconstruction when the current project need is to validate continuous-reading memory quality and grounded callback behavior. This entry records the deeper route change so later work can distinguish “a repaired old method” from “the current method direction.”
+
+**Primary evidence**:
+- `docs/backend-reader-evaluation.md`
+- `docs/current-state.md`
+- `docs/tasks/registry.md`
+- `docs/tasks/registry.json`
+- `reading-companion-backend/docs/evaluation/README.md`
+- `reading-companion-backend/docs/evaluation/long_span/README.md`
+- `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
+- `reading-companion-backend/docs/evaluation/evidence_catalog.json`
+- `reading-companion-backend/docs/evaluation/evidence_catalog.md`

@@ -7,108 +7,43 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-22T20:46:30+08:00`
+Last verified: `2026-04-22T23:12:28+08:00`
 
 ## Current Objective
-- Keep `target-centered long-span accumulation v2` as the active long-span methodology while preserving bounded long-span v1 as historical evidence.
-  - active design doc:
-    - `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
-  - landed builder / schema:
-    - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
-  - landed runner:
-    - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
-  - retained implementation mirror:
-    - manifest:
+- Shift Long Span from the discontinued `target-centered accumulation v2` method to the new active design direction:
+  - `Memory Quality`
+  - `Spontaneous Callback`
+  - `False Visible Integration`
+  - stable authority:
+    - `docs/backend-reader-evaluation.md`
+    - `reading-companion-backend/docs/evaluation/long_span/README.md`
+  - current posture:
+    - the new long-span direction is design-frozen but not implemented yet
+    - there is currently no formal long-span benchmark run under the new direction
+    - the next long-span implementation move is:
+      - probe-based state snapshots over the active user-level windows for `Memory Quality`
+      - complete-window reaction audit for `Spontaneous Callback`
+      - negative callback-quality audit for `False Visible Integration`
+  - preserved discontinued evidence:
+    - target-centered design doc:
+      - `reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md`
+    - landed builder / runner kept as historical implementation evidence:
+      - `reading-companion-backend/eval/attentional_v2/accumulation_benchmark_v2.py`
+      - `reading-companion-backend/eval/attentional_v2/run_accumulation_evaluation_v2.py`
+    - retained manifests / datasets:
       - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
-    - dataset:
+      - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json`
       - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
-  - active v2 method shape:
-    - evaluate one mechanism at a time with absolute scoring
-    - center each case on one `target_span / target_zone` plus a prepared long-range thread
-    - use `target_local_reactions`, `explicit_callback_actions`, and `short_horizon_followups` as the judge evidence bundle
-    - do not directly score raw mechanism-specific memory/state structures
-    - first release only covers `reader_character.coherent_accumulation`
-  - current dataset posture:
-    - the first reviewed/frozen v2 target-case set now exists
-    - current active window substrate is now reused from:
-      - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260422`
-    - evidence boundary:
-      - the completed April 19 long-span formal rerun still reused overlapping excerpt outputs from the then-active prior repaired package `attentional_v2_user_level_selective_v1_repaired_20260416`
-      - the frozen long-span set itself did not change, because it does not include `nawaer_baodian_private_zh`
-    - first frozen reviewed seed set is now landed:
-      - review doc:
-        - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
-      - frozen case dataset:
-        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen`
-      - split manifests:
-        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json`
-      - retained mirror only:
-        - `reading-companion-backend/eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json`
-        - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_draft`
-      - current frozen-set truth:
-        - `12` frozen target cases total
-        - `悉达多`: `6`
-        - `活出生命的意义`: `4`
-        - `芒格之道`: `2`
-      - deferred long-span line:
-        - `The Value of Others` current four local-detail cases have been removed from the active v2 batch
-        - if it re-enters long-span curation later, it should do so only after a separate theory-architecture pass
-      - held-back experimental line:
-        - `芒格之道` now has a new-method experimental review at:
-          - `reading-companion-backend/docs/evaluation/long_span/target_centered_mangge_experimental_review.md`
-        - the unified review entry now lives in:
-          - `reading-companion-backend/docs/evaluation/long_span/target_centered_candidate_review.md`
-        - `mangge_seg1_exp_tc01` and `tc02` are now part of the frozen official set
-        - `mangge_seg1_exp_tc03` remains held back as experimental-only
-        - use the unified review doc as the main review/freeze record, and never fall back to the older substrate memo
-      - current gate:
-        - keep the frozen seed set stable unless explicit re-curation is requested
-        - the user explicitly requested a full formal V1/V2 rerun on April 19
-        - active parent rerun:
-          - job id:
-            - `bgjob_active_benchmark_rerun_20260419`
-          - run id:
-            - `attentional_v2_active_benchmark_rerun_20260419`
-        - active excerpt child:
-          - job id:
-            - `bgjob_user_level_selective_v1_active_formal_20260419`
-          - run id:
-            - `attentional_v2_user_level_selective_v1_active_rerun_20260419`
-        - superseded accumulation child:
-          - job id:
-            - `bgjob_accumulation_benchmark_v2_active_formal_20260419`
-          - run id:
-            - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
-          - invalidated diagnostic evidence:
-            - `12` frozen target cases completed across `3` windows and `2` mechanisms
-            - `attentional_v2 average_quality_score = 2.583`
-            - `iterator_v1 average_quality_score = 3.083`
-            - overlapping excerpt reading outputs were reused rather than reread
-            - this result is no longer current Long Span mechanism evidence because the old judge contract could credit target source text itself and pre-target callback evidence
-            - report:
-              - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md`
-        - current Long Span rejudge:
-          - job id:
-            - `bgjob_accumulation_v2_rejudge_contract_fix_20260422`
-          - run id:
-            - `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422`
-          - current evidence:
-            - rejudge-only over the completed April 19 normalized reading bundles
-            - no V1/V2 reading was rerun
-            - `12` frozen target cases completed across `3` windows and `2` mechanisms
-            - `attentional_v2 average_quality_score = 2.333`
-            - `iterator_v1 average_quality_score = 1.0`
-            - repaired contract only credits target-visible mechanism behavior:
-              - target-local reactions
-              - target-proximal callbacks
-              - short-horizon followups
-            - report:
-              - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md`
-            - audit:
-              - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md`
-  - historical boundary:
-    - keep `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` as durable historical mechanism evidence
-    - do not treat the old bounded `EARLY / MID / LATE` probe method as the active long-span methodology anymore
+      - `reading-companion-backend/state/eval_local_datasets/accumulation_target_cases/attentional_v2_accumulation_benchmark_v2_cases_frozen`
+    - April 22 corrected rejudge is kept only as the last diagnostic evidence for the discontinued target-centered line:
+      - `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422`
+      - `attentional_v2 average_quality_score = 2.333`
+      - `iterator_v1 average_quality_score = 1.0`
+      - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md`
+    - April 19 first formal target-centered rerun remains invalidated diagnostic evidence:
+      - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+    - bounded long-span v1 remains older historical evidence:
+      - `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
 - Keep the note-aligned `user-level selective v1` package as the active local/user-level benchmark, now promoted onto the repaired `202`-case package.
   - active split manifest:
     - `reading-companion-backend/eval/manifests/splits/attentional_v2_user_level_selective_v1_draft.json`

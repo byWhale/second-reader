@@ -1,9 +1,10 @@
 # Long-Span Evaluation Reports
 
-This directory now has two layers:
+This directory now has three layers:
 
 - historical bounded long-span judged reports from `accumulation benchmark v1`
-- active design and working materials for `target-centered long-span accumulation v2`
+- discontinued `target-centered accumulation v2` design and diagnostic evidence
+- the new active Long Span direction, which is design-frozen but not yet implemented as a formal benchmark run
 
 ## Conventions
 
@@ -15,12 +16,39 @@ This directory now has two layers:
 - Use [../evidence_catalog.md](../evidence_catalog.md) as the durable evidence catalog across current, historical, superseded, audit, and diagnostic runs.
 - After a full root-level long-span merge/report completes, update the catalog through `scripts/update_evaluation_catalog.py`; shard-filtered recovery outputs must not own catalog updates.
 
+## Current Active Direction
+
+The current active Long Span direction is no longer `target-centered accumulation v2`.
+
+The active direction is now a design-frozen three-metric line:
+
+- `Memory Quality`
+  - sample probe points inside one continuous reading window
+  - judge the current memory/state snapshot holistically
+  - do not predeclare gold sentences or hard-bind human notes into the contract
+- `Spontaneous Callback`
+  - audit all visible reactions in a completed reading window
+  - count and interpret reactions that naturally recall or connect prior material
+- `False Visible Integration`
+  - audit callback-like reactions for overclaim, hard-linking, vague theme-only similarity, or memory drift
+
+Current implementation posture:
+
+- active substrate:
+  - the repaired `user-level selective v1` reading windows
+- methodology status:
+  - active design direction
+  - design frozen
+  - implementation pending
+- formal evidence status:
+  - there is no current formal Long Span benchmark run yet under this new direction
+
 ## Historical Durable Evidence
 
-The current durable long-span evidence bundle is the cleaned April 7 rerun:
+The cleaned April 7 rerun remains the durable bounded long-span historical bundle:
 
 - Run ID: `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
-- Status: `completed`
+- Status: `historical durable evidence`
 - Compared mechanisms: `attentional_v2` vs `iterator_v1`
 - Current interpretation:
   - `iterator_v1` wins the overall bounded long-span surface on retrospective bridging and window-end closure.
@@ -28,82 +56,81 @@ The current durable long-span evidence bundle is the cleaned April 7 rerun:
 
 Do not use the older April 6 lane as current mechanism evidence; it remains historical machine output, but it was diagnosed as an invalid harness/materialization lane rather than a clean long-span comparison artifact.
 
-## Active V2 Design
+## Discontinued Target-Centered V2
 
-- Active methodology pointer:
-  - `target-centered long-span accumulation v2`
-- Stable design document:
+`target-centered accumulation v2` is no longer the active Long Span methodology.
+
+It is preserved because it still matters as design history and diagnostic evidence:
+
+- stable archived design document:
   - [target_centered_accumulation_v2_design.md](./target_centered_accumulation_v2_design.md)
-- Current implementation scaffolding:
+- implementation artifacts kept readable:
   - [accumulation_benchmark_v2.py](../../../eval/attentional_v2/accumulation_benchmark_v2.py)
   - [run_accumulation_evaluation_v2.py](../../../eval/attentional_v2/run_accumulation_evaluation_v2.py)
-- Split manifests:
   - [attentional_v2_accumulation_benchmark_v2_frozen.json](../../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_frozen.json)
   - retained implementation mirror:
     - [attentional_v2_accumulation_benchmark_v2_draft.json](../../../eval/manifests/splits/attentional_v2_accumulation_benchmark_v2_draft.json)
 
-`v2` is now the active long-span method definition. Its active window substrate pointer now follows:
+Why it was discontinued:
 
-- [attentional_v2_user_level_selective_v1_repaired_20260422](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260422/manifest.json)
+- the April 22 rejudge repaired the old target-visible evidence contract, so the method became internally more correct
+- but the project later concluded that the product question itself had shifted
+- current priority is no longer “did the mechanism visibly reconstruct the prepared thread at one target point?”
+- current priority is:
+  - did the reader form high-quality memory under continuous reading?
+  - did it naturally callback prior material?
+  - were those callbacks grounded rather than forced?
 
-The current completed April 19 formal long-span rerun still reused the then-active prior repaired substrate:
+That means the April 22 rejudge is preserved as the last corrected diagnostic for the discontinued target-centered route, not as the authority for the current Long Span direction.
 
-- [attentional_v2_user_level_selective_v1_repaired_20260416](../../../state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260416/manifest.json)
+Target-centered frozen-set context remains readable:
 
-This Naval-only active-window repair does not change the frozen long-span set, because `《纳瓦尔宝典》` is not part of that active v2 case pack.
+- frozen seed-set truth:
+  - `12` frozen cases total
+  - `悉达多`: `6`
+  - `活出生命的意义`: `4`
+  - `芒格之道`: `2`
+  - `The Value of Others`: deferred to a later architecture-first pass
+  - one additional `芒格之道` line remains held back as experimental only
 
-It has a first frozen reviewed seed set and a repaired formal judged rerun.
+Discontinued route evidence:
 
-Current frozen seed-set truth:
-- `12` frozen cases total
-- `悉达多`: `6`
-- `活出生命的意义`: `4`
-- `芒格之道`: `2`
-- `The Value of Others`: deferred to a later architecture-first pass
-- one additional `芒格之道` line remains held back as experimental only
+- contract-fix rejudge:
+  - run id:
+    - `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422`
+  - status:
+    - `invalidated diagnostic`
+  - interpretation:
+    - this run fixed the old target-visible evidence contract so only target-near mechanism evidence could score
+    - it remains useful to understand why the old route changed, but it no longer represents the current active Long Span methodology
+  - machine outputs:
+    - [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/aggregate.json)
+    - [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md)
+  - case audit:
+    - [longspan_rejudge_audit_20260422](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md)
 
-Current formal evidence:
-- run id:
-  - `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422`
-- contract:
-  - rejudge-only over the April 19 completed normalized reading bundles
-  - score only target-visible mechanism behavior:
-    - target-local reactions
-    - target-proximal explicit callbacks
-    - short-horizon followups
-  - do not credit `target_span`, `upstream_refs`, or `expected_integration` as mechanism output evidence
-- result:
-  - `attentional_v2 average_quality_score = 2.333`
-  - `iterator_v1 average_quality_score = 1.0`
-- machine outputs:
-  - [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/aggregate.json)
-  - [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md)
-- case audit:
-  - [longspan_rejudge_audit_20260422](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md)
-
-Superseded / invalidated diagnostic evidence:
-- run id:
-  - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
-- issue:
-  - the first judge contract could give high scores from the target passage itself or from callbacks observed before the target, even when the mechanism produced no target-visible accumulation evidence
-- old result:
-  - `attentional_v2 average_quality_score = 2.583`
-  - `iterator_v1 average_quality_score = 3.083`
-- machine outputs:
-  - [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json)
-  - [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md)
+- first formal rerun under the old contract:
+  - run id:
+    - `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419`
+  - status:
+    - `invalidated diagnostic`
+  - issue:
+    - the first judge contract could give credit from the target passage itself or from pre-target callbacks, even when the mechanism produced no target-visible accumulation evidence
+  - machine outputs:
+    - [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json)
+    - [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md)
 
 ## Reports
 
 | Report title | Run ID | Surface | Compared mechanisms | Status | One-line conclusion | Evidence |
 | --- | --- | --- | --- | --- | --- | --- |
-| Target-centered long-span accumulation v2 contract-fix rejudge | `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422` | `target-centered long-span accumulation v2` | `attentional_v2` vs `iterator_v1` | `current formal evidence` | `attentional_v2 leads after the repaired target-visible evidence contract: 2.333 vs iterator_v1 at 1.0 across 12 target cases.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md) · [audit](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md) |
-| Target-centered long-span accumulation v2 first formal rerun | `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419` | `target-centered long-span accumulation v2` | `attentional_v2` vs `iterator_v1` | `invalidated diagnostic` | `Preserved to diagnose the old judge-contract flaw; no longer used as current Long Span mechanism evidence.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md) |
-| Long-Span 正式 judged eval 详细解读 | `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` | `bounded long-span accumulation comparison` | `attentional_v2` vs `iterator_v1` | `completed` | `iterator_v1` wins the current durable long-span surface overall; attentional_v2 is cleaner on some single-chapter main-thread probes but still trails on retrospective long-span closure.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md) · [interpretation](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_interpretation.md) |
+| Discontinued target-centered accumulation v2 contract-fix rejudge | `attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422` | `target-centered accumulation v2` | `attentional_v2` vs `iterator_v1` | `invalidated diagnostic` | `This run repaired the old target-visible evidence contract, but the underlying product question was later retired in favor of Memory Quality / Spontaneous Callback / False Visible Integration.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md) · [audit](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md) |
+| Discontinued target-centered accumulation v2 first formal rerun | `attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419` | `target-centered accumulation v2` | `attentional_v2` vs `iterator_v1` | `invalidated diagnostic` | `Preserved to diagnose the old judge-contract flaw; no longer used as current Long Span mechanism evidence.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_active_rerun_20260419/summary/report.md) |
+| Long-Span 正式 judged eval 详细解读 | `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` | `bounded long-span accumulation comparison` | `attentional_v2` vs `iterator_v1` | `historical durable evidence` | `iterator_v1` wins the current durable bounded long-span surface overall; attentional_v2 is cleaner on some single-chapter main-thread probes but still trails on retrospective long-span closure.` | [aggregate](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/aggregate.json) · [report](../../../eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407/summary/report.md) · [interpretation](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_interpretation.md) |
 | Long-Span 正式 judged eval 后续反思与机制重设计备忘 | `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407` | `post-eval mechanism reflection` | `attentional_v2` vs `iterator_v1` | `ongoing` | `The first completed probe-level reflection already suggests that attentional_v2 should replace heuristic semantic triggering with one Reading Agent organized around the two actions navigate and read, while realigning span visibility with span-closing authority.` | [interpretation](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_interpretation.md) · [reaction appendix](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_score_impact_reaction_appendix.md) · [follow-up memo](./attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407_followup_reflection_and_decisions.md) |
 
 ## Working Memos
 
-- [Target-centered candidate review](./target_centered_candidate_review.md): current unified v2 review and freeze record. It captures the `12`-case frozen seed set across `悉达多`, `活出生命的意义`, and the first two `芒格之道` lines, while keeping `The Value of Others` deferred and one weaker `芒格` line held back.
-- [Target-centered 芒格 experimental review](./target_centered_mangge_experimental_review.md): source-specific companion for `芒格之道`. Keep it only as a per-book supplement; use the unified candidate review above as the main review entry.
-- [Historical pre-curation substrate memo](./archive/long_span_substrate_candidate_memo.md): archived mining memo from the earlier pre-freeze substrate pass. Keep it as historical curation context only, not as a current working entry.
+- [Target-centered candidate review](./target_centered_candidate_review.md): preserved review/freeze record for the discontinued target-centered v2 route. Keep it readable as design history, not as a current active benchmark authoring entry.
+- [Target-centered 芒格 experimental review](./target_centered_mangge_experimental_review.md): source-specific companion for `芒格之道`. Keep it only as a per-book supplement for the discontinued route.
+- [Historical pre-curation substrate memo](./archive/long_span_substrate_candidate_memo.md): archived mining memo from the earlier pre-freeze substrate pass. Keep it as historical curation context only.

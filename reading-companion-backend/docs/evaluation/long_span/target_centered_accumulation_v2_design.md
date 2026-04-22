@@ -1,18 +1,44 @@
 # Target-Centered Long-Span Accumulation V2
 
-This document defines the active design for long-span accumulation evaluation after retiring the old bounded `EARLY / MID / LATE` probe method as the active methodology.
+This document is the archived design record for the discontinued `target-centered accumulation v2` long-span method.
 
-`accumulation benchmark v1` remains preserved as historical evidence. `v2` is the active design and implementation direction.
+It no longer defines the active Long Span methodology. The active direction has moved to:
 
-## Goal
+- `Memory Quality`
+- `Spontaneous Callback`
+- `False Visible Integration`
 
-The question is no longer:
+`accumulation benchmark v1` remains preserved as historical bounded evidence. `target-centered accumulation v2` remains preserved as design history and diagnostic evidence.
+
+## Status
+
+- Method status:
+  - `archived / discontinued`
+- Why it was retired:
+  - not because the route was still internally buggy after the April 22 contract-fix rejudge
+  - but because the product question changed
+- What the project now prioritizes instead:
+  - whether the Reader forms high-quality memory during continuous reading
+  - whether it naturally callbacks earlier material
+  - whether those callbacks are grounded rather than forced
+
+Keep this document readable for:
+
+- historical schema/context recovery
+- old run interpretation
+- preserved implementation ownership
+
+Do not treat it as the current active Long Span authority.
+
+## Historical Goal
+
+At the time this route was active, the question was no longer:
 
 - did the reader react at an early point?
 - did it react again at a middle point?
 - did it react again at a late point?
 
-The question is now:
+The route-specific question became:
 
 - when the mechanism reaches the prepared target point, does it successfully build the earlier long-range thread there?
 
@@ -22,7 +48,7 @@ The thread may be:
 - an argumentative line
 - a concept-building or distinction-building line
 
-## Case Schema
+## Archived Case Schema
 
 Each `TargetCase` contains:
 
@@ -51,22 +77,22 @@ Each `TargetCase` contains:
 - `curation_status`
   - draft/review/freeze gate state
 
-The active coordinate system is `segment_source_v1`, because the mechanisms read the rendered window substrate rather than raw source-book chapter ids during this benchmark.
+The route-specific coordinate system is `segment_source_v1`, because the mechanisms read the rendered window substrate rather than raw source-book chapter ids during this benchmark.
 
-## Window Substrate
+## Historical Window Substrate
 
-`v2` reuses the active `user-level selective v1` reading windows:
+When this route was active, `v2` reused the then-active `user-level selective v1` reading windows:
 
-- current window dataset:
+- window dataset at route retirement:
   - `reading-companion-backend/state/eval_local_datasets/user_level_benchmarks/attentional_v2_user_level_selective_v1_repaired_20260422`
 
 - evidence boundary:
   - the completed April 19 formal long-span rerun still reused overlapping outputs from the then-active prior repaired window dataset `attentional_v2_user_level_selective_v1_repaired_20260416`
   - the April 22 Naval-only active-window repair does not change the frozen long-span case set because `《纳瓦尔宝典》` is not in that active v2 batch
 
-This keeps the reading setup aligned with the repaired body-start rule and avoids maintaining a second long-span-only window family unless later evidence shows that these windows are insufficient.
+This kept the reading setup aligned with the repaired body-start rule and avoided maintaining a second long-span-only window family.
 
-## Evidence Bundle
+## Archived Evidence Bundle
 
 The judge consumes a mechanism-agnostic `TargetEvidenceBundle`.
 
@@ -99,7 +125,7 @@ Rationale:
 - storing something internally without using it at the target point is not meaningful accumulation evidence
 - a judge can always infer a beautiful connection from the source text after the fact, but the benchmark is about whether the reader agent made that connection visible near the target
 
-## Judge Contract
+## Archived Judge Contract
 
 `v2` first release only scores:
 
@@ -171,7 +197,7 @@ The first mining order that produced the frozen seed set was:
 2. `活出生命的意义`
 3. `The Value of Others` only after a separate theory-architecture pass
 
-`芒格之道` began as a lower-priority experimental surface, but its first two reviewed lines are now inside the frozen seed set while one weaker line remains held back as experimental-only. `纳瓦尔宝典` is currently excluded from the main target dataset unless later review finds clearly stronger target-centered cases.
+`芒格之道` began as a lower-priority experimental surface, but its first two reviewed lines ended up inside the frozen seed set while one weaker line remained held back as experimental-only. `纳瓦尔宝典` stayed excluded from the main target dataset unless later review would have found clearly stronger target-centered cases.
 
 ## Files
 

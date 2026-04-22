@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-04-22T04:46:30Z",
+  "updated_at": "2026-04-22T15:12:28Z",
   "tasks": [
     {
       "id": "TASK-ACTIVE-BENCHMARK-FORMAL-RERUN",
@@ -28,7 +28,7 @@
         "bgjob_accumulation_v2_rejudge_contract_fix_20260422"
       ],
       "acceptance_ref": "docs/backend-reader-evaluation.md",
-      "next_action": "Keep the April 19 parent/excerpt evidence bundle, but treat the April 19 Long Span child as invalidated diagnostic evidence after the April 22 contract-fix rejudge. Parent report: reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md. Excerpt completed 203 note cases across 5 windows and 2 mechanisms: attentional_v2 note_recall = 0.3498; iterator_v1 note_recall = 0.1232. Replacement Long Span rejudge completed 12 frozen target cases across 3 windows and 2 mechanisms without rereading: attentional_v2 average_quality_score = 2.333; iterator_v1 average_quality_score = 1.0. April 21 repair: all shard outputs were complete, but a shard-filtered recovery invocation overwrote the excerpt root summary with a partial one-shard aggregate; root summary/report were regenerated from all completed shards, shard-filtered recovery now skips root-level merge/report ownership, and the parent orchestrator validates complete child outputs before treating terminal child status as fatal.",
+      "next_action": "Keep the April 19 parent/excerpt evidence bundle as the current active-benchmark evidence for excerpt only, but treat both the April 19 Long Span child and the April 22 contract-fix rejudge as discontinued diagnostic evidence after the Long Span route change. Parent report: reading-companion-backend/eval/runs/attentional_v2/attentional_v2_active_benchmark_rerun_20260419/summary/report.md. Excerpt completed 203 note cases across 5 windows and 2 mechanisms: attentional_v2 note_recall = 0.3498; iterator_v1 note_recall = 0.1232. Preserved discontinued Long Span rejudge completed 12 frozen target cases across 3 windows and 2 mechanisms without rereading: attentional_v2 average_quality_score = 2.333; iterator_v1 average_quality_score = 1.0. April 21 repair: all shard outputs were complete, but a shard-filtered recovery invocation overwrote the excerpt root summary with a partial one-shard aggregate; root summary/report were regenerated from all completed shards, shard-filtered recovery now skips root-level merge/report ownership, and the parent orchestrator validates complete child outputs before treating terminal child status as fatal.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -46,13 +46,13 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md"
       ],
-      "last_updated": "2026-04-22T04:46:30Z",
+      "last_updated": "2026-04-22T15:12:28Z",
       "last_updated_by": "codex"
     },
     {
       "id": "TASK-ACCUMULATION-BENCHMARK-V2",
       "title": "Land the target-centered long-span accumulation v2 framework",
-      "status": "active",
+      "status": "done",
       "lane": "dataset_platform",
       "priority": "high",
       "detail_ref": "docs/backend-reader-evaluation.md",
@@ -74,7 +74,7 @@
         "bgjob_job_registry_auto_recovery_watchdog_longspan_rejudge_20260422"
       ],
       "acceptance_ref": "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md",
-      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, but treat target-centered long-span accumulation v2 as the active long-span methodology under the repaired target-visible evidence contract. Current formal evidence: attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422 completed 12 target cases across 3 shared windows and 2 mechanisms without rereading. Result: attentional_v2 average_quality_score = 2.333; iterator_v1 average_quality_score = 1.0. The April 19 long-span child is preserved as invalidated diagnostic evidence because the old judge contract could credit target source text itself and pre-target callbacks.",
+      "next_action": "Keep bounded long-span v1 as historical mechanism evidence, and keep target-centered accumulation v2 as a discontinued / invalidated long-span route whose final April 22 rejudge remains readable only as diagnostic evidence. This task is complete as historical implementation work; the current active Long Span direction has moved to Memory Quality, Spontaneous Callback, and False Visible Integration.",
       "blocked_by": [],
       "evidence_refs": [
         "docs/backend-reader-evaluation.md",
@@ -98,7 +98,40 @@
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/summary/report.md",
         "reading-companion-backend/eval/runs/attentional_v2/attentional_v2_accumulation_benchmark_v2_frozen_rejudge_contract_fix_20260422/analysis/longspan_rejudge_audit_20260422/README.md"
       ],
-      "last_updated": "2026-04-22T04:46:30Z",
+      "last_updated": "2026-04-22T15:12:28Z",
+      "last_updated_by": "codex"
+    },
+    {
+      "id": "TASK-LONG-SPAN-MEMORY-DIRECTION-V1",
+      "title": "Design the new Long Span benchmark around memory quality and callback audit",
+      "status": "active",
+      "lane": "dataset_platform",
+      "priority": "high",
+      "detail_ref": "docs/backend-reader-evaluation.md",
+      "truth_refs": [
+        "docs/backend-reader-evaluation.md",
+        "docs/current-state.md",
+        "docs/tasks/registry.md",
+        "reading-companion-backend/docs/evaluation/README.md",
+        "reading-companion-backend/docs/evaluation/long_span/README.md"
+      ],
+      "decision_refs": [
+        "DEC-076"
+      ],
+      "job_refs": [],
+      "acceptance_ref": "docs/backend-reader-evaluation.md",
+      "next_action": "Implement the new active Long Span direction as a three-metric benchmark family: Memory Quality via probe-based holistic state/memory snapshots during continuous reading; Spontaneous Callback via complete-window visible reaction audit; and False Visible Integration via negative audit of callback-like reactions for weak grounding, hard-linking, or drift. Keep the active user-level selective windows as the first substrate. No formal benchmark run exists yet under this new direction.",
+      "blocked_by": [],
+      "evidence_refs": [
+        "docs/backend-reader-evaluation.md",
+        "docs/current-state.md",
+        "docs/tasks/registry.md",
+        "docs/history/decision-log.md",
+        "reading-companion-backend/docs/evaluation/README.md",
+        "reading-companion-backend/docs/evaluation/long_span/README.md",
+        "reading-companion-backend/docs/evaluation/long_span/target_centered_accumulation_v2_design.md"
+      ],
+      "last_updated": "2026-04-22T15:12:28Z",
       "last_updated_by": "codex"
     },
     {

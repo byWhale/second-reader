@@ -108,18 +108,27 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - the main metric should be note recall over user-visible reactions
   - if a repaired sibling package proves to be the durable corrected benchmark, promote it into the active pointer explicitly rather than leaving a long-lived dual-pointer posture
   - temporary dual-pointer transitions are acceptable only as short repair bridges and should be called out explicitly while they exist
-- `reader_character.coherent_accumulation` should now prefer a target-centered long-span surface:
-  - reuse one continuous reading window as substrate
-  - define one `target_span / target_zone`
-  - prepare one explicit long-range thread that should be reconstructed at that target point
-  - evaluate whether understanding compounds into that target-point integration instead of resetting locally
-- `reader_value.insight_and_clarification` remains an orthogonal output-value axis, but it is not part of long-span accumulation v2 first release.
+- the discontinued `reader_character.coherent_accumulation` target-centered surface is preserved only as invalidated / historical long-span evidence:
+  - it asked whether one prepared long-range thread became visibly reconstructed at one target point
+  - keep its runs, manifests, and audit docs readable, but do not treat that line as the current active long-span methodology
+- the current active long-span direction is now a design-frozen three-metric line:
+  - `Memory Quality`
+    - judge probe-point memory/state snapshots holistically during continuous reading
+  - `Spontaneous Callback`
+    - audit complete-window visible reactions for natural recalls or links to prior material
+  - `False Visible Integration`
+    - audit callback-like reactions for overclaim, hard-linking, theme-only similarity, or memory drift
+- this new long-span direction is active at the methodology layer but still pending benchmark implementation:
+  - there is no current formal long-span benchmark run under the new direction yet
+  - the planned substrate remains the active user-level selective reading windows unless later evidence requires a different window family
+- `reader_value.insight_and_clarification` remains an orthogonal output-value axis, but it is not part of the first release of the new long-span `Memory Quality / Spontaneous Callback / False Visible Integration` direction.
 - `excerpt surface` is now a historical chapter-scoped local-text surface name used by older formal runs.
 - the current active local benchmark meaning is `user-level selective`.
   - `local-only` and `state/eval_local_datasets/` are storage/distribution terms only
   - source-origin labels such as `public`, `private`, `manual download`, or `agent-downloaded` remain provenance only
-- the current active long-span methodology meaning is `target-centered long-span accumulation v2`.
-  - the older bounded probe surface remains historical evidence rather than the active method definition
+- there is currently no active formal long-span benchmark pointer.
+  - the active long-span authority now lives in the frozen design direction for `Memory Quality`, `Spontaneous Callback`, and `False Visible Integration`
+  - the older bounded probe surface and the later target-centered surface both remain preserved evidence rather than the active method definition
 - Stable evaluation practice should therefore avoid forcing excerpt and long-span datasets to share the same books or chapters when that coupling weakens fit or runtime efficiency.
 
 ## Active User-Level Selective Benchmark Rule
@@ -190,51 +199,41 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - miss count
 - `reader_value.insight_and_clarification` is intentionally deferred for this new active local benchmark until its own note-aligned scoring contract is designed explicitly.
 
-## Coherent-Accumulation Interpretation Rule
-- `reader_character.coherent_accumulation` is not the same thing as generic whole-book memory.
-- The active operational target is now target-centered long-span integration:
-  - the benchmark prepares one `target_span / target_zone`
-  - the case also prepares one long-range thread made of `upstream_nodes[]` plus `expected_integration`
-  - the evaluation question becomes:
-    - when the mechanism reaches the target point, does it actually build the prepared long-range thread there?
-- The target of evaluation is therefore not "did the mechanism react separately at early / middle / late points?"
-  - the target is whether the final target-point behavior shows that earlier material has been carried forward and used correctly
-- The target source passage, upstream refs, and expected integration are case-definition material, not mechanism-visible evidence.
-  - they may define what the judge should look for
-  - they must not create score by themselves
-  - if there is no target-local reaction, no target-proximal callback, and no short-horizon followup, the case should remain low-scored even when the target passage itself expresses a strong connection
-- A valid accumulation case usually reuses one continuous reading window and prepares:
-  - one `target_span`
-  - `2+` upstream nodes
-  - one expected integration statement that says what should be reconstructed at the target point
-- The benchmark may still use `EARLY / MID / LATE` as an authoring shorthand when that helps humans read the case, but those labels are no longer the active evaluation contract.
-- Books or chapters whose sections are largely independent are poor default accumulation surfaces even if they remain strong local excerpt surfaces.
+## Discontinued Target-Centered Long-Span Rule
+- `reader_character.coherent_accumulation` target-centered accumulation v2 is preserved as a discontinued long-span method, not as the current active benchmark direction.
+- That discontinued method asked:
+  - when the mechanism reaches one prepared target point, does it visibly reconstruct one prepared earlier thread there?
+- The April 22 repaired rejudge is the last corrected diagnostic result for that discontinued line.
+- Keep the old target-centered case schema, frozen seed set, and audit docs readable:
+  - they remain useful historical and diagnostic evidence
+  - they should not be extended or treated as current long-span authority
 
-## Long-Span Target-Case Grounding Rule
-- A target-centered long-span case is benchmark-ready only when the target point genuinely depends on earlier material.
-- Shared theme alone is not enough.
-- The prepared long-range thread may be:
-  - a narrative storyline
-  - an argumentative line
-  - a concept-building or distinction-building line
-- The benchmark-ready question is not "can a judge infer a connection after the fact?"
-  - it is "does the text itself justify expecting the target point to bring earlier material back into play?"
-- Strong target-centered cases therefore require:
-  - one clearly specified `target_span`
-  - one prepared long-range thread that already exists in the source window
-  - one clear `expected_integration` statement so the judge is not forced to invent the thread
-  - `non_goal_but_tempting_points[]` when nearby but wrong callbacks are likely
-- If the reader would have to supply most of the thread by outside inference, the case should be treated as weak or ambiguous rather than as true long-span accumulation evidence.
-- Distance does not need to be imposed as a separate synthetic rule once the prepared thread is already genuinely long-range in the source text.
-  - distance may still be recorded as metadata
-  - but the primary gate is whether the source-prepared thread itself is materially long-range
-- Candidate authoring should stay review-gated:
-  - first produce candidate memos or draft target cases
-  - then review them
-  - only then freeze them into the formal dataset
+## Active Long-Span Direction Rule
+- The current active long-span direction is no longer “did the target-point reaction visibly integrate earlier material?”
+- The current active long-span direction is:
+  - `Memory Quality`
+    - use probe points inside one continuous reading window
+    - judge the current memory/state snapshot as a whole
+    - ask what the reader has retained, whether those retained items are important, whether they belong to the book's mainline, whether they are organized clearly, and whether they remain faithful rather than drifting
+    - do not require prespecified gold sentences
+    - do not require human notes as hard-contract input
+  - `Spontaneous Callback`
+    - audit all visible reactions produced over the full reading window
+    - judge which reactions naturally recall or connect to prior material
+    - do not require a hard contract tying those callback judgments directly back to state snapshots; that relationship belongs to later analysis
+  - `False Visible Integration`
+    - audit callback-like reactions for weak grounding, overclaim, hard-linking, theme-only similarity, or memory drift
+- These three long-span goals are complementary, but they remain contract-level distinct:
+  - one metric can be strong while another is weak
+  - later analysis may compare them, but the benchmark contract should not collapse them into one forced score prematurely
+- The planned first implementation posture is:
+  - reuse the active user-level selective reading windows
+  - add probe-based state snapshots for `Memory Quality`
+  - add full-window reaction audit for `Spontaneous Callback` and `False Visible Integration`
+- There is currently no formal long-span benchmark run under this new direction yet.
 
-## Evidence-Grounded Report Writing Rule
-- Judged interpretation reports must separate at least four things explicitly:
+## Archived Target-Centered Report Writing Rule
+- Archived target-centered judged interpretation reports must separate at least four things explicitly:
   - the formal benchmark target
     - for example the formal `target_span`, prepared long-range thread, and expected integration
   - direct scored evidence
@@ -295,16 +294,17 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - preserve:
     - `attentional_v2_accumulation_benchmark_v1_judged_rerun_20260407`
   - interpret it as historical evidence produced by the older bounded `EARLY / MID / LATE` / pairwise-probe method
-- The active long-span methodology pointer now belongs to `target-centered long-span accumulation v2`.
-  - v2 reuses the active user-level reading windows as its substrate
-  - v2 evaluates one mechanism at a time with absolute scoring
-  - v2 compares mechanisms only as a derived report-layer operation after absolute scoring
-  - v2 first ships only `reader_character.coherent_accumulation`
-- The active long-span draft workflow is:
-  - define or revise the v2 case schema and judge rubric
-  - author candidate cases in draft only
-  - review those candidates explicitly
-  - freeze only the approved target cases
+- The bounded long-span v1 run and the later target-centered v2 reruns remain readable as historical / diagnostic evidence.
+- There is currently no active formal long-span benchmark pointer after the route change away from target-centered visible integration.
+- The current active long-span design pointer now belongs to the design-frozen three-metric direction in this file:
+  - `Memory Quality`
+  - `Spontaneous Callback`
+  - `False Visible Integration`
+- The planned first long-span implementation workflow is:
+  - define the probe-based state-snapshot contract for `Memory Quality`
+  - define the complete-window reaction-audit contract for `Spontaneous Callback`
+  - define the negative callback-quality contract for `False Visible Integration`
+  - freeze those contracts before any new formal long-span rerun is treated as current evidence
 - Historical broad freezes should remain readable, but they should not keep acting as the active benchmark pointer once a deliberate replacement has been recorded.
 
 ## Bounded Dataset-Platform Strategy Rule
