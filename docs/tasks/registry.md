@@ -7,7 +7,7 @@ Update when: task status, priority, blockers, decision refs, job refs, evidence 
 
 This document is the human-readable companion to `docs/tasks/registry.json`.
 
-Last updated: `2026-04-23T18:42:00+08:00`
+Last updated: `2026-04-23T19:28:00+08:00`
 
 ## Status Values
 - `active`
@@ -318,9 +318,15 @@ Last updated: `2026-04-23T18:42:00+08:00`
       - run id:
         - `attentional_v2_long_span_vnext_phase1_20260423`
       - command:
-        - `./.venv/bin/python eval/attentional_v2/run_long_span_vnext.py --run-id attentional_v2_long_span_vnext_phase1_20260423 --workers 4 --judge-mode llm --output-attempts 6 --output-retry-sleep-seconds 300`
+        - `./.venv/bin/python eval/attentional_v2/run_long_span_vnext.py --run-id attentional_v2_long_span_vnext_phase1_20260423 --workers 6 --judge-mode llm --output-attempts 6 --output-retry-sleep-seconds 300 --reaction-reuse-run-root eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419`
+      - output sourcing:
+        - `attentional_v2` is freshly read or same-run resumed for `Memory Quality` probe snapshots
+        - unchanged `iterator_v1` windows reuse April 19 normalized reading outputs for reaction audit
+        - only fingerprint-mismatched `iterator_v1` windows enter the fresh-read queue
+        - current expected fresh task set is `attentional_v2 × 5` plus `iterator_v1 × 1` for the repaired `nawaer_baodian_private_zh` window
       - recovery:
         - same-run reuse is enabled
+        - V1 cross-run reuse is guarded by `segment_id / start_sentence_id / end_sentence_id / source_chapter_ids / source_text_sha256`
         - watchdog checks every `300` seconds
     - next likely phase-2 line:
       - `iterator_v1` normalized probe export for cross-mechanism `Memory Quality`

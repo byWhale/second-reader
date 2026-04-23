@@ -118,9 +118,9 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
     - audit complete-window visible reactions for natural recalls or links to prior material
   - `False Visible Integration`
     - audit callback-like reactions for overclaim, hard-linking, theme-only similarity, or memory drift
-- this new long-span direction is active at the methodology layer but still pending benchmark implementation:
-  - there is no current formal long-span benchmark run under the new direction yet
-  - the planned substrate remains the active user-level selective reading windows unless later evidence requires a different window family
+- this new long-span direction is active at the methodology layer and now has a Phase-1 runner:
+  - there is no completed formal long-span benchmark authority under the new direction yet
+  - the Phase-1 substrate remains the active user-level selective reading windows unless later evidence requires a different window family
 - `reader_value.insight_and_clarification` remains an orthogonal output-value axis, but it is not part of the first release of the new long-span `Memory Quality / Spontaneous Callback / False Visible Integration` direction.
 - `excerpt surface` is now a historical chapter-scoped local-text surface name used by older formal runs.
 - the current active local benchmark meaning is `user-level selective`.
@@ -230,13 +230,16 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
   - reuse the active user-level selective reading windows
   - add probe-based state snapshots for `Memory Quality`
     - phase-1 scope is `attentional_v2` only
+    - `attentional_v2` windows are freshly read or same-run resumed so probe snapshots exist
   - add full-window reaction audit for `Spontaneous Callback` and `False Visible Integration`
     - phase-1 comparison scope is `attentional_v2` vs `iterator_v1`
+    - unchanged `iterator_v1` windows may reuse prior completed normalized reading outputs because reaction audit only consumes visible reactions
+    - reuse must be refused when `segment_id / start_sentence_id / end_sentence_id / source_chapter_ids / source_text_sha256` do not match the active window
   - landed runner:
     - `reading-companion-backend/eval/attentional_v2/run_long_span_vnext.py`
   - landed benchmark-only V2 probe export:
     - `reading-companion-backend/src/attentional_v2/benchmark_probes.py`
-- There is currently no formal long-span benchmark run under this new direction yet.
+- There is currently no completed formal long-span benchmark run under this new direction yet.
 
 ## Archived Target-Centered Report Writing Rule
 - Archived target-centered judged interpretation reports must separate at least four things explicitly:
@@ -311,7 +314,11 @@ Use `docs/backend-reading-mechanism.md` for shared mechanism-platform boundaries
     - probe-based state-snapshot contract for `Memory Quality`
     - complete-window reaction-audit contract for `Spontaneous Callback`
     - negative callback-quality contract for `False Visible Integration`
-  - the next move is to run the first real vNext evaluation and review whether phase 2 is needed before any new formal long-span rerun is treated as current evidence
+  - the first real vNext evaluation is running over the active five windows
+  - the runner reads only the minimum required fresh outputs:
+    - `attentional_v2` for V2 probe snapshots
+    - `iterator_v1` only for windows whose prior normalized outputs do not match the current active window fingerprint
+  - after the run finishes, review whether phase 2 is needed before any new formal long-span rerun is treated as current evidence
 - Historical broad freezes should remain readable, but they should not keep acting as the active benchmark pointer once a deliberate replacement has been recorded.
 
 ## Bounded Dataset-Platform Strategy Rule

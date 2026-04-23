@@ -41,6 +41,61 @@ def _window() -> runner.ReadingWindow:
     )
 
 
+def _window_b() -> runner.ReadingWindow:
+    return runner.ReadingWindow(
+        segment_id="segment_b",
+        source_id="source_b",
+        book_title="Book B",
+        author="Author B",
+        language_track="en",
+        start_sentence_id="c2-s1",
+        end_sentence_id="c2-s5",
+        source_chapter_ids=[2],
+        chapter_titles=["Chapter 2"],
+        target_note_count=20,
+        covered_note_count=20,
+        termination_reason="chapter_end_after_target_notes",
+        segment_source_path="segment_sources/segment_b.txt",
+    )
+
+
+def _write_dataset(dataset_dir: Path, windows: list[runner.ReadingWindow], source_text_by_segment: dict[str, str]) -> None:
+    (dataset_dir / "segment_sources").mkdir(parents=True, exist_ok=True)
+    (dataset_dir / "manifest.json").write_text(json.dumps({"segments_file": "segments.jsonl"}), encoding="utf-8")
+    with (dataset_dir / "segments.jsonl").open("w", encoding="utf-8") as handle:
+        for window in windows:
+            handle.write(json.dumps(runner.asdict(window), ensure_ascii=False) + "\n")
+            (dataset_dir / window.segment_source_path).write_text(
+                source_text_by_segment.get(window.segment_id, "Alpha. Beta."),
+                encoding="utf-8",
+            )
+
+
+def _write_reuse_shard(
+    *,
+    reuse_root: Path,
+    dataset_dir: Path,
+    window: runner.ReadingWindow,
+    mechanism_key: str = "iterator_v1",
+) -> Path:
+    shard_dir = reuse_root / "shards" / f"{window.source_id}__{mechanism_key}"
+    (shard_dir / "meta").mkdir(parents=True, exist_ok=True)
+    (shard_dir / "meta" / "selection.json").write_text(
+        json.dumps(
+            {
+                "dataset_dir": str(dataset_dir),
+                "segment_ids": [window.segment_id],
+                "mechanism_keys": [mechanism_key],
+            }
+        ),
+        encoding="utf-8",
+    )
+    output_dir = shard_dir / "outputs" / window.segment_id / mechanism_key
+    (output_dir / "_runtime").mkdir(parents=True, exist_ok=True)
+    (output_dir / "_runtime" / "run_state.json").write_text(json.dumps({"status": "completed"}), encoding="utf-8")
+    return output_dir
+
+
 def _book_document() -> dict[str, object]:
     return {
         "metadata": {"book": "Book A"},
@@ -264,6 +319,59 @@ def test_ensure_window_output_with_retries_retries_provider_overload(tmp_path: P
     assert payload["output_attempt"] == 2
 
 
+def test_find_reaction_reuse_output_accepts_matching_v1_window(tmp_path: Path, monkeypatch) -> None:
+    window = _window()
+    current_dataset = tmp_path / "current_dataset"
+    reuse_dataset = tmp_path / "reuse_dataset"
+    reuse_root = tmp_path / "reuse_run"
+    _write_dataset(current_dataset, [window], {window.segment_id: "Alpha. Beta."})
+    _write_dataset(reuse_dataset, [window], {window.segment_id: "Alpha. Beta."})
+    reuse_output_dir = _write_reuse_shard(reuse_root=reuse_root, dataset_dir=reuse_dataset, window=window)
+
+    monkeypatch.setattr(
+        runner,
+        "rebuild_normalized_bundle_from_completed_output",
+        lambda **_: {
+            "mechanism_label": "Current Iterator-Reader implementation",
+            "normalized_eval_bundle": {"reactions": [], "memory_summaries": []},
+        },
+    )
+
+    payload = runner.find_reaction_reuse_output(
+        current_dataset_dir=current_dataset,
+        window=window,
+        mechanism_key="iterator_v1",
+        reuse_run_root=reuse_root,
+    )
+
+    assert payload is not None
+    assert payload["status"] == "completed"
+    assert payload["run_mode"] == "reuse_reaction_output"
+    assert payload["output_dir"] == str(reuse_output_dir)
+    assert payload["reuse_validation"]["reason"] == "matched"
+
+
+def test_find_reaction_reuse_output_rejects_changed_window_source(tmp_path: Path) -> None:
+    window = _window()
+    current_dataset = tmp_path / "current_dataset"
+    reuse_dataset = tmp_path / "reuse_dataset"
+    reuse_root = tmp_path / "reuse_run"
+    _write_dataset(current_dataset, [window], {window.segment_id: "Alpha. Beta. Current."})
+    _write_dataset(reuse_dataset, [window], {window.segment_id: "Alpha. Beta. Old."})
+    _write_reuse_shard(reuse_root=reuse_root, dataset_dir=reuse_dataset, window=window)
+
+    payload = runner.find_reaction_reuse_output(
+        current_dataset_dir=current_dataset,
+        window=window,
+        mechanism_key="iterator_v1",
+        reuse_run_root=reuse_root,
+    )
+
+    assert payload is not None
+    assert payload["status"] == "rejected"
+    assert payload["validation"]["reason"] == "source_text_sha256_mismatch"
+
+
 def test_run_long_span_vnext_writes_separated_memory_and_reaction_outputs(tmp_path: Path, monkeypatch) -> None:
     run_root = tmp_path / "run"
     dataset_dir = tmp_path / "dataset"
@@ -352,3 +460,141 @@ def test_run_long_span_vnext_writes_separated_memory_and_reaction_outputs(tmp_pa
     report = (run_root / "summary" / "report.md").read_text(encoding="utf-8")
     assert "## Memory Quality (V2 only)" in report
     assert "## Reaction Audit" in report
+
+
+def test_run_long_span_vnext_reuses_v1_for_unchanged_windows_only(tmp_path: Path, monkeypatch) -> None:
+    run_root = tmp_path / "run"
+    current_dataset = tmp_path / "current_dataset"
+    reuse_dataset = tmp_path / "reuse_dataset"
+    reuse_root = tmp_path / "reuse_run"
+    window_a = _window()
+    window_b = _window_b()
+    _write_dataset(
+        current_dataset,
+        [window_a, window_b],
+        {
+            window_a.segment_id: "Alpha. Beta.",
+            window_b.segment_id: "Current Book B.",
+        },
+    )
+    _write_dataset(
+        reuse_dataset,
+        [window_a, window_b],
+        {
+            window_a.segment_id: "Alpha. Beta.",
+            window_b.segment_id: "Old Book B.",
+        },
+    )
+    _write_reuse_shard(reuse_root=reuse_root, dataset_dir=reuse_dataset, window=window_a)
+    _write_reuse_shard(reuse_root=reuse_root, dataset_dir=reuse_dataset, window=window_b)
+
+    monkeypatch.setattr(runner, "_resolve_dataset_dir", lambda manifest_path: current_dataset)
+    monkeypatch.setattr(runner, "_load_windows", lambda dataset_dir: [window_a, window_b] if dataset_dir == current_dataset else [window_a, window_b])
+    monkeypatch.setattr(
+        runner,
+        "rebuild_normalized_bundle_from_completed_output",
+        lambda **kwargs: {
+            "mechanism_label": kwargs["mechanism_key"],
+            "normalized_eval_bundle": {
+                "reactions": [
+                    {
+                        "reaction_id": f"{kwargs['mechanism_key']}-{kwargs['segment_id']}-r1",
+                        "type": "highlight",
+                        "section_ref": "1.1",
+                        "anchor_quote": "Anchor",
+                        "content": "Reaction content",
+                    }
+                ],
+                "memory_summaries": [],
+            },
+        },
+    )
+
+    fresh_calls: list[tuple[str, str]] = []
+
+    def _fake_ensure_window_output_with_retries(**kwargs):
+        window = kwargs["window"]
+        mechanism_key = kwargs["mechanism_key"]
+        fresh_calls.append((window.segment_id, mechanism_key))
+        output_dir = run_root / "outputs" / window.segment_id / mechanism_key
+        (output_dir / "public").mkdir(parents=True, exist_ok=True)
+        (output_dir / "public" / "book_document.json").write_text(json.dumps(_book_document()), encoding="utf-8")
+        if mechanism_key == "attentional_v2":
+            memory_quality_probe_export_file(output_dir).parent.mkdir(parents=True, exist_ok=True)
+            memory_quality_probe_export_file(output_dir).write_text(
+                json.dumps(
+                    {
+                        "snapshots": [
+                            {
+                                "probe_index": 1,
+                                "threshold_ratio": 0.2,
+                                "capture_sentence_id": "c1-s2",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+        return {
+            "status": "completed",
+            "mechanism_key": mechanism_key,
+            "mechanism_label": mechanism_key,
+            "output_dir": str(output_dir),
+            "normalized_eval_bundle": {
+                "reactions": [
+                    {
+                        "reaction_id": f"{mechanism_key}-{window.segment_id}-fresh-r1",
+                        "type": "highlight",
+                        "section_ref": "1.1",
+                        "anchor_quote": "Anchor",
+                        "content": "Reaction content",
+                    }
+                ],
+                "memory_summaries": [],
+            },
+            "run_mode": "fresh",
+        }
+
+    monkeypatch.setattr(runner, "ensure_window_output_with_retries", _fake_ensure_window_output_with_retries)
+    monkeypatch.setattr(
+        runner,
+        "judge_memory_quality_probe",
+        lambda **kwargs: {
+            "salience_score": 4,
+            "mainline_fidelity_score": 4,
+            "organization_score": 3,
+            "fidelity_score": 4,
+            "overall_memory_quality_score": 4,
+            "reason": "Retained the mainline clearly.",
+        },
+    )
+    monkeypatch.setattr(
+        runner,
+        "audit_window_reactions",
+        lambda **kwargs: [
+            {
+                "reaction_id": reaction["reaction_id"],
+                "label": "local_only",
+                "reason": "classified in test",
+            }
+            for reaction in kwargs["normalized_bundle"].get("reactions", [])
+        ],
+    )
+    monkeypatch.setattr(runner, "write_llm_usage_summary", lambda run_root: None)
+
+    aggregate = runner.run_long_span_vnext(
+        run_root=run_root,
+        manifest_path=tmp_path / "unused.json",
+        judge_mode="llm",
+        workers=4,
+        reaction_reuse_run_root=reuse_root,
+    )
+
+    assert ("segment_a", "iterator_v1") not in fresh_calls
+    assert ("segment_b", "iterator_v1") in fresh_calls
+    assert ("segment_a", "attentional_v2") in fresh_calls
+    assert ("segment_b", "attentional_v2") in fresh_calls
+    assert aggregate["output_modes"]["segment_a:iterator_v1"] == "reuse_reaction_output"
+    assert aggregate["output_modes"]["segment_b:iterator_v1"] == "fresh"
+    sourcing = json.loads((run_root / "meta" / "output_sourcing.json").read_text(encoding="utf-8"))
+    assert sourcing["fresh_task_count"] == 3

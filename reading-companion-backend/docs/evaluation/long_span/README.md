@@ -47,8 +47,13 @@ Current implementation posture:
     - phase-1 scope:
       - `Memory Quality`: `attentional_v2` only
       - reaction audit: `attentional_v2` vs `iterator_v1`
+    - output sourcing:
+      - `attentional_v2` is freshly read or same-run resumed so `Memory Quality` probe snapshots exist
+      - unchanged `iterator_v1` windows reuse April 19 completed normalized outputs for reaction audit
+      - `iterator_v1` is re-read only when the active window fingerprint differs from the reuse source
+      - fingerprint checks cover `segment_id / start_sentence_id / end_sentence_id / source_chapter_ids / source_text_sha256`
 - formal evidence status:
-  - there is no current formal Long Span benchmark run yet under this new direction
+  - there is no completed formal Long Span benchmark run yet under this new direction
 
 ## Historical Durable Evidence
 

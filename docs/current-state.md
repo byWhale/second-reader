@@ -7,7 +7,7 @@ Update when: the current objective, active tasks, blockers, active jobs, open de
 
 This file is authoritative for durable current status. Do not keep unique active-state information only in `docs/agent-handoff.md`.
 
-Last verified: `2026-04-23T18:42:00+08:00`
+Last verified: `2026-04-23T19:28:00+08:00`
 
 ## Current Objective
 - Shift Long Span from the discontinued `target-centered accumulation v2` method to the new active design direction:
@@ -42,14 +42,19 @@ Last verified: `2026-04-23T18:42:00+08:00`
       - run id:
         - `attentional_v2_long_span_vnext_phase1_20260423`
       - runner command:
-        - `./.venv/bin/python eval/attentional_v2/run_long_span_vnext.py --run-id attentional_v2_long_span_vnext_phase1_20260423 --workers 4 --judge-mode llm --output-attempts 6 --output-retry-sleep-seconds 300`
+        - `./.venv/bin/python eval/attentional_v2/run_long_span_vnext.py --run-id attentional_v2_long_span_vnext_phase1_20260423 --workers 6 --judge-mode llm --output-attempts 6 --output-retry-sleep-seconds 300 --reaction-reuse-run-root eval/runs/attentional_v2/attentional_v2_user_level_selective_v1_active_rerun_20260419`
+      - output sourcing:
+        - `attentional_v2` fresh/resume outputs are required for `Memory Quality` probe snapshots
+        - `iterator_v1` defaults to April 19 completed normalized reading outputs for reaction audit
+        - `iterator_v1` is only re-read when the current active window fingerprint mismatches the April 19 output
+        - current expected fresh work is `attentional_v2 × 5` plus `iterator_v1 × 1` for `nawaer_baodian_private_zh`, because the Naval window moved to `c13`
       - expected outputs:
         - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_long_span_vnext_phase1_20260423/summary/aggregate.json`
         - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_long_span_vnext_phase1_20260423/summary/report.md`
       - recovery posture:
         - job is registered as recoverable
         - watchdog checks every `300` seconds
-        - runner uses same-run reuse for completed outputs and probe snapshots
+        - runner uses same-run reuse for completed V2 outputs/probe snapshots and cross-run reuse for unchanged V1 reaction-audit outputs
     - after the active run finishes, review whether the phase-1 report is already strong enough for a formal benchmark promotion, then decide phase-2 work:
       - `iterator_v1` probe-normalized `Memory Quality`
       - broader formal authority promotion

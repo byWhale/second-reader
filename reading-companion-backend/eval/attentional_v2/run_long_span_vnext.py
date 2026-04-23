@@ -8,6 +8,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -33,6 +34,7 @@ from src.reading_runtime.output_dir_overrides import override_output_dir
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_RUNS_ROOT = ROOT / "eval" / "runs" / "attentional_v2"
+DEFAULT_REACTION_REUSE_RUN_ROOT = DEFAULT_RUNS_ROOT / "attentional_v2_user_level_selective_v1_active_rerun_20260419"
 DEFAULT_TARGET = "long_span_vnext_phase1"
 DEFAULT_USER_INTENT = (
     "Read as a thoughtful co-reader, maintain meaningful memory continuity, and surface visible reactions when earlier material naturally comes back into view."
@@ -136,6 +138,11 @@ def _resolve_dataset_dir(manifest_path: Path) -> Path:
     return DATASET_DIR.resolve()
 
 
+def _resolve_path(value: object, *, base: Path = ROOT) -> Path:
+    path = Path(str(value))
+    return path if path.is_absolute() else (base / path).resolve()
+
+
 def _load_windows(dataset_dir: Path) -> list[ReadingWindow]:
     manifest = json.loads((dataset_dir / "manifest.json").read_text(encoding="utf-8"))
     rows: list[dict[str, Any]] = []
@@ -161,6 +168,184 @@ def _load_windows(dataset_dir: Path) -> list[ReadingWindow]:
         )
         for row in rows
     ]
+
+
+def _window_by_segment_id(dataset_dir: Path, segment_id: str) -> ReadingWindow | None:
+    try:
+        return next((window for window in _load_windows(dataset_dir) if window.segment_id == segment_id), None)
+    except Exception:
+        return None
+
+
+def _normalized_text_hash(text: str) -> str:
+    normalized = " ".join(str(text or "").split())
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def _window_source_hash(dataset_dir: Path, window: ReadingWindow) -> str:
+    path = dataset_dir / window.segment_source_path
+    if not path.exists():
+        return ""
+    return _normalized_text_hash(path.read_text(encoding="utf-8"))
+
+
+def _window_fingerprint(dataset_dir: Path, window: ReadingWindow) -> dict[str, Any]:
+    return {
+        "segment_id": window.segment_id,
+        "source_id": window.source_id,
+        "start_sentence_id": window.start_sentence_id,
+        "end_sentence_id": window.end_sentence_id,
+        "source_chapter_ids": list(window.source_chapter_ids),
+        "source_text_sha256": _window_source_hash(dataset_dir, window),
+    }
+
+
+def _candidate_reuse_output_dirs(
+    *,
+    reuse_run_root: Path,
+    window: ReadingWindow,
+    mechanism_key: str,
+) -> list[Path]:
+    candidates = [
+        reuse_run_root / "shards" / f"{window.source_id}__{mechanism_key}" / "outputs" / window.segment_id / mechanism_key,
+        reuse_run_root / "outputs" / window.segment_id / mechanism_key,
+    ]
+    candidates.extend(sorted(reuse_run_root.glob(f"shards/*__{mechanism_key}/outputs/{window.segment_id}/{mechanism_key}")))
+
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for candidate in candidates:
+        key = str(candidate.resolve()) if candidate.exists() else str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(candidate)
+    return unique
+
+
+def _reuse_selection_path(*, reuse_run_root: Path, window: ReadingWindow, mechanism_key: str) -> Path:
+    return reuse_run_root / "shards" / f"{window.source_id}__{mechanism_key}" / "meta" / "selection.json"
+
+
+def _validate_reuse_window_match(
+    *,
+    current_dataset_dir: Path,
+    current_window: ReadingWindow,
+    reuse_run_root: Path,
+    mechanism_key: str,
+) -> tuple[bool, dict[str, Any]]:
+    selection_path = _reuse_selection_path(
+        reuse_run_root=reuse_run_root,
+        window=current_window,
+        mechanism_key=mechanism_key,
+    )
+    report: dict[str, Any] = {
+        "reuse_run_root": str(reuse_run_root),
+        "selection_path": str(selection_path),
+        "reason": "",
+        "current_fingerprint": _window_fingerprint(current_dataset_dir, current_window),
+        "reuse_fingerprint": None,
+    }
+    if not selection_path.exists():
+        report["reason"] = "missing_selection"
+        return False, report
+
+    try:
+        selection = json.loads(selection_path.read_text(encoding="utf-8"))
+    except Exception:
+        report["reason"] = "invalid_selection"
+        return False, report
+
+    if current_window.segment_id not in {str(item) for item in selection.get("segment_ids") or []}:
+        report["reason"] = "selection_segment_mismatch"
+        return False, report
+    if mechanism_key not in {str(item) for item in selection.get("mechanism_keys") or []}:
+        report["reason"] = "selection_mechanism_mismatch"
+        return False, report
+
+    reuse_dataset_dir = _resolve_path(selection.get("dataset_dir", ""))
+    reuse_window = _window_by_segment_id(reuse_dataset_dir, current_window.segment_id)
+    if reuse_window is None:
+        report["reason"] = "missing_reuse_segment"
+        report["reuse_dataset_dir"] = str(reuse_dataset_dir)
+        return False, report
+
+    reuse_fingerprint = _window_fingerprint(reuse_dataset_dir, reuse_window)
+    report["reuse_dataset_dir"] = str(reuse_dataset_dir)
+    report["reuse_fingerprint"] = reuse_fingerprint
+
+    for key in ("segment_id", "start_sentence_id", "end_sentence_id", "source_chapter_ids", "source_text_sha256"):
+        if report["current_fingerprint"].get(key) != reuse_fingerprint.get(key):
+            report["reason"] = f"{key}_mismatch"
+            return False, report
+
+    report["reason"] = "matched"
+    return True, report
+
+
+def find_reaction_reuse_output(
+    *,
+    current_dataset_dir: Path,
+    window: ReadingWindow,
+    mechanism_key: str,
+    reuse_run_root: Path | None,
+) -> dict[str, Any] | None:
+    if mechanism_key != "iterator_v1" or reuse_run_root is None:
+        return None
+    reuse_run_root = reuse_run_root.resolve()
+    if not reuse_run_root.exists():
+        return None
+
+    matched, validation = _validate_reuse_window_match(
+        current_dataset_dir=current_dataset_dir,
+        current_window=window,
+        reuse_run_root=reuse_run_root,
+        mechanism_key=mechanism_key,
+    )
+    if not matched:
+        return {
+            "status": "rejected",
+            "mechanism_key": mechanism_key,
+            "segment_id": window.segment_id,
+            "validation": validation,
+        }
+
+    for output_dir in _candidate_reuse_output_dirs(
+        reuse_run_root=reuse_run_root,
+        window=window,
+        mechanism_key=mechanism_key,
+    ):
+        if run_state_status(output_dir) != "completed":
+            continue
+        try:
+            payload = _completed_output_payload(
+                mechanism_key=mechanism_key,
+                output_dir=output_dir,
+                segment_id=window.segment_id,
+            )
+        except Exception as exc:
+            validation = dict(validation)
+            validation["reason"] = "completed_output_rebuild_failed"
+            validation["error"] = str(exc)
+            return {
+                "status": "rejected",
+                "mechanism_key": mechanism_key,
+                "segment_id": window.segment_id,
+                "validation": validation,
+            }
+        payload["run_mode"] = "reuse_reaction_output"
+        payload["reuse_source_run_root"] = str(reuse_run_root)
+        payload["reuse_validation"] = validation
+        return payload
+
+    validation = dict(validation)
+    validation["reason"] = "missing_completed_output"
+    return {
+        "status": "rejected",
+        "mechanism_key": mechanism_key,
+        "segment_id": window.segment_id,
+        "validation": validation,
+    }
 
 
 def _mechanism_for_key(mechanism_key: str):
@@ -878,6 +1063,7 @@ def run_long_span_vnext(
     workers: int = 1,
     output_attempts: int = DEFAULT_OUTPUT_ATTEMPTS,
     output_retry_sleep_seconds: int = DEFAULT_OUTPUT_RETRY_SLEEP_SECONDS,
+    reaction_reuse_run_root: Path | None = DEFAULT_REACTION_REUSE_RUN_ROOT,
 ) -> dict[str, Any]:
     worker_count = max(1, int(workers or 1))
     dataset_dir = _resolve_dataset_dir(manifest_path)
@@ -887,6 +1073,8 @@ def run_long_span_vnext(
     if window_limit is not None:
         windows = windows[:window_limit]
 
+    reaction_reuse_run_root = reaction_reuse_run_root.resolve() if reaction_reuse_run_root else None
+
     (run_root / "meta").mkdir(parents=True, exist_ok=True)
     _json_dump(
         run_root / "meta" / "selected_windows.json",
@@ -894,15 +1082,44 @@ def run_long_span_vnext(
             "generated_at": _timestamp(),
             "dataset_dir": str(dataset_dir),
             "manifest_path": str(manifest_path),
+            "reaction_reuse_run_root": str(reaction_reuse_run_root) if reaction_reuse_run_root else "",
             "windows": [asdict(window) for window in windows],
+            "window_fingerprints": [_window_fingerprint(dataset_dir, window) for window in windows],
         },
     )
 
-    output_tasks = [
-        (window, mechanism_key)
-        for window in windows
-        for mechanism_key in MECHANISM_KEYS
-    ]
+    output_payloads: dict[tuple[str, str], dict[str, Any]] = {}
+    reuse_decisions: list[dict[str, Any]] = []
+    output_tasks: list[tuple[ReadingWindow, str]] = []
+    for window in windows:
+        output_tasks.append((window, "attentional_v2"))
+        reuse_payload = find_reaction_reuse_output(
+            current_dataset_dir=dataset_dir,
+            window=window,
+            mechanism_key="iterator_v1",
+            reuse_run_root=reaction_reuse_run_root,
+        )
+        if reuse_payload and reuse_payload.get("status") == "completed":
+            output_payloads[(window.segment_id, "iterator_v1")] = reuse_payload
+            reuse_decisions.append(
+                {
+                    "segment_id": window.segment_id,
+                    "mechanism_key": "iterator_v1",
+                    "decision": "reused",
+                    "output_dir": reuse_payload.get("output_dir"),
+                    "validation": reuse_payload.get("reuse_validation"),
+                }
+            )
+        else:
+            output_tasks.append((window, "iterator_v1"))
+            reuse_decisions.append(
+                {
+                    "segment_id": window.segment_id,
+                    "mechanism_key": "iterator_v1",
+                    "decision": "fresh_required",
+                    "validation": (reuse_payload or {}).get("validation") if isinstance(reuse_payload, dict) else None,
+                }
+            )
 
     def _ensure_output(task: tuple[ReadingWindow, str]) -> tuple[tuple[str, str], dict[str, Any]]:
         window, mechanism_key = task
@@ -917,8 +1134,26 @@ def run_long_span_vnext(
         )
         return (window.segment_id, mechanism_key), payload
 
-    output_payloads: dict[tuple[str, str], dict[str, Any]] = dict(
-        _run_in_parallel(output_tasks, worker_count, _ensure_output)
+    output_payloads.update(dict(_run_in_parallel(output_tasks, worker_count, _ensure_output)))
+    _json_dump(
+        run_root / "meta" / "output_sourcing.json",
+        {
+            "generated_at": _timestamp(),
+            "reaction_reuse_run_root": str(reaction_reuse_run_root) if reaction_reuse_run_root else "",
+            "fresh_task_count": len(output_tasks),
+            "fresh_tasks": [
+                {
+                    "segment_id": window.segment_id,
+                    "mechanism_key": mechanism_key,
+                }
+                for window, mechanism_key in output_tasks
+            ],
+            "reuse_decisions": reuse_decisions,
+            "output_modes": {
+                f"{segment_id}:{mechanism_key}": payload.get("run_mode")
+                for (segment_id, mechanism_key), payload in sorted(output_payloads.items())
+            },
+        },
     )
 
     memory_quality_tasks: list[tuple[ReadingWindow, dict[str, Any], dict[str, Any]]] = []
@@ -1040,10 +1275,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", type=int, default=1, help="Parallel workers for window reads and judge calls.")
     parser.add_argument("--output-attempts", type=int, default=DEFAULT_OUTPUT_ATTEMPTS)
     parser.add_argument("--output-retry-sleep-seconds", type=int, default=DEFAULT_OUTPUT_RETRY_SLEEP_SECONDS)
+    parser.add_argument(
+        "--reaction-reuse-run-root",
+        default=str(DEFAULT_REACTION_REUSE_RUN_ROOT),
+        help=(
+            "Completed active excerpt run root used as the default source for iterator_v1 reaction-audit outputs. "
+            "Pass an empty string to disable cross-run reuse."
+        ),
+    )
     args = parser.parse_args(argv)
 
     run_root = args.runs_root / args.run_id
     run_root.mkdir(parents=True, exist_ok=True)
+    reaction_reuse_run_root = Path(args.reaction_reuse_run_root) if str(args.reaction_reuse_run_root).strip() else None
     aggregate = run_long_span_vnext(
         run_root=run_root,
         manifest_path=args.manifest_path,
@@ -1053,6 +1297,7 @@ def main(argv: list[str] | None = None) -> int:
         workers=args.workers,
         output_attempts=args.output_attempts,
         output_retry_sleep_seconds=args.output_retry_sleep_seconds,
+        reaction_reuse_run_root=reaction_reuse_run_root,
     )
     print(json.dumps(aggregate, ensure_ascii=False, indent=2))
     return 0
