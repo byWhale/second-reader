@@ -42,7 +42,7 @@ Last verified: `2026-04-23T18:42:00+08:00`
       - run id:
         - `attentional_v2_long_span_vnext_phase1_20260423`
       - runner command:
-        - `./.venv/bin/python eval/attentional_v2/run_long_span_vnext.py --run-id attentional_v2_long_span_vnext_phase1_20260423 --workers 2 --judge-mode llm`
+        - `./.venv/bin/python eval/attentional_v2/run_long_span_vnext.py --run-id attentional_v2_long_span_vnext_phase1_20260423 --workers 4 --judge-mode llm --output-attempts 6 --output-retry-sleep-seconds 300`
       - expected outputs:
         - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_long_span_vnext_phase1_20260423/summary/aggregate.json`
         - `reading-companion-backend/eval/runs/attentional_v2/attentional_v2_long_span_vnext_phase1_20260423/summary/report.md`
